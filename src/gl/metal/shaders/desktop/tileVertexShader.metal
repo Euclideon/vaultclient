@@ -29,7 +29,7 @@ struct main0_in
     float3 in_var_POSITION [[attribute(0)]];
 };
 
-vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_EveryObject [[buffer(0)]], texture2d<float> texture1 [[texture(0)]], sampler sampler1 [[sampler(0)]])
+vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_EveryObject [[buffer(0)]], texture2d<float> demTexture [[texture(0)]], sampler demSampler [[sampler(0)]])
 {
     main0_out out = {};
     float2 _51 = in.in_var_POSITION.xy * 2.0;
@@ -44,7 +44,7 @@ vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_
     float _71 = fast::min(2.0, _55 + 1.0) * 3.0;
     int _73 = int(_71 + _53);
     float4 _82 = u_EveryObject.u_eyePositions[_64] + ((u_EveryObject.u_eyePositions[int(_62 + _57)] - u_EveryObject.u_eyePositions[_64]) * _60);
-    float4 _117 = u_EveryObject.u_projection * ((_82 + (((u_EveryObject.u_eyePositions[_73] + ((u_EveryObject.u_eyePositions[int(_71 + _57)] - u_EveryObject.u_eyePositions[_73]) * _60)) - _82) * (_54 - _55))) + ((u_EveryObject.u_view * float4(u_EveryObject.u_tileNormal.xyz * (texture1.sample(sampler1, (u_EveryObject.u_demUVOffsetScale.xy + (u_EveryObject.u_demUVOffsetScale.zw * in.in_var_POSITION.xy)), level(0.0)).x * 32768.0), 1.0)) - (u_EveryObject.u_view * float4(0.0, 0.0, 0.0, 1.0))));
+    float4 _117 = u_EveryObject.u_projection * ((_82 + (((u_EveryObject.u_eyePositions[_73] + ((u_EveryObject.u_eyePositions[int(_71 + _57)] - u_EveryObject.u_eyePositions[_73]) * _60)) - _82) * (_54 - _55))) + ((u_EveryObject.u_view * float4(u_EveryObject.u_tileNormal.xyz * (demTexture.sample(demSampler, (u_EveryObject.u_demUVOffsetScale.xy + (u_EveryObject.u_demUVOffsetScale.zw * in.in_var_POSITION.xy)), level(0.0)).x * 32768.0), 1.0)) - (u_EveryObject.u_view * float4(0.0, 0.0, 0.0, 1.0))));
     float2 _128 = _47;
     _128.x = 1.0 + _117.w;
     out.gl_Position = _117;

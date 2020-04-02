@@ -25,8 +25,8 @@ layout(std140) uniform type_u_fragParams
     vec4 u_contourParams;
 } u_fragParams;
 
-uniform sampler2D SPIRV_Cross_Combinedtexture0sampler0;
-uniform sampler2D SPIRV_Cross_Combinedtexture1sampler1;
+uniform sampler2D SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler;
+uniform sampler2D SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler;
 
 layout(location = 0) in vec4 in_var_TEXCOORD0;
 layout(location = 1) in vec2 in_var_TEXCOORD1;
@@ -38,8 +38,8 @@ layout(location = 0) out vec4 out_var_SV_Target;
 
 void main()
 {
-    vec4 _77 = texture(SPIRV_Cross_Combinedtexture0sampler0, in_var_TEXCOORD1);
-    vec4 _81 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD1);
+    vec4 _77 = texture(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, in_var_TEXCOORD1);
+    vec4 _81 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, in_var_TEXCOORD1);
     float _82 = _81.x;
     float _88 = u_cameraPlaneParams.s_CameraFarPlane / (u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane);
     float _91 = (u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane);
@@ -58,13 +58,13 @@ void main()
     if ((u_fragParams.u_outlineParams.x > 0.0) && (u_fragParams.u_outlineColour.w > 0.0))
     {
         vec4 _222 = vec4((in_var_TEXCOORD1.x * 2.0) - 1.0, (in_var_TEXCOORD1.y * 2.0) - 1.0, _105, 1.0) * u_fragParams.u_inverseProjection;
-        vec4 _227 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD2);
+        vec4 _227 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, in_var_TEXCOORD2);
         float _228 = _227.x;
-        vec4 _230 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD3);
+        vec4 _230 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, in_var_TEXCOORD3);
         float _231 = _230.x;
-        vec4 _233 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD4);
+        vec4 _233 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, in_var_TEXCOORD4);
         float _234 = _233.x;
-        vec4 _236 = texture(SPIRV_Cross_Combinedtexture1sampler1, in_var_TEXCOORD5);
+        vec4 _236 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, in_var_TEXCOORD5);
         float _237 = _236.x;
         vec4 _252 = vec4((in_var_TEXCOORD2.x * 2.0) - 1.0, (in_var_TEXCOORD2.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _228 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;
         vec4 _267 = vec4((in_var_TEXCOORD3.x * 2.0) - 1.0, (in_var_TEXCOORD3.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _231 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;

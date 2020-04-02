@@ -21,13 +21,13 @@ struct PS_OUTPUT
   float Depth0 : SV_Depth;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler albedoSampler;
+Texture2D albedoTexture;
 
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
-  float4 col = texture0.Sample(sampler0, input.uv);
+  float4 col = albedoTexture.Sample(albedoSampler, input.uv);
   float4 diffuseColour = col * input.colour;
 
   // some fixed lighting

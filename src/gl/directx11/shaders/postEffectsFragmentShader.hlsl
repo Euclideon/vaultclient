@@ -264,35 +264,35 @@ struct PS_OUTPUT
   float4 Color0 : SV_Target;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler sceneColourSampler;
+Texture2D sceneColourTexture;
 
-sampler sampler1;
-Texture2D texture1;
+sampler sceneDepthSampler;
+Texture2D sceneDepthTexture;
 
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
   float4 colour = float4(0.0, 0.0, 0.0, 0.0);
-  float depth = texture1.Sample(sampler1, input.uv).x;
+  float depth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
 
   // only run FXAA on edges (simple edge detection)
-  float depth0 = texture1.Sample(sampler1, input.edgeSampleUV0).x;
-  float depth1 = texture1.Sample(sampler1, input.edgeSampleUV1).x;
-  float depth2 = texture1.Sample(sampler1, input.edgeSampleUV2).x;
-  float depth3 = texture1.Sample(sampler1, input.edgeSampleUV3).x;
+  float depth0 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV0).x;
+  float depth1 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV1).x;
+  float depth2 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV2).x;
+  float depth3 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV3).x;
 
   const float edgeThreshold = 0.003;
   float isEdge = 1.0 - (step(abs(depth0 - depth), edgeThreshold) * step(abs(depth1 - depth), edgeThreshold) * step(abs(depth2 - depth), edgeThreshold) * step(abs(depth3 - depth), edgeThreshold));
   if (isEdge == 0.0)
   {
-    colour = texture0.Sample(sampler0, input.uv);
+    colour = sceneColourTexture.Sample(sceneColourSampler, input.uv);
   }
   else
   {
     FxaaTex samplerInfo;
-    samplerInfo.smpl = sampler0;
-    samplerInfo.tex = texture0;
+    samplerInfo.smpl = sceneColourSampler;
+    samplerInfo.tex = sceneColourTexture;
 
     colour = FxaaPixelShader(input.uv, float4(0, 0, 0, 0), samplerInfo, samplerInfo, samplerInfo, input.sampleStepSize,
                                    float4(0, 0, 0, 0), float4(0, 0, 0, 0), float4(0, 0, 0, 0),

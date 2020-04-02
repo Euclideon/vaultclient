@@ -52,11 +52,11 @@ inline Tx mod(Tx x, Ty y)
     return x - y * floor(x / y);
 }
 
-fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_fragParams& u_fragParams [[buffer(1)]], texture2d<float> texture0 [[texture(0)]], texture2d<float> texture1 [[texture(1)]], sampler sampler0 [[sampler(0)]], sampler sampler1 [[sampler(1)]])
+fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_fragParams& u_fragParams [[buffer(1)]], texture2d<float> sceneColourTexture [[texture(0)]], texture2d<float> sceneDepthTexture [[texture(1)]], sampler sceneColourSampler [[sampler(0)]], sampler sceneDepthSampler [[sampler(1)]])
 {
     main0_out out = {};
-    float4 _77 = texture0.sample(sampler0, in.in_var_TEXCOORD1);
-    float4 _81 = texture1.sample(sampler1, in.in_var_TEXCOORD1);
+    float4 _77 = sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD1);
+    float4 _81 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD1);
     float _82 = _81.x;
     float _88 = u_cameraPlaneParams.s_CameraFarPlane / (u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane);
     float _91 = (u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane);
@@ -75,13 +75,13 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
     if ((u_fragParams.u_outlineParams.x > 0.0) && (u_fragParams.u_outlineColour.w > 0.0))
     {
         float4 _222 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD1.x * 2.0) - 1.0, (in.in_var_TEXCOORD1.y * 2.0) - 1.0, _105, 1.0);
-        float4 _227 = texture1.sample(sampler1, in.in_var_TEXCOORD2);
+        float4 _227 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD2);
         float _228 = _227.x;
-        float4 _230 = texture1.sample(sampler1, in.in_var_TEXCOORD3);
+        float4 _230 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD3);
         float _231 = _230.x;
-        float4 _233 = texture1.sample(sampler1, in.in_var_TEXCOORD4);
+        float4 _233 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD4);
         float _234 = _233.x;
-        float4 _236 = texture1.sample(sampler1, in.in_var_TEXCOORD5);
+        float4 _236 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD5);
         float _237 = _236.x;
         float4 _252 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD2.x * 2.0) - 1.0, (in.in_var_TEXCOORD2.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _228 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0);
         float4 _267 = u_fragParams.u_inverseProjection * float4((in.in_var_TEXCOORD3.x * 2.0) - 1.0, (in.in_var_TEXCOORD3.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _231 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0);

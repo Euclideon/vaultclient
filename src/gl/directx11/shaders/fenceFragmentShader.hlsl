@@ -23,14 +23,14 @@ struct PS_OUTPUT
 };
 
 
-sampler sampler0;
-Texture2D texture0;
+sampler colourSampler;
+Texture2D colourTexture;
 
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
 
-  float4 texCol = texture0.Sample(sampler0, input.uv);
+  float4 texCol = colourTexture.Sample(colourSampler, input.uv);
   output.Color0 = float4(texCol.xyz * input.colour.xyz, texCol.w * input.colour.w);
 
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);

@@ -22,8 +22,8 @@ cbuffer u_params : register(b0)
   float4 u_idOverride;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler sceneColourSampler;
+Texture2D sceneColourTexture;
 
 bool floatEquals(float a, float b)
 {
@@ -33,7 +33,7 @@ bool floatEquals(float a, float b)
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
-  float4 col = texture0.Sample(sampler0, input.uv);
+  float4 col = sceneColourTexture.Sample(sceneColourSampler, input.uv);
 
   output.Color0 = float4(0.0, 0.0, 0.0, 0.0);
   if ((u_idOverride.w == 0.0 || floatEquals(u_idOverride.w, col.w)))

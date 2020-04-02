@@ -17,8 +17,8 @@ cbuffer u_EveryFrame : register(b0)
   float4x4 u_inverseViewProjection;
 };
 
-sampler sampler0;
-Texture2D u_texture;
+sampler albedoSampler;
+Texture2D albedoTexture;
 
 #define PI 3.14159265359
 
@@ -33,5 +33,5 @@ float4 main(PS_INPUT input) : SV_Target
   // work out 3D point
   float4 point3D = mul(u_inverseViewProjection, float4(input.clip.xy, 1.0, 1.0));
   point3D.xyz = normalize(point3D.xyz / point3D.w);
-  return u_texture.Sample(sampler0, directionToLatLong(point3D.xyz));
+  return albedoTexture.Sample(albedoSampler, directionToLatLong(point3D.xyz));
 }

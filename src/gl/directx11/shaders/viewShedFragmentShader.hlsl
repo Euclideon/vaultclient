@@ -18,11 +18,11 @@ struct PS_OUTPUT
   float4 Color0 : SV_Target;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler sceneDepthSampler;
+Texture2D sceneDepthTexture;
 
-sampler sampler1;
-Texture2D texture1;
+sampler shadowMapAtlasSampler;
+Texture2D shadowMapAtlasTexture;
 
 // Should match CPU
 #define MAP_COUNT 3
@@ -59,7 +59,7 @@ PS_OUTPUT main(PS_INPUT input)
   PS_OUTPUT output;
 
   float4 col = float4(0.0, 0.0, 0.0, 0.0);
-  float logDepth = texture0.Sample(sampler0, input.uv).x;
+  float logDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
   float clipZ = linearDepthToClipZ(logToLinearDepth(logDepth));
 
   float4 fragEyePosition = mul(u_inverseProjection, float4(input.clip.xy, clipZ, 1.0));
@@ -93,7 +93,7 @@ PS_OUTPUT main(PS_INPUT input)
   if (length(shadowUV.xyz) > 0.0 && (linearizeDepth(shadowUV.z) * s_CameraFarPlane) <= u_viewDistance.x)
   {
     // fragment is inside the view shed bounds
-    float shadowMapLogDepth = texture1.Sample(sampler1, shadowUV.xy).x;// log z
+    float shadowMapLogDepth = shadowMapAtlasTexture.Sample(shadowMapAtlasSampler, shadowUV.xy).x;// log z
 
     float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
     float logDepthSample = log2(1.0 + shadowUV.w) * halfFcoef;

@@ -23,15 +23,15 @@ struct main0_in
     float in_var_TEXCOORD6 [[user(locn6)]];
 };
 
-fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[texture(0)]], texture2d<float> texture1 [[texture(1)]], sampler sampler0 [[sampler(0)]], sampler sampler1 [[sampler(1)]])
+fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> sceneColourTexture [[texture(0)]], texture2d<float> sceneDepthTexture [[texture(1)]], sampler sceneColourSampler [[sampler(0)]], sampler sceneDepthSampler [[sampler(1)]])
 {
     main0_out out = {};
-    float4 _80 = texture1.sample(sampler1, in.in_var_TEXCOORD0);
+    float4 _80 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD0);
     float _81 = _80.x;
     float4 _535;
-    if ((1.0 - (((step(abs(texture1.sample(sampler1, in.in_var_TEXCOORD1).x - _81), 0.0030000000260770320892333984375) * step(abs(texture1.sample(sampler1, in.in_var_TEXCOORD2).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture1.sample(sampler1, in.in_var_TEXCOORD3).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture1.sample(sampler1, in.in_var_TEXCOORD4).x - _81), 0.0030000000260770320892333984375))) == 0.0)
+    if ((1.0 - (((step(abs(sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD1).x - _81), 0.0030000000260770320892333984375) * step(abs(sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD2).x - _81), 0.0030000000260770320892333984375)) * step(abs(sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD3).x - _81), 0.0030000000260770320892333984375)) * step(abs(sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD4).x - _81), 0.0030000000260770320892333984375))) == 0.0)
     {
-        _535 = texture0.sample(sampler0, in.in_var_TEXCOORD0);
+        _535 = sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD0);
     }
     else
     {
@@ -44,14 +44,14 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                 _123.x = in.in_var_TEXCOORD0.x;
                 float2 _125 = _123;
                 _125.y = in.in_var_TEXCOORD0.y;
-                float4 _127 = texture0.sample(sampler0, _125, level(0.0));
-                float4 _129 = texture0.sample(sampler0, _125, level(0.0), int2(0, 1));
+                float4 _127 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0));
+                float4 _129 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(0, 1));
                 float _130 = _129.y;
-                float4 _132 = texture0.sample(sampler0, _125, level(0.0), int2(1, 0));
+                float4 _132 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(1, 0));
                 float _133 = _132.y;
-                float4 _135 = texture0.sample(sampler0, _125, level(0.0), int2(0, -1));
+                float4 _135 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(0, -1));
                 float _136 = _135.y;
-                float4 _138 = texture0.sample(sampler0, _125, level(0.0), int2(-1, 0));
+                float4 _138 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(-1, 0));
                 float _139 = _138.y;
                 float _140 = _127.y;
                 float _147 = fast::max(fast::max(_136, _139), fast::max(_133, fast::max(_130, _140)));
@@ -61,13 +61,13 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                     _534 = _127;
                     break;
                 }
-                float4 _156 = texture0.sample(sampler0, _125, level(0.0), int2(-1));
+                float4 _156 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(-1));
                 float _157 = _156.y;
-                float4 _159 = texture0.sample(sampler0, _125, level(0.0), int2(1));
+                float4 _159 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(1));
                 float _160 = _159.y;
-                float4 _162 = texture0.sample(sampler0, _125, level(0.0), int2(1, -1));
+                float4 _162 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(1, -1));
                 float _163 = _162.y;
-                float4 _165 = texture0.sample(sampler0, _125, level(0.0), int2(-1, 1));
+                float4 _165 = sceneColourTexture.sample(sceneColourSampler, _125, level(0.0), int2(-1, 1));
                 float _166 = _165.y;
                 float _167 = _136 + _130;
                 float _168 = _139 + _133;
@@ -138,8 +138,8 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                 float _265 = ((!_218) ? (_205 + _140) : (_204 + _140)) * 0.5;
                 float _267 = (((-2.0) * _226) + 3.0) * (_226 * _226);
                 bool _268 = (_140 - _265) < 0.0;
-                float _269 = texture0.sample(sampler0, _248, level(0.0)).y - _265;
-                float _270 = texture0.sample(sampler0, _252, level(0.0)).y - _265;
+                float _269 = sceneColourTexture.sample(sceneColourSampler, _248, level(0.0)).y - _265;
+                float _270 = sceneColourTexture.sample(sceneColourSampler, _252, level(0.0)).y - _265;
                 bool _275 = !(abs(_269) >= _264);
                 float2 _281;
                 if (_275)
@@ -195,7 +195,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                     float _311;
                     if (_275)
                     {
-                        _311 = texture0.sample(sampler0, _288, level(0.0)).y;
+                        _311 = sceneColourTexture.sample(sceneColourSampler, _288, level(0.0)).y;
                     }
                     else
                     {
@@ -204,7 +204,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                     float _317;
                     if (_289)
                     {
-                        _317 = texture0.sample(sampler0, _303, level(0.0)).y;
+                        _317 = sceneColourTexture.sample(sceneColourSampler, _303, level(0.0)).y;
                     }
                     else
                     {
@@ -283,7 +283,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                         float _368;
                         if (_330)
                         {
-                            _368 = texture0.sample(sampler0, _344, level(0.0)).y;
+                            _368 = sceneColourTexture.sample(sceneColourSampler, _344, level(0.0)).y;
                         }
                         else
                         {
@@ -292,7 +292,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                         float _374;
                         if (_345)
                         {
-                            _374 = texture0.sample(sampler0, _360, level(0.0)).y;
+                            _374 = sceneColourTexture.sample(sceneColourSampler, _360, level(0.0)).y;
                         }
                         else
                         {
@@ -371,7 +371,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                             float _425;
                             if (_387)
                             {
-                                _425 = texture0.sample(sampler0, _401, level(0.0)).y;
+                                _425 = sceneColourTexture.sample(sceneColourSampler, _401, level(0.0)).y;
                             }
                             else
                             {
@@ -380,7 +380,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                             float _431;
                             if (_402)
                             {
-                                _431 = texture0.sample(sampler0, _417, level(0.0)).y;
+                                _431 = sceneColourTexture.sample(sceneColourSampler, _417, level(0.0)).y;
                             }
                             else
                             {
@@ -527,7 +527,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[t
                 {
                     _527 = _520;
                 }
-                _534 = float4(texture0.sample(sampler0, _527, level(0.0)).xyz, _66);
+                _534 = float4(sceneColourTexture.sample(sceneColourSampler, _527, level(0.0)).xyz, _66);
                 break;
             }
         }

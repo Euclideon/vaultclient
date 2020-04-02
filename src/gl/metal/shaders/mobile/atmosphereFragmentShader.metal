@@ -35,7 +35,7 @@ struct main0_in
     float3 in_var_TEXCOORD1 [[user(locn1)]];
 };
 
-fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_fragParams& u_fragParams [[buffer(1)]], texture2d<float> transmittance_textureTexture [[texture(0)]], texture3d<float> scattering_textureTexture [[texture(1)]], texture2d<float> irradiance_textureTexture [[texture(2)]], texture2d<float> sceneColourTexture [[texture(3)]], texture2d<float> sceneDepthTexture [[texture(4)]], sampler transmittance_textureSampler [[sampler(0)]], sampler scattering_textureSampler [[sampler(1)]], sampler irradiance_textureSampler [[sampler(2)]], sampler sceneColourSampler [[sampler(3)]], sampler sceneDepthSampler [[sampler(4)]])
+fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_fragParams& u_fragParams [[buffer(1)]], texture2d<float> transmittanceTexture [[texture(0)]], texture3d<float> scatteringTexture [[texture(1)]], texture2d<float> irradianceTexture [[texture(2)]], texture2d<float> sceneColourTexture [[texture(3)]], texture2d<float> sceneDepthTexture [[texture(4)]], sampler transmittanceSampler [[sampler(0)]], sampler scatteringSampler [[sampler(1)]], sampler irradianceSampler [[sampler(2)]], sampler sceneColourSampler [[sampler(3)]], sampler sceneDepthSampler [[sampler(4)]])
 {
     main0_out out = {};
     float _111 = u_fragParams.u_earthCenter.w + 60000.0;
@@ -55,7 +55,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         float _172 = length(_168);
         float _174 = dot(_168, u_fragParams.u_sunDirection.xyz) / _172;
         float _176 = _111 - u_fragParams.u_earthCenter.w;
-        float4 _187 = irradiance_textureTexture.sample(irradiance_textureSampler, float2(0.0078125 + (((_174 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_172 - u_fragParams.u_earthCenter.w) / _176) * 0.9375)));
+        float4 _187 = irradianceTexture.sample(irradianceSampler, float2(0.0078125 + (((_174 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_172 - u_fragParams.u_earthCenter.w) / _176) * 0.9375)));
         float _194 = u_fragParams.u_earthCenter.w / _172;
         float _200 = _111 * _111;
         float _201 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
@@ -63,7 +63,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         float _204 = _172 * _172;
         float _207 = sqrt(fast::max(_204 - _201, 0.0));
         float _218 = _111 - _172;
-        float4 _231 = transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_172) * _174) + sqrt(fast::max((_204 * ((_174 * _174) - 1.0)) + _200, 0.0)), 0.0) - _218) / ((_207 + _203) - _218)) * 0.99609375), 0.0078125 + ((_207 / _203) * 0.984375)));
+        float4 _231 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_172) * _174) + sqrt(fast::max((_204 * ((_174 * _174) - 1.0)) + _200, 0.0)), 0.0) - _218) / ((_207 + _203) - _218)) * 0.99609375), 0.0078125 + ((_207 / _203) * 0.984375)));
         float3 _248 = normalize(_168 - _153);
         float _249 = length(_153);
         float _250 = dot(_153, _248);
@@ -108,7 +108,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
                     float _379 = -_267;
                     float _382 = sqrt(fast::max(_274 - _201, 0.0));
                     float _393 = _111 - _266;
-                    _409 = fast::min(transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_289) * _350) + sqrt(fast::max((_351 * ((_350 * _350) - 1.0)) + _200, 0.0)), 0.0) - _365) / ((_354 + _203) - _365)) * 0.99609375), 0.0078125 + ((_354 / _203) * 0.984375))).xyz / transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_266) * _379) + sqrt(fast::max((_274 * ((_379 * _379) - 1.0)) + _200, 0.0)), 0.0) - _393) / ((_382 + _203) - _393)) * 0.99609375), 0.0078125 + ((_382 / _203) * 0.984375))).xyz, float3(1.0));
+                    _409 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_289) * _350) + sqrt(fast::max((_351 * ((_350 * _350) - 1.0)) + _200, 0.0)), 0.0) - _365) / ((_354 + _203) - _365)) * 0.99609375), 0.0078125 + ((_354 / _203) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_266) * _379) + sqrt(fast::max((_274 * ((_379 * _379) - 1.0)) + _200, 0.0)), 0.0) - _393) / ((_382 + _203) - _393)) * 0.99609375), 0.0078125 + ((_382 / _203) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
                 else
@@ -118,7 +118,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
                     float _320 = _289 * _289;
                     float _323 = sqrt(fast::max(_320 - _201, 0.0));
                     float _334 = _111 - _289;
-                    _409 = fast::min(transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_266) * _267) + sqrt(fast::max(_277 + _200, 0.0)), 0.0) - _306) / ((_298 + _203) - _306)) * 0.99609375), 0.0078125 + ((_298 / _203) * 0.984375))).xyz / transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_289) * _292) + sqrt(fast::max((_320 * ((_292 * _292) - 1.0)) + _200, 0.0)), 0.0) - _334) / ((_323 + _203) - _334)) * 0.99609375), 0.0078125 + ((_323 / _203) * 0.984375))).xyz, float3(1.0));
+                    _409 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_266) * _267) + sqrt(fast::max(_277 + _200, 0.0)), 0.0) - _306) / ((_298 + _203) - _306)) * 0.99609375), 0.0078125 + ((_298 / _203) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_289) * _292) + sqrt(fast::max((_320 * ((_292 * _292) - 1.0)) + _200, 0.0)), 0.0) - _334) / ((_323 + _203) - _334)) * 0.99609375), 0.0078125 + ((_323 / _203) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
             }
@@ -146,9 +146,9 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         float _476 = floor(_475);
         float _477 = _475 - _476;
         float _481 = _476 + 1.0;
-        float4 _487 = scattering_textureTexture.sample(scattering_textureSampler, float3((_476 + _473) * 0.125, _451, _415));
+        float4 _487 = scatteringTexture.sample(scatteringSampler, float3((_476 + _473) * 0.125, _451, _415));
         float _488 = 1.0 - _477;
-        float4 _491 = scattering_textureTexture.sample(scattering_textureSampler, float3((_481 + _473) * 0.125, _451, _415));
+        float4 _491 = scatteringTexture.sample(scatteringSampler, float3((_481 + _473) * 0.125, _451, _415));
         float4 _493 = (_487 * _488) + (_491 * _477);
         float3 _494 = _493.xyz;
         float3 _507;
@@ -187,8 +187,8 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         }
         float _571 = (fast::max((_456 * _517) + sqrt(fast::max((_201 * ((_517 * _517) - 1.0)) + _200, 0.0)), 0.0) - _176) / _463;
         float _578 = 0.015625 + ((fast::max(1.0 - (_571 / _466), 0.0) / (1.0 + _571)) * 0.96875);
-        float4 _586 = scattering_textureTexture.sample(scattering_textureSampler, float3((_476 + _578) * 0.125, _560, _524));
-        float4 _589 = scattering_textureTexture.sample(scattering_textureSampler, float3((_481 + _578) * 0.125, _560, _524));
+        float4 _586 = scatteringTexture.sample(scatteringSampler, float3((_476 + _578) * 0.125, _560, _524));
+        float4 _589 = scatteringTexture.sample(scatteringSampler, float3((_481 + _578) * 0.125, _560, _524));
         float4 _591 = (_586 * _488) + (_589 * _477);
         float3 _592 = _591.xyz;
         float3 _605;
@@ -245,14 +245,14 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         float _662 = length(_658);
         float _664 = dot(_658, u_fragParams.u_sunDirection.xyz) / _662;
         float _666 = _111 - u_fragParams.u_earthCenter.w;
-        float4 _677 = irradiance_textureTexture.sample(irradiance_textureSampler, float2(0.0078125 + (((_664 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_662 - u_fragParams.u_earthCenter.w) / _666) * 0.9375)));
+        float4 _677 = irradianceTexture.sample(irradianceSampler, float2(0.0078125 + (((_664 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_662 - u_fragParams.u_earthCenter.w) / _666) * 0.9375)));
         float _684 = u_fragParams.u_earthCenter.w / _662;
         float _690 = _111 * _111;
         float _692 = sqrt(_690 - _649);
         float _693 = _662 * _662;
         float _696 = sqrt(fast::max(_693 - _649, 0.0));
         float _707 = _111 - _662;
-        float4 _720 = transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_662) * _664) + sqrt(fast::max((_693 * ((_664 * _664) - 1.0)) + _690, 0.0)), 0.0) - _707) / ((_696 + _692) - _707)) * 0.99609375), 0.0078125 + ((_696 / _692) * 0.984375)));
+        float4 _720 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_662) * _664) + sqrt(fast::max((_693 * ((_664 * _664) - 1.0)) + _690, 0.0)), 0.0) - _707) / ((_696 + _692) - _707)) * 0.99609375), 0.0078125 + ((_696 / _692) * 0.984375)));
         float _737 = fast::max(0.0, fast::min(0.0, _652)) * smoothstep(0.0199999995529651641845703125, 0.039999999105930328369140625, dot(normalize(_153), u_fragParams.u_sunDirection.xyz));
         float3 _740 = normalize(_658 - _153);
         float _741 = length(_153);
@@ -298,7 +298,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
                     float _871 = -_759;
                     float _874 = sqrt(fast::max(_766 - _649, 0.0));
                     float _885 = _111 - _758;
-                    _901 = fast::min(transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_781) * _842) + sqrt(fast::max((_843 * ((_842 * _842) - 1.0)) + _690, 0.0)), 0.0) - _857) / ((_846 + _692) - _857)) * 0.99609375), 0.0078125 + ((_846 / _692) * 0.984375))).xyz / transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_758) * _871) + sqrt(fast::max((_766 * ((_871 * _871) - 1.0)) + _690, 0.0)), 0.0) - _885) / ((_874 + _692) - _885)) * 0.99609375), 0.0078125 + ((_874 / _692) * 0.984375))).xyz, float3(1.0));
+                    _901 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_781) * _842) + sqrt(fast::max((_843 * ((_842 * _842) - 1.0)) + _690, 0.0)), 0.0) - _857) / ((_846 + _692) - _857)) * 0.99609375), 0.0078125 + ((_846 / _692) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_758) * _871) + sqrt(fast::max((_766 * ((_871 * _871) - 1.0)) + _690, 0.0)), 0.0) - _885) / ((_874 + _692) - _885)) * 0.99609375), 0.0078125 + ((_874 / _692) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
                 else
@@ -308,7 +308,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
                     float _812 = _781 * _781;
                     float _815 = sqrt(fast::max(_812 - _649, 0.0));
                     float _826 = _111 - _781;
-                    _901 = fast::min(transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_758) * _759) + sqrt(fast::max(_769 + _690, 0.0)), 0.0) - _798) / ((_790 + _692) - _798)) * 0.99609375), 0.0078125 + ((_790 / _692) * 0.984375))).xyz / transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_781) * _784) + sqrt(fast::max((_812 * ((_784 * _784) - 1.0)) + _690, 0.0)), 0.0) - _826) / ((_815 + _692) - _826)) * 0.99609375), 0.0078125 + ((_815 / _692) * 0.984375))).xyz, float3(1.0));
+                    _901 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_758) * _759) + sqrt(fast::max(_769 + _690, 0.0)), 0.0) - _798) / ((_790 + _692) - _798)) * 0.99609375), 0.0078125 + ((_790 / _692) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_781) * _784) + sqrt(fast::max((_812 * ((_784 * _784) - 1.0)) + _690, 0.0)), 0.0) - _826) / ((_815 + _692) - _826)) * 0.99609375), 0.0078125 + ((_815 / _692) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
             }
@@ -337,9 +337,9 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         float _968 = floor(_967);
         float _969 = _967 - _968;
         float _973 = _968 + 1.0;
-        float4 _979 = scattering_textureTexture.sample(scattering_textureSampler, float3((_968 + _965) * 0.125, _943, _907));
+        float4 _979 = scatteringTexture.sample(scatteringSampler, float3((_968 + _965) * 0.125, _943, _907));
         float _980 = 1.0 - _969;
-        float4 _983 = scattering_textureTexture.sample(scattering_textureSampler, float3((_973 + _965) * 0.125, _943, _907));
+        float4 _983 = scatteringTexture.sample(scatteringSampler, float3((_973 + _965) * 0.125, _943, _907));
         float4 _985 = (_979 * _980) + (_983 * _969);
         float3 _986 = _985.xyz;
         float3 _999;
@@ -379,8 +379,8 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         }
         float _1064 = (fast::max((_948 * _1010) + sqrt(fast::max((_649 * ((_1010 * _1010) - 1.0)) + _690, 0.0)), 0.0) - _666) / _955;
         float _1071 = 0.015625 + ((fast::max(1.0 - (_1064 / _958), 0.0) / (1.0 + _1064)) * 0.96875);
-        float4 _1079 = scattering_textureTexture.sample(scattering_textureSampler, float3((_968 + _1071) * 0.125, _1053, _1017));
-        float4 _1082 = scattering_textureTexture.sample(scattering_textureSampler, float3((_973 + _1071) * 0.125, _1053, _1017));
+        float4 _1079 = scatteringTexture.sample(scatteringSampler, float3((_968 + _1071) * 0.125, _1053, _1017));
+        float4 _1082 = scatteringTexture.sample(scatteringSampler, float3((_973 + _1071) * 0.125, _1053, _1017));
         float4 _1084 = (_1079 * _980) + (_1082 * _969);
         float3 _1085 = _1084.xyz;
         float3 _1098;
@@ -413,14 +413,14 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
                         float _1165 = _111 - _1006;
                         float _1178 = -_759;
                         float _1189 = _111 - _758;
-                        _1204 = fast::min(transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_1006) * _1154) + sqrt(fast::max((_1011 * ((_1154 * _1154) - 1.0)) + _690, 0.0)), 0.0) - _1165) / ((_1014 + _692) - _1165)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz / transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_758) * _1178) + sqrt(fast::max((_766 * ((_1178 * _1178) - 1.0)) + _690, 0.0)), 0.0) - _1189) / ((_904 + _692) - _1189)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz, float3(1.0));
+                        _1204 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_1006) * _1154) + sqrt(fast::max((_1011 * ((_1154 * _1154) - 1.0)) + _690, 0.0)), 0.0) - _1165) / ((_1014 + _692) - _1165)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_758) * _1178) + sqrt(fast::max((_766 * ((_1178 * _1178) - 1.0)) + _690, 0.0)), 0.0) - _1189) / ((_904 + _692) - _1189)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz, float3(1.0));
                         break;
                     }
                     else
                     {
                         float _1116 = _111 - _758;
                         float _1139 = _111 - _1006;
-                        _1204 = fast::min(transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_758) * _759) + sqrt(fast::max(_769 + _690, 0.0)), 0.0) - _1116) / ((_904 + _692) - _1116)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz / transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_1006) * _1105) + sqrt(fast::max((_1011 * ((_1105 * _1105) - 1.0)) + _690, 0.0)), 0.0) - _1139) / ((_1014 + _692) - _1139)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz, float3(1.0));
+                        _1204 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_758) * _759) + sqrt(fast::max(_769 + _690, 0.0)), 0.0) - _1116) / ((_904 + _692) - _1116)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_1006) * _1105) + sqrt(fast::max((_1011 * ((_1105 * _1105) - 1.0)) + _690, 0.0)), 0.0) - _1139) / ((_1014 + _692) - _1139)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz, float3(1.0));
                         break;
                     }
                 }
@@ -496,7 +496,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
             float _1292 = _111 - _1267;
             float _1295 = (_1284 + _1281) - _1292;
             float _1297 = _1284 / _1281;
-            float4 _1305 = transmittance_textureTexture.sample(transmittance_textureSampler, float2(0.001953125 + (((fast::max(((-_1267) * _1268) + sqrt(fast::max(_1276 + _1251, 0.0)), 0.0) - _1292) / _1295) * 0.99609375), 0.0078125 + (_1297 * 0.984375)));
+            float4 _1305 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_1267) * _1268) + sqrt(fast::max(_1276 + _1251, 0.0)), 0.0) - _1292) / _1295) * 0.99609375), 0.0078125 + (_1297 * 0.984375)));
             float _1310 = 0.015625 + (_1297 * 0.96875);
             float _1313 = ((_1266 * _1266) - _1273) + _649;
             float _1343;
@@ -516,8 +516,8 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
             float _1368 = (_1271 + 1.0) * 3.5;
             float _1369 = floor(_1368);
             float _1370 = _1368 - _1369;
-            float4 _1380 = scattering_textureTexture.sample(scattering_textureSampler, float3((_1369 + _1366) * 0.125, _1343, _1310));
-            float4 _1384 = scattering_textureTexture.sample(scattering_textureSampler, float3(((_1369 + 1.0) + _1366) * 0.125, _1343, _1310));
+            float4 _1380 = scatteringTexture.sample(scatteringSampler, float3((_1369 + _1366) * 0.125, _1343, _1310));
+            float4 _1384 = scatteringTexture.sample(scatteringSampler, float3(((_1369 + 1.0) + _1366) * 0.125, _1343, _1310));
             float4 _1386 = (_1380 * (1.0 - _1370)) + (_1384 * _1370);
             float3 _1387 = _1386.xyz;
             float3 _1400;

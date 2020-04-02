@@ -18,18 +18,18 @@ struct PS_OUTPUT
   float Depth0 : SV_Depth;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler sceneColourSampler;
+Texture2D sceneColourTexture;
 
-sampler sampler1;
-Texture2D texture1;
+sampler sceneDepthSampler;
+Texture2D sceneDepthTexture;
 
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
 
-  float4 col = texture0.Sample(sampler0, input.uv);
-  float depth = texture1.Sample(sampler1, input.uv).x;
+  float4 col = sceneColourTexture.Sample(sceneColourSampler, input.uv);
+  float depth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
 
   output.Color0 = float4(col.zyx, 1.0);// UD always opaque, UD is BGRA but uploaded as RGBA
   output.Depth0 = depth;

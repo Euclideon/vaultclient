@@ -31,10 +31,10 @@ float2 directionToLatLong(float3 dir)
   return longlat / float2(2.0 * PI, PI);
 }
 
-sampler sampler0;
-Texture2D u_normalMap;
-sampler sampler1;
-Texture2D u_skybox;
+sampler normalMapSampler;
+Texture2D normalMapTexture;
+sampler skyboxSampler;
+Texture2D skyboxTexture;
 
 struct PS_OUTPUT
 {
@@ -48,8 +48,8 @@ PS_OUTPUT main(PS_INPUT input)
   
   float3 specularDir = normalize(u_specularDir.xyz);
 
-  float3 normal0 = u_normalMap.Sample(sampler0, input.uv0).xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
-  float3 normal1 = u_normalMap.Sample(sampler0, input.uv1).xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
+  float3 normal0 = normalMapTexture.Sample(normalMapSampler, input.uv0).xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
+  float3 normal1 = normalMapTexture.Sample(normalMapSampler, input.uv1).xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
   float3 normal = normalize((normal0.xyz + normal1.xyz));
 
   float3 eyeToFrag = normalize(input.fragEyePos.xyz);
@@ -71,7 +71,7 @@ PS_OUTPUT main(PS_INPUT input)
 
   // reflection
   float4 worldFragPos = mul(u_inverseViewMatrix, float4(eyeReflectionDir, 0.0));
-  float4 skybox = u_skybox.Sample(sampler1, directionToLatLong(normalize(worldFragPos.xyz)));
+  float4 skybox = skyboxTexture.Sample(skyboxSampler, directionToLatLong(normalize(worldFragPos.xyz)));
   float3 reflectionColour = skybox.xyz;
 
   float3 finalColour = lerp(reflectionColour, refractionColour, fresnel * 0.75) + float3(specular, specular, specular);
