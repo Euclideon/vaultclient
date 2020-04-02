@@ -71,7 +71,6 @@ struct vcUDRenderContext
     vcShader *pProgram;
     vcShaderConstantBuffer *uniform_params;
     vcShaderSampler *uniform_texture;
-    vcShaderSampler *uniform_depth;
 
     struct
     {
@@ -315,7 +314,6 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->udRenderContext.splatIdShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.splatIdShader.uniform_params, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.splatIdShader.params)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_depth, pRenderContext->udRenderContext.splatIdShader.pProgram, "sceneDepth"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_texture, pRenderContext->udRenderContext.splatIdShader.pProgram, "sceneColour"), udR_InternalError);
 
   UD_ERROR_IF(!vcShader_Bind(pRenderContext->postEffectsShader.pProgram), udR_InternalError);

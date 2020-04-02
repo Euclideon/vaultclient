@@ -239,7 +239,7 @@ bool vcShader_GetSamplerIndex(vcShaderSampler **ppSampler, vcShader *pShader, co
   GLuint uID = glGetUniformLocation(pShader->programID, udTempStr("SPIRV_Cross_Combined%sTexture%sSampler", pSamplerName, pSamplerName));
 
   if (uID == GL_INVALID_INDEX)
-    return true;
+    return false;
 
   vcShaderSampler *pSampler = &pShader->samplerIndexes[pShader->numSamplerIndexes];
   pShader->numSamplerIndexes++;
