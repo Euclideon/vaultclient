@@ -836,6 +836,10 @@ Modules are currently:
 - `bindingsSave`: Key binding description displayed next to Save binding
 - `bindingsLoad`: Key binding description displayed next to Load binding
 - `bindingsUndo`: Key binding description displayed next to Undo binding
+- `bindingsToggleSelectTool`: Key to toggle the line measurement tool
+- `bindingsToggleMeasureLineTool`: Key to toggle the line measurement tool
+- `bindingsToggleMeasureAreaTool`: Key to toggle the area measurement tool,
+- `bindingsToggleInspectionTool`: Key to toggle the inspection tool,
 
 ##### Errors
 - `errorUnknown`: An unexpected error occurred.

@@ -42,7 +42,6 @@ namespace vcHotkey
     "BindingsInterface",
     "TakeScreenshot",
     "ToggleSceneExplorer",
-
     "ToggleSelectTool",
     "ToggleMeasureLineTool",
     "ToggleMeasureAreaTool",

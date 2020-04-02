@@ -630,7 +630,11 @@
   "bindingsSave": "Key to trigger save action.",
   "bindingsLoad": "Key to trigger load or open action.",
   "bindingsUndo": "Key to trigger undo action",
+  "bindingsToggleSelectTool": "Key to toggle the selection tool",
   "bindingsToggleSceneExplorer": "Key to show/hide scene explorer",
+  "bindingsToggleMeasureLineTool": "Key to toggle the line measurement tool",
+  "bindingsToggleMeasureAreaTool": "Key to toggle the area measurement tool",
+  "bindingsToggleInspectionTool": "Key to toggle the inspection tool",
 
   "errorUnknown": "An unexpected error occurred.",
   "errorCorruptData": "Corrupt data.",
