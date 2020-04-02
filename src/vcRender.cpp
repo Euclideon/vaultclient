@@ -721,6 +721,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     udDouble3 cameraToZeroAltitude = localCamPos - cameraZeroAltitude;
     double cameraDistanceToAltitudeZero = udMag3(cameraToZeroAltitude);
 
+    //This might be difficult to do now that tiles are height-mapped.
     // TODO: Fix this
     // determine if camera is 'inside' the ground
     //udDouble3 zoneRoot = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::zero());

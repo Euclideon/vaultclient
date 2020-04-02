@@ -1064,9 +1064,10 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
   udDouble4x4 viewWithMapTranslation = view * udDouble4x4::translation(0, 0, pTileRenderer->pSettings->maptiles.mapHeight);
 
-  vcGLStateCullMode cullMode = vcGLSCM_Back;
-  if (cameraInsideGround)
-    cullMode = vcGLSCM_Front;
+  udUnused(cameraInsideGround);
+  vcGLStateCullMode cullMode = vcGLSCM_None;
+  //if (cameraInsideGround)
+  //  cullMode = vcGLSCM_Front;
 
   vcGLState_SetFaceMode(vcGLSFM_Solid, cullMode);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
