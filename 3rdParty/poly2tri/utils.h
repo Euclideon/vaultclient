@@ -38,7 +38,7 @@
 #include "shapes.h"
 
 #include <cmath>
-#include <exception>
+//#include <exception>
 
 // C99 removes M_PI from math.h
 #ifndef M_PI

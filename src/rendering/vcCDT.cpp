@@ -34,10 +34,9 @@
  */
 #include "vcCDT.h"
 #include "poly2tri.h"
+#include "udNew.h"
 
-void FindBound(const udDouble3 *pPoints, size_t pointNum
-  , double &oMinX, double &oMinY
-  , double &oMaxX, double &oMaxY)
+void vcCDT_FindBound(const udDouble3 *pPoints, size_t pointNum, double &oMinX, double &oMinY, double &oMaxX, double &oMaxY)
 {
   oMinX = pPoints[0].x;
   oMinY = pPoints[0].y;
@@ -53,73 +52,64 @@ void FindBound(const udDouble3 *pPoints, size_t pointNum
   }
 }
 
-bool vcCDT_ProcessOrignal(const udDouble3 *pWaterPoints, size_t pointNum,
-  const std::vector< std::pair<const udDouble3 *, size_t> > &islandPoints
-  , udDouble2 &oMin
-  , udDouble2 &oMax
-  , std::vector<udDouble2> *pResult)
+bool vcCDT_ProcessOrignal(const udDouble3 *pWaterPoints, size_t pointNum, const std::vector< std::pair<const udDouble3 *, size_t> > &islandPoints, udDouble2 &oMin, udDouble2 &oMax, std::vector<udDouble2> *pResult)
 {
+  udResult result;
+
   if (pointNum < 3)
     return false;
 
+  p2t::CDT *pCDT = nullptr;
+  std::vector<p2t::Point *> polyline;
+  std::vector< std::vector<p2t::Point *> > vps;
+  std::vector<p2t::Triangle *> triangles;
   udDouble2 origin = pWaterPoints[0].toVector2();
+
   oMin = udDouble2::zero();
   oMax = udDouble2::zero();
-  FindBound(pWaterPoints, pointNum, oMin.x, oMin.y, oMax.x, oMax.y);
+  vcCDT_FindBound(pWaterPoints, pointNum, oMin.x, oMin.y, oMax.x, oMax.y);
   oMin -= origin;
   oMax -= origin;
 
-  p2t::CDT *cdt = nullptr;
-  std::vector<p2t::Point *> polyline;
-  std::vector<p2t::Triangle *> triangles;  
-  std::vector< std::vector<p2t::Point *> > vps;
-
   for (size_t i = 0; i < pointNum; i++)
-  {
-    polyline.push_back(new p2t::Point(pWaterPoints[i].x, pWaterPoints[i].y));
-  }
+    polyline.push_back(udNew(p2t::Point, pWaterPoints[i].x, pWaterPoints[i].y));
 
-  cdt = new p2t::CDT(polyline);
+  pCDT = udNew(p2t::CDT, polyline);
+  UD_ERROR_NULL(pCDT, udR_MemoryAllocationFailure);
 
-  for (auto island : islandPoints)
+  for (std::pair<const udDouble3*, size_t> island : islandPoints)
   {
     std::vector<p2t::Point *> vp;
-    // 'island.second - 1' because I've assumed point list is a closed loop (last node matches first)
+    // don't process last element because I've assumed point list is a closed loop (last node matches first)
     for (size_t i= 0; i < island.second - 1; i ++)
     {
       const udDouble2& p = island.first[i].toVector2();
-      vp.push_back(new p2t::Point(p.x, p.y));
+      vp.push_back(udNew(p2t::Point, p.x, p.y));
     }
-    cdt->AddHole(vp);
-
+    pCDT->AddHole(vp);
     vps.push_back(vp);
   }
 
-  cdt->Triangulate();
-  triangles = cdt->GetTriangles();
-
-  for (auto tri : triangles)
+  pCDT->Triangulate();
+  triangles = pCDT->GetTriangles();
+  for (p2t::Triangle* pTriangle : triangles)
   {
-    pResult->push_back(udDouble2::create(tri->GetPoint(1)->x, tri->GetPoint(1)->y) - origin);
-    pResult->push_back(udDouble2::create(tri->GetPoint(2)->x, tri->GetPoint(2)->y) - origin);
-    pResult->push_back(udDouble2::create(tri->GetPoint(0)->x, tri->GetPoint(0)->y) - origin);
+    pResult->push_back(udDouble2::create(pTriangle->GetPoint(1)->x, pTriangle->GetPoint(1)->y) - origin);
+    pResult->push_back(udDouble2::create(pTriangle->GetPoint(2)->x, pTriangle->GetPoint(2)->y) - origin);
+    pResult->push_back(udDouble2::create(pTriangle->GetPoint(0)->x, pTriangle->GetPoint(0)->y) - origin);
   }
 
-  delete cdt;  
+  result = udR_Success;
+epilogue:
 
-  for (auto p : polyline)
-    delete p;
-  polyline.clear();
-
-  triangles.clear();
-
-  for (auto vp : vps)
+  udDelete(pCDT);
+  for (p2t::Point *pPoint : polyline)
+    udDelete(pPoint);
+  for (std::vector<p2t::Point *> vp : vps)
   {
-    for (auto p : vp)
-      delete p;
-    vp.clear();
+    for (p2t::Point *pPoint : vp)
+      udDelete(pPoint);
   }
-  vps.clear();  
 
-  return true;
+  return result == udR_Success;
 }

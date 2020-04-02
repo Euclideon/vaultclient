@@ -31,18 +31,13 @@
 #include "shapes.h"
 
 #include <cassert>
-#include <iostream>
 
 namespace p2t {
-
-std::ostream& operator<<(std::ostream& out, const Point& point) {
-  return out << point.x << "," << point.y;
-}
 
 Triangle::Triangle(Point& a, Point& b, Point& c)
 {
   points_[0] = &a; points_[1] = &b; points_[2] = &c;
-  neighbors_[0] = NULL; neighbors_[1] = NULL; neighbors_[2] = NULL;
+  neighbors_[0] = nullptr; neighbors_[1] = nullptr; neighbors_[2] = nullptr;
   constrained_edge[0] = constrained_edge[1] = constrained_edge[2] = false;
   delaunay_edge[0] = delaunay_edge[1] = delaunay_edge[2] = false;
   interior_ = false;
@@ -85,36 +80,36 @@ void Triangle::Clear()
     for( int i=0; i<3; i++ )
     {
         t = neighbors_[i];
-        if( t != NULL )
+        if( t != nullptr)
         {
             t->ClearNeighbor( this );
         }
     }
     ClearNeighbors();
-    points_[0]=points_[1]=points_[2] = NULL;
+    points_[0]=points_[1]=points_[2] = nullptr;
 }
 
 void Triangle::ClearNeighbor(const Triangle *triangle )
 {
     if( neighbors_[0] == triangle )
     {
-        neighbors_[0] = NULL;
+        neighbors_[0] = nullptr;
     }
     else if( neighbors_[1] == triangle )
     {
-        neighbors_[1] = NULL;
+        neighbors_[1] = nullptr;
     }
     else
     {
-        neighbors_[2] = NULL;
+        neighbors_[2] = nullptr;
     }
 }
 
 void Triangle::ClearNeighbors()
 {
-  neighbors_[0] = NULL;
-  neighbors_[1] = NULL;
-  neighbors_[2] = NULL;
+  neighbors_[0] = nullptr;
+  neighbors_[1] = nullptr;
+  neighbors_[2] = nullptr;
 }
 
 void Triangle::ClearDelunayEdges()
@@ -226,7 +221,7 @@ Point* Triangle::PointCW(const Point& point)
     return points_[1];
   }
   assert(0);
-  return NULL;
+  return nullptr;
 }
 
 // The point counter-clockwise to given point
@@ -240,7 +235,7 @@ Point* Triangle::PointCCW(const Point& point)
     return points_[0];
   }
   assert(0);
-  return NULL;
+  return nullptr;
 }
 
 // The neighbor clockwise to given point
@@ -362,7 +357,7 @@ Triangle& Triangle::NeighborAcross(const Point& opoint)
 
 void Triangle::DebugPrint()
 {
-  std::cout << *points_[0] << " " << *points_[1] << " " << *points_[2] << std::endl;
+  //std::cout << *points_[0] << " " << *points_[1] << " " << *points_[2] << std::endl;
 }
 
 bool Triangle::CircumcicleContains(const Point& point) const

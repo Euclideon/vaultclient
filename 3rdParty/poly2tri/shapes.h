@@ -34,8 +34,7 @@
 #define SHAPES_H
 
 #include <cmath>
-#include <cstddef>
-#include <stdexcept>
+#include <stddef.h>
 #include <vector>
 
 namespace p2t {
@@ -119,7 +118,7 @@ struct Point {
 
 };
 
-std::ostream& operator<<(std::ostream&, const Point&);
+//std::ostream& operator<<(std::ostream&, const Point&);
 
 // Represents a simple polygon's edge
 struct Edge {

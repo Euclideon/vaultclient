@@ -39,10 +39,6 @@
 #include <vector>
 
 //Constrained Delaunay Triangulation
-bool vcCDT_ProcessOrignal(const udDouble3 *pWaterPoints, size_t pointNum,
-  const std::vector< std::pair<const udDouble3 *, size_t> > &islandPoints
-  , udDouble2 &oMin
-  , udDouble2 &oMax
-  , std::vector<udDouble2> *pResult);
+bool vcCDT_ProcessOrignal(const udDouble3 *pWaterPoints, size_t pointNum, const std::vector< std::pair<const udDouble3 *, size_t> > &islandPoints, udDouble2 &oMin, udDouble2 &oMax, std::vector<udDouble2> *pResult);
 
 #endif
