@@ -20,6 +20,8 @@
 
 // TODO: This is a temporary solution, where we know the dem data stops at level 13.
 #define HACK_DEM_LEVEL 13
+const char *pDemTileServerAddress = "https://az.vault.euclideon.com/dem/%d/%d/%d.png";
+udUUID demTileServerAddresUUID = {};
 
 enum
 {
@@ -288,12 +290,21 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         // do DEM request
         pBestNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Failed;
 
-        char demFileName[vcMaxPathLength] = {};
-        udSprintf(demFileName, "https://az.vault.euclideon.com/dem/%d/%d/%d.png", pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        // TODO: This is a duplication of above. This could be combined - but given time constraints I don't want to last minute change it.
+        udSprintf(localFileName, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(serverAddress, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         udReleaseMutex(pMutexCopy);
         pMutexCopy = nullptr;
 
-        if (udFile_Load(demFileName, &pFileData, &fileLen) == udR_Success)
+        // check to see if local cache contains file
+        char *pTileURL = localFileName;
+        if (udFileExists(pTileURL) != udR_Success)
+        {
+          pTileURL = serverAddress;
+          downloadingFromServer = true;
+        }
+
+        if (udFile_Load(pTileURL, &pFileData, &fileLen) == udR_Success)
         {
           pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
           if (pData != nullptr)
@@ -306,7 +317,6 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
             pBestNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Downloaded;
           }
 
-          udFree(pFileData);
           pData = nullptr;
         }
 
@@ -611,6 +621,8 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
 
   pTileRenderer = udAllocType(vcTileRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pTileRenderer, udR_MemoryAllocationFailure);
+
+  UD_ERROR_CHECK(udUUID_GenerateFromString(&demTileServerAddresUUID, pDemTileServerAddress));
 
   vcQuadTree_Create(&pTileRenderer->quadTree, pSettings);
 
