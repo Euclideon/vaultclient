@@ -31,10 +31,10 @@ struct main0_in
     float2 in_var_TEXCOORD1 [[user(locn1)]];
 };
 
-fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_params& u_params [[buffer(1)]], texture2d<float> texture0 [[texture(0)]], texture2d<float> texture1 [[texture(1)]], sampler sampler0 [[sampler(0)]], sampler sampler1 [[sampler(1)]])
+fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_params& u_params [[buffer(1)]], texture2d<float> sceneDepthTexture [[texture(0)]], texture2d<float> shadowMapAtlasTexture [[texture(1)]], sampler sceneDepthSampler [[sampler(0)]], sampler shadowMapAtlasSampler [[sampler(1)]])
 {
     main0_out out = {};
-    float4 _61 = texture0.sample(sampler0, in.in_var_TEXCOORD1);
+    float4 _61 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD1);
     float _67 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
     float _73 = log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0);
     float4 _91 = u_params.u_inverseProjection * float4(in.in_var_TEXCOORD0.xy, (((u_cameraPlaneParams.s_CameraFarPlane / _67) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _61.x * _73) - 1.0))) * (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear)) + u_cameraPlaneParams.u_clipZNear, 1.0);
@@ -61,7 +61,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
     float4 _225;
     if ((length(_187.xyz) > 0.0) && ((((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (_187.z * _67))) * u_cameraPlaneParams.s_CameraFarPlane) <= u_params.u_viewDistance.x))
     {
-        _225 = mix(u_params.u_visibleColour, u_params.u_notVisibleColour, float4(fast::clamp((3.9999998989515006542205810546875e-05 * u_cameraPlaneParams.s_CameraFarPlane) * ((log2(1.0 + _187.w) * (1.0 / _73)) - texture1.sample(sampler1, _187.xy).x), 0.0, 1.0)));
+        _225 = mix(u_params.u_visibleColour, u_params.u_notVisibleColour, float4(fast::clamp((3.9999998989515006542205810546875e-05 * u_cameraPlaneParams.s_CameraFarPlane) * ((log2(1.0 + _187.w) * (1.0 / _73)) - shadowMapAtlasTexture.sample(shadowMapAtlasSampler, _187.xy).x), 0.0, 1.0)));
     }
     else
     {

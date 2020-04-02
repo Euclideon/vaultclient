@@ -18,10 +18,10 @@ struct main0_in
     float2 in_var_TEXCOORD0 [[user(locn0)]];
 };
 
-fragment main0_out main0(main0_in in [[stage_in]], constant type_u_params& u_params [[buffer(0)]], texture2d<float> texture0 [[texture(0)]], sampler sampler0 [[sampler(0)]])
+fragment main0_out main0(main0_in in [[stage_in]], constant type_u_params& u_params [[buffer(0)]], texture2d<float> sceneColourTexture [[texture(0)]], sampler sceneColourSampler [[sampler(0)]])
 {
     main0_out out = {};
-    float4 _38 = texture0.sample(sampler0, in.in_var_TEXCOORD0);
+    float4 _38 = sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD0);
     float _42 = _38.w;
     float4 _50;
     if ((u_params.u_idOverride.w == 0.0) || (abs(u_params.u_idOverride.w - _42) <= 0.00150000001303851604461669921875))

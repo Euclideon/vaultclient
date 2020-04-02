@@ -14,10 +14,10 @@ struct main0_in
     float2 in_var_TEXCOORD0 [[user(locn1)]];
 };
 
-fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> texture0 [[texture(0)]], sampler sampler0 [[sampler(0)]])
+fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> TextureTexture [[texture(0)]], sampler TextureSampler [[sampler(0)]])
 {
     main0_out out = {};
-    out.out_var_SV_Target = in.in_var_COLOR0 * texture0.sample(sampler0, in.in_var_TEXCOORD0);
+    out.out_var_SV_Target = in.in_var_COLOR0 * TextureTexture.sample(TextureSampler, in.in_var_TEXCOORD0);
     return out;
 }
 

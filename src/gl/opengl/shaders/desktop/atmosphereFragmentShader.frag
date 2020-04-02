@@ -21,9 +21,9 @@ layout(std140) uniform type_u_fragParams
 
 uniform sampler2D SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler;
 uniform sampler2D SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler;
-uniform sampler2D SPIRV_Cross_Combinedirradiance_textureTextureirradiance_textureSampler;
-uniform sampler2D SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler;
-uniform sampler3D SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler;
+uniform sampler2D SPIRV_Cross_CombinedirradianceTextureirradianceSampler;
+uniform sampler2D SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler;
+uniform sampler3D SPIRV_Cross_CombinedscatteringTexturescatteringSampler;
 
 layout(location = 0) in vec2 in_var_TEXCOORD0;
 layout(location = 1) in vec3 in_var_TEXCOORD1;
@@ -50,7 +50,7 @@ void main()
         float _172 = length(_168);
         float _174 = dot(_168, u_fragParams.u_sunDirection.xyz) / _172;
         float _176 = _111 - u_fragParams.u_earthCenter.w;
-        vec4 _187 = texture(SPIRV_Cross_Combinedirradiance_textureTextureirradiance_textureSampler, vec2(0.0078125 + (((_174 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_172 - u_fragParams.u_earthCenter.w) / _176) * 0.9375)));
+        vec4 _187 = texture(SPIRV_Cross_CombinedirradianceTextureirradianceSampler, vec2(0.0078125 + (((_174 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_172 - u_fragParams.u_earthCenter.w) / _176) * 0.9375)));
         float _194 = u_fragParams.u_earthCenter.w / _172;
         float _200 = _111 * _111;
         float _201 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
@@ -58,7 +58,7 @@ void main()
         float _204 = _172 * _172;
         float _207 = sqrt(max(_204 - _201, 0.0));
         float _218 = _111 - _172;
-        vec4 _231 = texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_172) * _174) + sqrt(max((_204 * ((_174 * _174) - 1.0)) + _200, 0.0)), 0.0) - _218) / ((_207 + _203) - _218)) * 0.99609375), 0.0078125 + ((_207 / _203) * 0.984375)));
+        vec4 _231 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_172) * _174) + sqrt(max((_204 * ((_174 * _174) - 1.0)) + _200, 0.0)), 0.0) - _218) / ((_207 + _203) - _218)) * 0.99609375), 0.0078125 + ((_207 / _203) * 0.984375)));
         vec3 _248 = normalize(_168 - _153);
         float _249 = length(_153);
         float _250 = dot(_153, _248);
@@ -103,7 +103,7 @@ void main()
                     float _379 = -_267;
                     float _382 = sqrt(max(_274 - _201, 0.0));
                     float _393 = _111 - _266;
-                    _409 = min(texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_289) * _350) + sqrt(max((_351 * ((_350 * _350) - 1.0)) + _200, 0.0)), 0.0) - _365) / ((_354 + _203) - _365)) * 0.99609375), 0.0078125 + ((_354 / _203) * 0.984375))).xyz / texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_266) * _379) + sqrt(max((_274 * ((_379 * _379) - 1.0)) + _200, 0.0)), 0.0) - _393) / ((_382 + _203) - _393)) * 0.99609375), 0.0078125 + ((_382 / _203) * 0.984375))).xyz, vec3(1.0));
+                    _409 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_289) * _350) + sqrt(max((_351 * ((_350 * _350) - 1.0)) + _200, 0.0)), 0.0) - _365) / ((_354 + _203) - _365)) * 0.99609375), 0.0078125 + ((_354 / _203) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_266) * _379) + sqrt(max((_274 * ((_379 * _379) - 1.0)) + _200, 0.0)), 0.0) - _393) / ((_382 + _203) - _393)) * 0.99609375), 0.0078125 + ((_382 / _203) * 0.984375))).xyz, vec3(1.0));
                     break;
                 }
                 else
@@ -113,7 +113,7 @@ void main()
                     float _320 = _289 * _289;
                     float _323 = sqrt(max(_320 - _201, 0.0));
                     float _334 = _111 - _289;
-                    _409 = min(texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_266) * _267) + sqrt(max(_277 + _200, 0.0)), 0.0) - _306) / ((_298 + _203) - _306)) * 0.99609375), 0.0078125 + ((_298 / _203) * 0.984375))).xyz / texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_289) * _292) + sqrt(max((_320 * ((_292 * _292) - 1.0)) + _200, 0.0)), 0.0) - _334) / ((_323 + _203) - _334)) * 0.99609375), 0.0078125 + ((_323 / _203) * 0.984375))).xyz, vec3(1.0));
+                    _409 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_266) * _267) + sqrt(max(_277 + _200, 0.0)), 0.0) - _306) / ((_298 + _203) - _306)) * 0.99609375), 0.0078125 + ((_298 / _203) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_289) * _292) + sqrt(max((_320 * ((_292 * _292) - 1.0)) + _200, 0.0)), 0.0) - _334) / ((_323 + _203) - _334)) * 0.99609375), 0.0078125 + ((_323 / _203) * 0.984375))).xyz, vec3(1.0));
                     break;
                 }
             }
@@ -141,9 +141,9 @@ void main()
         float _476 = floor(_475);
         float _477 = _475 - _476;
         float _481 = _476 + 1.0;
-        vec4 _487 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_476 + _473) * 0.125, _451, _415));
+        vec4 _487 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_476 + _473) * 0.125, _451, _415));
         float _488 = 1.0 - _477;
-        vec4 _491 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_481 + _473) * 0.125, _451, _415));
+        vec4 _491 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_481 + _473) * 0.125, _451, _415));
         vec4 _493 = (_487 * _488) + (_491 * _477);
         vec3 _494 = _493.xyz;
         vec3 _507;
@@ -182,8 +182,8 @@ void main()
         }
         float _571 = (max((_456 * _517) + sqrt(max((_201 * ((_517 * _517) - 1.0)) + _200, 0.0)), 0.0) - _176) / _463;
         float _578 = 0.015625 + ((max(1.0 - (_571 / _466), 0.0) / (1.0 + _571)) * 0.96875);
-        vec4 _586 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_476 + _578) * 0.125, _560, _524));
-        vec4 _589 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_481 + _578) * 0.125, _560, _524));
+        vec4 _586 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_476 + _578) * 0.125, _560, _524));
+        vec4 _589 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_481 + _578) * 0.125, _560, _524));
         vec4 _591 = (_586 * _488) + (_589 * _477);
         vec3 _592 = _591.xyz;
         vec3 _605;
@@ -240,14 +240,14 @@ void main()
         float _662 = length(_658);
         float _664 = dot(_658, u_fragParams.u_sunDirection.xyz) / _662;
         float _666 = _111 - u_fragParams.u_earthCenter.w;
-        vec4 _677 = texture(SPIRV_Cross_Combinedirradiance_textureTextureirradiance_textureSampler, vec2(0.0078125 + (((_664 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_662 - u_fragParams.u_earthCenter.w) / _666) * 0.9375)));
+        vec4 _677 = texture(SPIRV_Cross_CombinedirradianceTextureirradianceSampler, vec2(0.0078125 + (((_664 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_662 - u_fragParams.u_earthCenter.w) / _666) * 0.9375)));
         float _684 = u_fragParams.u_earthCenter.w / _662;
         float _690 = _111 * _111;
         float _692 = sqrt(_690 - _649);
         float _693 = _662 * _662;
         float _696 = sqrt(max(_693 - _649, 0.0));
         float _707 = _111 - _662;
-        vec4 _720 = texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_662) * _664) + sqrt(max((_693 * ((_664 * _664) - 1.0)) + _690, 0.0)), 0.0) - _707) / ((_696 + _692) - _707)) * 0.99609375), 0.0078125 + ((_696 / _692) * 0.984375)));
+        vec4 _720 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_662) * _664) + sqrt(max((_693 * ((_664 * _664) - 1.0)) + _690, 0.0)), 0.0) - _707) / ((_696 + _692) - _707)) * 0.99609375), 0.0078125 + ((_696 / _692) * 0.984375)));
         float _737 = max(0.0, min(0.0, _652)) * smoothstep(0.0199999995529651641845703125, 0.039999999105930328369140625, dot(normalize(_153), u_fragParams.u_sunDirection.xyz));
         vec3 _740 = normalize(_658 - _153);
         float _741 = length(_153);
@@ -293,7 +293,7 @@ void main()
                     float _871 = -_759;
                     float _874 = sqrt(max(_766 - _649, 0.0));
                     float _885 = _111 - _758;
-                    _901 = min(texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_781) * _842) + sqrt(max((_843 * ((_842 * _842) - 1.0)) + _690, 0.0)), 0.0) - _857) / ((_846 + _692) - _857)) * 0.99609375), 0.0078125 + ((_846 / _692) * 0.984375))).xyz / texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_758) * _871) + sqrt(max((_766 * ((_871 * _871) - 1.0)) + _690, 0.0)), 0.0) - _885) / ((_874 + _692) - _885)) * 0.99609375), 0.0078125 + ((_874 / _692) * 0.984375))).xyz, vec3(1.0));
+                    _901 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_781) * _842) + sqrt(max((_843 * ((_842 * _842) - 1.0)) + _690, 0.0)), 0.0) - _857) / ((_846 + _692) - _857)) * 0.99609375), 0.0078125 + ((_846 / _692) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _871) + sqrt(max((_766 * ((_871 * _871) - 1.0)) + _690, 0.0)), 0.0) - _885) / ((_874 + _692) - _885)) * 0.99609375), 0.0078125 + ((_874 / _692) * 0.984375))).xyz, vec3(1.0));
                     break;
                 }
                 else
@@ -303,7 +303,7 @@ void main()
                     float _812 = _781 * _781;
                     float _815 = sqrt(max(_812 - _649, 0.0));
                     float _826 = _111 - _781;
-                    _901 = min(texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_758) * _759) + sqrt(max(_769 + _690, 0.0)), 0.0) - _798) / ((_790 + _692) - _798)) * 0.99609375), 0.0078125 + ((_790 / _692) * 0.984375))).xyz / texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_781) * _784) + sqrt(max((_812 * ((_784 * _784) - 1.0)) + _690, 0.0)), 0.0) - _826) / ((_815 + _692) - _826)) * 0.99609375), 0.0078125 + ((_815 / _692) * 0.984375))).xyz, vec3(1.0));
+                    _901 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _759) + sqrt(max(_769 + _690, 0.0)), 0.0) - _798) / ((_790 + _692) - _798)) * 0.99609375), 0.0078125 + ((_790 / _692) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_781) * _784) + sqrt(max((_812 * ((_784 * _784) - 1.0)) + _690, 0.0)), 0.0) - _826) / ((_815 + _692) - _826)) * 0.99609375), 0.0078125 + ((_815 / _692) * 0.984375))).xyz, vec3(1.0));
                     break;
                 }
             }
@@ -332,9 +332,9 @@ void main()
         float _968 = floor(_967);
         float _969 = _967 - _968;
         float _973 = _968 + 1.0;
-        vec4 _979 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_968 + _965) * 0.125, _943, _907));
+        vec4 _979 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_968 + _965) * 0.125, _943, _907));
         float _980 = 1.0 - _969;
-        vec4 _983 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_973 + _965) * 0.125, _943, _907));
+        vec4 _983 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_973 + _965) * 0.125, _943, _907));
         vec4 _985 = (_979 * _980) + (_983 * _969);
         vec3 _986 = _985.xyz;
         vec3 _999;
@@ -374,8 +374,8 @@ void main()
         }
         float _1064 = (max((_948 * _1010) + sqrt(max((_649 * ((_1010 * _1010) - 1.0)) + _690, 0.0)), 0.0) - _666) / _955;
         float _1071 = 0.015625 + ((max(1.0 - (_1064 / _958), 0.0) / (1.0 + _1064)) * 0.96875);
-        vec4 _1079 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_968 + _1071) * 0.125, _1053, _1017));
-        vec4 _1082 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_973 + _1071) * 0.125, _1053, _1017));
+        vec4 _1079 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_968 + _1071) * 0.125, _1053, _1017));
+        vec4 _1082 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_973 + _1071) * 0.125, _1053, _1017));
         vec4 _1084 = (_1079 * _980) + (_1082 * _969);
         vec3 _1085 = _1084.xyz;
         vec3 _1098;
@@ -408,14 +408,14 @@ void main()
                         float _1165 = _111 - _1006;
                         float _1178 = -_759;
                         float _1189 = _111 - _758;
-                        _1204 = min(texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_1006) * _1154) + sqrt(max((_1011 * ((_1154 * _1154) - 1.0)) + _690, 0.0)), 0.0) - _1165) / ((_1014 + _692) - _1165)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz / texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_758) * _1178) + sqrt(max((_766 * ((_1178 * _1178) - 1.0)) + _690, 0.0)), 0.0) - _1189) / ((_904 + _692) - _1189)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz, vec3(1.0));
+                        _1204 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_1006) * _1154) + sqrt(max((_1011 * ((_1154 * _1154) - 1.0)) + _690, 0.0)), 0.0) - _1165) / ((_1014 + _692) - _1165)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _1178) + sqrt(max((_766 * ((_1178 * _1178) - 1.0)) + _690, 0.0)), 0.0) - _1189) / ((_904 + _692) - _1189)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz, vec3(1.0));
                         break;
                     }
                     else
                     {
                         float _1116 = _111 - _758;
                         float _1139 = _111 - _1006;
-                        _1204 = min(texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_758) * _759) + sqrt(max(_769 + _690, 0.0)), 0.0) - _1116) / ((_904 + _692) - _1116)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz / texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_1006) * _1105) + sqrt(max((_1011 * ((_1105 * _1105) - 1.0)) + _690, 0.0)), 0.0) - _1139) / ((_1014 + _692) - _1139)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz, vec3(1.0));
+                        _1204 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _759) + sqrt(max(_769 + _690, 0.0)), 0.0) - _1116) / ((_904 + _692) - _1116)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_1006) * _1105) + sqrt(max((_1011 * ((_1105 * _1105) - 1.0)) + _690, 0.0)), 0.0) - _1139) / ((_1014 + _692) - _1139)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz, vec3(1.0));
                         break;
                     }
                 }
@@ -491,7 +491,7 @@ void main()
             float _1292 = _111 - _1267;
             float _1295 = (_1284 + _1281) - _1292;
             float _1297 = _1284 / _1281;
-            vec4 _1305 = texture(SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler, vec2(0.001953125 + (((max(((-_1267) * _1268) + sqrt(max(_1276 + _1251, 0.0)), 0.0) - _1292) / _1295) * 0.99609375), 0.0078125 + (_1297 * 0.984375)));
+            vec4 _1305 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_1267) * _1268) + sqrt(max(_1276 + _1251, 0.0)), 0.0) - _1292) / _1295) * 0.99609375), 0.0078125 + (_1297 * 0.984375)));
             vec3 _1306 = _1305.xyz;
             bvec3 _1307 = bvec3(_1279);
             float _1310 = 0.015625 + (_1297 * 0.96875);
@@ -513,8 +513,8 @@ void main()
             float _1368 = (_1271 + 1.0) * 3.5;
             float _1369 = floor(_1368);
             float _1370 = _1368 - _1369;
-            vec4 _1380 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3((_1369 + _1366) * 0.125, _1343, _1310));
-            vec4 _1384 = texture(SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler, vec3(((_1369 + 1.0) + _1366) * 0.125, _1343, _1310));
+            vec4 _1380 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_1369 + _1366) * 0.125, _1343, _1310));
+            vec4 _1384 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3(((_1369 + 1.0) + _1366) * 0.125, _1343, _1310));
             vec4 _1386 = (_1380 * (1.0 - _1370)) + (_1384 * _1370);
             vec3 _1387 = _1386.xyz;
             vec3 _1400;

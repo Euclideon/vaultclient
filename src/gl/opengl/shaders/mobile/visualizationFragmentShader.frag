@@ -26,8 +26,8 @@ layout(std140) uniform type_u_fragParams
     highp vec4 u_contourParams;
 } u_fragParams;
 
-uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
-uniform highp sampler2D SPIRV_Cross_Combinedtexture1sampler1;
+uniform highp sampler2D SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler;
+uniform highp sampler2D SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler;
 
 in highp vec4 varying_TEXCOORD0;
 in highp vec2 varying_TEXCOORD1;
@@ -39,8 +39,8 @@ layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-    highp vec4 _77 = texture(SPIRV_Cross_Combinedtexture0sampler0, varying_TEXCOORD1);
-    highp vec4 _81 = texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD1);
+    highp vec4 _77 = texture(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, varying_TEXCOORD1);
+    highp vec4 _81 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD1);
     highp float _82 = _81.x;
     highp float _88 = u_cameraPlaneParams.s_CameraFarPlane / (u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane);
     highp float _91 = (u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane);
@@ -59,13 +59,13 @@ void main()
     if ((u_fragParams.u_outlineParams.x > 0.0) && (u_fragParams.u_outlineColour.w > 0.0))
     {
         highp vec4 _222 = vec4((varying_TEXCOORD1.x * 2.0) - 1.0, (varying_TEXCOORD1.y * 2.0) - 1.0, _105, 1.0) * u_fragParams.u_inverseProjection;
-        highp vec4 _227 = texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD2);
+        highp vec4 _227 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD2);
         highp float _228 = _227.x;
-        highp vec4 _230 = texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD3);
+        highp vec4 _230 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD3);
         highp float _231 = _230.x;
-        highp vec4 _233 = texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD4);
+        highp vec4 _233 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD4);
         highp float _234 = _233.x;
-        highp vec4 _236 = texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD5);
+        highp vec4 _236 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD5);
         highp float _237 = _236.x;
         highp vec4 _252 = vec4((varying_TEXCOORD2.x * 2.0) - 1.0, (varying_TEXCOORD2.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _228 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;
         highp vec4 _267 = vec4((varying_TEXCOORD3.x * 2.0) - 1.0, (varying_TEXCOORD3.y * 2.0) - 1.0, ((_88 + (_91 / (pow(2.0, _231 * _93) - 1.0))) * _103) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_fragParams.u_inverseProjection;

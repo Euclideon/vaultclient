@@ -126,7 +126,7 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
 
   UD_ERROR_IF(!vcShader_CreateFromFile(&pFenceRenderer->renderShader.pProgram, "asset://assets/shaders/fenceVertexShader", "asset://assets/shaders/fenceFragmentShader", vcP3UV2RI4VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pFenceRenderer->renderShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pFenceRenderer->renderShader.uniform_texture, pFenceRenderer->renderShader.pProgram, "u_texture"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pFenceRenderer->renderShader.uniform_texture, pFenceRenderer->renderShader.pProgram, "colour"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyFrame, pFenceRenderer->renderShader.pProgram, "u_EveryFrame", sizeof(pFenceRenderer->renderShader.everyFrameParams)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyObject, pFenceRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pFenceRenderer->renderShader.everyObjectParams)), udR_InternalError);
 

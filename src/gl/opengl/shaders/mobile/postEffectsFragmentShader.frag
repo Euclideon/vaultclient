@@ -2,8 +2,8 @@
 precision mediump float;
 precision highp int;
 
-uniform highp sampler2D SPIRV_Cross_Combinedtexture1sampler1;
-uniform highp sampler2D SPIRV_Cross_Combinedtexture0sampler0;
+uniform highp sampler2D SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler;
+uniform highp sampler2D SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler;
 
 in highp vec2 varying_TEXCOORD0;
 in highp vec2 varying_TEXCOORD1;
@@ -20,12 +20,12 @@ vec2 _68;
 
 void main()
 {
-    highp vec4 _80 = texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD0);
+    highp vec4 _80 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD0);
     highp float _81 = _80.x;
     highp vec4 _535;
-    if ((1.0 - (((step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD1).x - _81), 0.0030000000260770320892333984375) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD2).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD3).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_Combinedtexture1sampler1, varying_TEXCOORD4).x - _81), 0.0030000000260770320892333984375))) == 0.0)
+    if ((1.0 - (((step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD1).x - _81), 0.0030000000260770320892333984375) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD2).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD3).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD4).x - _81), 0.0030000000260770320892333984375))) == 0.0)
     {
-        _535 = texture(SPIRV_Cross_Combinedtexture0sampler0, varying_TEXCOORD0);
+        _535 = texture(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, varying_TEXCOORD0);
     }
     else
     {
@@ -38,14 +38,14 @@ void main()
                 _123.x = varying_TEXCOORD0.x;
                 highp vec2 _125 = _123;
                 _125.y = varying_TEXCOORD0.y;
-                highp vec4 _127 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0);
-                highp vec4 _129 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(0, 1));
+                highp vec4 _127 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0);
+                highp vec4 _129 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(0, 1));
                 highp float _130 = _129.y;
-                highp vec4 _132 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(1, 0));
+                highp vec4 _132 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(1, 0));
                 highp float _133 = _132.y;
-                highp vec4 _135 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(0, -1));
+                highp vec4 _135 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(0, -1));
                 highp float _136 = _135.y;
-                highp vec4 _138 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(-1, 0));
+                highp vec4 _138 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(-1, 0));
                 highp float _139 = _138.y;
                 highp float _140 = _127.y;
                 highp float _147 = max(max(_136, _139), max(_133, max(_130, _140)));
@@ -55,13 +55,13 @@ void main()
                     _534 = _127;
                     break;
                 }
-                highp vec4 _156 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(-1));
+                highp vec4 _156 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(-1));
                 highp float _157 = _156.y;
-                highp vec4 _159 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(1));
+                highp vec4 _159 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(1));
                 highp float _160 = _159.y;
-                highp vec4 _162 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(1, -1));
+                highp vec4 _162 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(1, -1));
                 highp float _163 = _162.y;
-                highp vec4 _165 = textureLodOffset(SPIRV_Cross_Combinedtexture0sampler0, _125, 0.0, ivec2(-1, 1));
+                highp vec4 _165 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(-1, 1));
                 highp float _166 = _165.y;
                 highp float _167 = _136 + _130;
                 highp float _168 = _139 + _133;
@@ -132,8 +132,8 @@ void main()
                 highp float _265 = ((!_218) ? (_205 + _140) : (_204 + _140)) * 0.5;
                 highp float _267 = (((-2.0) * _226) + 3.0) * (_226 * _226);
                 bool _268 = (_140 - _265) < 0.0;
-                highp float _269 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _248, 0.0).y - _265;
-                highp float _270 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _252, 0.0).y - _265;
+                highp float _269 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _248, 0.0).y - _265;
+                highp float _270 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _252, 0.0).y - _265;
                 bool _275 = !(abs(_269) >= _264);
                 highp vec2 _281;
                 if (_275)
@@ -189,7 +189,7 @@ void main()
                     highp float _311;
                     if (_275)
                     {
-                        _311 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _288, 0.0).y;
+                        _311 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _288, 0.0).y;
                     }
                     else
                     {
@@ -198,7 +198,7 @@ void main()
                     highp float _317;
                     if (_289)
                     {
-                        _317 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _303, 0.0).y;
+                        _317 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _303, 0.0).y;
                     }
                     else
                     {
@@ -277,7 +277,7 @@ void main()
                         highp float _368;
                         if (_330)
                         {
-                            _368 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _344, 0.0).y;
+                            _368 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _344, 0.0).y;
                         }
                         else
                         {
@@ -286,7 +286,7 @@ void main()
                         highp float _374;
                         if (_345)
                         {
-                            _374 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _360, 0.0).y;
+                            _374 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _360, 0.0).y;
                         }
                         else
                         {
@@ -365,7 +365,7 @@ void main()
                             highp float _425;
                             if (_387)
                             {
-                                _425 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _401, 0.0).y;
+                                _425 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _401, 0.0).y;
                             }
                             else
                             {
@@ -374,7 +374,7 @@ void main()
                             highp float _431;
                             if (_402)
                             {
-                                _431 = textureLod(SPIRV_Cross_Combinedtexture0sampler0, _417, 0.0).y;
+                                _431 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _417, 0.0).y;
                             }
                             else
                             {
@@ -521,7 +521,7 @@ void main()
                 {
                     _527 = _520;
                 }
-                _534 = vec4(textureLod(SPIRV_Cross_Combinedtexture0sampler0, _527, 0.0).xyz, _66);
+                _534 = vec4(textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _527, 0.0).xyz, _66);
                 break;
             }
         }

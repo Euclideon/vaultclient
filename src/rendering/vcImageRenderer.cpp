@@ -43,7 +43,7 @@ udResult vcImageRenderer_Init()
   for (size_t i = 0; i < udLengthOf(gShaders); ++i)
   {
     UD_ERROR_IF(!vcShader_GetConstantBuffer(&gShaders[i].pEveryObjectConstantBuffer, gShaders[i].pShader, "u_EveryObject", sizeof(gShaders[i].everyObject)), udR_InternalError);
-    UD_ERROR_IF(!vcShader_GetSamplerIndex(&gShaders[i].pDiffuseSampler, gShaders[i].pShader, "u_texture"), udR_InternalError);
+    UD_ERROR_IF(!vcShader_GetSamplerIndex(&gShaders[i].pDiffuseSampler, gShaders[i].pShader, "albedo"), udR_InternalError);
   }
 
   result = udR_Success;

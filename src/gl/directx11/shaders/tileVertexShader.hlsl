@@ -33,8 +33,8 @@ cbuffer u_EveryObject : register(b0)
   float4 u_tileNormal;
 };
 
-sampler sampler1;
-Texture2D texture1;
+sampler demSampler;
+Texture2D demTexture;
 
 // this could be used instead instead of writing to depth directly,
 // for highly tesselated geometry (hopefully tiles in the future)
@@ -72,7 +72,7 @@ PS_INPUT main(VS_INPUT input)
   }
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
-  float tileHeight = texture1.SampleLevel( sampler1, demUV, 0 ).x * 32768.0;
+  float tileHeight = demTexture.SampleLevel( demSampler, demUV, 0 ).x * 32768.0;
   float3 heightOffset = u_tileNormal.xyz * tileHeight;
   float4 h = mul(u_view, float4(heightOffset, 1.0));
   float4 baseH = mul(u_view, float4(0, 0, 0, 1.0));

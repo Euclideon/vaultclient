@@ -20,13 +20,13 @@ struct PS_OUTPUT
   float Depth0 : SV_Depth;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler colourSampler;
+Texture2D colourTexture;
 
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
-  float4 col = texture0.Sample(sampler0, input.uv);
+  float4 col = colourTexture.Sample(colourSampler, input.uv);
 
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;

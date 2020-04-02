@@ -89,17 +89,17 @@ power and luminous power (wavelength is also a length, but we distinguish the
 two for increased clarity).
 */
 
-sampler transmittance_textureSampler;
-Texture2D transmittance_textureTexture;
+sampler transmittanceSampler;
+Texture2D transmittanceTexture;
 
-sampler scattering_textureSampler;
-Texture3D scattering_textureTexture;
+sampler scatteringSampler;
+Texture3D scatteringTexture;
 
-sampler single_mie_scattering_textureSampler;
-Texture3D single_mie_scattering_textureTexture;
+sampler single_mie_scatteringSampler;
+Texture3D single_mie_scatteringTexture;
 
-sampler irradiance_textureSampler;
-Texture2D irradiance_textureTexture;
+sampler irradianceSampler;
+Texture2D irradianceTexture;
 
 static const float PI = 3.14159265358979323846;
 #define Length float
@@ -464,7 +464,7 @@ DimensionlessSpectrum GetTransmittanceToTopAtmosphereBoundary(
     Length r, Number mu) {
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   float2 uv = GetTransmittanceTextureUvFromRMu(atmosphere, r, mu);
-  return DimensionlessSpectrum(transmittance_texture.Sample(transmittance_textureSampler, uv).xyz);//texture(transmittance_texture, uv).xyz);
+  return DimensionlessSpectrum(transmittance_texture.Sample(transmittanceSampler, uv).xyz);//texture(transmittance_texture, uv).xyz);
 }
 
 DimensionlessSpectrum GetTransmittance(
@@ -747,8 +747,8 @@ AbstractSpectrum GetScattering(
   float3 uvw1 = float3((tex_x + 1.0 + uvwz.y) / Number(SCATTERING_TEXTURE_NU_SIZE),
       uvwz.z, uvwz.w);
 
-  return AbstractSpectrum(scattering_texture.Sample(scattering_textureSampler, uvw0).xyz * (1.0 - lerp) +
-      scattering_texture.Sample(scattering_textureSampler, uvw1).xyz * lerp);
+  return AbstractSpectrum(scattering_texture.Sample(scatteringSampler, uvw0).xyz * (1.0 - lerp) +
+      scattering_texture.Sample(scatteringSampler, uvw1).xyz * lerp);
 }
 
 RadianceSpectrum GetScattering(
@@ -1075,7 +1075,7 @@ IrradianceSpectrum GetIrradiance(
     IN(IrradianceTexture) irradiance_texture,
     Length r, Number mu_s) {
   float2 uv = GetIrradianceTextureUvFromRMuS(atmosphere, r, mu_s);
-  return IrradianceSpectrum(irradiance_texture.Sample(irradiance_textureSampler, uv).xyz);
+  return IrradianceSpectrum(irradiance_texture.Sample(irradianceSampler, uv).xyz);
 }
 
 #ifdef COMBINED_SCATTERING_TEXTURES
@@ -1109,18 +1109,18 @@ IrradianceSpectrum GetCombinedScattering(
 #ifdef COMBINED_SCATTERING_TEXTURES
 
   float4 combined_scattering =
-      scattering_texture.Sample(scattering_textureSampler, uvw0) * (1.0 - lerp) +
-      scattering_texture.Sample(scattering_textureSampler, uvw1) * lerp;
+      scattering_texture.Sample(scatteringSampler, uvw0) * (1.0 - lerp) +
+      scattering_texture.Sample(scatteringSampler, uvw1) * lerp;
   IrradianceSpectrum scattering = IrradianceSpectrum(combined_scattering.xyz);
   single_mie_scattering =
       GetExtrapolatedSingleMieScattering(atmosphere, combined_scattering);
 #else
   IrradianceSpectrum scattering = IrradianceSpectrum(
-      scattering_texture.Sample(scattering_textureSampler, uvw0) * (1.0 - lerp) +
-      scattering_texture.Sample(scattering_textureSampler, uvw1) * lerp);
+      scattering_texture.Sample(scatteringSampler, uvw0) * (1.0 - lerp) +
+      scattering_texture.Sample(scatteringSampler, uvw1) * lerp);
   single_mie_scattering = IrradianceSpectrum(
-      single_mie_scattering_texture.Sample(single_mie_scattering_textureSampler, uvw0) * (1.0 - lerp) +
-      single_mie_scattering_texture.Sample(single_mie_scattering_textureSampler, uvw1) * lerp);
+      single_mie_scattering_texture.Sample(single_mie_scatteringSampler, uvw0) * (1.0 - lerp) +
+      single_mie_scattering_texture.Sample(single_mie_scatteringSampler, uvw1) * lerp);
 #endif
   return scattering;
 }
@@ -1532,22 +1532,22 @@ RadianceSpectrum GetSolarRadiance() {
 RadianceSpectrum GetSkyRadiance(
     Position camera, Direction view_ray, Length shadow_length,
     Direction sun_direction, out DimensionlessSpectrum transmittance) {
-  return GetSkyRadiance(ATMOSPHERE, transmittance_textureTexture,
-      scattering_textureTexture, single_mie_scattering_textureTexture,
+  return GetSkyRadiance(ATMOSPHERE, transmittanceTexture,
+      scatteringTexture, single_mie_scatteringTexture,
       camera, view_ray, shadow_length, sun_direction, transmittance);
 }
 RadianceSpectrum GetSkyRadianceToPoint(
     Position camera, Position p, Length shadow_length,
     Direction sun_direction, out DimensionlessSpectrum transmittance) {
-  return GetSkyRadianceToPoint(ATMOSPHERE, transmittance_textureTexture,
-      scattering_textureTexture, single_mie_scattering_textureTexture,
+  return GetSkyRadianceToPoint(ATMOSPHERE, transmittanceTexture,
+      scatteringTexture, single_mie_scatteringTexture,
       camera, p, shadow_length, sun_direction, transmittance);
 }
 IrradianceSpectrum GetSunAndSkyIrradiance(
    Position p, Direction normal, Direction sun_direction,
    out IrradianceSpectrum sky_irradiance) {
-  return GetSunAndSkyIrradiance(ATMOSPHERE, transmittance_textureTexture,
-      irradiance_textureTexture, p, normal, sun_direction, sky_irradiance);
+  return GetSunAndSkyIrradiance(ATMOSPHERE, transmittanceTexture,
+      irradianceTexture, p, normal, sun_direction, sky_irradiance);
 }
 #endif
 Luminance3 GetSolarLuminance() {
@@ -1558,16 +1558,16 @@ Luminance3 GetSolarLuminance() {
 Luminance3 GetSkyLuminance(
     Position camera, Direction view_ray, Length shadow_length,
     Direction sun_direction, out DimensionlessSpectrum transmittance) {
-  return GetSkyRadiance(ATMOSPHERE, transmittance_textureTexture,
-      scattering_textureTexture, single_mie_scattering_textureTexture,
+  return GetSkyRadiance(ATMOSPHERE, transmittanceTexture,
+      scatteringTexture, single_mie_scatteringTexture,
       camera, view_ray, shadow_length, sun_direction, transmittance) *
       SKY_SPECTRAL_RADIANCE_TO_LUMINANCE;
 }
 Luminance3 GetSkyLuminanceToPoint(
     Position camera, Position p, Length shadow_length,
     Direction sun_direction, out DimensionlessSpectrum transmittance) {
-  return GetSkyRadianceToPoint(ATMOSPHERE, transmittance_textureTexture,
-      scattering_textureTexture, single_mie_scattering_textureTexture,
+  return GetSkyRadianceToPoint(ATMOSPHERE, transmittanceTexture,
+      scatteringTexture, single_mie_scatteringTexture,
       camera, p, shadow_length, sun_direction, transmittance) *
       SKY_SPECTRAL_RADIANCE_TO_LUMINANCE;
 }
@@ -1575,7 +1575,7 @@ Illuminance3 GetSunAndSkyIlluminance(
    Position p, Direction normal, Direction sun_direction,
    out IrradianceSpectrum sky_irradiance) {
   IrradianceSpectrum sun_irradiance = GetSunAndSkyIrradiance(
-      ATMOSPHERE, transmittance_textureTexture, irradiance_textureTexture, p, normal,
+      ATMOSPHERE, transmittanceTexture, irradianceTexture, p, normal,
       sun_direction, sky_irradiance);
   sky_irradiance *= SKY_SPECTRAL_RADIANCE_TO_LUMINANCE;
   return sun_irradiance * SUN_SPECTRAL_RADIANCE_TO_LUMINANCE;

@@ -201,11 +201,11 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   UD_ERROR_IF(!vcShader_CreateFromFile(&pAtmosphereRenderer->renderShader.pProgram, "asset://assets/shaders/atmosphereVertexShader", "asset://assets/shaders/atmosphereFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
 
   vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_transmittance, pAtmosphereRenderer->renderShader.pProgram, "SPIRV_Cross_Combinedtransmittance_textureTexturetransmittance_textureSampler"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_scattering, pAtmosphereRenderer->renderShader.pProgram, "SPIRV_Cross_Combinedscattering_textureTexturescattering_textureSampler"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_irradiance, pAtmosphereRenderer->renderShader.pProgram, "SPIRV_Cross_Combinedirradiance_textureTextureirradiance_textureSampler"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneColour, pAtmosphereRenderer->renderShader.pProgram, "SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneDepth, pAtmosphereRenderer->renderShader.pProgram, "SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_transmittance, pAtmosphereRenderer->renderShader.pProgram, "transmittance"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_scattering, pAtmosphereRenderer->renderShader.pProgram, "scattering"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_irradiance, pAtmosphereRenderer->renderShader.pProgram, "irradiance"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneColour, pAtmosphereRenderer->renderShader.pProgram, "sceneColour"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneDepth, pAtmosphereRenderer->renderShader.pProgram, "sceneDepth"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_vertParams, pAtmosphereRenderer->renderShader.pProgram, "u_vertParams", sizeof(pAtmosphereRenderer->renderShader.vertParams)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_fragParams, pAtmosphereRenderer->renderShader.pProgram, "u_fragParams", sizeof(pAtmosphereRenderer->renderShader.fragParams)), udR_InternalError);
 

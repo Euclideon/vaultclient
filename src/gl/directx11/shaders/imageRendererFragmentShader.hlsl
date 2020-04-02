@@ -14,8 +14,8 @@ struct PS_INPUT
   float2 fLogDepth : TEXCOORD1;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler albedoSampler;
+Texture2D albedoTexture;
 
 struct PS_OUTPUT
 {
@@ -26,7 +26,7 @@ struct PS_OUTPUT
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
-  float4 col = texture0.Sample(sampler0, input.uv);
+  float4 col = albedoTexture.Sample(albedoSampler, input.uv);
   output.Color0 = col * input.colour;
 
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);

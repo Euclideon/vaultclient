@@ -23,11 +23,11 @@ struct PS_OUTPUT
   float Depth0 : SV_Depth;
 };
 
-sampler sampler0;
-Texture2D texture0;
+sampler sceneColourSampler;
+Texture2D sceneColourTexture;
 
-sampler sampler1;
-Texture2D texture1;
+sampler sceneDepthSampler;
+Texture2D sceneDepthTexture;
 
 cbuffer u_fragParams : register(b0)
 {
@@ -78,10 +78,10 @@ float4 edgeHighlight(PS_INPUT input, float3 col, float depth, float logDepth, fl
   float4 eyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0, linearDepthToClipZ(depth), 1.0));
   eyePosition /= eyePosition.w;
 
-  float sampleDepth0 = texture1.Sample(sampler1, input.edgeSampleUV0).x;
-  float sampleDepth1 = texture1.Sample(sampler1, input.edgeSampleUV1).x;
-  float sampleDepth2 = texture1.Sample(sampler1, input.edgeSampleUV2).x;
-  float sampleDepth3 = texture1.Sample(sampler1, input.edgeSampleUV3).x;
+  float sampleDepth0 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV0).x;
+  float sampleDepth1 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV1).x;
+  float sampleDepth2 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV2).x;
+  float sampleDepth3 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV3).x;
 
   float4 eyePosition0 = mul(u_inverseProjection, float4(input.edgeSampleUV0.x * 2.0 - 1.0, input.edgeSampleUV0.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth0)), 1.0));
   float4 eyePosition1 = mul(u_inverseProjection, float4(input.edgeSampleUV1.x * 2.0 - 1.0, input.edgeSampleUV1.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth1)), 1.0));
@@ -149,8 +149,8 @@ PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
 
-  float4 col = texture0.Sample(sampler0, input.uv);
-  float logDepth = texture1.Sample(sampler1, input.uv).x;
+  float4 col = sceneColourTexture.Sample(sceneColourSampler, input.uv);
+  float logDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
   float depth = logToLinearDepth(logDepth);
   float clipZ = linearDepthToClipZ(depth);
 
