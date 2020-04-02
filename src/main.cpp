@@ -1409,22 +1409,22 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
 
       // Activate Select Tool
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolSelect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Crosshair, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Select)) || (vcHotkey::IsPressed(vcB_ToggleSelectTool) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolSelect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSelectTool)), vcMBBI_Crosshair, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Select)) || (vcHotkey::IsPressed(vcB_ToggleSelectTool) && !ImGui::IsAnyItemActive()))
         pProgramState->activeTool = vcActiveTool_Select;
 
       // Activate Measure
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectTool)), vcMBBI_FilterSphere, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectTool) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectionTool)), vcMBBI_FilterSphere, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectionTool) && !ImGui::IsAnyItemActive()))
         pProgramState->activeTool = vcActiveTool_Inspect;
 
       // Activate Measure
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureLine"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_MeasureLine, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureLine)) || (vcHotkey::IsPressed(vcB_ToggleMeasureLineTool) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureLine"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureLineTool)), vcMBBI_MeasureLine, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureLine)) || (vcHotkey::IsPressed(vcB_ToggleMeasureLineTool) && !ImGui::IsAnyItemActive()))
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_MeasureLine;
       }
 
       // Activate Measure
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureArea"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_MeasureArea, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureArea)) || (vcHotkey::IsPressed(vcB_ToggleMeasureAreaTool) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureArea"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureAreaTool)), vcMBBI_MeasureArea, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureArea)) || (vcHotkey::IsPressed(vcB_ToggleMeasureAreaTool) && !ImGui::IsAnyItemActive()))
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_MeasureArea;

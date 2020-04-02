@@ -331,6 +331,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
     vcHotkey::Set(vcB_TakeScreenshot, data.Get("keys.%s", vcHotkey::GetBindName(vcB_TakeScreenshot)).AsInt(70));
     vcHotkey::Set(vcB_ToggleSceneExplorer, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSceneExplorer)).AsInt(61));
+    vcHotkey::Set(vcB_ToggleSelectTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSelectTool)).AsInt(63));
+    vcHotkey::Set(vcB_ToggleMeasureLineTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureLineTool)).AsInt(64));
+    vcHotkey::Set(vcB_ToggleMeasureAreaTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureAreaTool)).AsInt(65));
+    vcHotkey::Set(vcB_ToggleInspectionTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleInspectionTool)).AsInt(66));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)
