@@ -1521,18 +1521,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
       {
         vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-
-        if (selectPolygons && pickResult.pPolygon != nullptr && pickResult.pPolygon->pSceneItem == pPOI && pickResult.pPolygon->sceneItemInternalId != 0)
-        {
-          // This is a fair chunk of state we need to query before we get here. I've had to write this out just to understand what state we are in...
-          // In the scene explorer, we have a valid item in focus
-          // ...and this item is a POI
-          // Now, out of the two 'types' of entites we can pick (ud and mesh) we are trying to select a polygon (mesh?)
-          // ...and indeed we have a valid polygon as a pick result
-          // ...and the polygon we have picked is a POI
-          // ...and the internal ID of the picked polygon is valid (at least, 0 ==  not the entire model)
-          pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian);
-        }
+        pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian);
       }
       else
       {

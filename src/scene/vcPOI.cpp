@@ -225,7 +225,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
       pInstance->sceneItemInternalId = (uint64_t)(i+1);
 
-      if (m_hasPreviewPoint && i + 1 == m_line.numPoints)
+      if (isMeasuring)
         pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
     }
   }
