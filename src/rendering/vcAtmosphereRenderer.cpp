@@ -182,6 +182,8 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   pAtmosphereRenderer = udAllocType(vcAtmosphereRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pAtmosphereRenderer, udR_MemoryAllocationFailure);
 
+  UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pAtmosphereRenderer));
+
   // some defaults
   pAtmosphereRenderer->use_luminance = NONE;
   pAtmosphereRenderer->sun_zenith_angle_radians = 1.3;
@@ -197,17 +199,6 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   //  true, use_half_precision_);
 
   UD_ERROR_IF(!pAtmosphereRenderer->pModel->LoadPrecomputedTextures(), udR_InternalError);
-
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pAtmosphereRenderer->renderShader.pProgram, "asset://assets/shaders/atmosphereVertexShader", "asset://assets/shaders/atmosphereFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-
-  vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_transmittance, pAtmosphereRenderer->renderShader.pProgram, "transmittance"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_scattering, pAtmosphereRenderer->renderShader.pProgram, "scattering"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_irradiance, pAtmosphereRenderer->renderShader.pProgram, "irradiance"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneColour, pAtmosphereRenderer->renderShader.pProgram, "sceneColour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneDepth, pAtmosphereRenderer->renderShader.pProgram, "sceneDepth"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_vertParams, pAtmosphereRenderer->renderShader.pProgram, "u_vertParams", sizeof(pAtmosphereRenderer->renderShader.vertParams)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_fragParams, pAtmosphereRenderer->renderShader.pProgram, "u_fragParams", sizeof(pAtmosphereRenderer->renderShader.fragParams)), udR_InternalError);
 
   if (do_white_balance_) {
     atmosphere::Model::ConvertSpectrumToLinearSrgb(wavelengths, solar_irradiance,
@@ -231,20 +222,46 @@ epilogue:
   return result;
 }
 
+void vcAtmosphereRenderer_DestroyShaders(vcAtmosphereRenderer *pAtmosphereRenderer)
+{
+  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_vertParams);
+  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_fragParams);
+  vcShader_DestroyShader(&pAtmosphereRenderer->renderShader.pProgram);
+}
+
 udResult vcAtmosphereRenderer_Destroy(vcAtmosphereRenderer **ppAtmosphereRenderer)
 {
   if (ppAtmosphereRenderer == nullptr || *ppAtmosphereRenderer == nullptr)
     return udR_InvalidParameter_;
 
+  vcAtmosphereRenderer_DestroyShaders(*ppAtmosphereRenderer);
   delete (*ppAtmosphereRenderer)->pModel;
-
-  vcShader_ReleaseConstantBuffer((*ppAtmosphereRenderer)->renderShader.pProgram , (*ppAtmosphereRenderer)->renderShader.uniform_vertParams);
-  vcShader_ReleaseConstantBuffer((*ppAtmosphereRenderer)->renderShader.pProgram, (*ppAtmosphereRenderer)->renderShader.uniform_fragParams);
-  vcShader_DestroyShader(&(*ppAtmosphereRenderer)->renderShader.pProgram);
-
   udFree((*ppAtmosphereRenderer));
 
   return udR_Success;
+}
+
+udResult vcAtmosphereRenderer_ReloadShaders(vcAtmosphereRenderer *pAtmosphereRenderer)
+{
+  udResult result;
+
+  vcAtmosphereRenderer_DestroyShaders(pAtmosphereRenderer);
+
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pAtmosphereRenderer->renderShader.pProgram, "asset://assets/shaders/atmosphereVertexShader", "asset://assets/shaders/atmosphereFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
+
+  vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_transmittance, pAtmosphereRenderer->renderShader.pProgram, "transmittance"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_scattering, pAtmosphereRenderer->renderShader.pProgram, "scattering"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_irradiance, pAtmosphereRenderer->renderShader.pProgram, "irradiance"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneColour, pAtmosphereRenderer->renderShader.pProgram, "sceneColour"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneDepth, pAtmosphereRenderer->renderShader.pProgram, "sceneDepth"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_vertParams, pAtmosphereRenderer->renderShader.pProgram, "u_vertParams", sizeof(pAtmosphereRenderer->renderShader.vertParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_fragParams, pAtmosphereRenderer->renderShader.pProgram, "u_fragParams", sizeof(pAtmosphereRenderer->renderShader.fragParams)), udR_InternalError);
+
+  result = udR_Success;
+epilogue:
+
+  return result;
 }
 
 void vcAtmosphereRenderer_SetVisualParams(vcAtmosphereRenderer *pAtmosphereRenderer, float exposure, float timeOfDay)

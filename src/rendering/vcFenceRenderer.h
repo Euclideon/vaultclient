@@ -43,6 +43,8 @@ struct vcFenceRendererConfig
 udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer);
 udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer);
 
+udResult vcFenceRenderer_ReloadShaders(vcFenceRenderer *pFenceRenderer);
+
 udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool closed = false);
 void vcFenceRenderer_ClearPoints(vcFenceRenderer *pFenceRenderer);
 

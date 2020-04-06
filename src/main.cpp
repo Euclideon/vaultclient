@@ -322,6 +322,11 @@ void vcMain_MainLoop(vcState *pProgramState)
   udSleep(sleepMS);
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
+#ifndef GIT_BUILD
+  if (ImGui::IsKeyPressed(SDL_SCANCODE_P))
+    vcRender_ReloadShaders(pProgramState->pRenderContext);
+#endif
+
   ImGuiGL_NewFrame(pProgramState->pWindow);
 
   vcGizmo_BeginFrame();
