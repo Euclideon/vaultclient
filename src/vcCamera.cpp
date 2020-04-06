@@ -86,9 +86,9 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
     {
       pProgramState->isUsingAnchorPoint = true;
       pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+      pProgramState->anchorMouseRay = pProgramState->camera.worldMouseRay;
+      pProgramState->cameraInput.inputState = vcCIS_Panning;
     }
-    pProgramState->anchorMouseRay = pProgramState->camera.worldMouseRay;
-    pProgramState->cameraInput.inputState = vcCIS_Panning;
     break;
   case vcCPM_Forward:
     pProgramState->cameraInput.inputState = vcCIS_MovingForward;
@@ -499,7 +499,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   }
 
   // Double Clicking left mouse
-  if (isBtnDoubleClicked[0] && (pProgramState->udModelPickedIndex != -1))
+  if (isBtnDoubleClicked[0] && pProgramState->pickingSuccess)
   {
     pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
     pProgramState->cameraInput.startPosition = pProgramState->camera.position;

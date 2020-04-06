@@ -304,7 +304,7 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
       if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
       {
-        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udDoubleQuat::create(m_line.pPoints[1] - m_line.pPoints[0], 0.0));
+        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udDoubleQuat::create(udNormalize(m_line.pPoints[1] - m_line.pPoints[0]), 0.0));
         pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
       }
       else
