@@ -324,11 +324,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
 #ifndef GIT_BUILD
   if (ImGui::IsKeyPressed(SDL_SCANCODE_P))
-  {
-    udResult res = vcRender_ReloadShaders(pProgramState->pRenderContext);
-    if (res != udR_Success)
-      printf("Failed to reload shaders, errorCode = %d\n", res);
-  }
+    vcRender_ReloadShaders(pProgramState->pRenderContext);
 #endif
 
   ImGuiGL_NewFrame(pProgramState->pWindow);

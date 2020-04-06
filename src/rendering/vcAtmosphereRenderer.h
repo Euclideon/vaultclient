@@ -10,8 +10,7 @@ struct vcTexture;
 udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer);
 udResult vcAtmosphereRenderer_Destroy(vcAtmosphereRenderer **ppAtmosphereRenderer);
 
-void vcAtmosphereRenderer_DestroyShaders(vcAtmosphereRenderer *pAtmosphereRenderer);
-udResult vcAtmosphereRenderer_LoadShaders(vcAtmosphereRenderer *pAtmosphereRenderer);
+udResult vcAtmosphereRenderer_ReloadShaders(vcAtmosphereRenderer *pAtmosphereRenderer);
 
 void vcAtmosphereRenderer_SetVisualParams(vcAtmosphereRenderer *pAtmosphereRenderer, float exposure, float timeOfDay);
 

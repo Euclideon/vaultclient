@@ -182,6 +182,8 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   pAtmosphereRenderer = udAllocType(vcAtmosphereRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pAtmosphereRenderer, udR_MemoryAllocationFailure);
 
+  UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pAtmosphereRenderer));
+
   // some defaults
   pAtmosphereRenderer->use_luminance = NONE;
   pAtmosphereRenderer->sun_zenith_angle_radians = 1.3;
@@ -220,20 +222,30 @@ epilogue:
   return result;
 }
 
+void vcAtmosphereRenderer_DestroyShaders(vcAtmosphereRenderer *pAtmosphereRenderer)
+{
+  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_vertParams);
+  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_fragParams);
+  vcShader_DestroyShader(&pAtmosphereRenderer->renderShader.pProgram);
+}
+
 udResult vcAtmosphereRenderer_Destroy(vcAtmosphereRenderer **ppAtmosphereRenderer)
 {
   if (ppAtmosphereRenderer == nullptr || *ppAtmosphereRenderer == nullptr)
     return udR_InvalidParameter_;
 
+  vcAtmosphereRenderer_DestroyShaders(*ppAtmosphereRenderer);
   delete (*ppAtmosphereRenderer)->pModel;
   udFree((*ppAtmosphereRenderer));
 
   return udR_Success;
 }
 
-udResult vcAtmosphereRenderer_LoadShaders(vcAtmosphereRenderer *pAtmosphereRenderer)
+udResult vcAtmosphereRenderer_ReloadShaders(vcAtmosphereRenderer *pAtmosphereRenderer)
 {
   udResult result;
+
+  vcAtmosphereRenderer_DestroyShaders(pAtmosphereRenderer);
 
   UD_ERROR_IF(!vcShader_CreateFromFile(&pAtmosphereRenderer->renderShader.pProgram, "asset://assets/shaders/atmosphereVertexShader", "asset://assets/shaders/atmosphereFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
 
@@ -250,13 +262,6 @@ udResult vcAtmosphereRenderer_LoadShaders(vcAtmosphereRenderer *pAtmosphereRende
 epilogue:
 
   return result;
-}
-
-void vcAtmosphereRenderer_DestroyShaders(vcAtmosphereRenderer *pAtmosphereRenderer)
-{
-  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_vertParams);
-  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_fragParams);
-  vcShader_DestroyShader(&pAtmosphereRenderer->renderShader.pProgram);
 }
 
 void vcAtmosphereRenderer_SetVisualParams(vcAtmosphereRenderer *pAtmosphereRenderer, float exposure, float timeOfDay)

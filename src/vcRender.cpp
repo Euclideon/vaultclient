@@ -251,6 +251,7 @@ struct vcRenderContext
   } watermarkShader;
 };
 
+udResult vcRender_LoadShaders(vcRenderContext *pRenderContext);
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
 udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData, bool doPick);
 void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWatermark);
@@ -284,7 +285,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, &pProgramState->settings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
 
-  UD_ERROR_CHECK(vcRender_ReloadShaders(pRenderContext));
+  UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
   UD_ERROR_CHECK(vcRender_ResizeScene(pProgramState, pRenderContext, sceneResolution.x, sceneResolution.y));
 
   *ppRenderContext = pRenderContext;
@@ -298,34 +299,9 @@ epilogue:
   return result;
 }
 
-void vcRender_CleanupShaders(vcRenderContext *pRenderContext)
-{
-  vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->visualizationShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->postEffectsShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->shadowShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->skyboxShaderPanorama.pProgram);
-  vcShader_DestroyShader(&pRenderContext->skyboxShaderTintImage.pProgram);
-  vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
-  vcShader_DestroyShader(&pRenderContext->watermarkShader.pProgram);
-
-  vcAtmosphereRenderer_DestroyShaders(pRenderContext->pAtmosphereRenderer);
-  vcTileRenderer_DestroyShaders(pRenderContext->pTileRenderer);
-  vcCompass_Destroy(&pRenderContext->pCompass);
-  vcFenceRenderer_DestroyShaders(pRenderContext->pDiagnosticFences);
-
-  vcPolygonModel_DestroyShaders();
-  vcImageRenderer_Destroy();
-  vcLabelRenderer_Destroy();
-}
-
-udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext)
+udResult vcRender_LoadShaders(vcRenderContext *pRenderContext)
 {
   udResult result;
-
-  vcRender_CleanupShaders(pRenderContext);
 
   UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->udRenderContext.presentShader.pProgram, "asset://assets/shaders/udVertexShader", "asset://assets/shaders/udFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->visualizationShader.pProgram, "asset://assets/shaders/visualizationVertexShader", "asset://assets/shaders/visualizationFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
@@ -382,16 +358,50 @@ udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext)
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->watermarkShader.uniform_params, pRenderContext->watermarkShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->watermarkShader.params)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->watermarkShader.uniform_texture, pRenderContext->watermarkShader.pProgram, "Texture"), udR_InternalError);
 
-  UD_ERROR_CHECK(vcAtmosphereRenderer_LoadShaders(pRenderContext->pAtmosphereRenderer));
-  UD_ERROR_CHECK(vcTileRenderer_LoadShaders(pRenderContext->pTileRenderer));
-  UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
-  UD_ERROR_CHECK(vcFenceRenderer_LoadShaders(pRenderContext->pDiagnosticFences));
-
   UD_ERROR_CHECK(vcPolygonModel_CreateShaders());
   UD_ERROR_CHECK(vcImageRenderer_Init());
   UD_ERROR_CHECK(vcLabelRenderer_Init());
 
   UD_ERROR_IF(!vcShader_Bind(nullptr), udR_InternalError);
+
+  result = udR_Success;
+epilogue:
+
+  return result;
+}
+
+void vcRender_DestroyShaders(vcRenderContext *pRenderContext)
+{
+  vcShader_DestroyShader(&pRenderContext->udRenderContext.presentShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->visualizationShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->postEffectsShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->shadowShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->skyboxShaderPanorama.pProgram);
+  vcShader_DestroyShader(&pRenderContext->skyboxShaderTintImage.pProgram);
+  vcShader_DestroyShader(&pRenderContext->udRenderContext.splatIdShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->blurShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->selectionShader.pProgram);
+  vcShader_DestroyShader(&pRenderContext->watermarkShader.pProgram);
+
+  vcPolygonModel_DestroyShaders();
+  vcImageRenderer_Destroy();
+  vcLabelRenderer_Destroy();
+}
+
+udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext)
+{
+  udResult result;
+
+  vcRender_DestroyShaders(pRenderContext);
+
+  vcCompass_Destroy(&pRenderContext->pCompass);
+  UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
+
+  UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pRenderContext->pAtmosphereRenderer));
+  UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pRenderContext->pTileRenderer));
+  UD_ERROR_CHECK(vcFenceRenderer_ReloadShaders(pRenderContext->pDiagnosticFences));
+
+  UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
 
   result = udR_Success;
 epilogue:
@@ -424,7 +434,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
       UD_ERROR_SET(udR_InternalError);
   }
 
-  vcRender_CleanupShaders(pRenderContext);
+  vcRender_DestroyShaders(pRenderContext);
   vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
 
   UD_ERROR_CHECK(vcAtmosphereRenderer_Destroy(&pRenderContext->pAtmosphereRenderer));

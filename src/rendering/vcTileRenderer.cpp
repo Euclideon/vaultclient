@@ -637,6 +637,8 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
     UD_ERROR_CHECK(udThread_Create(&pTileRenderer->cache.pThreads[i], vcTileRenderer_LoadThread, pTileRenderer));
 
+  UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pTileRenderer));
+
   // build mesh variants
   for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
   {
@@ -656,6 +658,12 @@ epilogue:
     vcTileRenderer_Destroy(&pTileRenderer);
 
   return result;
+}
+
+void vcTileRenderer_DestroyShaders(vcTileRenderer *pTileRenderer)
+{
+  vcShader_ReleaseConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer);
+  vcShader_DestroyShader(&(pTileRenderer->presentShader.pProgram));
 }
 
 udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
@@ -682,6 +690,8 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   pTileRenderer->cache.tileLoadList.Deinit();
   pTileRenderer->cache.tileTimeoutList.Deinit();
 
+  vcTileRenderer_DestroyShaders(pTileRenderer);
+
   for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
     vcMesh_Destroy(&pTileRenderer->pTileMeshes[i]);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
@@ -694,9 +704,11 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   return udR_Success;
 }
 
-udResult vcTileRenderer_LoadShaders(vcTileRenderer *pTileRenderer)
+udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer)
 {
   udResult result;
+
+  vcTileRenderer_DestroyShaders(pTileRenderer);
 
   UD_ERROR_IF(!vcShader_CreateFromFile(&pTileRenderer->presentShader.pProgram, "asset://assets/shaders/tileVertexShader", "asset://assets/shaders/tileFragmentShader", vcP3VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pTileRenderer->presentShader.pProgram), udR_InternalError);
@@ -708,12 +720,6 @@ udResult vcTileRenderer_LoadShaders(vcTileRenderer *pTileRenderer)
 epilogue:
 
   return result;
-}
-
-void vcTileRenderer_DestroyShaders(vcTileRenderer *pTileRenderer)
-{
-  vcShader_ReleaseConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer);
-  vcShader_DestroyShader(&(pTileRenderer->presentShader.pProgram));
 }
 
 void vcTileRenderer_RecursiveUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pParentNode, vcQuadTreeNode *pNode)
