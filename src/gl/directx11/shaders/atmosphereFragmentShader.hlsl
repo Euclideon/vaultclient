@@ -1239,13 +1239,13 @@ RadianceSpectrum GetSkyRadianceToPoint(
   Length r_p = ClampRadius(atmosphere, sqrt(d * d + 2.0 * r * mu * d + r * r));
   Number mu_p = (r * mu + d) / r_p;
   Number mu_s_p = (r * mu_s + d * nu) / r_p;
-
+  
   IrradianceSpectrum single_mie_scattering_p;
   IrradianceSpectrum scattering_p = GetCombinedScattering(
       atmosphere, scattering_texture, single_mie_scattering_texture,
       r_p, mu_p, mu_s_p, nu, ray_r_mu_intersects_ground,
       single_mie_scattering_p);
-
+  
   // Combine the lookup results to get the scattering between camera and point.
   DimensionlessSpectrum shadow_transmittance = transmittance;
   if (shadow_length > 0.0 * m) {
@@ -1254,8 +1254,8 @@ RadianceSpectrum GetSkyRadianceToPoint(
         r, mu, d, ray_r_mu_intersects_ground);
   }
   scattering = scattering - shadow_transmittance * scattering_p;
-  single_mie_scattering =
-      single_mie_scattering - shadow_transmittance * single_mie_scattering_p;
+  single_mie_scattering = single_mie_scattering - shadow_transmittance * single_mie_scattering_p;
+  
 #ifdef COMBINED_SCATTERING_TEXTURES
   single_mie_scattering = GetExtrapolatedSingleMieScattering(
       atmosphere, float4(scattering, single_mie_scattering.r));
@@ -1267,6 +1267,9 @@ RadianceSpectrum GetSkyRadianceToPoint(
 
   return scattering * RayleighPhaseFunction(nu) + single_mie_scattering *
       MiePhaseFunction(atmosphere.mie_phase_function_g, nu);
+  
+  //here
+  //return scattering;
 }
 
 IrradianceSpectrum GetSunAndSkyIrradiance(
@@ -1315,6 +1318,7 @@ cbuffer u_fragParams : register(b0)
   float4 u_earthCenter; // w is radius
   float4 u_sunDirection;// w unused
   float4 u_sunSize; //zw unused
+  float4x4 u_inverseViewProjection;
   float4x4 u_inverseProjection;
 };
 
@@ -1332,10 +1336,18 @@ float GetSkyVisibility(float3 p, float sceneDepth) {
   return float(sceneDepth == 1.0);
 } 
 
-void GetSphereShadowInOut(float3 view_direction, float3 sun_direction,
+// Can't implement this until we have normals
+void GetSphereShadowInOut(float3 camera, float3 view_direction, float3 sun_direction, float3 geom_point,
     out float d_in, out float d_out) {
-    d_in = 0.0;
-    d_out = 0.0;
+  float3 pos = (camera - geom_point);
+   
+  float pos_dot_sun = dot(pos, sun_direction);
+  float view_dot_sun = dot(view_direction, sun_direction);
+  
+  float c = dot(pos, view_dot_sun);
+  
+  d_out = -pos_dot_sun;
+  d_in = 0.0;
 }
 
 float logToLinearDepth(float logDepth)
@@ -1377,9 +1389,15 @@ PS_OUTPUT main(PS_INPUT input)
 
   output.Depth0 = sceneLogDepth;
 
+  float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
+  float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
+  float fadeDistanceHack = 0.65;
+  
+  
   float shadow_in = 0;
   float shadow_out = 0;
-  //GetSphereShadowInOut(view_direction, sun_direction, shadow_in, shadow_out);
+  //if (sceneLogDepth < 1.0)
+  //  GetSphereShadowInOut(camera, view_direction, sun_direction, geometryPoint, shadow_in, shadow_out);
 
   // Hack to fade out light shafts when the Sun is very close to the horizon.
   float lightshaft_fadein_hack = smoothstep(
@@ -1394,26 +1412,23 @@ approximation as in <code>GetSunVisibility</code>:
   // Compute the distance between the view ray line and the sphere center,
   // and the distance between the camera and the intersection of the view
   // ray with the sphere (or NaN if there is no intersection).
-  float3 p = float3(0, 0, 0);
-  float p_dot_v = dot(p, view_direction);
-  float p_dot_p = dot(p, p);
-
-  float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
-
-  // Compute the radiance reflected by the sphere, if the ray intersects it.
+  //float3 p = float3(0, 0, 0);
+  //float p_dot_v = dot(p, view_direction);
+  //float p_dot_p = dot(p, p);
+	
+  // Compute the radiance reflected by the geometry, if the ray intersects it.
   float geometry_alpha = 0.0;
   float3 geometry_radiance = float3(0, 0, 0);
   // TODO: do following calculations in eye space, to avoid precision issues
-  if (sceneLogDepth < 0.65) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
+  if (sceneLogDepth < fadeDistanceHack) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
   {
     geometry_alpha = 1.0;
 
 /*
 <p>We can then compute the intersection point and its normal, and use them to
 get the sun and sky irradiance received at this point. The reflected radiance
-follows, by multiplying the irradiance with the sphere BRDF:
+follows, by multiplying the irradiance with the geometry BRDF:
 */
-    float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
 
     float3 normal = normalize(geometryPoint - earth_center); // once we actually have normals...
 
@@ -1429,7 +1444,11 @@ follows, by multiplying the irradiance with the sphere BRDF:
 <p>Finally, we take into account the aerial perspective between the camera and
 the sphere, which depends on the length of this segment which is in shadow:
 */
-    float shadow_length = 0;
+	// More hack: As we 'fade' out our geometry, also 'fade' out the amount of shadow it casts...so that it can blend correctly with the ground
+    float shadow_length = lerp(distance_to_geom_intersection * 0.65, 0.0, pow(sceneLogDepth / fadeDistanceHack, 8.0)); // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint() at near distances
+	//float shadow_length =
+    //    max(0.0, min(shadow_out, distance_to_geom_intersection) - shadow_in) *
+    //    lightshaft_fadein_hack;
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         geometryPoint - earth_center, shadow_length, sun_direction, transmittance);
@@ -1446,9 +1465,9 @@ on the ground by the sun and sky visibility factors):
   // Compute the distance between the view ray line and the Earth center,
   // and the distance between the camera and the intersection of the view
   // ray with the ground (or NaN if there is no intersection).
-  p = camera - earth_center;
-  p_dot_v = dot(p, view_direction);
-  p_dot_p = dot(p, p);
+  float3 p = camera - earth_center;
+  float p_dot_v = dot(p, view_direction);
+  float p_dot_p = dot(p, p);
   float ray_earth_center_squared_distance = p_dot_p - p_dot_v * p_dot_v;
   float distance_to_intersection = -p_dot_v - sqrt(
       u_earthCenter.w * u_earthCenter.w - ray_earth_center_squared_distance);
@@ -1472,9 +1491,10 @@ on the ground by the sun and sky visibility factors):
         sun_irradiance +
         sky_irradiance);
   
-    float shadow_length =
-        max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
-        lightshaft_fadein_hack;
+    //float shadow_length =
+    //    max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
+    //    lightshaft_fadein_hack;
+	float shadow_length = 0.0;//distance_to_intersection * 0.65; // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint()
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         geomPoint - earth_center, shadow_length, sun_direction, transmittance);
@@ -1518,7 +1538,7 @@ the scene:
   //{
   //  output.Color0.xyz = sceneColour.xyz;
   //}
-  //output.Color0.xyz = output.Color0.xyz * 0.00000000001 + float3(0.0, 1.0, 1.0);//sceneColour.xyz;
+  //output.Color0.xyz = output.Color0.xyz * 0.00000000001 + float3(geometry_radiance);//sceneColour.xyz;
   //output.Depth0 = 0.0;
   
   return output;

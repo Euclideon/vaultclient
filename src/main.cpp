@@ -322,6 +322,23 @@ void vcMain_MainLoop(vcState *pProgramState)
   udSleep(sleepMS);
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
+  ImGuiIO &io = ImGui::GetIO();
+
+  static bool keyDown = false;
+  if (!keyDown && io.KeysDown[SDL_SCANCODE_P])
+  {
+    keyDown = true;
+    udResult res = vcRender_ReloadShaders(pProgramState->pRenderContext, pProgramState->pWorkerPool);
+    if (res != udR_Success)
+    {
+      printf("%d\n", res);
+    }
+  }
+  else
+  {
+    keyDown = false;
+
+
   ImGuiGL_NewFrame(pProgramState->pWindow);
 
   vcGizmo_BeginFrame();
@@ -352,7 +369,6 @@ void vcMain_MainLoop(vcState *pProgramState)
   else
     pProgramState->finishedStartup = ((udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 1) == udR_NothingToDo) && !udWorkerPool_HasActiveWorkers(pProgramState->pWorkerPool));
 
-  ImGuiIO &io = ImGui::GetIO();
   io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
   io.KeysDown[SDL_SCANCODE_PRINTSCREEN] = false;
 
@@ -360,7 +376,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   {
     pProgramState->activeSetting = vcSR_KeyBindings;
     pProgramState->openSettings = true;
-  }
+  }}
 
   if (pProgramState->finishedStartup && pProgramState->hasContext)
   {
