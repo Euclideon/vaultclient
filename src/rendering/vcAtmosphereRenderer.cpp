@@ -57,7 +57,8 @@ struct vcAtmosphereRenderer
       udFloat4 earthCenter; // w unused
       udFloat4 sunDirection;// w unused
       udFloat4 sunSize; //zw unused
-      udFloat4x4 inverseProjection;
+      udFloat4x4 inverseViewProjection;
+      udFloat4x4 inverseProjecion;
     } fragParams;
 
     struct
@@ -198,16 +199,7 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
 
   UD_ERROR_IF(!pAtmosphereRenderer->pModel->LoadPrecomputedTextures(), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pAtmosphereRenderer->renderShader.pProgram, "asset://assets/shaders/atmosphereVertexShader", "asset://assets/shaders/atmosphereFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-
-  vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_transmittance, pAtmosphereRenderer->renderShader.pProgram, "transmittance"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_scattering, pAtmosphereRenderer->renderShader.pProgram, "scattering"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_irradiance, pAtmosphereRenderer->renderShader.pProgram, "irradiance"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneColour, pAtmosphereRenderer->renderShader.pProgram, "sceneColour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneDepth, pAtmosphereRenderer->renderShader.pProgram, "sceneDepth"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_vertParams, pAtmosphereRenderer->renderShader.pProgram, "u_vertParams", sizeof(pAtmosphereRenderer->renderShader.vertParams)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_fragParams, pAtmosphereRenderer->renderShader.pProgram, "u_fragParams", sizeof(pAtmosphereRenderer->renderShader.fragParams)), udR_InternalError);
+  UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pAtmosphereRenderer));
 
   if (do_white_balance_) {
     atmosphere::Model::ConvertSpectrumToLinearSrgb(wavelengths, solar_irradiance,
@@ -225,6 +217,31 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   pAtmosphereRenderer->renderShader.fragParams.sunSize.y = (float)udCos(kSunAngularRadius);
 
   *ppAtmosphereRenderer = pAtmosphereRenderer;
+  result = udR_Success;
+epilogue:
+
+  return result;
+}
+
+udResult vcAtmosphereRenderer_ReloadShaders(vcAtmosphereRenderer *pAtmosphereRenderer)
+{
+  udResult result;
+
+  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_vertParams);
+  vcShader_ReleaseConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_fragParams);
+  vcShader_DestroyShader(&pAtmosphereRenderer->renderShader.pProgram);
+
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pAtmosphereRenderer->renderShader.pProgram, "asset://assets/shaders/atmosphereVertexShader", "asset://assets/shaders/atmosphereFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
+
+  vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_transmittance, pAtmosphereRenderer->renderShader.pProgram, "transmittance"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_scattering, pAtmosphereRenderer->renderShader.pProgram, "scattering"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_irradiance, pAtmosphereRenderer->renderShader.pProgram, "irradiance"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneColour, pAtmosphereRenderer->renderShader.pProgram, "sceneColour"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneDepth, pAtmosphereRenderer->renderShader.pProgram, "sceneDepth"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_vertParams, pAtmosphereRenderer->renderShader.pProgram, "u_vertParams", sizeof(pAtmosphereRenderer->renderShader.vertParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_fragParams, pAtmosphereRenderer->renderShader.pProgram, "u_fragParams", sizeof(pAtmosphereRenderer->renderShader.fragParams)), udR_InternalError);
+
   result = udR_Success;
 epilogue:
 
@@ -277,10 +294,13 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   }
 
   // calculate the earth radius at in this zone
+  //udDouble3 cameraBase = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::zero());
   udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
   cameraPositionInLongLat.z = 0.0;
   udDouble3 pointOnAltitudeZero = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraPositionInLongLat);
   double earthRadius = udClamp(udMag3(pointOnAltitudeZero), pProgramState->gis.zone.semiMinorAxis, pProgramState->gis.zone.semiMajorAxis);
+
+  udDouble3 recenteredCameraPosition = pProgramState->camera.position;// -udDouble3::create(542327.410151, 6902434.373351, 0.0);
 
   earthCenter.z /= kLengthUnitInMeters;
 
@@ -289,7 +309,7 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
 
   udFloat4x4 inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
   udFloat4x4 inverseView = udFloat4x4::create(udInverse(pProgramState->camera.matrices.view));
-  //udFloat4x4 inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
+  udFloat4x4 inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
 
   vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
   pAtmosphereRenderer->renderShader.vertParams.viewFromClip = inverseProjection;
@@ -299,10 +319,11 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.y = (float)earthCenterEyePos.y;
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.z = (float)earthCenterEyePos.z;
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.w = (float)earthRadius;
-  pAtmosphereRenderer->renderShader.fragParams.inverseProjection = inverseProjection;
-  pAtmosphereRenderer->renderShader.fragParams.camera.x = (float)pProgramState->camera.position.x;
-  pAtmosphereRenderer->renderShader.fragParams.camera.y = (float)pProgramState->camera.position.y;
-  pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->camera.position.z;
+  pAtmosphereRenderer->renderShader.fragParams.inverseViewProjection = inverseViewProjection;
+  pAtmosphereRenderer->renderShader.fragParams.inverseProjecion = inverseProjection;
+  pAtmosphereRenderer->renderShader.fragParams.camera.x = (float)recenteredCameraPosition.x;
+  pAtmosphereRenderer->renderShader.fragParams.camera.y = (float)recenteredCameraPosition.y;
+  pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)recenteredCameraPosition.z;
   pAtmosphereRenderer->renderShader.fragParams.camera.w = (float)(pAtmosphereRenderer->use_luminance != NONE ? pAtmosphereRenderer->exposure * 1e-5 : pAtmosphereRenderer->exposure);
 
   pAtmosphereRenderer->renderShader.fragParams.sunDirection.x = (float)(udCos(pAtmosphereRenderer->sun_azimuth_angle_radians) * udSin(pAtmosphereRenderer->sun_zenith_angle_radians));

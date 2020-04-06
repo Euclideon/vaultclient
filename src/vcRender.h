@@ -95,6 +95,8 @@ vcFramebuffer *vcRender_GetSceneFramebuffer(vcRenderContext *pRenderContext);
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &windowResolution);
 udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **pRenderContext);
 
+udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext, udWorkerPool *pWorkerPool);
+
 udResult vcRender_SetVaultContext(vcState *pProgramState, vcRenderContext *pRenderContext);
 
 udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);

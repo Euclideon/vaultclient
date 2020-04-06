@@ -1084,9 +1084,12 @@ float3 GetExtrapolatedSingleMieScattering(
   if (scattering.r == 0.0) {
     return float3(0.0, 0.0, 0.0);
   }
-  return scattering.rgb * scattering.a / scattering.r *
+  float3 result = scattering.rgb * scattering.a / scattering.r *
 	    (atmosphere.rayleigh_scattering.r / atmosphere.mie_scattering.r) *
 	    (atmosphere.mie_scattering / atmosphere.rayleigh_scattering);
+		
+		//here2
+  return result;// * 0.0000001 + (scattering.rgb * scattering.a / scattering.r);
 }
 #endif
 
@@ -1192,6 +1195,7 @@ RadianceSpectrum GetSkyRadiance(
 }
 
 RadianceSpectrum GetSkyRadianceToPoint(
+    float3 viewDir,
     IN(AtmosphereParameters) atmosphere,
     IN(TransmittanceTexture) transmittance_texture,
     IN(ReducedScatteringTexture) scattering_texture,
@@ -1201,7 +1205,7 @@ RadianceSpectrum GetSkyRadianceToPoint(
   // Compute the distance to the top atmosphere boundary along the view ray,
   // assuming the viewer is in space (or NaN if the view ray does not intersect
   // the atmosphere).
-  Direction view_ray = normalize(p - camera);
+  Direction view_ray = viewDir;//normalize(p - camera);
   Length r = length(camera);
   Length rmu = dot(camera, view_ray);
   Length distance_to_top_atmosphere_boundary = -rmu -
@@ -1253,20 +1257,22 @@ RadianceSpectrum GetSkyRadianceToPoint(
     shadow_transmittance = GetTransmittance(atmosphere, transmittance_texture,
         r, mu, d, ray_r_mu_intersects_ground);
   }
-  scattering = scattering - shadow_transmittance * scattering_p;
+  //here
+  scattering = max(float3(0, 0, 0), scattering - shadow_transmittance * scattering_p);
   single_mie_scattering =
       single_mie_scattering - shadow_transmittance * single_mie_scattering_p;
 #ifdef COMBINED_SCATTERING_TEXTURES
-  single_mie_scattering = GetExtrapolatedSingleMieScattering(
-      atmosphere, float4(scattering, single_mie_scattering.r));
+  single_mie_scattering = GetExtrapolatedSingleMieScattering(atmosphere, float4(scattering, single_mie_scattering.r));
 #endif
 
   // Hack to avoid rendering artifacts when the sun is below the horizon.
   single_mie_scattering = single_mie_scattering *
       smoothstep(Number(0.0), Number(0.01), mu_s);
 
-  return scattering * RayleighPhaseFunction(nu) + single_mie_scattering *
+  float3 res = scattering * RayleighPhaseFunction(nu) + single_mie_scattering *
       MiePhaseFunction(atmosphere.mie_phase_function_g, nu);
+
+  return res;// * 0.00000001 + (scattering - shadow_transmittance * scattering_p);
 }
 
 IrradianceSpectrum GetSunAndSkyIrradiance(
@@ -1300,7 +1306,7 @@ IrradianceSpectrum GetSunAndSkyIrradiance(
 float3 GetSolarRadiance();
 float3 GetSkyRadiance(float3 camera, float3 view_ray, float shadow_length,
     float3 sun_direction, out float3 transmittance);
-float3 GetSkyRadianceToPoint(float3 camera, float3 p, float shadow_length,
+float3 GetSkyRadianceToPoint(float3 viewDir, float3 camera, float3 p, float shadow_length,
     float3 sun_direction, out float3 transmittance);
 float3 GetSunAndSkyIrradiance(
     float3 p, float3 normal, float3 sun_direction, out float3 sky_irradiance);
@@ -1315,6 +1321,7 @@ cbuffer u_fragParams : register(b0)
   float4 u_earthCenter; // w is radius
   float4 u_sunDirection;// w unused
   float4 u_sunSize; //zw unused
+  float4x4 u_inverseViewProjection;
   float4x4 u_inverseProjection;
 };
 
@@ -1404,7 +1411,7 @@ approximation as in <code>GetSunVisibility</code>:
   float geometry_alpha = 0.0;
   float3 geometry_radiance = float3(0, 0, 0);
   // TODO: do following calculations in eye space, to avoid precision issues
-  if (sceneLogDepth < 0.65) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
+  if (true || sceneLogDepth < 0.65) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
   {
     geometry_alpha = 1.0;
 
@@ -1413,6 +1420,11 @@ approximation as in <code>GetSunVisibility</code>:
 get the sun and sky irradiance received at this point. The reflected radiance
 follows, by multiplying the irradiance with the sphere BRDF:
 */
+	float4 clip = float4(float2(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0), sceneDepth, 1.0);
+	
+	float4 worldPoint = mul(u_inverseViewProjection, clip);
+	worldPoint /= worldPoint.w;
+	
     float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
 
     float3 normal = normalize(geometryPoint - earth_center); // once we actually have normals...
@@ -1431,9 +1443,23 @@ the sphere, which depends on the length of this segment which is in shadow:
 */
     float shadow_length = 0;
     float3 transmittance;
-    float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
+    float3 in_scatter = GetSkyRadianceToPoint(view_direction, camera - earth_center,
         geometryPoint - earth_center, shadow_length, sun_direction, transmittance);
     geometry_radiance = geometry_radiance * transmittance + in_scatter;
+
+    float3 etG = (geometryPoint - earth_center);
+	float3 etC = (camera - earth_center);
+	float3 viewRay = normalize(etG - etC);
+	
+	
+	float4 eyePoint = mul(u_inverseProjection, clip);
+	eyePoint /= eyePoint.w;
+	
+	float3 viewRay2 = normalize(eyePoint);
+	
+	// view_direction works, normalize(etG - etC) is fucked
+    //geometry_radiance = geometry_radiance * 0.0000001 + view_direction;//normalize(etG - etC);
+    geometry_radiance = geometry_radiance * 0.00000000001 + (sceneColour.xyz * (1.0 / PI) * (sun_irradiance + sky_irradiance));//float3(worldPoint.xyz);
   }
 
 /*
@@ -1456,7 +1482,7 @@ on the ground by the sun and sky visibility factors):
   // Compute the radiance reflected by the ground, if the ray intersects it.
   float ground_alpha = 0.0;
   float3 ground_radiance = float3(0.0, 0.0, 0.0);
-  if (distance_to_intersection > 0.0) {
+  if (geometry_alpha == 0.0 && distance_to_intersection > 0.0) {
     float3 geomPoint = camera + view_direction * distance_to_intersection;
     float3 normal = normalize(geomPoint - earth_center);
   
@@ -1476,10 +1502,31 @@ on the ground by the sun and sky visibility factors):
         max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
         lightshaft_fadein_hack;
     float3 transmittance;
-    float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
+    float3 in_scatter = GetSkyRadianceToPoint(view_direction, camera - earth_center,
         geomPoint - earth_center, shadow_length, sun_direction, transmittance);
     ground_radiance = ground_radiance * transmittance + in_scatter;
     ground_alpha = 1.0;
+	//ground_radiance = ground_radiance * 0.000001 + in_scatter;
+	
+	float3 etG = (geomPoint - earth_center);
+	float3 etC = (camera - earth_center);
+	float3 viewRay = normalize(etG - etC);
+	
+	float4 clip = float4(float2(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0), sceneDepth, 1.0);
+	
+	float4 worldPoint = mul(u_inverseViewProjection, clip);
+	worldPoint /= worldPoint.w;
+	
+	float4 eyePoint = mul(u_inverseProjection, clip);
+	eyePoint /= eyePoint.w;
+	
+	float3 viewRay2 = normalize(eyePoint);
+	
+	// view_direction works, normalize(etG - etC) is fucked
+	//ground_radiance = ground_radiance * 0.0000001 + view_direction;//normalize(etG - etC);
+	//ground_radiance = ground_radiance * 0.0000001 + geomPoint;//normalize(etG - etC);
+	//ground_alpha = 0.0;
+	//geometry_alpha = 0.0;
   }
 /*
 <p>Finally, we compute the radiance and transmittance of the sky, and composite
@@ -1518,7 +1565,7 @@ the scene:
   //{
   //  output.Color0.xyz = sceneColour.xyz;
   //}
-  //output.Color0.xyz = output.Color0.xyz * 0.00000000001 + float3(0.0, 1.0, 1.0);//sceneColour.xyz;
+  output.Color0.xyz = output.Color0.xyz * 0.0001 + float3(geometry_radiance);
   //output.Depth0 = 0.0;
   
   return output;
@@ -1537,9 +1584,10 @@ RadianceSpectrum GetSkyRadiance(
       camera, view_ray, shadow_length, sun_direction, transmittance);
 }
 RadianceSpectrum GetSkyRadianceToPoint(
+    float3 viewDir,
     Position camera, Position p, Length shadow_length,
     Direction sun_direction, out DimensionlessSpectrum transmittance) {
-  return GetSkyRadianceToPoint(ATMOSPHERE, transmittanceTexture,
+  return GetSkyRadianceToPoint(viewDir, ATMOSPHERE, transmittanceTexture,
       scatteringTexture, single_mie_scatteringTexture,
       camera, p, shadow_length, sun_direction, transmittance);
 }
@@ -1564,9 +1612,10 @@ Luminance3 GetSkyLuminance(
       SKY_SPECTRAL_RADIANCE_TO_LUMINANCE;
 }
 Luminance3 GetSkyLuminanceToPoint(
+    float3 viewDir,
     Position camera, Position p, Length shadow_length,
     Direction sun_direction, out DimensionlessSpectrum transmittance) {
-  return GetSkyRadianceToPoint(ATMOSPHERE, transmittanceTexture,
+  return GetSkyRadianceToPoint(viewDir, ATMOSPHERE, transmittanceTexture,
       scatteringTexture, single_mie_scatteringTexture,
       camera, p, shadow_length, sun_direction, transmittance) *
       SKY_SPECTRAL_RADIANCE_TO_LUMINANCE;
