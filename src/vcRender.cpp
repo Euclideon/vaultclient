@@ -1517,6 +1517,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
   if (doPick)
   {
+    pProgramState->pickingSuccess = false;
     pProgramState->udModelPickedIndex = -1;
     renderOptions.pPick = &picking;
   }
@@ -1674,8 +1675,16 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   }
   else
   {
-    result.success = true;
-    pickDepth = pRenderContext->previousFrameDepth;
+    if (pRenderContext->previousFrameDepth > -1)
+    {
+      result.success = true;
+      pickDepth = pRenderContext->previousFrameDepth;
+    }
+    else
+    {
+      result.success = false;
+    }
+    
   }
 
   if (result.success)

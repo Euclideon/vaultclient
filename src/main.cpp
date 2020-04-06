@@ -1460,28 +1460,31 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
   bool getResultsImmediately = useTool || ImGui::IsMouseClicked(0, false) || ImGui::IsMouseClicked(1, false) || ImGui::IsMouseClicked(2, false);
   vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pRenderContext, renderData, getResultsImmediately);
 
-  bool selectPolygons = pickResult.success;
+  bool selectPolygons = pickResult.success && ((pickResult.pPolygon != nullptr) || (pickResult.pModel != nullptr));
   double polyDist = (selectPolygons ? udMagSq3(pickResult.position - pProgramState->camera.position) : farPlaneDist);
 
   // resolve pick
   selectUD = selectUD && (udDist < polyDist);
-  selectPolygons = selectPolygons && !selectUD;
+  selectPolygons = selectPolygons && (polyDist < udDist);
+
+  // skybox or models picked, update mouse position
+  if (pickResult.success && !selectUD)
+    pProgramState->worldMousePosCartesian = pickResult.position;
 
   if (selectPolygons)
   {
     pProgramState->pickingSuccess = true;
-    pProgramState->worldMousePosCartesian = pickResult.position;
     pProgramState->udModelPickedIndex = -1;
+  }
 
+  if (useTool)
+  {
     if (!pProgramState->isUsingAnchorPoint)
     {
       pProgramState->isUsingAnchorPoint = true;
       pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
     }
-  }
 
-  if (useTool)
-  {
     switch (pProgramState->activeTool)
     {
     case vcActiveTool_Select:

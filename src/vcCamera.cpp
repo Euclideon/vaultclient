@@ -86,9 +86,9 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
     {
       pProgramState->isUsingAnchorPoint = true;
       pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+      pProgramState->anchorMouseRay = pProgramState->camera.worldMouseRay;
+      pProgramState->cameraInput.inputState = vcCIS_Panning;
     }
-    pProgramState->anchorMouseRay = pProgramState->camera.worldMouseRay;
-    pProgramState->cameraInput.inputState = vcCIS_Panning;
     break;
   case vcCPM_Forward:
     pProgramState->cameraInput.inputState = vcCIS_MovingForward;
@@ -241,7 +241,8 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     double travelProgress = udEase(pCamInput->progress, udET_CubicInOut);
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
-    udDoubleQuat targetAngle = udDoubleQuat::create(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest), 0);
+    udDouble3 axis = udNormalize(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
+    udDoubleQuat targetAngle = udDoubleQuat::create(axis, 0);
     pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, udSlerp(pCamInput->startAngle, targetAngle, travelProgress));
 
     if (pCamera->headingPitch.y > UD_PI)
@@ -498,7 +499,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   }
 
   // Double Clicking left mouse
-  if (isBtnDoubleClicked[0] && (pProgramState->pickingSuccess))
+  if (isBtnDoubleClicked[0] && pProgramState->pickingSuccess)
   {
     pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
     pProgramState->cameraInput.startPosition = pProgramState->camera.position;
