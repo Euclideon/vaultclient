@@ -124,12 +124,6 @@ udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer)
   pFenceRenderer->config.imageMode = vcRRIM_Solid;
   pFenceRenderer->config.visualMode = vcRRVM_Fence;
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pFenceRenderer->renderShader.pProgram, "asset://assets/shaders/fenceVertexShader", "asset://assets/shaders/fenceFragmentShader", vcP3UV2RI4VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(pFenceRenderer->renderShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pFenceRenderer->renderShader.uniform_texture, pFenceRenderer->renderShader.pProgram, "colour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyFrame, pFenceRenderer->renderShader.pProgram, "u_EveryFrame", sizeof(pFenceRenderer->renderShader.everyFrameParams)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyObject, pFenceRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pFenceRenderer->renderShader.everyObjectParams)), udR_InternalError);
-
   UD_ERROR_CHECK(vcFenceRenderer_Init());
 
   *ppFenceRenderer = pFenceRenderer;
@@ -154,13 +148,34 @@ udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer)
   vcFenceRenderer_ClearPoints(pFenceRenderer);
   pFenceRenderer->segments.Deinit();
 
-  vcShader_DestroyShader(&pFenceRenderer->renderShader.pProgram);
-
   udFree(pFenceRenderer);
 
   vcFenceRenderer_Destroy();
 
   return udR_Success;
+}
+
+udResult vcFenceRenderer_LoadShaders(vcFenceRenderer *pFenceRenderer)
+{
+  udResult result;
+
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pFenceRenderer->renderShader.pProgram, "asset://assets/shaders/fenceVertexShader", "asset://assets/shaders/fenceFragmentShader", vcP3UV2RI4VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_Bind(pFenceRenderer->renderShader.pProgram), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pFenceRenderer->renderShader.uniform_texture, pFenceRenderer->renderShader.pProgram, "colour"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyFrame, pFenceRenderer->renderShader.pProgram, "u_EveryFrame", sizeof(pFenceRenderer->renderShader.everyFrameParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pFenceRenderer->renderShader.uniform_everyObject, pFenceRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pFenceRenderer->renderShader.everyObjectParams)), udR_InternalError);
+
+  result = udR_Success;
+epilogue:
+
+  return result;
+}
+
+void vcFenceRenderer_DestroyShaders(vcFenceRenderer *pFenceRenderer)
+{
+  vcShader_ReleaseConstantBuffer(pFenceRenderer->renderShader.pProgram, pFenceRenderer->renderShader.uniform_everyFrame);
+  vcShader_ReleaseConstantBuffer(pFenceRenderer->renderShader.pProgram, pFenceRenderer->renderShader.uniform_everyObject);
+  vcShader_DestroyShader(&pFenceRenderer->renderShader.pProgram);
 }
 
 udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenceRendererConfig &config)

@@ -322,6 +322,15 @@ void vcMain_MainLoop(vcState *pProgramState)
   udSleep(sleepMS);
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
+#ifndef GIT_BUILD
+  if (ImGui::IsKeyPressed(SDL_SCANCODE_P))
+  {
+    udResult res = vcRender_ReloadShaders(pProgramState->pRenderContext);
+    if (res != udR_Success)
+      printf("Failed to reload shaders, errorCode = %d\n", res);
+  }
+#endif
+
   ImGuiGL_NewFrame(pProgramState->pWindow);
 
   vcGizmo_BeginFrame();
