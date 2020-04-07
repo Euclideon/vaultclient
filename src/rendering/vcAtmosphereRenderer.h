@@ -12,7 +12,7 @@ udResult vcAtmosphereRenderer_Destroy(vcAtmosphereRenderer **ppAtmosphereRendere
 
 udResult vcAtmosphereRenderer_ReloadShaders(vcAtmosphereRenderer *pAtmosphereRenderer);
 
-void vcAtmosphereRenderer_SetVisualParams(vcAtmosphereRenderer *pAtmosphereRenderer, float exposure, float timeOfDay);
+void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRenderer *pAtmosphereRenderer);
 
 bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcState *pProgramState, vcTexture *pSceneColour, vcTexture *pSceneDepth);
 
