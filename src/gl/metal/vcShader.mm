@@ -116,10 +116,6 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
         vertexDesc.attributes[i].format = MTLVertexFormatFloat2;
         accumulatedOffset += 2 * sizeof(float);
         break;
-      case vcVLT_RibbonInfo4:
-        vertexDesc.attributes[i].format = MTLVertexFormatFloat4;
-        accumulatedOffset += 4 * sizeof(float);
-        break;
       case vcVLT_ColourBGRA:
         vertexDesc.attributes[i].format = MTLVertexFormatUChar4Normalized;
         accumulatedOffset += 1 * sizeof(uint32_t);
@@ -131,6 +127,14 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
      case vcVLT_QuadCorner:
         vertexDesc.attributes[i].format = MTLVertexFormatFloat2;
         accumulatedOffset += 2 * sizeof(float);
+        break;
+      case vcVLT_Color0:
+        vertexDesc.attributes[i].format = MTLVertexFormatFloat4;
+        accumulatedOffset += 4 * sizeof(float);
+        break;
+      case vcVLT_Color1:
+        vertexDesc.attributes[i].format = MTLVertexFormatFloat4;
+        accumulatedOffset += 4 * sizeof(float);
         break;
       case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
         break;

@@ -12,14 +12,16 @@ uint32_t vcLayout_GetSize(const vcVertexLayoutTypes layoutType)
     return 16;
   case vcVLT_TextureCoords2:
     return 8;
-  case vcVLT_RibbonInfo4:
-    return 16;
   case vcVLT_ColourBGRA:
     return 4;
   case vcVLT_Normal3:
     return 12;
   case vcVLT_QuadCorner:
     return 8;
+  case vcVLT_Color0:
+    return 16;
+  case vcVLT_Color1:
+    return 16;
   case vcVLT_Unsupported:
     return 0;
   case vcVLT_TotalTypes: // fall through

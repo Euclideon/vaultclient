@@ -14,6 +14,7 @@
 #include "vcWaterRenderer.h"
 #include "vcImageRenderer.h"
 #include "vcPolygonModel.h"
+#include "vcLineRenderer.h"
 
 struct vcRenderContext;
 struct vcTexture;
@@ -83,6 +84,7 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
+  udChunkedArray<vcLineData> lines;
 
   udChunkedArray<vcViewShedData> viewSheds;
 

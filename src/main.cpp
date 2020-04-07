@@ -1844,6 +1844,9 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
   ImGui::EndChild();
 }
 
+// REMOVE ME when not needed
+#include "vcLineRenderer.h"
+
 void vcMain_RenderSceneWindow(vcState *pProgramState)
 {
   //Rendering
@@ -1862,10 +1865,19 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Init(32);
   renderData.polyModels.Init(64);
   renderData.images.Init(32);
+  renderData.lines.Init(32);
   renderData.viewSheds.Init(32);
   renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
+
+  // Example of how to make lines
+  udDouble3 linePoints[] = { udDouble3::create(1,0,1.4), udDouble3::create(5,0, 7), udDouble3::create(0, 0, 7), udDouble3::create(5, 0, 0), udDouble3::create(0, 0, 0) };
+  udDouble3 linePoints2[] = { udDouble3::create(0,3,0), udDouble3::create(3, 3, 3), udDouble3::create(-2, 5, 2), udDouble3::create(2.5, -1.0, 2.5) };
+  vcLineData data = { udFloat4::create(1, 0, 0, 0.5), 10.0f, linePoints, udLengthOf(linePoints) };
+  vcLineData data2 = { udFloat4::create(0, 1, 0, 1.0), 15.0f, linePoints2, udLengthOf(linePoints2) };
+  renderData.lines.PushBack(data);
+  renderData.lines.PushBack(data2);
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
@@ -2183,6 +2195,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   renderData.waterVolumes.Deinit();
   renderData.polyModels.Deinit();
   renderData.images.Deinit();
+  renderData.lines.Deinit();
   renderData.viewSheds.Deinit();
 
   // Can only assign longlat positions in projected space
