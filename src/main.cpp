@@ -1184,7 +1184,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         }
 
         udDouble2 headingPitch = UD_RAD2DEG(pProgramState->camera.headingPitch);
-        if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2, nullptr, nullptr, "%.2f°"))
+        if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2, nullptr, nullptr, "%.2f"))
           pProgramState->camera.headingPitch = UD_DEG2RAD(headingPitch);
 
         if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
