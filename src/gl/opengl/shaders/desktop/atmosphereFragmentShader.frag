@@ -16,6 +16,7 @@ layout(std140) uniform type_u_fragParams
     vec4 u_earthCenter;
     vec4 u_sunDirection;
     vec4 u_sunSize;
+    layout(row_major) mat4 u_inverseViewProjection;
     layout(row_major) mat4 u_inverseProjection;
 } u_fragParams;
 
@@ -40,517 +41,519 @@ void main()
     float _134 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
     vec4 _149 = texture(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, in_var_TEXCOORD0);
     vec3 _152 = pow(abs(_149.xyz), vec3(2.2000000476837158203125));
-    vec3 _153 = u_fragParams.u_camera.xyz - u_fragParams.u_earthCenter.xyz;
-    bool _163 = _129 < 0.64999997615814208984375;
-    vec3 _642;
-    if (_163)
+    float _158 = ((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (((u_cameraPlaneParams.s_CameraFarPlane / _134) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _129 * log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0)) - 1.0))) * _134))) * u_cameraPlaneParams.s_CameraFarPlane;
+    bool _161 = _129 < 0.64999997615814208984375;
+    vec3 _751;
+    if (_161)
     {
-        vec3 _168 = (u_fragParams.u_camera.xyz + (_124 * (((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (((u_cameraPlaneParams.s_CameraFarPlane / _134) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _129 * log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0)) - 1.0))) * _134))) * u_cameraPlaneParams.s_CameraFarPlane))) - u_fragParams.u_earthCenter.xyz;
-        vec3 _169 = normalize(_168);
-        float _172 = length(_168);
-        float _174 = dot(_168, u_fragParams.u_sunDirection.xyz) / _172;
-        float _176 = _111 - u_fragParams.u_earthCenter.w;
-        vec4 _187 = texture(SPIRV_Cross_CombinedirradianceTextureirradianceSampler, vec2(0.0078125 + (((_174 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_172 - u_fragParams.u_earthCenter.w) / _176) * 0.9375)));
-        float _194 = u_fragParams.u_earthCenter.w / _172;
-        float _200 = _111 * _111;
-        float _201 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
-        float _203 = sqrt(_200 - _201);
-        float _204 = _172 * _172;
-        float _207 = sqrt(max(_204 - _201, 0.0));
-        float _218 = _111 - _172;
-        vec4 _231 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_172) * _174) + sqrt(max((_204 * ((_174 * _174) - 1.0)) + _200, 0.0)), 0.0) - _218) / ((_207 + _203) - _218)) * 0.99609375), 0.0078125 + ((_207 / _203) * 0.984375)));
-        vec3 _248 = normalize(_168 - _153);
-        float _249 = length(_153);
-        float _250 = dot(_153, _248);
-        float _257 = (-_250) - sqrt(((_250 * _250) - (_249 * _249)) + _200);
-        bool _258 = _257 > 0.0;
-        vec3 _264;
-        float _265;
-        if (_258)
+        vec3 _164 = (u_fragParams.u_camera.xyz + (_124 * _158)) - u_fragParams.u_earthCenter.xyz;
+        vec3 _165 = normalize(_164);
+        float _168 = length(_164);
+        float _170 = dot(_164, u_fragParams.u_sunDirection.xyz) / _168;
+        float _172 = _111 - u_fragParams.u_earthCenter.w;
+        vec4 _183 = texture(SPIRV_Cross_CombinedirradianceTextureirradianceSampler, vec2(0.0078125 + (((_170 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_168 - u_fragParams.u_earthCenter.w) / _172) * 0.9375)));
+        float _190 = u_fragParams.u_earthCenter.w / _168;
+        float _196 = _111 * _111;
+        float _197 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
+        float _199 = sqrt(_196 - _197);
+        float _200 = _168 * _168;
+        float _203 = sqrt(max(_200 - _197, 0.0));
+        float _214 = _111 - _168;
+        vec4 _227 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_168) * _170) + sqrt(max((_200 * ((_170 * _170) - 1.0)) + _196, 0.0)), 0.0) - _214) / ((_203 + _199) - _214)) * 0.99609375), 0.0078125 + ((_203 / _199) * 0.984375)));
+        float _245 = mix(_158 * 0.64999997615814208984375, 0.0, pow(_129 * 1.53846156597137451171875, 8.0));
+        vec3 _246 = u_fragParams.u_camera.xyz - u_fragParams.u_earthCenter.xyz;
+        vec3 _249 = normalize(_164 - _246);
+        float _250 = length(_246);
+        float _251 = dot(_246, _249);
+        float _258 = (-_251) - sqrt(((_251 * _251) - (_250 * _250)) + _196);
+        bool _259 = _258 > 0.0;
+        vec3 _265;
+        float _266;
+        if (_259)
         {
-            _264 = _153 + (_248 * _257);
-            _265 = _250 + _257;
+            _265 = _246 + (_249 * _258);
+            _266 = _251 + _258;
         }
         else
         {
-            _264 = _153;
-            _265 = _250;
+            _265 = _246;
+            _266 = _251;
         }
-        float _284;
-        float _266 = _258 ? _111 : _249;
-        float _267 = _265 / _266;
-        float _268 = dot(_264, u_fragParams.u_sunDirection.xyz);
-        float _269 = _268 / _266;
-        float _270 = dot(_248, u_fragParams.u_sunDirection.xyz);
-        float _272 = length(_168 - _264);
-        float _274 = _266 * _266;
-        float _277 = _274 * ((_267 * _267) - 1.0);
-        bool _280 = (_267 < 0.0) && ((_277 + _201) >= 0.0);
-        vec3 _409;
+        float _285;
+        float _267 = _259 ? _111 : _250;
+        float _268 = _266 / _267;
+        float _269 = dot(_265, u_fragParams.u_sunDirection.xyz);
+        float _270 = _269 / _267;
+        float _271 = dot(_249, u_fragParams.u_sunDirection.xyz);
+        float _273 = length(_164 - _265);
+        float _275 = _267 * _267;
+        float _278 = _275 * ((_268 * _268) - 1.0);
+        bool _281 = (_268 < 0.0) && ((_278 + _197) >= 0.0);
+        vec3 _410;
         switch (0u)
         {
             default:
             {
-                _284 = (2.0 * _266) * _267;
-                float _289 = clamp(sqrt((_272 * (_272 + _284)) + _274), u_fragParams.u_earthCenter.w, _111);
-                float _292 = clamp((_265 + _272) / _289, -1.0, 1.0);
-                if (_280)
+                _285 = (2.0 * _267) * _268;
+                float _290 = clamp(sqrt((_273 * (_273 + _285)) + _275), u_fragParams.u_earthCenter.w, _111);
+                float _293 = clamp((_266 + _273) / _290, -1.0, 1.0);
+                if (_281)
                 {
-                    float _350 = -_292;
-                    float _351 = _289 * _289;
-                    float _354 = sqrt(max(_351 - _201, 0.0));
-                    float _365 = _111 - _289;
-                    float _379 = -_267;
-                    float _382 = sqrt(max(_274 - _201, 0.0));
-                    float _393 = _111 - _266;
-                    _409 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_289) * _350) + sqrt(max((_351 * ((_350 * _350) - 1.0)) + _200, 0.0)), 0.0) - _365) / ((_354 + _203) - _365)) * 0.99609375), 0.0078125 + ((_354 / _203) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_266) * _379) + sqrt(max((_274 * ((_379 * _379) - 1.0)) + _200, 0.0)), 0.0) - _393) / ((_382 + _203) - _393)) * 0.99609375), 0.0078125 + ((_382 / _203) * 0.984375))).xyz, vec3(1.0));
+                    float _351 = -_293;
+                    float _352 = _290 * _290;
+                    float _355 = sqrt(max(_352 - _197, 0.0));
+                    float _366 = _111 - _290;
+                    float _380 = -_268;
+                    float _383 = sqrt(max(_275 - _197, 0.0));
+                    float _394 = _111 - _267;
+                    _410 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_290) * _351) + sqrt(max((_352 * ((_351 * _351) - 1.0)) + _196, 0.0)), 0.0) - _366) / ((_355 + _199) - _366)) * 0.99609375), 0.0078125 + ((_355 / _199) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_267) * _380) + sqrt(max((_275 * ((_380 * _380) - 1.0)) + _196, 0.0)), 0.0) - _394) / ((_383 + _199) - _394)) * 0.99609375), 0.0078125 + ((_383 / _199) * 0.984375))).xyz, vec3(1.0));
                     break;
                 }
                 else
                 {
-                    float _298 = sqrt(max(_274 - _201, 0.0));
-                    float _306 = _111 - _266;
-                    float _320 = _289 * _289;
-                    float _323 = sqrt(max(_320 - _201, 0.0));
-                    float _334 = _111 - _289;
-                    _409 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_266) * _267) + sqrt(max(_277 + _200, 0.0)), 0.0) - _306) / ((_298 + _203) - _306)) * 0.99609375), 0.0078125 + ((_298 / _203) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_289) * _292) + sqrt(max((_320 * ((_292 * _292) - 1.0)) + _200, 0.0)), 0.0) - _334) / ((_323 + _203) - _334)) * 0.99609375), 0.0078125 + ((_323 / _203) * 0.984375))).xyz, vec3(1.0));
+                    float _299 = sqrt(max(_275 - _197, 0.0));
+                    float _307 = _111 - _267;
+                    float _321 = _290 * _290;
+                    float _324 = sqrt(max(_321 - _197, 0.0));
+                    float _335 = _111 - _290;
+                    _410 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_267) * _268) + sqrt(max(_278 + _196, 0.0)), 0.0) - _307) / ((_299 + _199) - _307)) * 0.99609375), 0.0078125 + ((_299 / _199) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_290) * _293) + sqrt(max((_321 * ((_293 * _293) - 1.0)) + _196, 0.0)), 0.0) - _335) / ((_324 + _199) - _335)) * 0.99609375), 0.0078125 + ((_324 / _199) * 0.984375))).xyz, vec3(1.0));
                     break;
                 }
             }
         }
-        float _412 = sqrt(max(_274 - _201, 0.0));
-        float _415 = 0.015625 + ((_412 / _203) * 0.96875);
-        float _418 = ((_265 * _265) - _274) + _201;
-        float _451;
-        if (_280)
+        float _413 = sqrt(max(_275 - _197, 0.0));
+        float _414 = _413 / _199;
+        float _416 = 0.015625 + (_414 * 0.96875);
+        float _419 = ((_266 * _266) - _275) + _197;
+        float _452;
+        if (_281)
         {
-            float _441 = _266 - u_fragParams.u_earthCenter.w;
-            _451 = 0.5 - (0.5 * (0.0078125 + (((_412 == _441) ? 0.0 : ((((-_265) - sqrt(max(_418, 0.0))) - _441) / (_412 - _441))) * 0.984375)));
+            float _442 = _267 - u_fragParams.u_earthCenter.w;
+            _452 = 0.5 - (0.5 * (0.0078125 + (((_413 == _442) ? 0.0 : ((((-_266) - sqrt(max(_419, 0.0))) - _442) / (_413 - _442))) * 0.984375)));
         }
         else
         {
-            float _428 = _111 - _266;
-            _451 = 0.5 + (0.5 * (0.0078125 + (((((-_265) + sqrt(max(_418 + (_203 * _203), 0.0))) - _428) / ((_412 + _203) - _428)) * 0.984375)));
+            float _429 = _111 - _267;
+            _452 = 0.5 + (0.5 * (0.0078125 + (((((-_266) + sqrt(max(_419 + (_199 * _199), 0.0))) - _429) / ((_413 + _199) - _429)) * 0.984375)));
         }
-        float _456 = -u_fragParams.u_earthCenter.w;
-        float _463 = _203 - _176;
-        float _464 = (max((_456 * _269) + sqrt(max((_201 * ((_269 * _269) - 1.0)) + _200, 0.0)), 0.0) - _176) / _463;
-        float _466 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _463;
-        float _473 = 0.015625 + ((max(1.0 - (_464 / _466), 0.0) / (1.0 + _464)) * 0.96875);
-        float _475 = (_270 + 1.0) * 3.5;
-        float _476 = floor(_475);
-        float _477 = _475 - _476;
-        float _481 = _476 + 1.0;
-        vec4 _487 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_476 + _473) * 0.125, _451, _415));
-        float _488 = 1.0 - _477;
-        vec4 _491 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_481 + _473) * 0.125, _451, _415));
-        vec4 _493 = (_487 * _488) + (_491 * _477);
-        vec3 _494 = _493.xyz;
-        vec3 _507;
+        float _457 = -u_fragParams.u_earthCenter.w;
+        float _464 = _199 - _172;
+        float _465 = (max((_457 * _270) + sqrt(max((_197 * ((_270 * _270) - 1.0)) + _196, 0.0)), 0.0) - _172) / _464;
+        float _467 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _464;
+        float _474 = 0.015625 + ((max(1.0 - (_465 / _467), 0.0) / (1.0 + _465)) * 0.96875);
+        float _476 = (_271 + 1.0) * 3.5;
+        float _477 = floor(_476);
+        float _478 = _476 - _477;
+        float _482 = _477 + 1.0;
+        vec4 _488 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_477 + _474) * 0.125, _452, _416));
+        float _489 = 1.0 - _478;
+        vec4 _492 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_482 + _474) * 0.125, _452, _416));
+        vec4 _494 = (_488 * _489) + (_492 * _478);
+        vec3 _495 = _494.xyz;
+        vec3 _508;
         switch (0u)
         {
             default:
             {
-                float _497 = _493.x;
-                if (_497 == 0.0)
+                float _498 = _494.x;
+                if (_498 == 0.0)
                 {
-                    _507 = vec3(0.0);
+                    _508 = vec3(0.0);
                     break;
                 }
-                _507 = (((_494 * _493.w) / vec3(_497)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _508 = (((_495 * _494.w) / vec3(_498)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float _508 = max(_272, 0.0);
-        float _513 = clamp(sqrt((_508 * (_508 + _284)) + _274), u_fragParams.u_earthCenter.w, _111);
-        float _514 = _265 + _508;
-        float _517 = (_268 + (_508 * _270)) / _513;
-        float _518 = _513 * _513;
-        float _521 = sqrt(max(_518 - _201, 0.0));
-        float _524 = 0.015625 + ((_521 / _203) * 0.96875);
-        float _527 = ((_514 * _514) - _518) + _201;
-        float _560;
-        if (_280)
+        float _510 = max(_273 - _245, 0.0);
+        float _515 = clamp(sqrt((_510 * (_510 + _285)) + _275), u_fragParams.u_earthCenter.w, _111);
+        float _516 = _266 + _510;
+        float _519 = (_269 + (_510 * _271)) / _515;
+        float _520 = _515 * _515;
+        float _523 = sqrt(max(_520 - _197, 0.0));
+        float _524 = _523 / _199;
+        float _526 = 0.015625 + (_524 * 0.96875);
+        float _529 = ((_516 * _516) - _520) + _197;
+        float _562;
+        if (_281)
         {
-            float _550 = _513 - u_fragParams.u_earthCenter.w;
-            _560 = 0.5 - (0.5 * (0.0078125 + (((_521 == _550) ? 0.0 : ((((-_514) - sqrt(max(_527, 0.0))) - _550) / (_521 - _550))) * 0.984375)));
+            float _552 = _515 - u_fragParams.u_earthCenter.w;
+            _562 = 0.5 - (0.5 * (0.0078125 + (((_523 == _552) ? 0.0 : ((((-_516) - sqrt(max(_529, 0.0))) - _552) / (_523 - _552))) * 0.984375)));
         }
         else
         {
-            float _537 = _111 - _513;
-            _560 = 0.5 + (0.5 * (0.0078125 + (((((-_514) + sqrt(max(_527 + (_203 * _203), 0.0))) - _537) / ((_521 + _203) - _537)) * 0.984375)));
+            float _539 = _111 - _515;
+            _562 = 0.5 + (0.5 * (0.0078125 + (((((-_516) + sqrt(max(_529 + (_199 * _199), 0.0))) - _539) / ((_523 + _199) - _539)) * 0.984375)));
         }
-        float _571 = (max((_456 * _517) + sqrt(max((_201 * ((_517 * _517) - 1.0)) + _200, 0.0)), 0.0) - _176) / _463;
-        float _578 = 0.015625 + ((max(1.0 - (_571 / _466), 0.0) / (1.0 + _571)) * 0.96875);
-        vec4 _586 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_476 + _578) * 0.125, _560, _524));
-        vec4 _589 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_481 + _578) * 0.125, _560, _524));
-        vec4 _591 = (_586 * _488) + (_589 * _477);
-        vec3 _592 = _591.xyz;
-        vec3 _605;
+        float _573 = (max((_457 * _519) + sqrt(max((_197 * ((_519 * _519) - 1.0)) + _196, 0.0)), 0.0) - _172) / _464;
+        float _580 = 0.015625 + ((max(1.0 - (_573 / _467), 0.0) / (1.0 + _573)) * 0.96875);
+        vec4 _588 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_477 + _580) * 0.125, _562, _526));
+        vec4 _591 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_482 + _580) * 0.125, _562, _526));
+        vec4 _593 = (_588 * _489) + (_591 * _478);
+        vec3 _594 = _593.xyz;
+        vec3 _607;
         switch (0u)
         {
             default:
             {
-                float _595 = _591.x;
-                if (_595 == 0.0)
+                float _597 = _593.x;
+                if (_597 == 0.0)
                 {
-                    _605 = vec3(0.0);
+                    _607 = vec3(0.0);
                     break;
                 }
-                _605 = (((_592 * _591.w) / vec3(_595)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _607 = (((_594 * _593.w) / vec3(_597)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        vec3 _607 = _494 - (_409 * _592);
-        vec3 _609 = _507 - (_409 * _605);
-        float _610 = _609.x;
-        float _611 = _607.x;
-        vec3 _626;
-        switch (0u)
+        vec3 _714;
+        if (_245 > 0.0)
         {
-            default:
-            {
-                if (_611 == 0.0)
-                {
-                    _626 = vec3(0.0);
-                    break;
-                }
-                _626 = (((vec4(_611, _607.yz, _610).xyz * _610) / vec3(_611)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
-                break;
-            }
-        }
-        float _630 = 1.0 + (_270 * _270);
-        _642 = (((_152.xyz * 0.3183098733425140380859375) * (((vec3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * (_231.xyz * smoothstep(_194 * (-0.004674999974668025970458984375), _194 * 0.004674999974668025970458984375, _174 - (-sqrt(max(1.0 - (_194 * _194), 0.0)))))) * max(dot(_169, u_fragParams.u_sunDirection.xyz), 0.0)) + ((_187.xyz * (1.0 + (dot(_169, _168) / _172))) * 0.5))) * _409) + ((_607 * (0.0596831031143665313720703125 * _630)) + ((_626 * smoothstep(0.0, 0.00999999977648258209228515625, _269)) * ((0.01627720706164836883544921875 * _630) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _270), 1.5))));
-    }
-    else
-    {
-        _642 = vec3(0.0);
-    }
-    float _644 = dot(_153, _124);
-    float _646 = _644 * _644;
-    float _648 = -_644;
-    float _649 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
-    float _652 = _648 - sqrt(_649 - (dot(_153, _153) - _646));
-    bool _653 = _652 > 0.0;
-    vec3 _1242;
-    if (_653)
-    {
-        vec3 _658 = (u_fragParams.u_camera.xyz + (_124 * _652)) - u_fragParams.u_earthCenter.xyz;
-        vec3 _659 = normalize(_658);
-        float _662 = length(_658);
-        float _664 = dot(_658, u_fragParams.u_sunDirection.xyz) / _662;
-        float _666 = _111 - u_fragParams.u_earthCenter.w;
-        vec4 _677 = texture(SPIRV_Cross_CombinedirradianceTextureirradianceSampler, vec2(0.0078125 + (((_664 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_662 - u_fragParams.u_earthCenter.w) / _666) * 0.9375)));
-        float _684 = u_fragParams.u_earthCenter.w / _662;
-        float _690 = _111 * _111;
-        float _692 = sqrt(_690 - _649);
-        float _693 = _662 * _662;
-        float _696 = sqrt(max(_693 - _649, 0.0));
-        float _707 = _111 - _662;
-        vec4 _720 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_662) * _664) + sqrt(max((_693 * ((_664 * _664) - 1.0)) + _690, 0.0)), 0.0) - _707) / ((_696 + _692) - _707)) * 0.99609375), 0.0078125 + ((_696 / _692) * 0.984375)));
-        float _737 = max(0.0, min(0.0, _652)) * smoothstep(0.0199999995529651641845703125, 0.039999999105930328369140625, dot(normalize(_153), u_fragParams.u_sunDirection.xyz));
-        vec3 _740 = normalize(_658 - _153);
-        float _741 = length(_153);
-        float _742 = dot(_153, _740);
-        float _749 = (-_742) - sqrt(((_742 * _742) - (_741 * _741)) + _690);
-        bool _750 = _749 > 0.0;
-        vec3 _756;
-        float _757;
-        if (_750)
-        {
-            _756 = _153 + (_740 * _749);
-            _757 = _742 + _749;
-        }
-        else
-        {
-            _756 = _153;
-            _757 = _742;
-        }
-        float _776;
-        float _758 = _750 ? _111 : _741;
-        float _759 = _757 / _758;
-        float _760 = dot(_756, u_fragParams.u_sunDirection.xyz);
-        float _761 = _760 / _758;
-        float _762 = dot(_740, u_fragParams.u_sunDirection.xyz);
-        float _764 = length(_658 - _756);
-        float _766 = _758 * _758;
-        float _769 = _766 * ((_759 * _759) - 1.0);
-        bool _772 = (_759 < 0.0) && ((_769 + _649) >= 0.0);
-        vec3 _901;
-        switch (0u)
-        {
-            default:
-            {
-                _776 = (2.0 * _758) * _759;
-                float _781 = clamp(sqrt((_764 * (_764 + _776)) + _766), u_fragParams.u_earthCenter.w, _111);
-                float _784 = clamp((_757 + _764) / _781, -1.0, 1.0);
-                if (_772)
-                {
-                    float _842 = -_784;
-                    float _843 = _781 * _781;
-                    float _846 = sqrt(max(_843 - _649, 0.0));
-                    float _857 = _111 - _781;
-                    float _871 = -_759;
-                    float _874 = sqrt(max(_766 - _649, 0.0));
-                    float _885 = _111 - _758;
-                    _901 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_781) * _842) + sqrt(max((_843 * ((_842 * _842) - 1.0)) + _690, 0.0)), 0.0) - _857) / ((_846 + _692) - _857)) * 0.99609375), 0.0078125 + ((_846 / _692) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _871) + sqrt(max((_766 * ((_871 * _871) - 1.0)) + _690, 0.0)), 0.0) - _885) / ((_874 + _692) - _885)) * 0.99609375), 0.0078125 + ((_874 / _692) * 0.984375))).xyz, vec3(1.0));
-                    break;
-                }
-                else
-                {
-                    float _790 = sqrt(max(_766 - _649, 0.0));
-                    float _798 = _111 - _758;
-                    float _812 = _781 * _781;
-                    float _815 = sqrt(max(_812 - _649, 0.0));
-                    float _826 = _111 - _781;
-                    _901 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _759) + sqrt(max(_769 + _690, 0.0)), 0.0) - _798) / ((_790 + _692) - _798)) * 0.99609375), 0.0078125 + ((_790 / _692) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_781) * _784) + sqrt(max((_812 * ((_784 * _784) - 1.0)) + _690, 0.0)), 0.0) - _826) / ((_815 + _692) - _826)) * 0.99609375), 0.0078125 + ((_815 / _692) * 0.984375))).xyz, vec3(1.0));
-                    break;
-                }
-            }
-        }
-        float _904 = sqrt(max(_766 - _649, 0.0));
-        float _905 = _904 / _692;
-        float _907 = 0.015625 + (_905 * 0.96875);
-        float _910 = ((_757 * _757) - _766) + _649;
-        float _943;
-        if (_772)
-        {
-            float _933 = _758 - u_fragParams.u_earthCenter.w;
-            _943 = 0.5 - (0.5 * (0.0078125 + (((_904 == _933) ? 0.0 : ((((-_757) - sqrt(max(_910, 0.0))) - _933) / (_904 - _933))) * 0.984375)));
-        }
-        else
-        {
-            float _920 = _111 - _758;
-            _943 = 0.5 + (0.5 * (0.0078125 + (((((-_757) + sqrt(max(_910 + (_692 * _692), 0.0))) - _920) / ((_904 + _692) - _920)) * 0.984375)));
-        }
-        float _948 = -u_fragParams.u_earthCenter.w;
-        float _955 = _692 - _666;
-        float _956 = (max((_948 * _761) + sqrt(max((_649 * ((_761 * _761) - 1.0)) + _690, 0.0)), 0.0) - _666) / _955;
-        float _958 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _955;
-        float _965 = 0.015625 + ((max(1.0 - (_956 / _958), 0.0) / (1.0 + _956)) * 0.96875);
-        float _967 = (_762 + 1.0) * 3.5;
-        float _968 = floor(_967);
-        float _969 = _967 - _968;
-        float _973 = _968 + 1.0;
-        vec4 _979 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_968 + _965) * 0.125, _943, _907));
-        float _980 = 1.0 - _969;
-        vec4 _983 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_973 + _965) * 0.125, _943, _907));
-        vec4 _985 = (_979 * _980) + (_983 * _969);
-        vec3 _986 = _985.xyz;
-        vec3 _999;
-        switch (0u)
-        {
-            default:
-            {
-                float _989 = _985.x;
-                if (_989 == 0.0)
-                {
-                    _999 = vec3(0.0);
-                    break;
-                }
-                _999 = (((_986 * _985.w) / vec3(_989)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
-                break;
-            }
-        }
-        float _1001 = max(_764 - _737, 0.0);
-        float _1006 = clamp(sqrt((_1001 * (_1001 + _776)) + _766), u_fragParams.u_earthCenter.w, _111);
-        float _1007 = _757 + _1001;
-        float _1010 = (_760 + (_1001 * _762)) / _1006;
-        float _1011 = _1006 * _1006;
-        float _1014 = sqrt(max(_1011 - _649, 0.0));
-        float _1015 = _1014 / _692;
-        float _1017 = 0.015625 + (_1015 * 0.96875);
-        float _1020 = ((_1007 * _1007) - _1011) + _649;
-        float _1053;
-        if (_772)
-        {
-            float _1043 = _1006 - u_fragParams.u_earthCenter.w;
-            _1053 = 0.5 - (0.5 * (0.0078125 + (((_1014 == _1043) ? 0.0 : ((((-_1007) - sqrt(max(_1020, 0.0))) - _1043) / (_1014 - _1043))) * 0.984375)));
-        }
-        else
-        {
-            float _1030 = _111 - _1006;
-            _1053 = 0.5 + (0.5 * (0.0078125 + (((((-_1007) + sqrt(max(_1020 + (_692 * _692), 0.0))) - _1030) / ((_1014 + _692) - _1030)) * 0.984375)));
-        }
-        float _1064 = (max((_948 * _1010) + sqrt(max((_649 * ((_1010 * _1010) - 1.0)) + _690, 0.0)), 0.0) - _666) / _955;
-        float _1071 = 0.015625 + ((max(1.0 - (_1064 / _958), 0.0) / (1.0 + _1064)) * 0.96875);
-        vec4 _1079 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_968 + _1071) * 0.125, _1053, _1017));
-        vec4 _1082 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_973 + _1071) * 0.125, _1053, _1017));
-        vec4 _1084 = (_1079 * _980) + (_1082 * _969);
-        vec3 _1085 = _1084.xyz;
-        vec3 _1098;
-        switch (0u)
-        {
-            default:
-            {
-                float _1088 = _1084.x;
-                if (_1088 == 0.0)
-                {
-                    _1098 = vec3(0.0);
-                    break;
-                }
-                _1098 = (((_1085 * _1084.w) / vec3(_1088)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
-                break;
-            }
-        }
-        vec3 _1205;
-        if (_737 > 0.0)
-        {
-            vec3 _1204;
+            vec3 _713;
             switch (0u)
             {
                 default:
                 {
-                    float _1105 = clamp(_1007 / _1006, -1.0, 1.0);
-                    if (_772)
+                    float _614 = clamp(_516 / _515, -1.0, 1.0);
+                    if (_281)
                     {
-                        float _1154 = -_1105;
-                        float _1165 = _111 - _1006;
-                        float _1178 = -_759;
-                        float _1189 = _111 - _758;
-                        _1204 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_1006) * _1154) + sqrt(max((_1011 * ((_1154 * _1154) - 1.0)) + _690, 0.0)), 0.0) - _1165) / ((_1014 + _692) - _1165)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _1178) + sqrt(max((_766 * ((_1178 * _1178) - 1.0)) + _690, 0.0)), 0.0) - _1189) / ((_904 + _692) - _1189)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz, vec3(1.0));
+                        float _663 = -_614;
+                        float _674 = _111 - _515;
+                        float _687 = -_268;
+                        float _698 = _111 - _267;
+                        _713 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_515) * _663) + sqrt(max((_520 * ((_663 * _663) - 1.0)) + _196, 0.0)), 0.0) - _674) / ((_523 + _199) - _674)) * 0.99609375), 0.0078125 + (_524 * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_267) * _687) + sqrt(max((_275 * ((_687 * _687) - 1.0)) + _196, 0.0)), 0.0) - _698) / ((_413 + _199) - _698)) * 0.99609375), 0.0078125 + (_414 * 0.984375))).xyz, vec3(1.0));
                         break;
                     }
                     else
                     {
-                        float _1116 = _111 - _758;
-                        float _1139 = _111 - _1006;
-                        _1204 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_758) * _759) + sqrt(max(_769 + _690, 0.0)), 0.0) - _1116) / ((_904 + _692) - _1116)) * 0.99609375), 0.0078125 + (_905 * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_1006) * _1105) + sqrt(max((_1011 * ((_1105 * _1105) - 1.0)) + _690, 0.0)), 0.0) - _1139) / ((_1014 + _692) - _1139)) * 0.99609375), 0.0078125 + (_1015 * 0.984375))).xyz, vec3(1.0));
+                        float _625 = _111 - _267;
+                        float _648 = _111 - _515;
+                        _713 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_267) * _268) + sqrt(max(_278 + _196, 0.0)), 0.0) - _625) / ((_413 + _199) - _625)) * 0.99609375), 0.0078125 + (_414 * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_515) * _614) + sqrt(max((_520 * ((_614 * _614) - 1.0)) + _196, 0.0)), 0.0) - _648) / ((_523 + _199) - _648)) * 0.99609375), 0.0078125 + (_524 * 0.984375))).xyz, vec3(1.0));
                         break;
                     }
                 }
             }
-            _1205 = _1204;
+            _714 = _713;
         }
         else
         {
-            _1205 = _901;
+            _714 = _410;
         }
-        vec3 _1207 = _986 - (_1205 * _1085);
-        vec3 _1209 = _999 - (_1205 * _1098);
-        float _1210 = _1209.x;
-        float _1211 = _1207.x;
-        vec3 _1226;
+        vec3 _716 = _495 - (_714 * _594);
+        vec3 _718 = _508 - (_714 * _607);
+        float _719 = _718.x;
+        float _720 = _716.x;
+        vec3 _735;
         switch (0u)
         {
             default:
             {
-                if (_1211 == 0.0)
+                if (_720 == 0.0)
                 {
-                    _1226 = vec3(0.0);
+                    _735 = vec3(0.0);
                     break;
                 }
-                _1226 = (((vec4(_1211, _1207.yz, _1210).xyz * _1210) / vec3(_1211)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _735 = (((vec4(_720, _716.yz, _719).xyz * _719) / vec3(_720)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float _1230 = 1.0 + (_762 * _762);
-        _1242 = (((_152.xyz * 0.3183098733425140380859375) * (((vec3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * (_720.xyz * smoothstep(_684 * (-0.004674999974668025970458984375), _684 * 0.004674999974668025970458984375, _664 - (-sqrt(max(1.0 - (_684 * _684), 0.0)))))) * max(dot(_659, u_fragParams.u_sunDirection.xyz), 0.0)) + ((_677.xyz * (1.0 + (dot(_659, _658) / _662))) * 0.5))) * _901) + ((_1207 * (0.0596831031143665313720703125 * _1230)) + ((_1226 * smoothstep(0.0, 0.00999999977648258209228515625, _761)) * ((0.01627720706164836883544921875 * _1230) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _762), 1.5))));
+        float _739 = 1.0 + (_271 * _271);
+        _751 = (((_152.xyz * 0.3183098733425140380859375) * (((vec3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * (_227.xyz * smoothstep(_190 * (-0.004674999974668025970458984375), _190 * 0.004674999974668025970458984375, _170 - (-sqrt(max(1.0 - (_190 * _190), 0.0)))))) * max(dot(_165, u_fragParams.u_sunDirection.xyz), 0.0)) + ((_183.xyz * (1.0 + (dot(_165, _164) / _168))) * 0.5))) * _410) + ((_716 * (0.0596831031143665313720703125 * _739)) + ((_735 * smoothstep(0.0, 0.00999999977648258209228515625, _270)) * ((0.01627720706164836883544921875 * _739) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _271), 1.5))));
     }
     else
     {
-        _1242 = vec3(0.0);
+        _751 = vec3(0.0);
     }
+    vec3 _753 = u_fragParams.u_camera.xyz - u_fragParams.u_earthCenter.xyz;
+    float _754 = dot(_753, _124);
+    float _756 = _754 * _754;
+    float _758 = -_754;
+    float _759 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
+    float _762 = _758 - sqrt(_759 - (dot(_753, _753) - _756));
+    bool _763 = _762 > 0.0;
+    vec3 _1241;
+    if (_763)
+    {
+        vec3 _768 = (u_fragParams.u_camera.xyz + (_124 * _762)) - u_fragParams.u_earthCenter.xyz;
+        vec3 _769 = normalize(_768);
+        float _772 = length(_768);
+        float _774 = dot(_768, u_fragParams.u_sunDirection.xyz) / _772;
+        float _776 = _111 - u_fragParams.u_earthCenter.w;
+        vec4 _787 = texture(SPIRV_Cross_CombinedirradianceTextureirradianceSampler, vec2(0.0078125 + (((_774 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_772 - u_fragParams.u_earthCenter.w) / _776) * 0.9375)));
+        float _794 = u_fragParams.u_earthCenter.w / _772;
+        float _800 = _111 * _111;
+        float _802 = sqrt(_800 - _759);
+        float _803 = _772 * _772;
+        float _806 = sqrt(max(_803 - _759, 0.0));
+        float _817 = _111 - _772;
+        vec4 _830 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_772) * _774) + sqrt(max((_803 * ((_774 * _774) - 1.0)) + _800, 0.0)), 0.0) - _817) / ((_806 + _802) - _817)) * 0.99609375), 0.0078125 + ((_806 / _802) * 0.984375)));
+        vec3 _847 = normalize(_768 - _753);
+        float _848 = length(_753);
+        float _849 = dot(_753, _847);
+        float _856 = (-_849) - sqrt(((_849 * _849) - (_848 * _848)) + _800);
+        bool _857 = _856 > 0.0;
+        vec3 _863;
+        float _864;
+        if (_857)
+        {
+            _863 = _753 + (_847 * _856);
+            _864 = _849 + _856;
+        }
+        else
+        {
+            _863 = _753;
+            _864 = _849;
+        }
+        float _883;
+        float _865 = _857 ? _111 : _848;
+        float _866 = _864 / _865;
+        float _867 = dot(_863, u_fragParams.u_sunDirection.xyz);
+        float _868 = _867 / _865;
+        float _869 = dot(_847, u_fragParams.u_sunDirection.xyz);
+        float _871 = length(_768 - _863);
+        float _873 = _865 * _865;
+        float _876 = _873 * ((_866 * _866) - 1.0);
+        bool _879 = (_866 < 0.0) && ((_876 + _759) >= 0.0);
+        vec3 _1008;
+        switch (0u)
+        {
+            default:
+            {
+                _883 = (2.0 * _865) * _866;
+                float _888 = clamp(sqrt((_871 * (_871 + _883)) + _873), u_fragParams.u_earthCenter.w, _111);
+                float _891 = clamp((_864 + _871) / _888, -1.0, 1.0);
+                if (_879)
+                {
+                    float _949 = -_891;
+                    float _950 = _888 * _888;
+                    float _953 = sqrt(max(_950 - _759, 0.0));
+                    float _964 = _111 - _888;
+                    float _978 = -_866;
+                    float _981 = sqrt(max(_873 - _759, 0.0));
+                    float _992 = _111 - _865;
+                    _1008 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_888) * _949) + sqrt(max((_950 * ((_949 * _949) - 1.0)) + _800, 0.0)), 0.0) - _964) / ((_953 + _802) - _964)) * 0.99609375), 0.0078125 + ((_953 / _802) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_865) * _978) + sqrt(max((_873 * ((_978 * _978) - 1.0)) + _800, 0.0)), 0.0) - _992) / ((_981 + _802) - _992)) * 0.99609375), 0.0078125 + ((_981 / _802) * 0.984375))).xyz, vec3(1.0));
+                    break;
+                }
+                else
+                {
+                    float _897 = sqrt(max(_873 - _759, 0.0));
+                    float _905 = _111 - _865;
+                    float _919 = _888 * _888;
+                    float _922 = sqrt(max(_919 - _759, 0.0));
+                    float _933 = _111 - _888;
+                    _1008 = min(texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_865) * _866) + sqrt(max(_876 + _800, 0.0)), 0.0) - _905) / ((_897 + _802) - _905)) * 0.99609375), 0.0078125 + ((_897 / _802) * 0.984375))).xyz / texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_888) * _891) + sqrt(max((_919 * ((_891 * _891) - 1.0)) + _800, 0.0)), 0.0) - _933) / ((_922 + _802) - _933)) * 0.99609375), 0.0078125 + ((_922 / _802) * 0.984375))).xyz, vec3(1.0));
+                    break;
+                }
+            }
+        }
+        float _1011 = sqrt(max(_873 - _759, 0.0));
+        float _1014 = 0.015625 + ((_1011 / _802) * 0.96875);
+        float _1017 = ((_864 * _864) - _873) + _759;
+        float _1050;
+        if (_879)
+        {
+            float _1040 = _865 - u_fragParams.u_earthCenter.w;
+            _1050 = 0.5 - (0.5 * (0.0078125 + (((_1011 == _1040) ? 0.0 : ((((-_864) - sqrt(max(_1017, 0.0))) - _1040) / (_1011 - _1040))) * 0.984375)));
+        }
+        else
+        {
+            float _1027 = _111 - _865;
+            _1050 = 0.5 + (0.5 * (0.0078125 + (((((-_864) + sqrt(max(_1017 + (_802 * _802), 0.0))) - _1027) / ((_1011 + _802) - _1027)) * 0.984375)));
+        }
+        float _1055 = -u_fragParams.u_earthCenter.w;
+        float _1062 = _802 - _776;
+        float _1063 = (max((_1055 * _868) + sqrt(max((_759 * ((_868 * _868) - 1.0)) + _800, 0.0)), 0.0) - _776) / _1062;
+        float _1065 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _1062;
+        float _1072 = 0.015625 + ((max(1.0 - (_1063 / _1065), 0.0) / (1.0 + _1063)) * 0.96875);
+        float _1074 = (_869 + 1.0) * 3.5;
+        float _1075 = floor(_1074);
+        float _1076 = _1074 - _1075;
+        float _1080 = _1075 + 1.0;
+        vec4 _1086 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_1075 + _1072) * 0.125, _1050, _1014));
+        float _1087 = 1.0 - _1076;
+        vec4 _1090 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_1080 + _1072) * 0.125, _1050, _1014));
+        vec4 _1092 = (_1086 * _1087) + (_1090 * _1076);
+        vec3 _1093 = _1092.xyz;
+        vec3 _1106;
+        switch (0u)
+        {
+            default:
+            {
+                float _1096 = _1092.x;
+                if (_1096 == 0.0)
+                {
+                    _1106 = vec3(0.0);
+                    break;
+                }
+                _1106 = (((_1093 * _1092.w) / vec3(_1096)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                break;
+            }
+        }
+        float _1107 = max(_871, 0.0);
+        float _1112 = clamp(sqrt((_1107 * (_1107 + _883)) + _873), u_fragParams.u_earthCenter.w, _111);
+        float _1113 = _864 + _1107;
+        float _1116 = (_867 + (_1107 * _869)) / _1112;
+        float _1117 = _1112 * _1112;
+        float _1120 = sqrt(max(_1117 - _759, 0.0));
+        float _1123 = 0.015625 + ((_1120 / _802) * 0.96875);
+        float _1126 = ((_1113 * _1113) - _1117) + _759;
+        float _1159;
+        if (_879)
+        {
+            float _1149 = _1112 - u_fragParams.u_earthCenter.w;
+            _1159 = 0.5 - (0.5 * (0.0078125 + (((_1120 == _1149) ? 0.0 : ((((-_1113) - sqrt(max(_1126, 0.0))) - _1149) / (_1120 - _1149))) * 0.984375)));
+        }
+        else
+        {
+            float _1136 = _111 - _1112;
+            _1159 = 0.5 + (0.5 * (0.0078125 + (((((-_1113) + sqrt(max(_1126 + (_802 * _802), 0.0))) - _1136) / ((_1120 + _802) - _1136)) * 0.984375)));
+        }
+        float _1170 = (max((_1055 * _1116) + sqrt(max((_759 * ((_1116 * _1116) - 1.0)) + _800, 0.0)), 0.0) - _776) / _1062;
+        float _1177 = 0.015625 + ((max(1.0 - (_1170 / _1065), 0.0) / (1.0 + _1170)) * 0.96875);
+        vec4 _1185 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_1075 + _1177) * 0.125, _1159, _1123));
+        vec4 _1188 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_1080 + _1177) * 0.125, _1159, _1123));
+        vec4 _1190 = (_1185 * _1087) + (_1188 * _1076);
+        vec3 _1191 = _1190.xyz;
+        vec3 _1204;
+        switch (0u)
+        {
+            default:
+            {
+                float _1194 = _1190.x;
+                if (_1194 == 0.0)
+                {
+                    _1204 = vec3(0.0);
+                    break;
+                }
+                _1204 = (((_1191 * _1190.w) / vec3(_1194)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                break;
+            }
+        }
+        vec3 _1206 = _1093 - (_1008 * _1191);
+        vec3 _1208 = _1106 - (_1008 * _1204);
+        float _1209 = _1208.x;
+        float _1210 = _1206.x;
+        vec3 _1225;
+        switch (0u)
+        {
+            default:
+            {
+                if (_1210 == 0.0)
+                {
+                    _1225 = vec3(0.0);
+                    break;
+                }
+                _1225 = (((vec4(_1210, _1206.yz, _1209).xyz * _1209) / vec3(_1210)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                break;
+            }
+        }
+        float _1229 = 1.0 + (_869 * _869);
+        _1241 = (((_152.xyz * 0.3183098733425140380859375) * (((vec3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * (_830.xyz * smoothstep(_794 * (-0.004674999974668025970458984375), _794 * 0.004674999974668025970458984375, _774 - (-sqrt(max(1.0 - (_794 * _794), 0.0)))))) * max(dot(_769, u_fragParams.u_sunDirection.xyz), 0.0)) + ((_787.xyz * (1.0 + (dot(_769, _768) / _772))) * 0.5))) * _1008) + ((_1206 * (0.0596831031143665313720703125 * _1229)) + ((_1225 * smoothstep(0.0, 0.00999999977648258209228515625, _868)) * ((0.01627720706164836883544921875 * _1229) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _869), 1.5))));
+    }
+    else
+    {
+        _1241 = vec3(0.0);
+    }
+    vec3 _1411;
     vec3 _1412;
-    vec3 _1413;
     switch (0u)
     {
         default:
         {
-            float _1248 = length(_153);
-            float _1251 = _111 * _111;
-            float _1254 = _648 - sqrt((_646 - (_1248 * _1248)) + _1251);
-            bool _1255 = _1254 > 0.0;
-            vec3 _1265;
-            float _1266;
-            if (_1255)
+            float _1247 = length(_753);
+            float _1250 = _111 * _111;
+            float _1253 = _758 - sqrt((_756 - (_1247 * _1247)) + _1250);
+            bool _1254 = _1253 > 0.0;
+            vec3 _1264;
+            float _1265;
+            if (_1254)
             {
-                _1265 = _153 + (_124 * _1254);
-                _1266 = _644 + _1254;
+                _1264 = _753 + (_124 * _1253);
+                _1265 = _754 + _1253;
             }
             else
             {
-                if (_1248 > _111)
+                if (_1247 > _111)
                 {
-                    _1412 = vec3(1.0);
-                    _1413 = vec3(0.0);
+                    _1411 = vec3(1.0);
+                    _1412 = vec3(0.0);
                     break;
                 }
-                _1265 = _153;
-                _1266 = _644;
+                _1264 = _753;
+                _1265 = _754;
             }
-            float _1267 = _1255 ? _111 : _1248;
-            float _1268 = _1266 / _1267;
-            float _1270 = dot(_1265, u_fragParams.u_sunDirection.xyz) / _1267;
-            float _1271 = dot(_124, u_fragParams.u_sunDirection.xyz);
-            float _1273 = _1267 * _1267;
-            float _1276 = _1273 * ((_1268 * _1268) - 1.0);
-            bool _1279 = (_1268 < 0.0) && ((_1276 + _649) >= 0.0);
-            float _1281 = sqrt(_1251 - _649);
-            float _1284 = sqrt(max(_1273 - _649, 0.0));
-            float _1292 = _111 - _1267;
-            float _1295 = (_1284 + _1281) - _1292;
-            float _1297 = _1284 / _1281;
-            vec4 _1305 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_1267) * _1268) + sqrt(max(_1276 + _1251, 0.0)), 0.0) - _1292) / _1295) * 0.99609375), 0.0078125 + (_1297 * 0.984375)));
-            vec3 _1306 = _1305.xyz;
-            bvec3 _1307 = bvec3(_1279);
-            float _1310 = 0.015625 + (_1297 * 0.96875);
-            float _1313 = ((_1266 * _1266) - _1273) + _649;
-            float _1343;
-            if (_1279)
+            float _1266 = _1254 ? _111 : _1247;
+            float _1267 = _1265 / _1266;
+            float _1269 = dot(_1264, u_fragParams.u_sunDirection.xyz) / _1266;
+            float _1270 = dot(_124, u_fragParams.u_sunDirection.xyz);
+            float _1272 = _1266 * _1266;
+            float _1275 = _1272 * ((_1267 * _1267) - 1.0);
+            bool _1278 = (_1267 < 0.0) && ((_1275 + _759) >= 0.0);
+            float _1280 = sqrt(_1250 - _759);
+            float _1283 = sqrt(max(_1272 - _759, 0.0));
+            float _1291 = _111 - _1266;
+            float _1294 = (_1283 + _1280) - _1291;
+            float _1296 = _1283 / _1280;
+            vec4 _1304 = texture(SPIRV_Cross_CombinedtransmittanceTexturetransmittanceSampler, vec2(0.001953125 + (((max(((-_1266) * _1267) + sqrt(max(_1275 + _1250, 0.0)), 0.0) - _1291) / _1294) * 0.99609375), 0.0078125 + (_1296 * 0.984375)));
+            vec3 _1305 = _1304.xyz;
+            bvec3 _1306 = bvec3(_1278);
+            float _1309 = 0.015625 + (_1296 * 0.96875);
+            float _1312 = ((_1265 * _1265) - _1272) + _759;
+            float _1342;
+            if (_1278)
             {
-                float _1333 = _1267 - u_fragParams.u_earthCenter.w;
-                _1343 = 0.5 - (0.5 * (0.0078125 + (((_1284 == _1333) ? 0.0 : ((((-_1266) - sqrt(max(_1313, 0.0))) - _1333) / (_1284 - _1333))) * 0.984375)));
+                float _1332 = _1266 - u_fragParams.u_earthCenter.w;
+                _1342 = 0.5 - (0.5 * (0.0078125 + (((_1283 == _1332) ? 0.0 : ((((-_1265) - sqrt(max(_1312, 0.0))) - _1332) / (_1283 - _1332))) * 0.984375)));
             }
             else
             {
-                _1343 = 0.5 + (0.5 * (0.0078125 + (((((-_1266) + sqrt(max(_1313 + (_1281 * _1281), 0.0))) - _1292) / _1295) * 0.984375)));
+                _1342 = 0.5 + (0.5 * (0.0078125 + (((((-_1265) + sqrt(max(_1312 + (_1280 * _1280), 0.0))) - _1291) / _1294) * 0.984375)));
             }
-            float _1354 = _111 - u_fragParams.u_earthCenter.w;
-            float _1356 = _1281 - _1354;
-            float _1357 = (max(((-u_fragParams.u_earthCenter.w) * _1270) + sqrt(max((_649 * ((_1270 * _1270) - 1.0)) + _1251, 0.0)), 0.0) - _1354) / _1356;
-            float _1366 = 0.015625 + ((max(1.0 - (_1357 / ((0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _1356)), 0.0) / (1.0 + _1357)) * 0.96875);
-            float _1368 = (_1271 + 1.0) * 3.5;
-            float _1369 = floor(_1368);
-            float _1370 = _1368 - _1369;
-            vec4 _1380 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_1369 + _1366) * 0.125, _1343, _1310));
-            vec4 _1384 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3(((_1369 + 1.0) + _1366) * 0.125, _1343, _1310));
-            vec4 _1386 = (_1380 * (1.0 - _1370)) + (_1384 * _1370);
-            vec3 _1387 = _1386.xyz;
-            vec3 _1400;
+            float _1353 = _111 - u_fragParams.u_earthCenter.w;
+            float _1355 = _1280 - _1353;
+            float _1356 = (max(((-u_fragParams.u_earthCenter.w) * _1269) + sqrt(max((_759 * ((_1269 * _1269) - 1.0)) + _1250, 0.0)), 0.0) - _1353) / _1355;
+            float _1365 = 0.015625 + ((max(1.0 - (_1356 / ((0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _1355)), 0.0) / (1.0 + _1356)) * 0.96875);
+            float _1367 = (_1270 + 1.0) * 3.5;
+            float _1368 = floor(_1367);
+            float _1369 = _1367 - _1368;
+            vec4 _1379 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3((_1368 + _1365) * 0.125, _1342, _1309));
+            vec4 _1383 = texture(SPIRV_Cross_CombinedscatteringTexturescatteringSampler, vec3(((_1368 + 1.0) + _1365) * 0.125, _1342, _1309));
+            vec4 _1385 = (_1379 * (1.0 - _1369)) + (_1383 * _1369);
+            vec3 _1386 = _1385.xyz;
+            vec3 _1399;
             switch (0u)
             {
                 default:
                 {
-                    float _1390 = _1386.x;
-                    if (_1390 == 0.0)
+                    float _1389 = _1385.x;
+                    if (_1389 == 0.0)
                     {
-                        _1400 = vec3(0.0);
+                        _1399 = vec3(0.0);
                         break;
                     }
-                    _1400 = (((_1387 * _1386.w) / vec3(_1390)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                    _1399 = (((_1386 * _1385.w) / vec3(_1389)) * 1.5) * vec3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                     break;
                 }
             }
-            float _1402 = 1.0 + (_1271 * _1271);
-            _1412 = vec3(_1307.x ? vec3(0.0).x : _1306.x, _1307.y ? vec3(0.0).y : _1306.y, _1307.z ? vec3(0.0).z : _1306.z);
-            _1413 = (_1387 * (0.0596831031143665313720703125 * _1402)) + (_1400 * ((0.01627720706164836883544921875 * _1402) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _1271), 1.5)));
+            float _1401 = 1.0 + (_1270 * _1270);
+            _1411 = vec3(_1306.x ? vec3(0.0).x : _1305.x, _1306.y ? vec3(0.0).y : _1305.y, _1306.z ? vec3(0.0).z : _1305.z);
+            _1412 = (_1386 * (0.0596831031143665313720703125 * _1401)) + (_1399 * ((0.01627720706164836883544921875 * _1401) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _1270), 1.5)));
             break;
         }
     }
-    vec3 _1421;
+    vec3 _1420;
     if (dot(_124, u_fragParams.u_sunDirection.xyz) > u_fragParams.u_sunSize.y)
     {
-        _1421 = _1413 + (_1412 * vec3(21467.642578125, 26949.611328125, 27846.474609375));
+        _1420 = _1412 + (_1411 * vec3(21467.642578125, 26949.611328125, 27846.474609375));
     }
     else
     {
-        _1421 = _1413;
+        _1420 = _1412;
     }
-    vec3 _1435 = pow(abs(vec3(1.0) - exp(((-mix(mix(_1421, _1242, vec3(float(_653))), _642, vec3(float(_163)))) / u_fragParams.u_whitePoint.xyz) * u_fragParams.u_camera.w)), vec3(0.4545454680919647216796875));
-    vec4 _1437 = vec4(_1435.x, _1435.y, _1435.z, _103.w);
-    _1437.w = 1.0;
-    out_var_SV_Target = _1437;
+    vec3 _1434 = pow(abs(vec3(1.0) - exp(((-mix(mix(_1420, _1241, vec3(float(_763))), _751, vec3(float(_161)))) / u_fragParams.u_whitePoint.xyz) * u_fragParams.u_camera.w)), vec3(0.4545454680919647216796875));
+    vec4 _1436 = vec4(_1434.x, _1434.y, _1434.z, _103.w);
+    _1436.w = 1.0;
+    out_var_SV_Target = _1436;
     gl_FragDepth = _129;
 }
 
