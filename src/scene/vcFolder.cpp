@@ -24,6 +24,7 @@
 #include "vcViewpoint.h"
 #include "vcViewShed.h"
 #include "vcQueryNode.h"
+#include "vcPlaceLayer.h"
 
 void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkProjectNode* pNode)
 {
@@ -97,6 +98,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "QFilter"))
         pNode->pUserData = new vcQueryNode(pProgramState->activeProject.pProject, pNode, pProgramState);
+      else if (udStrEqual(pNode->itemtypeStr, "Places"))
+        pNode->pUserData = new vcPlaceLayer(pProgramState->activeProject.pProject, pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
     }

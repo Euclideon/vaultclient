@@ -1,0 +1,135 @@
+#include "vcPlaceLayer.h"
+
+#include "vcState.h"
+#include "vcRender.h"
+#include "vcStrings.h"
+
+#include "vcFenceRenderer.h"
+#include "vcInternalModels.h"
+
+#include "udMath.h"
+#include "udFile.h"
+#include "udStringUtil.h"
+
+#include "imgui.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
+
+vcPlaceLayer::vcPlaceLayer(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+  vcSceneItem(pProject, pNode, pProgramState)
+{
+  m_closeLabels.Init(32);
+  m_places.Init(512);
+
+  vcFenceRenderer_Create(&m_pFences);
+
+  vcFenceRendererConfig config = {};
+  config.visualMode = vcRRVM_Flat;
+  config.imageMode = vcRRIM_Glow;
+  config.isDualColour = false;
+  config.ribbonWidth = 3.0;
+  config.primaryColour = udFloat4::one();
+  config.textureRepeatScale = 1.0;
+  config.textureScrollSpeed = 1.0;
+
+  vcFenceRenderer_SetConfig(m_pFences, config);
+
+  OnNodeUpdate(pProgramState);
+  m_loadStatus = vcSLS_Loaded;
+}
+
+void vcPlaceLayer::OnNodeUpdate(vcState *pProgramState)
+{
+  m_places.Clear();
+
+  vdkProjectNode_GetMetadataString(m_pNode, "pin", &m_pPinIcon, nullptr);
+
+  vdkProjectNode_GetMetadataDouble(m_pNode, "labelDistance", &m_labelDistance, 20000);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "pinDistance", &m_pinDistance, 6000000);
+
+
+  Place place;
+
+  while (vdkProjectNode_GetMetadataString(m_pNode, udTempStr("places[%zu].name", m_places.length), &place.pName, nullptr) == vE_Success)
+  {
+    vdkProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[0]", m_places.length), &place.latLongAlt.x, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[1]", m_places.length), &place.latLongAlt.y, 0.0);
+    vdkProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[2]", m_places.length), &place.latLongAlt.z, 0.0);
+    vdkProjectNode_GetMetadataInt(m_pNode, udTempStr("places[%zu].count", m_places.length), &place.count, 1);
+
+    m_places.PushBack(place);
+  }
+
+  ChangeProjection(pProgramState->gis.zone);
+}
+
+void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
+{
+  if (!m_visible)
+    return;
+
+  size_t usedLabels = 0;
+  vcFenceRenderer_ClearPoints(m_pFences);
+
+  for (size_t i = 0; i < m_places.length; ++i)
+  {
+    double distSq = udMagSq(pProgramState->camera.position - m_places[i].localSpace);
+
+    if (distSq < m_labelDistance * m_labelDistance)
+    {
+      if (m_closeLabels.length <= usedLabels)
+        m_closeLabels.PushBack();
+
+      udDouble3 normal = vcGIS_GetWorldLocalUp(pProgramState->gis, m_places[i].localSpace);
+
+      m_closeLabels[usedLabels].worldPosition = m_places[i].localSpace + normal * 200.0;
+      m_closeLabels[usedLabels].pText = m_places[i].pName;
+      m_closeLabels[usedLabels].backColourRGBA = 0xFF000000;
+      m_closeLabels[usedLabels].textColourRGBA = 0xFFFFFFFF;
+
+      udDouble3 points[] = { m_places[i].localSpace, m_closeLabels[usedLabels].worldPosition + udDouble3::create(0.1, 0, 0) };
+      vcFenceRenderer_AddPoints(m_pFences, points, 2);
+
+      pRenderData->labels.PushBack(&m_closeLabels[usedLabels]);
+
+      ++usedLabels;
+    }
+    else if (distSq < m_pinDistance * m_pinDistance)
+    {
+      pRenderData->pins.PushBack({ m_places[i].localSpace, m_pPinIcon, m_places[i].count });
+    }
+  }
+
+  if (usedLabels > 0)
+    pRenderData->fences.PushBack(m_pFences);
+}
+
+void vcPlaceLayer::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
+{
+  // Does nothing
+}
+
+void vcPlaceLayer::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+{
+  double min = 0;
+  double maxLabel = 50000;
+  double maxPin = 6000000;
+
+  if (ImGui::SliderScalar(udTempStr("Label Distance##%zu", *pItemID), ImGuiDataType_Double, &m_labelDistance, &min, &maxLabel))
+    vdkProjectNode_SetMetadataDouble(m_pNode, "labelDistance", m_labelDistance);
+
+  if (ImGui::SliderScalar(udTempStr("Pin Distance##%zu", *pItemID), ImGuiDataType_Double, &m_pinDistance, &min, &maxPin))
+    vdkProjectNode_SetMetadataDouble(m_pNode, "pinDistance", m_pinDistance);
+}
+
+void vcPlaceLayer::ChangeProjection(const udGeoZone &newZone)
+{
+  for (size_t i = 0; i < m_places.length; ++i)
+    m_places[i].localSpace = udGeoZone_LatLongToCartesian(newZone, m_places[i].latLongAlt);
+}
+
+void vcPlaceLayer::Cleanup(vcState * /*pProgramState*/)
+{
+  vcFenceRenderer_Destroy(&m_pFences);
+  m_places.Deinit();
+  m_closeLabels.Deinit();
+}
