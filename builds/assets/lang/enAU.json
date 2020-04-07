@@ -397,9 +397,10 @@
   "sceneTrueNorthTooltip": "Face North",
 
   "sceneCameraSettings": "Camera Settings",
-  "sceneCameraLatLongAlt": "Lat: {0}°, Lon: {1}°, Alt {2}",
-  "sceneCameraPosition": "Camera Position",
-  "sceneCameraRotation": "Camera Rotation",
+  "sceneCameraInformation": "Camera Information",
+  "sceneCameraPosition": "Scene Position",
+  "sceneCameraPositionGIS": "Lat, Long & Alt",
+  "sceneCameraRotation": "Heading & Pitch",
   "sceneCameraMoveSpeed": "Move Speed",
   "sceneCameraOutOfBounds": "Camera is outside recommended limits of this GeoZone",
   "sceneCameraOSCMove": "Move Camera",
