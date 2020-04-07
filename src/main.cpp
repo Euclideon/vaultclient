@@ -1158,9 +1158,15 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
         pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
+      udDouble3 cameraLatLong = udDouble3::zero();
+
       if (pProgramState->settings.presentation.showCameraInfo)
       {
         ImGui::Separator();
+
+        ImGui::TextUnformatted(vcString::Get("sceneCameraInformation"));
+
+        ImGui::Indent();
 
         if (ImGui::InputScalarN(vcString::Get("sceneCameraPosition"), ImGuiDataType_Double, &pProgramState->camera.position.x, 3))
         {
@@ -1170,32 +1176,32 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->camera.position.z = udClamp(pProgramState->camera.position.z, -vcSL_GlobalLimit, vcSL_GlobalLimit);
         }
 
+        if (pProgramState->gis.isProjected)
+        {
+          cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+          if (ImGui::InputScalarN(vcString::Get("sceneCameraPositionGIS"), ImGuiDataType_Double, &cameraLatLong.x, 3))
+            pProgramState->camera.position = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraLatLong);
+        }
+
         udDouble2 headingPitch = UD_RAD2DEG(pProgramState->camera.headingPitch);
-        if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2))
+        if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2, nullptr, nullptr, "%.2f°"))
           pProgramState->camera.headingPitch = UD_DEG2RAD(headingPitch);
 
         if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
           pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
 
-        if (pProgramState->gis.isProjected)
+        if (pProgramState->gis.isProjected && pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
         {
           ImGui::Separator();
 
-          udDouble3 cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.matrices.camera.axis.t.toVector3());
+          udDouble2 &minBound = pProgramState->gis.zone.latLongBoundMin;
+          udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
 
-          char tmpBuf[128];
-          const char *latLongAltStrings[] = { udTempStr("%.7f", cameraLatLong.x), udTempStr("%.7f", cameraLatLong.y), udTempStr("%.2fm", cameraLatLong.z) };
-          ImGui::TextUnformatted(vcStringFormat(tmpBuf, udLengthOf(tmpBuf), vcString::Get("sceneCameraLatLongAlt"), latLongAltStrings, udLengthOf(latLongAltStrings)));
-
-          if (pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
-          {
-            udDouble2 &minBound = pProgramState->gis.zone.latLongBoundMin;
-            udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
-
-            if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
-              ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("sceneCameraOutOfBounds"));
-          }
+          if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("sceneCameraOutOfBounds"));
         }
+
+        ImGui::Unindent();
       }
     }
 
