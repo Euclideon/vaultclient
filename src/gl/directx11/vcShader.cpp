@@ -140,10 +140,6 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
       pVertexLayout[i] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 8;
       break;
-    case vcVLT_RibbonInfo4:
-      pVertexLayout[i] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-      accumlatedOffset += 16;
-      break;
     case vcVLT_ColourBGRA:
       pVertexLayout[i] = { "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 4;
@@ -155,6 +151,14 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
     case vcVLT_QuadCorner:
       pVertexLayout[i] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
       accumlatedOffset += 8;
+      break;
+    case vcVLT_Color0:
+      pVertexLayout[i] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      accumlatedOffset += 16;
+      break;
+    case vcVLT_Color1:
+      pVertexLayout[i] = { "COLOR", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, accumlatedOffset, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      accumlatedOffset += 16;
       break;
 
     case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes

@@ -16,8 +16,9 @@
 
 const char *vcFRVMStrings[] =
 {
+  "Screen Line",
   "Fence",
-  "Flat"
+  "Flat",
 };
 UDCOMPILEASSERT(udLengthOf(vcFRVMStrings) == vcRRVM_Count, "New enum values");
 
@@ -57,6 +58,7 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
 
   m_pLabelText = nullptr;
   m_pFence = nullptr;
+  m_pLine = nullptr;
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
 
   m_pWorkerPool = pProgramState->pWorkerPool;
@@ -204,7 +206,8 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   //Preview has ended
   if (wasPreviouslyPreviewing && !m_hasPreviewPoint)
   {
-    if (m_pFence != nullptr)
+    // TODO: 1452
+    if (m_line.fenceMode != vcRRVM_ScreenLine && m_pFence != nullptr)
     {
       vcFenceRenderer_ClearPoints(m_pFence);
       vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
@@ -230,8 +233,11 @@ void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
   }
 
-  if (m_pFence != nullptr)
+  // TODO: 1452
+  if (m_line.fenceMode != vcRRVM_ScreenLine && m_pFence != nullptr)
     pRenderData->fences.PushBack(m_pFence);
+  else if (m_line.fenceMode == vcRRVM_ScreenLine && m_pLine != nullptr)
+    pRenderData->lines.PushBack(m_pLine);
 
   if (m_pLabelInfo != nullptr)
   {
@@ -402,23 +408,34 @@ void vcPOI::UpdatePoints()
     else if (m_showArea && m_line.numPoints > 2)
       udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOIArea"), m_calculatedArea);
 
-    if (m_pFence == nullptr)
-      vcFenceRenderer_Create(&m_pFence);
+    if (m_line.fenceMode != vcRRVM_ScreenLine)
+    {
+      if (m_pFence == nullptr)
+        vcFenceRenderer_Create(&m_pFence);
 
-    vcFenceRendererConfig config;
-    config.visualMode = m_line.fenceMode;
-    config.imageMode = m_line.lineStyle;
-    config.isDualColour = m_line.isDualColour;
-    config.primaryColour = vcIGSW_BGRAToImGui(m_line.colourPrimary);
-    config.secondaryColour = vcIGSW_BGRAToImGui(m_line.colourSecondary);
-    config.ribbonWidth = m_line.lineWidth;
-    config.textureScrollSpeed = 1.f;
-    config.textureRepeatScale = 1.f;
+      vcFenceRendererConfig config;
+      config.visualMode = m_line.fenceMode;
+      config.imageMode = m_line.lineStyle;
+      config.isDualColour = m_line.isDualColour;
+      config.primaryColour = vcIGSW_BGRAToImGui(m_line.colourPrimary);
+      config.secondaryColour = vcIGSW_BGRAToImGui(m_line.colourSecondary);
+      config.ribbonWidth = m_line.lineWidth;
+      config.textureScrollSpeed = 1.f;
+      config.textureRepeatScale = 1.f;
 
-    vcFenceRenderer_SetConfig(m_pFence, config);
+      vcFenceRenderer_SetConfig(m_pFence, config);
 
-    vcFenceRenderer_ClearPoints(m_pFence);
-    vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
+      vcFenceRenderer_ClearPoints(m_pFence);
+      vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
+    }
+    else
+    {
+      // TODO: 1452
+      if (m_pLine == nullptr)
+        vcLineRenderer_CreateLine(&m_pLine);
+
+      vcLineRenderer_UpdatePoints(m_pLine, m_line.pPoints, m_line.numPoints, vcIGSW_BGRAToImGui(m_line.colourPrimary), m_line.lineWidth);
+    }
   }
   else
   {
@@ -463,7 +480,7 @@ void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
     if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), itemID), &m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
       vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", (double)m_line.lineWidth);
 
-    const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
+    const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationScreenLine"), vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
     if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), itemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
       vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
 
@@ -702,6 +719,7 @@ void vcPOI::Cleanup(vcState *pProgramState)
 
   m_lengthLabels.Deinit();
   vcFenceRenderer_Destroy(&m_pFence);
+  vcLineRenderer_DestroyLine(&m_pLine);
   udFree(m_pLabelInfo);
 
   if (pProgramState->cameraInput.pAttachedToSceneItem == this)
