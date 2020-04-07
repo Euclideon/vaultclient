@@ -333,7 +333,8 @@ const float vcSL_GlobalLimitf = (float)vcSL_GlobalLimit;
 const float vcSL_GlobalLimitSmallf = (float)vcSL_GlobalLimitSmall;
 
 const float vcSL_CameraMinMoveSpeed = 0.5f;
-const float vcSL_CameraMaxMoveSpeed = 500.f;
+const float vcSL_CameraMaxMoveSpeed = 1000000.f;
+const float vcSL_CameraMaxAttachSpeed = 500.f;
 const float vcSL_CameraFieldOfViewMin = 5;
 const float vcSL_CameraFieldOfViewMax = 100;
 
