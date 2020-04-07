@@ -26,7 +26,7 @@ struct vcLiveFeedItemLOD
   const char *pModelAddress;
   vcPolygonModel *pModel; // The LOD does not own this though
 
-  vcTexture *pIcon;
+  const char *pPinIcon;
   vcLabelInfo *pLabelInfo;
   const char *pLabelText;
 };
@@ -66,6 +66,7 @@ void vcLiveFeedItem_ClearLODs(vcLiveFeedItem *pFeedItem)
   {
     vcLiveFeedItemLOD &ref = pFeedItem->lodLevels[lodLevelIndex];
 
+    udFree(ref.pPinIcon);
     udFree(ref.pLabelText);
     udFree(ref.pLabelInfo);
     udFree(ref.pModelAddress);
@@ -270,6 +271,13 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 
               lodRef.pLabelInfo->pText = lodRef.pLabelText;
             }
+
+            const udJSON &pinObj = pLOD->Get("pin");
+            if (pinObj.IsObject())
+            {
+              udFree(lodRef.pPinIcon);
+              lodRef.pPinIcon = udStrdup(pinObj.Get("image").AsString());
+            }
           }
         }
 
@@ -398,6 +406,9 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         lodRef.pLabelInfo->worldPosition = pFeedItem->displayPosition;
         pRenderData->labels.PushBack(lodRef.pLabelInfo);
       }
+
+      if (lodRef.pPinIcon != nullptr)
+        pRenderData->pins.PushBack({ pFeedItem->displayPosition, lodRef.pPinIcon, 1 });
 
       if (lodRef.pModelAddress != nullptr)
       {

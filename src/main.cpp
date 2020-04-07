@@ -1863,6 +1863,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   renderData.polyModels.Init(64);
   renderData.images.Init(32);
   renderData.viewSheds.Init(32);
+  renderData.pins.Init(512);
   renderData.mouse.position.x = (uint32_t)(io.MousePos.x - windowPos.x);
   renderData.mouse.position.y = (uint32_t)(io.MousePos.y - windowPos.y);
   renderData.mouse.clicked = io.MouseClicked[1];
@@ -2184,6 +2185,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   renderData.polyModels.Deinit();
   renderData.images.Deinit();
   renderData.viewSheds.Deinit();
+  renderData.pins.Deinit();
 
   // Can only assign longlat positions in projected space
   if (pProgramState->gis.isProjected)

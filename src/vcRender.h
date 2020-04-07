@@ -72,6 +72,13 @@ struct vcViewShedData
   udFloat4 notVisibleColour;
 };
 
+struct vcPins
+{
+  udDouble3 position;
+  const char *pPinAddress;
+  int count;
+};
+
 struct vcRenderData
 {
   vcMouseData mouse;
@@ -85,6 +92,7 @@ struct vcRenderData
   udChunkedArray<vcImageRenderInfo*> images;
 
   udChunkedArray<vcViewShedData> viewSheds;
+  udChunkedArray<vcPins> pins;
 
   vcTexture *pSceneTexture;
   udFloat2 sceneScaling;
