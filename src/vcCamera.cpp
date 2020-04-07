@@ -532,7 +532,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
       if (pProgramState->cameraInput.inputState == vcCIS_ZoomTo)
       {
         mouseInput.x = 0.0;
-        mouseInput.y = mouseWheel / 10.f;
+        mouseInput.y = mouseWheel / 5.0;
         mouseInput.z = 0.0;
         previousLockTime = currentTime;
 
