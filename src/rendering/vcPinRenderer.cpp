@@ -22,7 +22,7 @@ struct vcPinIcon
 
   vcTexture *pTexture;
   void *pTextureData;
-  int width, height;
+  udInt2 size;
 };
 
 struct vcPinBin
@@ -76,8 +76,8 @@ void vcPinRenderer_LoadIcon(void *pUserData)
     pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
     if (pData != nullptr)
     {
-      pPinIcon->width = width;
-      pPinIcon->height = height;
+      pPinIcon->size.x = width;
+      pPinIcon->size.y = height;
       pPinIcon->pTextureData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
 
       pPinIcon->loadState = vcPinIcon::vcLoadState_Downloaded;
@@ -200,7 +200,7 @@ void vcPinRenderer_UpdateTextures(vcPinRenderer *pPinRenderer)
     vcPinIcon *pIcon = &pPinRenderer->pinIcons[i];;
     if (pIcon->loadState == vcPinIcon::vcLoadState_Downloaded)
     {
-      vcTexture_Create(&pIcon->pTexture, pIcon->width, pIcon->height, pIcon->pTextureData, vcTextureFormat_RGBA8, vcTFM_Linear);
+      vcTexture_Create(&pIcon->pTexture, pIcon->size.x, pIcon->size.y, pIcon->pTextureData, vcTextureFormat_RGBA8, vcTFM_Linear);
       udFree(pIcon->pTextureData);
       pIcon->loadState = vcPinIcon::vcLoadState_Loaded;
     }
@@ -226,8 +226,11 @@ void vcPinRenderer_Render(vcPinRenderer *pPinRenderer, const udDouble4x4 &viewPr
     info.scale = 1.0;
     vcImageRenderer_Render(&info, viewProjectionMatrix, screenSize, 1.0f);
 
-    pBin->label.worldPosition = pBin->position;
-    udSprintf(pBin->numbers, "%d", pBin->count);
-    labels.PushBack(&pBin->label);
+    if (pBin->count > 1)
+    {
+      pBin->label.worldPosition = pBin->position;
+      udSprintf(pBin->numbers, "%d", pBin->count);
+      labels.PushBack(&pBin->label);
+    }
   }
 }
