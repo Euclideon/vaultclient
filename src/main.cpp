@@ -1485,6 +1485,9 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     pProgramState->worldMousePosCartesian = pickResult.position;
   }
 
+  if(!pickResult.success && !selectPolygons && !selectUD)
+    pProgramState->pickingSuccess = false;
+
   if (useTool)
   {
     if (!pProgramState->isUsingAnchorPoint)

@@ -56,7 +56,7 @@ void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, doubl
       pCamInput->smoothRotation -= step;
 
       pCamera->headingPitch.x = udMod(pCamera->headingPitch.x, UD_2PI);
-      pCamera->headingPitch.y = udClamp(pCamera->headingPitch.y, -UD_HALF_PI, UD_HALF_PI);
+      pCamera->headingPitch.y = udMod(pCamera->headingPitch.y, UD_2PI);
     }
     else
     {
