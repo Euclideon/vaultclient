@@ -35,8 +35,12 @@ struct vcAtmosphereRenderer
 
   // some model params
   Luminance use_luminance;
-  double sun_zenith_angle_radians;
-  double sun_azimuth_angle_radians;
+  double sun_zenith_angle_sin;
+  double sun_zenith_angle_cos;
+  double sun_azimuth_angle_sin;
+  double sun_azimuth_angle_cos;
+  double sun_diclination_angle_sin;
+  double sun_diclination_angle_cos;
   double exposure;
 
   struct
@@ -78,6 +82,7 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   udResult result;
   vcAtmosphereRenderer *pAtmosphereRenderer = nullptr;
 
+  float sun_diclination_angle = UD_2PIf * (23.44f / 360.f); //June solstice
   bool use_constant_solar_spectrum_ = false;
   //bool use_ozone_ = true;
   //bool use_half_precision_ = true;
@@ -187,8 +192,11 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
 
   // some defaults
   pAtmosphereRenderer->use_luminance = NONE;
-  pAtmosphereRenderer->sun_zenith_angle_radians = 1.3;
-  pAtmosphereRenderer->sun_azimuth_angle_radians = 2.9;
+  pAtmosphereRenderer->sun_zenith_angle_cos = udCos(1.3);
+  pAtmosphereRenderer->sun_zenith_angle_sin = udSin(1.3);
+
+  pAtmosphereRenderer->sun_diclination_angle_sin = udSin(sun_diclination_angle);
+  pAtmosphereRenderer->sun_diclination_angle_cos = udCos(sun_diclination_angle);
   pAtmosphereRenderer->exposure = 10.0;
 
   pAtmosphereRenderer->pModel = new atmosphere::Model();
@@ -265,10 +273,24 @@ epilogue:
   return result;
 }
 
-void vcAtmosphereRenderer_SetVisualParams(vcAtmosphereRenderer *pAtmosphereRenderer, float exposure, float timeOfDay)
+void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRenderer *pAtmosphereRenderer)
 {
-  pAtmosphereRenderer->exposure = exposure;
-  pAtmosphereRenderer->sun_zenith_angle_radians = UD_2PIf * (timeOfDay / 24.0f);
+  pAtmosphereRenderer->exposure = pProgramState->settings.presentation.skybox.exposure;
+  float hourAngleRaians = UD_2PIf * (pProgramState->settings.presentation.skybox.timeOfDay / 24.0f);
+  float latitudeRaians = 0;
+  if (pProgramState->gis.isProjected)
+  {
+    udDouble3 cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.matrices.camera.axis.t.toVector3());
+    latitudeRaians = (float)cameraLatLong.x;
+  }
+
+  double latitudeSin = udSin(latitudeRaians);
+  double latitudeCos = udCos(latitudeRaians);
+  pAtmosphereRenderer->sun_zenith_angle_cos = latitudeSin * pAtmosphereRenderer->sun_diclination_angle_sin + latitudeCos * pAtmosphereRenderer->sun_diclination_angle_cos * udCos(hourAngleRaians);
+  pAtmosphereRenderer->sun_zenith_angle_sin = sqrt(1 - pAtmosphereRenderer->sun_zenith_angle_cos * pAtmosphereRenderer->sun_zenith_angle_cos);
+
+  pAtmosphereRenderer->sun_azimuth_angle_sin = -udSin(hourAngleRaians) * pAtmosphereRenderer->sun_diclination_angle_cos / pAtmosphereRenderer->sun_zenith_angle_sin;
+  pAtmosphereRenderer->sun_azimuth_angle_cos = (pAtmosphereRenderer->sun_diclination_angle_sin - pAtmosphereRenderer->sun_zenith_angle_cos * latitudeSin) / (pAtmosphereRenderer->sun_zenith_angle_sin * latitudeCos);
 }
 
 bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcState *pProgramState, vcTexture *pSceneColour, vcTexture *pSceneDepth)
@@ -324,9 +346,9 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->camera.position.z;
   pAtmosphereRenderer->renderShader.fragParams.camera.w = (float)(pAtmosphereRenderer->use_luminance != NONE ? pAtmosphereRenderer->exposure * 1e-5 : pAtmosphereRenderer->exposure);
 
-  pAtmosphereRenderer->renderShader.fragParams.sunDirection.x = (float)(udCos(pAtmosphereRenderer->sun_azimuth_angle_radians) * udSin(pAtmosphereRenderer->sun_zenith_angle_radians));
-  pAtmosphereRenderer->renderShader.fragParams.sunDirection.y = (float)(udSin(pAtmosphereRenderer->sun_azimuth_angle_radians) * udSin(pAtmosphereRenderer->sun_zenith_angle_radians));
-  pAtmosphereRenderer->renderShader.fragParams.sunDirection.z = (float)udCos(pAtmosphereRenderer->sun_zenith_angle_radians);
+  pAtmosphereRenderer->renderShader.fragParams.sunDirection.x = (float)(pAtmosphereRenderer->sun_azimuth_angle_cos * pAtmosphereRenderer->sun_zenith_angle_sin);
+  pAtmosphereRenderer->renderShader.fragParams.sunDirection.y = (float)(pAtmosphereRenderer->sun_azimuth_angle_sin * pAtmosphereRenderer->sun_zenith_angle_sin);
+  pAtmosphereRenderer->renderShader.fragParams.sunDirection.z = (float)(pAtmosphereRenderer->sun_zenith_angle_cos);
 
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pTransmittance_texture_, 0, pAtmosphereRenderer->renderShader.uniform_transmittance);
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pScattering_texture_, 1, pAtmosphereRenderer->renderShader.uniform_scattering);

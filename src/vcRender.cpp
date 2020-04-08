@@ -686,7 +686,7 @@ void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderC
   if (pProgramState->settings.presentation.skybox.type != vcSkyboxType_Atmosphere)
     return;
 
-  vcAtmosphereRenderer_SetVisualParams(pRenderContext->pAtmosphereRenderer, pProgramState->settings.presentation.skybox.exposure, pProgramState->settings.presentation.skybox.timeOfDay);
+  vcAtmosphereRenderer_SetVisualParams(pProgramState, pRenderContext->pAtmosphereRenderer);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
