@@ -12,6 +12,8 @@ enum vcFenceRendererCurveType
 
 enum vcFenceRendererVisualMode
 {
+  vcRRVM_ScreenLine, // TODO: 1452
+
   vcRRVM_Fence,
   vcRRVM_Flat,
 

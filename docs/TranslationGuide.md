@@ -731,6 +731,7 @@ Modules are currently:
 - `scenePOILineOrientation`: Label for the drop down to select a line orientation
 - `scenePOILineOrientationVert`: Text on the drop down item for the "Vertical" / "Fence" orientation
 - `scenePOILineOrientationHorz`: Text on the drop down item for the "Horizontal / Path" orientation
+- `scenePOILineOrientationScreenLine`: Text on the drop down item for the "Screen Line" orientation
 - `scenePOICancelFlyThrough`: Label for button that appears during fly-through, allows user to cancel the fly-through
 - `scenePOIPerformFlyThrough`: Label for button that appears when POI has multiple nodes, will trigger a fly-through
 

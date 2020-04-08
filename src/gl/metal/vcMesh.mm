@@ -33,9 +33,6 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
       case vcVLT_TextureCoords2:
         accumulatedOffset += 2 * sizeof(float);
         break;
-      case vcVLT_RibbonInfo4:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
       case vcVLT_ColourBGRA:
         accumulatedOffset += sizeof(uint32_t);
         break;
@@ -44,6 +41,12 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
         break;
       case vcVLT_QuadCorner:
         accumulatedOffset += 2 * sizeof(float);
+        break;
+      case vcVLT_Color0:
+        accumulatedOffset += 4 * sizeof(float);
+        break;
+      case vcVLT_Color1:
+        accumulatedOffset += 4 * sizeof(float);
         break;
       case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
         continue; // NOTE continue
@@ -128,9 +131,6 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
       case vcVLT_TextureCoords2:
         accumulatedOffset += 2 * sizeof(float);
         break;
-      case vcVLT_RibbonInfo4:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
       case vcVLT_ColourBGRA:
         accumulatedOffset += sizeof(uint32_t);
         break;
@@ -139,6 +139,12 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
         break;
       case vcVLT_QuadCorner:
         accumulatedOffset += 2 * sizeof(float);
+        break;
+      case vcVLT_Color0:
+        accumulatedOffset += 4 * sizeof(float);
+        break;
+      case vcVLT_Color1:
+        accumulatedOffset += 4 * sizeof(float);
         break;
       case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
         continue; // NOTE continue

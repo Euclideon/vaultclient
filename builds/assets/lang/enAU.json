@@ -527,6 +527,7 @@
   "scenePOILineOrientation": "Line Orientation",
   "scenePOILineOrientationVert": "Vertical / Fence",
   "scenePOILineOrientationHorz": "Horizontal / Path",
+  "scenePOILineOrientationScreenLine": "Screen Line",
 
   "scenePOICancelFlyThrough": "Cancel Fly Through",
   "scenePOIPerformFlyThrough": "Fly Camera Through All Points",

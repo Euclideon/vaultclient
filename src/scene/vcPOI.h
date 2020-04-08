@@ -8,6 +8,7 @@
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
+#include "vcLineRenderer.h"
 #include "gl/vcGLState.h"
 
 struct udWorkerPool;
@@ -34,7 +35,7 @@ struct vcLineInfo
 class vcPOI : public vcSceneItem
 {
 private:
-  vcLineInfo m_line;
+  vcLineInfo m_line; // TODO: 1452
   uint32_t m_nameColour;
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
@@ -51,6 +52,8 @@ private:
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
+
+  vcLineInstance *m_pLine; // TODO: 1452
 
   bool m_hasPreviewPoint;
 

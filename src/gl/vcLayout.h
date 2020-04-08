@@ -11,8 +11,10 @@ enum vcVertexLayoutTypes
   vcVLT_TextureCoords2, //Vec2
   vcVLT_ColourBGRA, //uint32_t
   vcVLT_Normal3, //Vec3
-  vcVLT_RibbonInfo4, // Vec4
   vcVLT_QuadCorner, // Vec2
+
+  vcVLT_Color0, // vec4
+  vcVLT_Color1, // vec4
 
   vcVLT_Unsupported,
 
@@ -63,7 +65,16 @@ const vcVertexLayoutTypes vcUV2VertexLayout[] = { vcVLT_TextureCoords2 }; // wat
 const vcVertexLayoutTypes vcP3N3VertexLayout[] = { vcVLT_Position3, vcVLT_Normal3 }; // compass / anchor
 const vcVertexLayoutTypes vcP3UV2VertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2 }; // screen quad
 const vcVertexLayoutTypes vcP3N3UV2VertexLayout[] = { vcVLT_Position3, vcVLT_Normal3, vcVLT_TextureCoords2 }; // polygon model
-const vcVertexLayoutTypes vcP3UV2RI4VertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2, vcVLT_RibbonInfo4 }; // ribbon
+const vcVertexLayoutTypes vcP3UV2RI4VertexLayout[] = { vcVLT_Position3, vcVLT_TextureCoords2, vcVLT_Color0 }; // ribbon
+
+// lines
+struct vcLineVertex
+{
+  udFloat4 position;
+  udFloat4 previous;
+  udFloat4 next;
+};
+const vcVertexLayoutTypes vcLineVertexLayout[] = { vcVLT_Position4, vcVLT_Color0, vcVLT_Color1 }; // lines
 
 // ImGui
 struct vcImGuiVertex

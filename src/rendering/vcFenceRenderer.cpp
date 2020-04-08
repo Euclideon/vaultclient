@@ -449,11 +449,14 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
     pFenceRenderer->renderShader.everyFrameParams.orientation = 0.0f;
     pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
     break;
-  case vcRRVM_Flat: // fall through
-  default:
+  case vcRRVM_Flat:
     pFenceRenderer->renderShader.everyFrameParams.orientation = 1.0f;
     pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale / pFenceRenderer->config.ribbonWidth;
     break;
+  case vcRRVM_ScreenLine: // do nothing
+    break;
+  case vcRRVM_Count:
+    return false;
   }
 
   vcShader_Bind(pFenceRenderer->renderShader.pProgram);

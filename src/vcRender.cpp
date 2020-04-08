@@ -15,6 +15,7 @@
 #include "vcSceneLayerRenderer.h"
 #include "vcCamera.h"
 #include "vcAtmosphereRenderer.h"
+#include "vcLineRenderer.h"
 #include "vcPinRenderer.h"
 
 #include "stb_image.h"
@@ -99,6 +100,7 @@ struct vcRenderContext
   udUInt2 effectResolution;
 
   vcAtmosphereRenderer *pAtmosphereRenderer;
+  vcLineRenderer *pLineRenderer;
   vcPinRenderer *pPinRenderer;
 
   struct
@@ -286,6 +288,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_CHECK(vcAtmosphereRenderer_Create(&pRenderContext->pAtmosphereRenderer));
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, &pProgramState->settings));
   UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
+  UD_ERROR_CHECK(vcLineRenderer_Create(&pRenderContext->pLineRenderer));
 
   UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
   UD_ERROR_CHECK(vcRender_ResizeScene(pProgramState, pRenderContext, sceneResolution.x, sceneResolution.y));
@@ -403,6 +406,7 @@ udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext)
   UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pRenderContext->pAtmosphereRenderer));
   UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pRenderContext->pTileRenderer));
   UD_ERROR_CHECK(vcFenceRenderer_ReloadShaders(pRenderContext->pDiagnosticFences));
+  UD_ERROR_CHECK(vcLineRenderer_ReloadShaders(pRenderContext->pLineRenderer));
 
   UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
 
@@ -449,6 +453,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   UD_ERROR_CHECK(vcTileRenderer_Destroy(&pRenderContext->pTileRenderer));
   UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
+  UD_ERROR_CHECK(vcLineRenderer_Destroy(&pRenderContext->pLineRenderer));
 
   UD_ERROR_CHECK(vcInternalModels_Deinit());
   result = udR_Success;
@@ -1088,6 +1093,10 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
 
+  // lines
+  for (size_t i = 0; i < renderData.lines.length; ++i)
+    vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
+  
   // Images
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
