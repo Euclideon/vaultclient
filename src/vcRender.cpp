@@ -725,7 +725,7 @@ void vcRender_ConditionalSplatUD(vcState *pProgramState, vcRenderContext *pRende
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
 }
 
-void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
+void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, const vcPolyModelPass &passType)
 {
   if (pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapEnabled)
   {
@@ -790,7 +790,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
       vcGIS_SlippyToLocal(&pProgramState->gis, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
     vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, udInt3::create(slippyCorners[0], currentZoom), localCamPos, cameraZeroAltitude, viewProjection);
-    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround);
+    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround, passType);
   }
 }
 
@@ -1057,7 +1057,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
       vcWaterRenderer_Render(renderData.waterVolumes[i], pProgramState->camera.matrices.view, pProgramState->camera.matrices.viewProjection, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pProgramState->deltaTime);
   }
 
-  vcRenderTerrain(pProgramState, pRenderContext);
+  vcRenderTerrain(pProgramState, pRenderContext, vcPMP_Standard);
 
   vcRender_AsyncReadFrameDepth(pRenderContext); // note: one frame behind
 }
@@ -1560,8 +1560,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   memset(&renderOptions, 0, sizeof(vdkRenderOptions));
 
   if (doPick)
-  {
-    pProgramState->pickingSuccess = false;
+  {    
     pProgramState->udModelPickedIndex = -1;
     renderOptions.pPick = &picking;
   }
@@ -1694,6 +1693,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     readLocation.y = (pRenderContext->effectResolution.y - readLocation.y - 1);
 #endif
 
+    vcRenderTerrain(pProgramState, pRenderContext, vcPMP_ColourOnly);
+
     // Synchronously read back data
     vcTexture_BeginReadPixels(pRenderContext->picking.pTexture, readLocation.x, readLocation.y, 1, 1, colourBytes, pRenderContext->picking.pFramebuffer);
     vcTexture_BeginReadPixels(pRenderContext->picking.pDepth, readLocation.x, readLocation.y, 1, 1, depthBytes, pRenderContext->picking.pFramebuffer);
@@ -1715,6 +1716,10 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     {
       result.success = true;
       result.pPolygon = &renderData.polyModels[pickedPolygonId];
+    }
+    else if (pickDepth > -1 && pickDepth < 1.0)
+    {
+      result.success = true;
     }
   }
   else
