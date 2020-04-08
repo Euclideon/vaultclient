@@ -839,7 +839,7 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
   // hacky - looking for specific DEM levels
   if (pNode->slippyPosition.z <= HACK_DEM_LEVEL)
   {
-    bool demLeaf = vcQuadTree_IsLeafNode(pNode) || (!vcQuadTree_IsLeafNode(pNode) && pNode->slippyPosition.z == HACK_DEM_LEVEL);
+    bool demLeaf = vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode) || (pNode->slippyPosition.z == HACK_DEM_LEVEL);
     if (demLeaf && pNode->renderInfo.demLoadStatus != vcNodeRenderInfo::vcTLS_Loaded)
     {
       vcTileRenderer_UpdateTileDEMTexture(pTileRenderer, pNode);

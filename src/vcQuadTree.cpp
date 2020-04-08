@@ -242,7 +242,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       continue;
 
     int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
-    bool alwaysSubdivide = pChildNode->visible && totalDepth < 3;
+    bool alwaysSubdivide = pChildNode->visible && totalDepth < 2;
     if (alwaysSubdivide || vcQuadTree_ShouldSubdivide(distanceToQuadrant, totalDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
@@ -510,7 +510,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
     vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[blockIndex + c];
 
     // case #1: its a leaf node that could be being used for rendering by an ancestor
-    if (pNode->renderInfo.colourData.pTexture)
+    if (pNode->renderInfo.colourData.pTexture || pNode->renderInfo.demData.pTexture)
     {
       uint32_t parentIndex = pNode->parentIndex;
       while (parentIndex != INVALID_NODE_INDEX)
@@ -518,15 +518,17 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
         vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[parentIndex];
         if (pParentNode->touched)
         {
-          // We have an ancestor that has no texture
-          if (!pParentNode->renderInfo.colourData.pTexture)
+          // We have an ancestor that has no texture, so it will need this node
+          if (pParentNode->renderInfo.colourData.pTexture == nullptr || pParentNode->renderInfo.demData.pTexture == nullptr)
             return false;
 
           break;
         }
-        else if (pParentNode->renderInfo.colourData.pTexture)
+        else if (pParentNode->renderInfo.colourData.pTexture != nullptr && pParentNode->renderInfo.demData.pTexture != nullptr)
+        {
+          // 'better' (closer to the root) 'non-touched' ancestor will be used instead of this one, throw out
           return true;
-
+        }
         parentIndex = pParentNode->parentIndex;
       }
     }
