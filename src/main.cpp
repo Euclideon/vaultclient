@@ -1034,57 +1034,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
   float toolPanelStartY = windowPos.y;
 
-  if (pProgramState->settings.presentation.showProjectionInfo || pProgramState->settings.presentation.showAdvancedGIS)
-  {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
-    ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
-    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
-
-    if (ImGui::Begin(vcString::Get("sceneGeographicInfo"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
-    {
-      if (pProgramState->settings.presentation.showProjectionInfo)
-      {
-        if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
-          ImGui::Text("%s (%s: %d)", pProgramState->gis.zone.zoneName, vcString::Get("sceneSRID"), pProgramState->gis.SRID);
-        else if (pProgramState->gis.SRID == 0)
-          ImGui::TextUnformatted(vcString::Get("sceneNotGeolocated"));
-        else
-          ImGui::Text("%s: %d", vcString::Get("sceneUnsupportedSRID"), pProgramState->gis.SRID);
-
-        ImGui::Separator();
-        if (ImGui::IsMousePosValid())
-        {
-          if (pProgramState->pickingSuccess)
-          {
-            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePosCartesian.x, pProgramState->worldMousePosCartesian.y, pProgramState->worldMousePosCartesian.z);
-
-            if (pProgramState->gis.isProjected)
-              ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), pProgramState->worldMousePosLongLat.y, pProgramState->worldMousePosLongLat.x);
-          }
-        }
-      }
-
-      if (pProgramState->settings.presentation.showAdvancedGIS)
-      {
-        int newSRID = pProgramState->gis.SRID;
-        udGeoZone zone;
-
-        if (ImGui::InputInt(vcString::Get("sceneOverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
-        {
-          if (vcGIS_ChangeSpace(&pProgramState->gis, zone, &pProgramState->camera.position))
-          {
-            pProgramState->activeProject.pFolder->ChangeProjection(zone);
-            vcRender_ClearTiles(pProgramState->pRenderContext);
-          }
-        }
-      }
-    }
-
-    toolPanelStartY = ImGui::GetWindowPos().y + ImGui::GetWindowSize().y + 8.f; // 8px Padding
-
-    ImGui::End();
-  }
-
   if (pProgramState->activeTool != vcActiveTool_Select)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, toolPanelStartY), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
@@ -1202,6 +1151,43 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         }
 
         ImGui::Unindent();
+      }
+
+      if (pProgramState->settings.presentation.showProjectionInfo)
+      {
+        if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
+          ImGui::Text("%s (%s: %d)", pProgramState->gis.zone.zoneName, vcString::Get("sceneSRID"), pProgramState->gis.SRID);
+        else if (pProgramState->gis.SRID == 0)
+          ImGui::TextUnformatted(vcString::Get("sceneNotGeolocated"));
+        else
+          ImGui::Text("%s: %d", vcString::Get("sceneUnsupportedSRID"), pProgramState->gis.SRID);
+
+        ImGui::Separator();
+        if (ImGui::IsMousePosValid())
+        {
+          if (pProgramState->pickingSuccess)
+          {
+            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePosCartesian.x, pProgramState->worldMousePosCartesian.y, pProgramState->worldMousePosCartesian.z);
+
+            if (pProgramState->gis.isProjected)
+              ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), pProgramState->worldMousePosLongLat.y, pProgramState->worldMousePosLongLat.x);
+          }
+        }
+      }
+
+      if (pProgramState->settings.presentation.showAdvancedGIS)
+      {
+        int newSRID = pProgramState->gis.SRID;
+        udGeoZone zone;
+
+        if (ImGui::InputInt(vcString::Get("sceneOverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
+        {
+          if (vcGIS_ChangeSpace(&pProgramState->gis, zone, &pProgramState->camera.position))
+          {
+            pProgramState->activeProject.pFolder->ChangeProjection(zone);
+            vcRender_ClearTiles(pProgramState->pRenderContext);
+          }
+        }
       }
     }
 
