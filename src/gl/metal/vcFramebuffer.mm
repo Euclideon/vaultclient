@@ -68,8 +68,15 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
   {
     if (g_pCurrFramebuffer == (*ppFramebuffer))
       g_pCurrFramebuffer = nullptr;
-    
+
+    (*ppFramebuffer)->pRenderPass = nil;
+
     [(*ppFramebuffer)->encoder endEncoding];
+    (*ppFramebuffer)->encoder = nil;
+
+    [(*ppFramebuffer)->commandBuffer commit];
+    [(*ppFramebuffer)->commandBuffer waitUntilCompleted];
+    (*ppFramebuffer)->commandBuffer = nil;
   }
   
   udFree(*ppFramebuffer);
@@ -87,12 +94,14 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   // Finalise current framebuffer being binding this framebuffer
   if (g_pCurrFramebuffer != nullptr && g_pCurrFramebuffer != g_pDefaultFramebuffer)
   {
-    [g_pCurrFramebuffer->encoder endEncoding];
-    [g_pCurrFramebuffer->commandBuffer commit];
-    [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
-    
-    g_pCurrFramebuffer->commandBuffer = [g_queue commandBuffer];
-    g_pCurrFramebuffer->encoder = [g_pCurrFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:g_pCurrFramebuffer->pRenderPass];
+    @autoreleasepool {
+      [g_pCurrFramebuffer->encoder endEncoding];
+      [g_pCurrFramebuffer->commandBuffer commit];
+      [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
+
+      g_pCurrFramebuffer->commandBuffer = [g_queue commandBuffer];
+      g_pCurrFramebuffer->encoder = [g_pCurrFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:g_pCurrFramebuffer->pRenderPass];
+    }
     g_pCurrFramebuffer->actions = 0;
   }
 

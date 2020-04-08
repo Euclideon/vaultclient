@@ -301,6 +301,8 @@ void vcTexture_Destroy(struct vcTexture **ppTexture)
   @autoreleasepool
   {
     (*ppTexture)->texture = nil;
+    (*ppTexture)->sampler = nil;
+    (*ppTexture)->blitBuffer = nil;
   }
 
   udFree(*ppTexture);
