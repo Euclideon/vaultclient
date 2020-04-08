@@ -97,8 +97,7 @@ void vcMesh_Destroy(struct vcMesh **ppMesh)
   @autoreleasepool
   {
     (*ppMesh)->vBuffer = nil;
-    if ((*ppMesh)->indexCount)
-      (*ppMesh)->iBuffer = nil;
+    (*ppMesh)->iBuffer = nil;
   }
   
   udFree(*ppMesh);

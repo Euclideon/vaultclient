@@ -139,8 +139,25 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
 void vcGLState_Deinit()
 {
-  g_pDefaultFramebuffer = nullptr;
-  return;
+  @autoreleasepool {
+    vcTexture_Destroy(&g_pDefaultFramebuffer->pColor);
+    vcTexture_Destroy(&g_pDefaultFramebuffer->pDepth);
+    vcFramebuffer_Destroy(&g_pDefaultFramebuffer);
+    g_device = nil;
+    g_queue = nil;
+    g_pMetalLayer = nil;
+    g_currDrawable = nil;
+
+    [g_blitEncoder endEncoding];
+    [g_blitBuffer commit];
+    [g_blitBuffer waitUntilCompleted];
+    g_blitBuffer = nil;
+    g_blitEncoder = nil;
+
+    for (size_t i = 0; i < udLengthOf(s_depthStates); ++i)
+      s_depthStates[i] = nil;
+    return;
+  }
 }
 
 bool vcGLState_ApplyState(vcGLState *pState)
@@ -312,9 +329,9 @@ bool vcGLState_Present(SDL_Window *pWindow)
 
   @autoreleasepool {
     vcGLState_FlushBlit();
-    
+
     [g_pDefaultFramebuffer->encoder endEncoding];
-    
+
     if (g_currDrawable)
       [g_pDefaultFramebuffer->commandBuffer presentDrawable:g_currDrawable];
     
@@ -323,7 +340,7 @@ bool vcGLState_Present(SDL_Window *pWindow)
     g_currDrawable = [g_pMetalLayer nextDrawable];
     if (!g_currDrawable)
       NSLog(@"Drawable unavailable");
-    
+
     g_pDefaultFramebuffer->pRenderPass.colorAttachments[0].texture = g_currDrawable.texture;
     
     g_pDefaultFramebuffer->commandBuffer = [g_queue commandBuffer];
