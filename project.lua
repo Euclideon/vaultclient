@@ -18,6 +18,7 @@ project "vaultClient"
 	files { "builds/defaultsettings.json" }
 	files { "builds/assets/lang/*.json" }
 	files { "3rdParty/atmosphere/atmosphere/**", "3rdParty/atmosphere/external/dimensional_types/math/**" }
+	files { "3rdParty/poly2tri/**.h", "3rdParty/poly2tri/**.cpp" }
 
 	--This project includes
 	includedirs { "src", "src/scene", "src/rendering" }
@@ -25,6 +26,7 @@ project "vaultClient"
 	includedirs { "3rdParty/imgui" }
 	includedirs { "3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
+	includedirs { "3rdParty/poly2tri" }
 	includedirs { "3rdParty/atmosphere", "3rdParty/atmosphere/external/dimensional_types" }
 	
 	links { "udCore" .. (projectSuffix or "") }

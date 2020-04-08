@@ -61,8 +61,22 @@ void vcWater::ChangeProjection(const udGeoZone &newZone)
 
   vcWaterRenderer_ClearAllVolumes(m_pWaterRenderer);
 
-  m_pivot = udGeoZone_LatLongToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[0], true);
-  vcWaterRenderer_AddVolume(m_pWaterRenderer, newZone, m_altitude, (udDouble3*)m_pNode->pCoordinates, m_pNode->geomCount);
+  m_pivot = udGeoZone_LatLongToCartesian(newZone, ((udDouble3*)m_pNode->pCoordinates)[0] + udDouble3::create(0.0, 0.0, m_altitude), true);
+
+  // load islands
+  std::vector< std::pair<const udDouble3 *, size_t> > islandPoints;
+  if (m_pNode->pFirstChild != nullptr)
+  {
+    vdkProjectNode *pIslandNode = m_pNode->pFirstChild;
+
+    do
+    {
+      islandPoints.push_back(std::make_pair(((udDouble3*)pIslandNode->pCoordinates), pIslandNode->geomCount));
+      pIslandNode = pIslandNode->pNextSibling;
+    } while (pIslandNode != nullptr);
+  }
+
+  vcWaterRenderer_AddVolume(m_pWaterRenderer, newZone, m_altitude, (udDouble3*)m_pNode->pCoordinates, m_pNode->geomCount, islandPoints);
 }
 
 udDouble3 vcWater::GetLocalSpacePivot()
