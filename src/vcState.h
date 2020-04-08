@@ -160,10 +160,13 @@ struct vcState
   vcSettings settings;
   udJSON projects;
   udJSON packageInfo;
+
   udJSON profileInfo;
+  vcTexture *pProfileAvatar;
 
   struct
   {
+    bool inUse;
     vcGizmoOperation operation;
     vcGizmoCoordinateSystem coordinateSystem;
   } gizmo;

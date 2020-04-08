@@ -141,11 +141,11 @@ enum vcLoginBackgroundSettings
   vcLBS_LogoH = 577,
 };
 
+const float ProfileTextureSize = 50.f;
 const uint32_t WhitePixel = 0xFFFFFFFF;
 
 void vcMain_ShowStartupScreen(vcState *pProgramState);
-void vcRenderWindow(vcState *pProgramState);
-float vcMain_MenuGui(vcState *pProgramState);
+void vcMain_RenderWindow(vcState *pProgramState);
 
 void vcMain_PresentationMode(vcState *pProgramState)
 {
@@ -336,7 +336,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
 
   if (pProgramState->finishedStartup)
-    vcRenderWindow(pProgramState);
+    vcMain_RenderWindow(pProgramState);
   else
     vcMain_ShowStartupScreen(pProgramState);
 
@@ -1004,14 +1004,124 @@ epilogue:
   return 0;
 }
 
+void vcMain_ProfileMenu(vcState *pProgramState)
+{
+  if (ImGui::BeginPopupContextItem("profileMenu", 0))
+  {
+    if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
+      vcModals_OpenModal(pProgramState, vcMT_Profile);
+
+    if (ImGui::MenuItem(vcString::Get("modalProfileChangePassword"), nullptr, nullptr, false))
+    {
+      // Does nothing yet
+    }
+
+    if (ImGui::MenuItem(vcString::Get("menuSettings")))
+      pProgramState->openSettings = true;
+
+    ImGui::Separator();
+
+    if (ImGui::MenuItem(vcString::Get("menuLogout")) && vcModals_ConfirmEndSession(pProgramState, false))
+      pProgramState->forceLogout = true;
+
+    ImGui::Separator();
+
+    // Projects (temp)
+    udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
+    if (ImGui::BeginMenu(vcString::Get("menuProjects")))
+    {
+      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
+        vcProject_InitBlankScene(pProgramState);
+
+      if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
+        vcModals_OpenModal(pProgramState, vcMT_ExportProject);
+
+      if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
+        vcModals_OpenModal(pProgramState, vcMT_ImportProject);
+
+      ImGui::Separator();
+
+      if (pProjectList != nullptr && pProjectList->length > 0)
+      {
+        for (size_t i = 0; i < pProjectList->length; ++i)
+        {
+          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
+          {
+            vcProject_InitBlankScene(pProgramState);
+            bool moveTo = true;
+
+            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
+            {
+              vdkProjectNode *pNode = nullptr;
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
+              {
+                vcState::ErrorItem projectError;
+                projectError.source = vcES_ProjectChange;
+                projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+                projectError.resultCode = udR_Failure_;
+
+                pProgramState->errorItems.PushBack(projectError);
+
+                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+              }
+              else
+              {
+                if (moveTo)
+                  udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+                moveTo = false;
+              }
+            }
+
+            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
+            {
+              const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
+
+              vdkProjectNode *pNode = nullptr;
+              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
+              {
+                vcState::ErrorItem projectError;
+                projectError.source = vcES_ProjectChange;
+                projectError.pData = udStrdup(pFeedName);
+                projectError.resultCode = udR_Failure_;
+
+                pProgramState->errorItems.PushBack(projectError);
+
+                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+              }
+
+              if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
+                vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
+            }
+
+            // This is a hack to clear the 'unsaved changes' flag to get around the fact the server projects aren't actually loading as projects
+            const char *pTempMemory = nullptr;
+            vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pTempMemory);
+          }
+        }
+      }
+      else // No projects
+      {
+        ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
+      }
+
+      ImGui::EndMenu();
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
   ImGuiIO &io = ImGui::GetIO();
   float bottomLeftOffset = 0.f;
 
+  float attachmentPanelSize = 0.f;
+  float infoPanelSize = 0.f;
+
   if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x / 2, windowPos.y), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.f, 0.f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
@@ -1024,89 +1134,92 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       pProgramState->cameraInput.pAttachedToSceneItem->HandleAttachmentUI(pProgramState);
 
       if (ImGui::Button(vcString::Get("sceneCameraAttachmentDetach"), ImVec2(-1, 0)))
-      {
         pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
-      }
     }
 
+    attachmentPanelSize = ImGui::GetWindowSize().y;
     ImGui::End();
   }
 
-  float toolPanelStartY = windowPos.y;
-
-  if (pProgramState->activeTool != vcActiveTool_Select)
+  if (pProgramState->activeTool != vcActiveTool_Select || pProgramState->gizmo.inUse)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, toolPanelStartY), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + attachmentPanelSize), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
     if (ImGui::Begin("###toolInfoPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
-      if (!pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
-        pProgramState->activeTool = vcActiveTool_Select;
-
-      if (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea)
+      // Gizmo Settings
+      if (pProgramState->gizmo.inUse)
       {
-        if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoTranslate)), vcMBBI_Translate, vcMBBG_FirstItem, pProgramState->gizmo.operation == vcGO_Translate))
+          pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
+
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoRotate)), vcMBBI_Rotate, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Rotate))
+          pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
+
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoScale)), vcMBBI_Scale, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Scale))
+          pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
+
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
+          pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+
+        ImGui::Separator();
+      }
+
+      if (pProgramState->activeTool != vcActiveTool_Select)
+      {
+        if (!pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
+          pProgramState->activeTool = vcActiveTool_Select;
+
+        if (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea)
         {
-          vcSceneItem *pSceneItem = (vcSceneItem*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+          if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+          {
+            vcSceneItem *pSceneItem = (vcSceneItem*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
 
-          char bufferA[128];
-          char bufferB[128];
-          vcHotkey::GetKeyName(vcB_Cancel, bufferB);
-          ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+            char bufferA[128];
+            char bufferB[128];
+            vcHotkey::GetKeyName(vcB_Cancel, bufferB);
+            ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
 
+            ImGui::Separator();
+
+            pSceneItem->HandleToolUI(pProgramState);
+          }
+          else
+          {
+            ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
+          }
+        }
+        else if (pProgramState->activeTool == vcActiveTool_Inspect)
+        {
+          ImGui::TextUnformatted(vcString::Get("toolInspectRunning"));
           ImGui::Separator();
 
-          pSceneItem->HandleToolUI(pProgramState);
+          if (pProgramState->udModelNodeAttributes.IsObject())
+            vcImGuiValueTreeObject(&pProgramState->udModelNodeAttributes);
         }
-        else
-        {
-          ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
-        }
-      }
-      else if (pProgramState->activeTool == vcActiveTool_Inspect)
-      {
-        ImGui::TextUnformatted(vcString::Get("toolInspectRunning"));
-        ImGui::Separator();
-
-        if (pProgramState->udModelNodeAttributes.IsObject())
-          vcImGuiValueTreeObject(&pProgramState->udModelNodeAttributes);
       }
     }
 
     ImGui::End();
   }
 
-  // On Screen Camera Settings
+  // Scene Info
+  bool showInfoPanel = false;
+
+  showInfoPanel |= pProgramState->settings.presentation.showCameraInfo;
+  showInfoPanel |= pProgramState->settings.presentation.showProjectionInfo;
+  showInfoPanel |= pProgramState->settings.presentation.showAdvancedGIS;
+  showInfoPanel |= pProgramState->settings.presentation.showDiagnosticInfo;
+
+  if (showInfoPanel)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x, windowPos.y), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
-      // Basic Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_LockAltitude)), vcMBBI_LockAltitude, vcMBBG_FirstItem, pProgramState->settings.camera.lockAltitude))
-        pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneCameraInfo"), nullptr, vcMBBI_ShowCameraSettings, vcMBBG_SameGroup, pProgramState->settings.presentation.showCameraInfo))
-        pProgramState->settings.presentation.showCameraInfo = !pProgramState->settings.presentation.showCameraInfo;
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneProjectionInfo"), nullptr, vcMBBI_ShowGeospatialInfo, vcMBBG_SameGroup, pProgramState->settings.presentation.showProjectionInfo))
-        pProgramState->settings.presentation.showProjectionInfo = !pProgramState->settings.presentation.showProjectionInfo;
-
-      // Gizmo Settings
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoTranslate)), vcMBBI_Translate, vcMBBG_NewGroup, pProgramState->gizmo.operation == vcGO_Translate))
-        pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoRotate)), vcMBBI_Rotate, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Rotate))
-        pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoScale)), vcMBBI_Scale, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Scale))
-        pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
-        pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
-
       udDouble3 cameraLatLong = udDouble3::zero();
 
       if (pProgramState->settings.presentation.showCameraInfo)
@@ -1189,8 +1302,154 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           }
         }
       }
+
+      if (pProgramState->settings.presentation.showDiagnosticInfo)
+      {
+        int64_t currentTime = udGetEpochSecsUTCd();
+        float xPosition = ImGui::GetContentRegionMax().x;
+
+        vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
+
+        char tempData[128] = {};
+
+        // Avatar Position
+        xPosition -= ProfileTextureSize;
+
+        // Load List
+        if (pProgramState->loadList.length > 0)
+        {
+          const char *strings[] = { udTempStr("%zu", pProgramState->loadList.length) };
+
+          vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+          vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesQueued"), strings, udLengthOf(strings));
+          ImGui::TextUnformatted(tempData);
+        }
+
+        // Error List
+        if (pProgramState->errorItems.length > 0)
+        {
+          bool isHovered = false;
+          bool isClicked = false;
+
+          const char *strings[] = { udTempStr("%zu", pProgramState->errorItems.length) };
+          vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesFailed"), strings, udLengthOf(strings));
+          ImGui::TextUnformatted(tempData);
+
+          isHovered = ImGui::IsItemHovered();
+          isClicked = ImGui::IsItemClicked();
+
+          ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
+          isHovered = isHovered || ImGui::IsItemHovered();
+          isClicked = isClicked || ImGui::IsItemClicked();
+
+          if (isHovered)
+          {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted(vcString::Get("menuBarFilesFailedTooltip"));
+            ImGui::EndTooltip();
+          }
+
+          if (isClicked)
+            vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
+        }
+
+        // New Version Available
+        if (pProgramState->packageInfo.Get("success").AsBool())
+        {
+          udStrcpy(tempData, udTempStr("%s [%s] / ", vcString::Get("menuBarUpdateAvailable"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
+          ImGui::TextUnformatted(tempData);
+        }
+
+        // Diagnostic Information
+        if (pProgramState->settings.presentation.showDiagnosticInfo)
+        {
+          const char *strings[] = { udTempStr("%.2f", 1.f / pProgramState->deltaTime), udTempStr("%.3f", pProgramState->deltaTime * 1000.f) };
+          vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFPS"), strings, udLengthOf(strings));
+          ImGui::TextUnformatted(tempData);
+        }
+
+        for (int i = 0; i < vdkLT_Count; ++i)
+        {
+          vdkLicenseInfo info = {};
+          if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
+          {
+            if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
+              udStrcpy(tempData, udTempStr("%s %s (%" PRIu64 "%s)", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicense"), (info.expiresTimestamp - currentTime), vcString::Get("menuBarSecondsAbbreviation")));
+            else if (info.queuePosition == -1)
+              udStrcpy(tempData, udTempStr("%s %s", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicenseExpired")));
+            else if (info.queuePosition == -2)
+              udStrcpy(tempData, udTempStr("%s", i == vdkLT_Render ? vcString::Get("menuBarNoRenderLicense") : vcString::Get("convertNoLicense")));
+            else if (info.queuePosition == 0)
+              udStrcpy(tempData, udTempStr("%s", i == vdkLT_Render ? vcString::Get("menuBarWaitingForRenderLicense") : vcString::Get("convertAwaitingLicense")));
+            else
+              udStrcpy(tempData, udTempStr("%s (%" PRId64 " %s)", i == vdkLT_Render ? vcString::Get("menuBarWaitingForRenderLicense") : vcString::Get("convertAwaitingLicense"), info.queuePosition, vcString::Get("menuBarLicenseQueued")));
+
+            ImGui::TextUnformatted(tempData);
+          }
+        }
+
+        // Background work
+        {
+#if VC_HASCONVERT
+          const char *pBuffer = nullptr;
+          int convertProgress = vcConvert_CurrentProgressPercent(pProgramState, &pBuffer);
+          if (convertProgress >= 0)
+          {
+            bool clicked = false;
+
+            udStrcpy(tempData, " / ");
+            xPosition -= ImGui::CalcTextSize(tempData).x;
+            ImGui::SameLine(xPosition);
+            ImGui::TextUnformatted(tempData);
+            clicked |= ImGui::IsItemClicked();
+
+            xPosition -= 200;
+            ImGui::SameLine(xPosition);
+            ImGui::ProgressBar(convertProgress / 100.f, ImVec2(200, 0), pBuffer);
+            clicked |= ImGui::IsItemClicked();
+
+            udSprintf(tempData, "%s: ", vcString::Get("convertTitle"));
+
+            xPosition -= ImGui::CalcTextSize(tempData).x;
+            ImGui::SameLine(xPosition);
+            ImGui::TextUnformatted(tempData);
+            clicked |= ImGui::IsItemClicked();
+
+            if (clicked)
+              vcModals_OpenModal(pProgramState, vcMT_Convert);
+          }
+          else if (pBuffer != nullptr)
+          {
+            udSprintf(tempData, "%s: %s / ", vcString::Get("convertTitle"), pBuffer);
+
+            xPosition -= ImGui::CalcTextSize(tempData).x;
+            ImGui::SameLine(xPosition);
+            ImGui::TextUnformatted(tempData);
+
+            if (ImGui::IsItemClicked())
+              vcModals_OpenModal(pProgramState, vcMT_Convert);
+          }
+          udFree(pBuffer);
+#endif //VC_HASCONVERT
+
+          if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
+          {
+            udSprintf(tempData, "%s / ", vcString::Get("sceneExplorerExportRunning"));
+
+            xPosition -= ImGui::CalcTextSize(tempData).x;
+            ImGui::SameLine(xPosition);
+            ImGui::TextUnformatted(tempData);
+
+            xPosition -= 20;
+            ImGui::SameLine(xPosition);
+            vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+          }
+        }
+
+      }
     }
 
+    infoPanelSize = ImGui::GetWindowSize().y;
     ImGui::End();
   }
 
@@ -1343,14 +1602,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
-  // Bottom-Right Tools
+  // Tool Panel
   {
-    ImVec2 buttonPanelPos = ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y - 32);
+    ImVec2 buttonPanelPos = ImVec2(windowPos.x + 2.f, windowPos.y + infoPanelSize + 2.f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-    ImGui::SetNextWindowPos(buttonPanelPos, ImGuiCond_Always, ImVec2(1.0f, 1.0f));
-    ImGui::SetNextWindowBgAlpha(0.2f);
+    ImGui::SetNextWindowPos(buttonPanelPos, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.f);
 
     bool panelOpen = ImGui::Begin("toolPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -1358,6 +1617,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
     if (panelOpen)
     {
+      // Avatar Profile
+      ImGui::Image(pProgramState->pProfileAvatar ? pProgramState->pProfileAvatar : pProgramState->pWhiteTexture, ImVec2(ProfileTextureSize, ProfileTextureSize)); //TODO: Maybe make this a burger instead?
+      vcMain_ProfileMenu(pProgramState);
+
       // Compass
       {
         udDouble3 cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
@@ -1430,6 +1693,19 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_FirstItem, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
         vcMain_PresentationMode(pProgramState);
+
+      // Lock Altitude
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_LockAltitude)), vcMBBI_LockAltitude, vcMBBG_FirstItem, pProgramState->settings.camera.lockAltitude))
+        pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
+
+
+#if VC_HASCONVERT
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem))
+        vcModals_OpenModal(pProgramState, vcMT_Convert);
+#endif //VC_HASCONVERT
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Remove, vcMBBG_FirstItem))
+        vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
     }
 
     ImGui::End();
@@ -2129,6 +2405,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
+    pProgramState->gizmo.inUse = false;
     if (pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
     {
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
@@ -2139,6 +2416,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
       if (pItem != nullptr)
       {
+        pProgramState->gizmo.inUse = true;
+
         udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
         temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
 
@@ -2191,300 +2470,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     pProgramState->worldMousePosLongLat = pProgramState->worldMousePosCartesian;
 
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
-}
-
-void vcMain_UpdateStatusBar(vcState *pProgramState)
-{
-  //Note that items are drawn right to left (reverse order) to right-align
-
-  int64_t currentTime = udGetEpochSecsUTCd();
-  float xPosition = ImGui::GetContentRegionMax().x - 20.f;
-
-  vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
-
-  char tempData[128] = {};
-
-  // Username
-  {
-    const char *pTemp = udTempStr("%s (%.3f)", pProgramState->sessionInfo.displayName, pProgramState->sessionInfo.expiresTimestamp - udGetEpochSecsUTCf());
-
-    xPosition -= ImGui::CalcTextSize(pTemp).x;
-
-    ImGui::SameLine(xPosition);
-    ImGui::TextUnformatted(pTemp);
-
-    if (ImGui::IsItemClicked())
-      vcModals_OpenModal(pProgramState, vcMT_Profile);
-  }
-
-  // Load List
-  if (pProgramState->loadList.length > 0)
-  {
-    const char *strings[] = { udTempStr("%zu", pProgramState->loadList.length) };
-    vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesQueued"), strings, udLengthOf(strings));
-    udStrcat(tempData, " / ");
-
-    xPosition -= ImGui::CalcTextSize(tempData).x;
-    ImGui::SameLine(xPosition);
-    ImGui::TextUnformatted(tempData);
-
-    xPosition -= ImGui::CalcTextSize("\xE2\x96\xB2").x + 5.f;
-    ImGui::SameLine(xPosition);
-    vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading, false);
-  }
-
-  // Error List
-  if (pProgramState->errorItems.length > 0)
-  {
-    bool isHovered = false;
-    bool isClicked = false;
-
-    const char *strings[] = { udTempStr("%zu", pProgramState->errorItems.length) };
-    vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesFailed"), strings, udLengthOf(strings));
-    udStrcat(tempData, " / ");
-
-    xPosition -= ImGui::CalcTextSize(tempData).x;
-    ImGui::SameLine(xPosition);
-    ImGui::TextUnformatted(tempData);
-    isHovered = ImGui::IsItemHovered();
-    isClicked = ImGui::IsItemClicked();
-
-    xPosition -= ImGui::CalcTextSize("\xE2\x9A\xA0").x + 5.f;
-    ImGui::SameLine(xPosition);
-
-    ImGui::TextColored(ImVec4(1.f, 0.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Red Exclamation in Triangle
-    isHovered = isHovered || ImGui::IsItemHovered();
-    isClicked = isClicked || ImGui::IsItemClicked();
-
-    if (isHovered)
-    {
-      ImGui::BeginTooltip();
-      ImGui::TextUnformatted(vcString::Get("menuBarFilesFailedTooltip"));
-      ImGui::EndTooltip();
-    }
-
-    if (isClicked)
-      vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
-  }
-
-  if ((SDL_GetWindowFlags(pProgramState->pWindow) & SDL_WINDOW_INPUT_FOCUS) == 0)
-  {
-    udStrcpy(tempData, vcString::Get("menuBarInactive"));
-    udStrcat(tempData, " / ");
-
-    xPosition -= ImGui::CalcTextSize(tempData).x;
-    ImGui::SameLine(xPosition);
-    ImGui::TextUnformatted(tempData);
-  }
-
-  // New Version Available
-  if (pProgramState->packageInfo.Get("success").AsBool())
-  {
-    udStrcpy(tempData, udTempStr("%s [%s] / ", vcString::Get("menuBarUpdateAvailable"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
-
-    xPosition -= ImGui::CalcTextSize(tempData).x;
-    ImGui::SameLine(xPosition);
-    ImGui::TextUnformatted(tempData);
-  }
-
-  // Diagnostic Information
-  if (pProgramState->settings.presentation.showDiagnosticInfo)
-  {
-    const char *strings[] = { udTempStr("%.2f", 1.f / pProgramState->deltaTime), udTempStr("%.3f", pProgramState->deltaTime * 1000.f) };
-    vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFPS"), strings, udLengthOf(strings));
-    udStrcat(tempData, " / ");
-
-    xPosition -= ImGui::CalcTextSize(tempData).x;
-    ImGui::SameLine(xPosition);
-    ImGui::TextUnformatted(tempData);
-  }
-
-  for (int i = 0; i < vdkLT_Count; ++i)
-  {
-    vdkLicenseInfo info = {};
-    if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
-    {
-      if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
-        udStrcpy(tempData, udTempStr("%s %s (%" PRIu64 "%s) / ", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicense"), (info.expiresTimestamp - currentTime), vcString::Get("menuBarSecondsAbbreviation")));
-      else if (info.queuePosition == -1)
-        udStrcpy(tempData, udTempStr("%s %s / ", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicenseExpired")));
-      else if (info.queuePosition == -2)
-        udStrcpy(tempData, udTempStr("%s / ", i == vdkLT_Render ? vcString::Get("menuBarNoRenderLicense") : vcString::Get("convertNoLicense")));
-      else if (info.queuePosition == 0)
-        udStrcpy(tempData, udTempStr("%s / ", i == vdkLT_Render ? vcString::Get("menuBarWaitingForRenderLicense") : vcString::Get("convertAwaitingLicense")));
-      else
-        udStrcpy(tempData, udTempStr("%s (%" PRId64 " %s) / ", i == vdkLT_Render ? vcString::Get("menuBarWaitingForRenderLicense") : vcString::Get("convertAwaitingLicense"), info.queuePosition, vcString::Get("menuBarLicenseQueued")));
-
-      xPosition -= ImGui::CalcTextSize(tempData).x;
-      ImGui::SameLine(xPosition);
-      ImGui::TextUnformatted(tempData);
-    }
-  }
-
-  // Background work
-  {
-#if VC_HASCONVERT
-    const char *pBuffer = nullptr;
-    int convertProgress = vcConvert_CurrentProgressPercent(pProgramState, &pBuffer);
-    if (convertProgress >= 0)
-    {
-      bool clicked = false;
-
-      udStrcpy(tempData, " / ");
-      xPosition -= ImGui::CalcTextSize(tempData).x;
-      ImGui::SameLine(xPosition);
-      ImGui::TextUnformatted(tempData);
-      clicked |= ImGui::IsItemClicked();
-
-      xPosition -= 200;
-      ImGui::SameLine(xPosition);
-      ImGui::ProgressBar(convertProgress / 100.f, ImVec2(200, 0), pBuffer);
-      clicked |= ImGui::IsItemClicked();
-
-      udSprintf(tempData, "%s: ", vcString::Get("convertTitle"));
-
-      xPosition -= ImGui::CalcTextSize(tempData).x;
-      ImGui::SameLine(xPosition);
-      ImGui::TextUnformatted(tempData);
-      clicked |= ImGui::IsItemClicked();
-
-      if (clicked)
-        vcModals_OpenModal(pProgramState, vcMT_Convert);
-    }
-    else if (pBuffer != nullptr)
-    {
-      udSprintf(tempData, "%s: %s / ", vcString::Get("convertTitle"), pBuffer);
-
-      xPosition -= ImGui::CalcTextSize(tempData).x;
-      ImGui::SameLine(xPosition);
-      ImGui::TextUnformatted(tempData);
-
-      if (ImGui::IsItemClicked())
-        vcModals_OpenModal(pProgramState, vcMT_Convert);
-    }
-    udFree(pBuffer);
-#endif //VC_HASCONVERT
-
-    if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
-    {
-      udSprintf(tempData, "%s / ", vcString::Get("sceneExplorerExportRunning"));
-
-      xPosition -= ImGui::CalcTextSize(tempData).x;
-      ImGui::SameLine(xPosition);
-      ImGui::TextUnformatted(tempData);
-
-      xPosition -= 20;
-      ImGui::SameLine(xPosition);
-      vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
-    }
-  }
-}
-
-float vcMain_MenuGui(vcState *pProgramState)
-{
-  float menuHeight = 0;
-
-  if (ImGui::BeginMainMenuBar())
-  {
-    udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (ImGui::BeginMenu(vcString::Get("menuProjects")))
-    {
-      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
-        vcProject_InitBlankScene(pProgramState);
-
-      if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_ExportProject);
-
-      if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_ImportProject);
-
-      ImGui::Separator();
-
-      if (pProjectList != nullptr && pProjectList->length > 0)
-      {
-        for (size_t i = 0; i < pProjectList->length; ++i)
-        {
-          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
-          {
-            vcProject_InitBlankScene(pProgramState);
-            bool moveTo = true;
-
-            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
-            {
-              vdkProjectNode *pNode = nullptr;
-              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
-              {
-                vcState::ErrorItem projectError;
-                projectError.source = vcES_ProjectChange;
-                projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
-                projectError.resultCode = udR_Failure_;
-
-                pProgramState->errorItems.PushBack(projectError);
-
-                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-              }
-              else
-              {
-                if (moveTo)
-                  udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-                moveTo = false;
-              }
-            }
-
-            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
-            {
-              const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
-
-              vdkProjectNode *pNode = nullptr;
-              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
-              {
-                vcState::ErrorItem projectError;
-                projectError.source = vcES_ProjectChange;
-                projectError.pData = udStrdup(pFeedName);
-                projectError.resultCode = udR_Failure_;
-
-                pProgramState->errorItems.PushBack(projectError);
-
-                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-              }
-
-              if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
-                vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
-            }
-
-            // This is a hack to clear the 'unsaved changes' flag to get around the fact the server projects aren't actually loading as projects
-            const char *pTempMemory = nullptr;
-            vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pTempMemory);
-          }
-        }
-      }
-      else // No projects
-      {
-        ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
-      }
-
-      ImGui::EndMenu();
-    }
-
-    if (ImGui::MenuItem(vcString::Get("menuSettings")))
-      pProgramState->openSettings = true;
-
-#if VC_HASCONVERT
-    if (ImGui::MenuItem(vcString::Get("menuConvert")))
-      vcModals_OpenModal(pProgramState, vcMT_Convert);
-#endif //VC_HASCONVERT
-
-    if (ImGui::MenuItem(vcString::Get("menuHelp")))
-      vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
-
-    vcMain_UpdateStatusBar(pProgramState);
-
-    menuHeight = ImGui::GetWindowSize().y;
-
-    ImGui::EndMainMenuBar();
-  }
-
-  return menuHeight;
 }
 
 void vcMain_ShowStartupScreen(vcState *pProgramState)
@@ -2695,7 +2680,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   }
 }
 
-void vcRenderWindow(vcState *pProgramState)
+void vcMain_RenderWindow(vcState *pProgramState)
 {
   ImGuiIO &io = ImGui::GetIO(); // for future key commands as well
   ImVec2 size = io.DisplaySize;
@@ -2722,14 +2707,10 @@ void vcRenderWindow(vcState *pProgramState)
   }
   else
   {
-    float menuBarSize = 0.f;
-    if (!pProgramState->settings.window.isFullscreen && !pProgramState->sceneExplorerCollapsed)
-      menuBarSize = vcMain_MenuGui(pProgramState);
-
-    ImGui::SetNextWindowSize(ImVec2(size.x, size.y - menuBarSize));
+    ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-    ImGui::SetNextWindowPos(ImVec2(0, menuBarSize));
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
 
     bool rootDockOpen = ImGui::Begin("rootdockTesting", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus);
 

@@ -10,6 +10,7 @@
 #include "vdkServerAPI.h"
 
 #include "udStringUtil.h"
+#include "udCrypto.h"
 
 const char* vcSession_GetOSName()
 {
@@ -77,6 +78,30 @@ void vcSession_GetPackagesMT(void *pProgramStatePtr)
   }
 }
 
+void vcSession_GetProfileAvatar(vcState *pProgramState, const char *pEmail)
+{
+  static const char hex_digits[] = "0123456789abcdef";
+  const char *pEmailAddress = pEmail;
+  const char *pHashB64 = nullptr;
+  char hashB16[33] = {}; // 32 for MD5 + \0
+  uint8_t *pHashBinary = nullptr;
+  size_t size = 0;
+
+  udCryptoHash_Hash(udCH_MD5, pEmailAddress, udStrlen(pEmailAddress), &pHashB64);
+  udBase64Decode(&pHashBinary, &size, pHashB64);
+
+  for (size_t i = 0; i < size; ++i)
+  {
+    hashB16[i * 2 + 0] = hex_digits[pHashBinary[i] >> 4];
+    hashB16[i * 2 + 1] = hex_digits[pHashBinary[i] & 0xF];
+  }
+
+  vcTexture_AsyncCreateFromFilename(&pProgramState->pProfileAvatar, pProgramState->pWorkerPool, udTempStr("https://www.gravatar.com/avatar/%s?d=identicon", hashB16));
+
+  udFree(pHashB64);
+  udFree(pHashBinary);
+}
+
 void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
@@ -94,7 +119,10 @@ void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
   v.Export(&pExportString, udJEO_JSON); // or udJEO_XML
 
   if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/user", pExportString, &pJSONInfo) == vE_Success)
+  {
     pProgramState->profileInfo.Parse(pJSONInfo);
+    vcSession_GetProfileAvatar(pProgramState, pProgramState->profileInfo.Get("user.email").AsString());
+  }
 
   vdkServerAPI_ReleaseResult(&pJSONInfo);
   udFree(pExportString);
