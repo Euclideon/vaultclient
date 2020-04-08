@@ -58,9 +58,10 @@ PS_INPUT main(VS_INPUT input)
   float2 dir = normalize(dirPrev + dirNext);
   float2 normal = float2(-dir.y, dir.x);
   
+  // artificially make corners thicker to try keep line width consistent
+  float cornerThicken = (1.0 - (dot(dirPrev, dirNext) * 0.5 + 0.5));
   // extrude from center & correct aspect ratio
-  // artificially make 'sharper corners' thicker to try keep line width consistent
-  normal *= u_thickness.x / 2.0 * (1.0 + (pow(1.0 - dot(dirPrev, dirNext) * 0.5 + 0.5, 2.0)));
+  normal *= u_thickness.x / 2.0 * (1.0 + pow(cornerThicken, 7.0) * 7.0);
   normal.x /= aspect;
 
   output.pos = clipPos + float4(normal * input.pos.w, 0.0, 0.0);
