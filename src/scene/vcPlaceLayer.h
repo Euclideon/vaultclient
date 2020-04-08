@@ -5,7 +5,7 @@
 #include "vcCamera.h"
 #include "vdkRenderContext.h"
 #include "vdkError.h"
-#include "vcFenceRenderer.h"
+#include "vcLineRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
 #include "gl/vcGLState.h"
@@ -30,12 +30,13 @@ private:
 
   const char *m_pPinIcon;
   udChunkedArray<Place> m_places;
+
+  // Close labels and close lines are kept in step (size should be the same)
   udChunkedArray<vcLabelInfo> m_closeLabels;
+  udChunkedArray<vcLineInstance*> m_closeLines;
 
   double m_pinDistance;
   double m_labelDistance;
-
-  vcFenceRenderer *m_pFences;
 
 public:
   vcPlaceLayer(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);

@@ -17,10 +17,10 @@
 vcPlaceLayer::vcPlaceLayer(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
-  m_closeLabels.Init(32);
   m_places.Init(512);
 
-  vcFenceRenderer_Create(&m_pFences);
+  m_closeLabels.Init(32);
+  m_closeLines.Init(32);
 
   vcFenceRendererConfig config = {};
   config.visualMode = vcRRVM_Flat;
@@ -30,8 +30,6 @@ vcPlaceLayer::vcPlaceLayer(vdkProject *pProject, vdkProjectNode *pNode, vcState 
   config.primaryColour = udFloat4::one();
   config.textureRepeatScale = 1.0;
   config.textureScrollSpeed = 1.0;
-
-  vcFenceRenderer_SetConfig(m_pFences, config);
 
   OnNodeUpdate(pProgramState);
   m_loadStatus = vcSLS_Loaded;
@@ -68,7 +66,6 @@ void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     return;
 
   size_t usedLabels = 0;
-  vcFenceRenderer_ClearPoints(m_pFences);
 
   for (size_t i = 0; i < m_places.length; ++i)
   {
@@ -77,7 +74,13 @@ void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     if (distSq < m_labelDistance * m_labelDistance)
     {
       if (m_closeLabels.length <= usedLabels)
+      {
         m_closeLabels.PushBack();
+
+        vcLineInstance *pLineInstance = nullptr;
+        vcLineRenderer_CreateLine(&pLineInstance);
+        m_closeLines.PushBack(pLineInstance);
+      }
 
       udDouble3 normal = vcGIS_GetWorldLocalUp(pProgramState->gis, m_places[i].localSpace);
 
@@ -86,10 +89,11 @@ void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       m_closeLabels[usedLabels].backColourRGBA = 0xFF000000;
       m_closeLabels[usedLabels].textColourRGBA = 0xFFFFFFFF;
 
-      udDouble3 points[] = { m_places[i].localSpace, m_closeLabels[usedLabels].worldPosition + udDouble3::create(0.1, 0, 0) };
-      vcFenceRenderer_AddPoints(m_pFences, points, 2);
+      udDouble3 points[] = { m_places[i].localSpace, m_closeLabels[usedLabels].worldPosition };
+      vcLineRenderer_UpdatePoints(m_closeLines[usedLabels], points, 2, udFloat4::one(), 5);
 
       pRenderData->labels.PushBack(&m_closeLabels[usedLabels]);
+      pRenderData->lines.PushBack(m_closeLines[usedLabels]);
 
       ++usedLabels;
     }
@@ -98,9 +102,6 @@ void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       pRenderData->pins.PushBack({ m_places[i].localSpace, m_pPinIcon, m_places[i].count });
     }
   }
-
-  if (usedLabels > 0)
-    pRenderData->fences.PushBack(m_pFences);
 }
 
 void vcPlaceLayer::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
@@ -129,7 +130,10 @@ void vcPlaceLayer::ChangeProjection(const udGeoZone &newZone)
 
 void vcPlaceLayer::Cleanup(vcState * /*pProgramState*/)
 {
-  vcFenceRenderer_Destroy(&m_pFences);
   m_places.Deinit();
   m_closeLabels.Deinit();
+
+  for (size_t i = 0; i < m_closeLines.length; ++i)
+    vcLineRenderer_DestroyLine(&m_closeLines[i]);
+  m_closeLines.Deinit();
 }
