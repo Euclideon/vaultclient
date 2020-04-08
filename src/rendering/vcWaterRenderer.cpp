@@ -150,10 +150,7 @@ udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, const udGeoZ
 
   // TODO: Consider putting this function work in another thread.
   // 'pointCount - 1' because I've assumed point list is a closed loop (last node matches first)
-  if (!vcCDT_ProcessOrignal(pPoints, pointCount - 1, islandPoints
-    , pVolume.min
-    , pVolume.max
-    , &triangleList))
+  if (!vcCDT_ProcessOrignal(pPoints, pointCount - 1, islandPoints, pVolume.min, pVolume.max, &triangleList))
   {
     // Failed to triangulate the entire polygon
     // TODO: Not sure how to handle this as the polygon it generates could still be almost complete.
