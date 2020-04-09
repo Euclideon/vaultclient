@@ -165,6 +165,9 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
   pNode->slippyPosition = childSlippy;
   pNode->demMinMax = parentDemMinMax;
 
+  pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
+  pNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_None;
+
   vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
 }
 

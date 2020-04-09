@@ -755,6 +755,12 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
   if (pNode->renderInfo.demLoadStatus == vcNodeRenderInfo::vcTLS_Downloaded)
   {
+
+    if (pNode->renderInfo.demData.pData == nullptr)
+    {
+      printf("HOLD UP!");
+      __debugbreak();
+    }
     pNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_Loaded;
     pNode->renderInfo.tryLoad = false;
 

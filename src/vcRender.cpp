@@ -37,6 +37,8 @@ enum
 static const int ViewShedMapCount = 3;
 static const udUInt2 ViewShedMapRes = udUInt2::create(640 * ViewShedMapCount, 1920);
 
+static const double PinRendererUpdateRateSec = 1.0;
+
 struct vcViewShedRenderContext
 {
   // re-use this memory
@@ -101,7 +103,9 @@ struct vcRenderContext
 
   vcAtmosphereRenderer *pAtmosphereRenderer;
   vcLineRenderer *pLineRenderer;
+
   vcPinRenderer *pPinRenderer;
+  double pinUpdateRateTimer;
 
   struct
   {
@@ -1296,9 +1300,15 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 {
   udUnused(pDefaultFramebuffer);
 
-  vcPinRenderer_Reset(pRenderContext->pPinRenderer);
-  for (size_t i = 0; i < renderData.pins.length; ++i)
-    vcPinRenderer_AddPin(pRenderContext->pPinRenderer, pProgramState, renderData.pins[i].pPinAddress, renderData.pins[i].position, renderData.pins[i].count);
+  pRenderContext->pinUpdateRateTimer += pProgramState->deltaTime;
+  if (pRenderContext->pinUpdateRateTimer >= PinRendererUpdateRateSec)
+  {
+    pRenderContext->pinUpdateRateTimer -= PinRendererUpdateRateSec;
+
+    vcPinRenderer_Reset(pRenderContext->pPinRenderer);
+    for (size_t i = 0; i < renderData.pins.length; ++i)
+      vcPinRenderer_AddPin(pRenderContext->pPinRenderer, pProgramState, renderData.pins[i].pPinAddress, renderData.pins[i].position, renderData.pins[i].count);
+  }
 
   // Render and upload UD buffers
   if (renderData.models.length > 0)
