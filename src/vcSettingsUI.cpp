@@ -451,7 +451,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         if (pProgramState->activeSetting == vcSR_Tools)
         {
           vcSettingsUI_ShowHeader(pProgramState, "Tools", vcSC_Tools);
-          ImGui::Text(vcString::Get("settingsToolsDefaultValues"));
+          ImGui::Text("%s", vcString::Get("settingsToolsDefaultValues"));
           ImGui::SliderFloat(vcString::Get("scenePOILineWidth"), &pProgramState->settings.tools.line.width, pProgramState->settings.tools.line.minWidth, pProgramState->settings.tools.line.maxWidth, "%.2f", 3.f);
            
           const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
