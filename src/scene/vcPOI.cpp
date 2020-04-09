@@ -151,7 +151,7 @@ vcPOIState *vcPOIState_Append::ChangeState(vcState *pProgramState)
     if (m_pParent->m_pFence != nullptr)
     {
       vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
-      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints, m_pParent->m_line.closed);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_line.closed);
     }
 
     m_pParent->ChangeProjection(pProgramState->gis.zone);
