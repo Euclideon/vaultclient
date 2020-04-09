@@ -211,6 +211,8 @@
   "settingsVisClassRename": "Rename",
   "settingsVisClassSet": "Set",
 
+  "settingsToolsDefaultValues": "Default values for new tool items",
+
   "settingsConvert": "Convert Defaults",
 
   "convertTitle": "Convert",
@@ -522,6 +524,7 @@
   "scenePOILineShowAllLengths": "Show All Lengths",
   "scenePOILineShowArea": "Show Area",
   "scenePOILineClosed": "Close Polygon",
+  "scenePOICloseAndExit": "Close Polygon (this will exit measure mode)",
   "scenePOILineColour1": "Line Colour 1",
   "scenePOILineColour2": "Line Colour 2",
   "scenePOILineWidth": "Line Width",

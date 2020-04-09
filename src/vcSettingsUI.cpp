@@ -160,6 +160,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         ImGui::Unindent();
         change |= ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
         change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
+        change |= ImGui::RadioButton(udTempStr("%s", "Tools"), &pProgramState->activeSetting, vcSR_Tools);
         change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
         change |= ImGui::RadioButton(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")), &pProgramState->activeSetting, vcSR_Screenshot);
         change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
@@ -447,6 +448,26 @@ void vcSettingsUI_Show(vcState *pProgramState)
             if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowIntensity"), &pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f, "%.3f", 2))
               pProgramState->settings.postVisualization.contours.rainbowIntensity = udClamp(pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f);
           }
+        }
+
+        if (pProgramState->activeSetting == vcSR_Tools)
+        {
+          vcSettingsUI_ShowHeader(pProgramState, "Tools", vcSC_Tools);
+          ImGui::Text("%s", vcString::Get("settingsToolsDefaultValues"));
+          ImGui::SliderFloat(vcString::Get("scenePOILineWidth"), &pProgramState->settings.tools.line.width, pProgramState->settings.tools.line.minWidth, pProgramState->settings.tools.line.maxWidth, "%.2f", 3.f);
+           
+          const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationScreenLine"), vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
+          ImGui::Combo(vcString::Get("scenePOILineOrientation"), &pProgramState->settings.tools.line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions));
+         
+          const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
+          ImGui::Combo(vcString::Get("scenePOILineStyle"), &pProgramState->settings.tools.line.style, lineOptions, (int)udLengthOf(lineOptions));
+
+          ImGui::ColorEdit4(vcString::Get("scenePOILineColour1"), &pProgramState->settings.tools.line.colour[0], ImGuiColorEditFlags_None);
+          ImGui::ColorEdit4(vcString::Get("scenePOILabelColour"), &pProgramState->settings.tools.label.textColour[0], ImGuiColorEditFlags_None);
+          ImGui::ColorEdit4(vcString::Get("scenePOILabelBackgroundColour"), &pProgramState->settings.tools.label.backgroundColour[0], ImGuiColorEditFlags_None);
+
+          const char *labelSizeOptions[] = { "Small", "Medium", "Large" };
+          ImGui::Combo(vcString::Get("scenePOILabelSize"), &pProgramState->settings.tools.label.textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions));
         }
 
         if (pProgramState->activeSetting == vcSR_KeyBindings)
