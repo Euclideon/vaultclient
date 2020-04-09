@@ -748,18 +748,14 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
-    // Corners [nw, ne, sw, se]
-    udDouble3 localCorners[4];
-    udInt2 slippyCorners[4];
-
     int currentZoom = 21;
 
     // project camera position to base altitude
     udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
     cameraPositionInLongLat.z = 0.0;
     udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraPositionInLongLat);
-    udDouble3 cameraToZeroAltitude = localCamPos - cameraZeroAltitude;
-    double cameraDistanceToAltitudeZero = udMag3(cameraToZeroAltitude);
+    udDouble3 earthNormal = localCamPos - cameraZeroAltitude;
+    double cameraDistanceToAltitudeZero = udMag3(earthNormal);
 
     // TODO: Fix this
     // determine if camera is 'inside' the ground
@@ -770,9 +766,13 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     bool cameraInsideGround = false;//udDot3(cameraToZeroAltitude, surfaceNormal) < 0;
 
     // These values were trial and errored.
-    const double BaseViewDistance = 20000.0;
-    const double HeightViewDistanceScale = 40.0;
+    const double BaseViewDistance = 10000.0;
+    const double HeightViewDistanceScale = 35.0;
     double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraDistanceToAltitudeZero * HeightViewDistanceScale);
+
+    // Corners [nw, ne, sw, se]
+    udDouble3 localCorners[4];
+    udInt2 slippyCorners[4];
 
     // Cardinal Limits
     localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, 0);

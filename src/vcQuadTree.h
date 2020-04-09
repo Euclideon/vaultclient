@@ -6,6 +6,15 @@
 #include "udMath.h"
 #include "vcGIS.h"
 
+#define INVALID_NODE_INDEX 0xffffffff
+
+enum
+{
+  // Always descend a certain absolute depth to ensure the resulting geometry
+  // is somewhat the shape of the projection (e.g. ECEF).
+  vcQuadTree_MinimumDescendLayer = 2
+};
+
 struct vcTexture;
 
 struct vcNodeRenderInfo
@@ -19,9 +28,12 @@ struct vcNodeRenderInfo
     vcTLS_Loaded,
 
     vcTLS_Failed,
-  } volatile loadStatus;
+  };
+
+  udInterlockedInt32 loadStatus;
 
   bool tryLoad;
+  int loadRetryCount;
   float timeoutTime; // after a failed load, tiles have a time before they will request again
 
   // node owns this memory
@@ -30,16 +42,14 @@ struct vcNodeRenderInfo
     vcTexture *pTexture;
     int32_t width, height;
     void *pData;
-  } colourData, demData;
+  } data;
 
   struct
   {
     vcTexture *pTexture; // which texture to draw this node with for this frame. Note: may belong to an ancestor node.
     udFloat2 uvStart;
     udFloat2 uvEnd;
-  } colourDrawInfo, demDrawInfo;
-
-  vcTileLoadStatus demLoadStatus;
+  } drawInfo;
 };
 
 struct vcQuadTreeNode
@@ -56,7 +66,9 @@ struct vcQuadTreeNode
 
   bool visible;
   volatile bool touched;
-  bool rendered;
+
+  // if a node was rendered with missing information (only considers colour at the moment, includes any failed descendents)
+  bool completeRender;
 
   // cached
   udDouble3 tileCenter, tileExtents;
@@ -65,10 +77,19 @@ struct vcQuadTreeNode
                             //  3, 4, 5,
                             //  6, 7, 8]
 
-  udInt2 demMinMax;  // in DEM units. For calculating AABB of node
   udDouble3 worldNormal;
 
-  vcNodeRenderInfo renderInfo;
+  enum vcDemBoundsState
+  {
+    vcDemBoundsState_None,
+    vcDemBoundsState_Inherited, // passed from child or/parent
+    vcDemBoundsState_Absolute, // this node has downloaded its dem data
+  } demBoundsState;
+  udInt2 demMinMax;  // in DEM units. For calculating AABB of node
+
+  // node payloads
+  vcNodeRenderInfo colourInfo;
+  vcNodeRenderInfo demInfo;
 };
 
 struct vcQuadTreeMetaData
@@ -120,6 +141,8 @@ void vcQuadTree_Destroy(vcQuadTree *pQuadTree);
 void vcQuadTree_Reset(vcQuadTree *pQuadTree);
 
 void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo);
+void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPosition, const udDouble4x4 &viewProjectionMatrix);
+
 void vcQuadTree_Prune(vcQuadTree *pQuadTree);
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode);
@@ -141,12 +164,6 @@ inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQu
   }
 
   return true;
-}
-
-inline bool vcQuadTree_HasDemData(vcQuadTreeNode *pNode)
-{
-  // Note: Not good enough, 0,0 is a valid dem min/max
-  return pNode->demMinMax[0] != 0 || pNode->demMinMax[1] != 0;
 }
 
 void vcQuadTree_CalculateNodeAABB(vcQuadTreeNode *pNode);
