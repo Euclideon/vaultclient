@@ -276,12 +276,16 @@ epilogue:
 void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRenderer *pAtmosphereRenderer)
 {
   pAtmosphereRenderer->exposure = pProgramState->settings.presentation.skybox.exposure;
-  float hourAngleRaians = UD_2PIf * (pProgramState->settings.presentation.skybox.timeOfDay / 24.0f);
+
+  //At solar noon the hour angle is 0.000 degree, with the time before solar noon expressed as negative degrees, and the local time after solar noon expressed as positive degrees.
+  //For example, at 10:30 AM local apparent time the hour angle is -22.5° (15° per hour times 1.5 hours before noon).
+  float hourAngle = (pProgramState->settings.presentation.skybox.timeOfDay - 12.f) * 15;
+  float hourAngleRaians = UD_2PIf * hourAngle / 360.f;
   float latitudeRaians = 0;
   if (pProgramState->gis.isProjected)
   {
     udDouble3 cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.matrices.camera.axis.t.toVector3());
-    latitudeRaians = (float)cameraLatLong.x;
+    latitudeRaians = UD_2PIf * (float)cameraLatLong.x / 360.f;
   }
 
   double latitudeSin = udSin(latitudeRaians);
