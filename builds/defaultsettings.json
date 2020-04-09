@@ -53,6 +53,21 @@
     "minIntensity": 0,
     "maxIntensity": 65535
   },
+  "tools": {
+    "line": {
+      "minWidth": 0.01,
+      "maxWidth": 1000.0,
+      "width": 7.0,
+      "fenceMode": 0,
+      "style": 0,
+      "colour": [ 1.000000, 1.000000, 1.000000, 1.000000 ]
+    },
+    "label": {
+      "textColour": [ 1.000000, 1.000000, 1.000000, 1.000000 ],
+      "backgroundColour": [ 0, 0, 0, 0.5 ],
+      "textSize": 1
+    }
+  },
   "postVisualization": {
     "edgeOutlines": {
       "enabled": false,

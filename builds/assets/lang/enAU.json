@@ -205,6 +205,8 @@
   "settingsVisClassRename": "Rename",
   "settingsVisClassSet": "Set",
 
+  "settingsToolsDefaultValues": "Default values for new tool items" 
+
   "settingsConvert": "Convert Defaults",
 
   "convertTitle": "Convert",

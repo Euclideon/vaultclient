@@ -31,11 +31,142 @@ static const char *vcFRIMStrings[] =
 };
 UDCOMPILEASSERT(udLengthOf(vcFRIMStrings) == vcRRIM_Count, "New enum values");
 
+static uint32_t Vec4ToUINT(udFloat4 const & vec)
+{
+  uint32_t val = 0;
+
+  udFloat4 clamped = udClamp(vec, udFloat4::create(0.f, 0.f, 0.f, 0.f), udFloat4::create(1.f, 1.f, 1.f, 1.f));
+
+  val |= ((uint32_t)(clamped[0] * 255) << 16); // Blue
+  val |= ((uint32_t)(clamped[1] * 255) << 8); // Green
+  val |= ((uint32_t)(clamped[2] * 255) << 0); // Red
+  val |= ((uint32_t)(clamped[3] * 255) << 24); // Alpha
+
+  return val;
+}
+
+class vcPOIState_General;
+class vcPOIState_Append;
+
+class vcPOIState
+{
+public:
+  vcPOIState(vcPOI *pParent)
+  : m_pParent(pParent)
+  {};
+
+  virtual ~vcPOIState() {};
+
+  virtual vcPOIState *ChangeState(vcState * /*pProgramState*/) = 0;
+  virtual void AddToScene(vcState * /*pProgramState*/, vcRenderData * /*pRenderData*/) = 0;
+
+protected:
+  vcPOI *m_pParent;
+};
+
+class vcPOIState_General : public vcPOIState
+{
+public:
+  vcPOIState_General(vcPOI *pParent)
+    : vcPOIState(pParent)
+  {
+
+  }
+
+  ~vcPOIState_General()
+  {
+
+  }
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override
+  {
+    if (!m_pParent->IsVisible(pProgramState))
+      return;
+
+    if (m_pParent->m_selected)
+    {
+      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+      {
+        m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+      }
+    }
+
+    m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->AddAttachedModelsToScene(pProgramState, pRenderData);
+    m_pParent->DoFlythrough(pProgramState);
+  }
+
+  vcPOIState *ChangeState(vcState *pProgramState) override;
+};
+
+class vcPOIState_Append : public vcPOIState
+{
+public:
+  vcPOIState_Append(vcPOI *pParent)
+    : vcPOIState(pParent)
+  {
+
+  }
+
+  ~vcPOIState_Append()
+  {
+
+  }
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override
+  {
+    //Actually in append mode we always want it to be visible.
+    //if (!m_pParent->IsVisible(pProgramState))
+    //  return;
+
+    if (m_pParent->m_selected)
+    {
+      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+      {
+        vcRenderPolyInstance * pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+      }
+    }
+
+    m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData);
+  }
+
+  vcPOIState *ChangeState(vcState *pProgramState) override;
+};
+
+vcPOIState *vcPOIState_General::ChangeState(vcState *pProgramState)
+{
+  if (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea)
+    return new vcPOIState_Append(m_pParent);
+
+  return this;
+}
+
+vcPOIState *vcPOIState_Append::ChangeState(vcState *pProgramState)
+{
+  if (pProgramState->activeTool != vcActiveTool_MeasureLine && pProgramState->activeTool != vcActiveTool_MeasureArea)
+  {
+    if (m_pParent->m_pFence != nullptr)
+    {
+      vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints, m_pParent->m_line.closed);
+    }
+
+    m_pParent->ChangeProjection(pProgramState->gis.zone);
+    return new vcPOIState_General(m_pParent);
+  }
+
+  return this;
+}
+
 vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
+  , m_pState(new vcPOIState_General(this))
 {
-  m_nameColour = 0xFFFFFFFF;
-  m_backColour = 0x7F000000;
+  m_nameColour = Vec4ToUINT(pProgramState->settings.tools.label.textColour);
+  m_backColour = Vec4ToUINT(pProgramState->settings.tools.label.backgroundColour);
   m_namePt = vcLFS_Medium;
 
   m_showArea = false;
@@ -49,12 +180,12 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
 
   m_line.selectedPoint = -1; // Sentinel for no point selected
 
-  m_line.colourPrimary = 0xFFFFFFFF;
+  m_line.colourPrimary = Vec4ToUINT(pProgramState->settings.tools.line.colour);
   m_line.colourSecondary = 0xFFFFFFFF;
-  m_line.lineWidth = 1.0;
+  m_line.lineWidth = pProgramState->settings.tools.line.width;
   m_line.closed = (m_pNode->geomtype == vdkPGT_Polygon);
-  m_line.lineStyle = vcRRIM_Arrow;
-  m_line.fenceMode = vcRRVM_Fence;
+  m_line.lineStyle = (vcFenceRendererImageMode)pProgramState->settings.tools.line.style;
+  m_line.fenceMode = (vcFenceRendererVisualMode)pProgramState->settings.tools.line.style;
 
   m_pLabelText = nullptr;
   m_pFence = nullptr;
@@ -72,6 +203,11 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
   OnNodeUpdate(pProgramState);
 
   m_loadStatus = vcSLS_Loaded;
+}
+
+vcPOI::~vcPOI()
+{
+  delete m_pState;
 }
 
 void vcPOI::OnNodeUpdate(vcState *pProgramState)
@@ -752,6 +888,28 @@ bool vcPOI::IsSubitemSelected(uint64_t internalId)
   return (m_selected && (m_line.selectedPoint == ((int)internalId - 1) || m_line.selectedPoint == -1));
 }
 
+vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i)
+{
+  vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+
+  udDouble3 linearDistance = (pProgramState->camera.position - m_line.pPoints[i]);
+
+  pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
+  pInstance->worldMat = udDouble4x4::translation(m_line.pPoints[i]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
+  pInstance->pSceneItem = this;
+  pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
+  pInstance->sceneItemInternalId = (uint64_t)i + 1;
+  return pInstance;
+}
+
+void vcPOI::UpdateState(vcState *pProgramState)
+{
+  vcPOIState *pNewState = m_pState->ChangeState(pProgramState);
+  if (pNewState != m_pState)
+    delete m_pState;
+  m_pState = pNewState;
+}
+
 bool vcPOI::LoadAttachedModel(const char *pNewPath)
 {
   if (pNewPath == nullptr)
@@ -770,4 +928,120 @@ bool vcPOI::LoadAttachedModel(const char *pNewPath)
   }
 
   return false;
+}
+
+bool vcPOI::IsVisible(vcState *pProgramState)
+{
+  // if POI is invisible or if it exceeds maximum visible POI distance (unless selected)
+  bool visible = m_visible;
+  visible = visible && m_selected;
+  visible = visible && (udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) < pProgramState->settings.presentation.POIFadeDistance);
+  return visible;
+}
+
+void vcPOI::AddFenceToScene(vcRenderData *pRenderData)
+{
+  if (m_pFence != nullptr)
+    pRenderData->fences.PushBack(m_pFence);
+}
+
+void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
+{
+  if (m_pLabelInfo != nullptr)
+  {
+    if ((m_showLength && m_line.numPoints > 1) || (m_showArea && m_line.numPoints > 2))
+      m_pLabelInfo->pText = m_pLabelText;
+    else
+      m_pLabelInfo->pText = m_pNode->pName;
+
+    pRenderData->labels.PushBack(m_pLabelInfo);
+
+    if (m_showAllLengths && m_line.numPoints > 1)
+    {
+      for (size_t i = 0; i < m_lengthLabels.length; ++i)
+      {
+        if (m_line.closed || i > 0)
+          pRenderData->labels.PushBack(m_lengthLabels.GetElement(i));
+      }
+    }
+  }
+}
+
+void vcPOI::AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRenderData)
+{
+  if (m_attachment.pModel != nullptr)
+  {
+    double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
+    udDouble3 startYPR = m_attachment.eulerAngles;
+    udDouble3 startPosDiff = pProgramState->camera.position - m_attachment.currentPos;
+
+    udDouble3 updatedPosition = {};
+
+    if (remainingMovementThisFrame > 0)
+    {
+      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_attachment.segmentIndex, &m_attachment.segmentProgress))
+      {
+        if (m_line.numPoints > 1)
+          m_attachment.eulerAngles = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
+
+        m_attachment.currentPos = m_line.pPoints[0];
+      }
+      else
+      {
+        udDouble3 targetEuler = udDirectionToYPR(updatedPosition - m_attachment.currentPos);
+
+        m_attachment.eulerAngles = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
+        m_attachment.currentPos = updatedPosition;
+      }
+    }
+
+    udDouble4x4 attachmentMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
+
+    // Render the attachment
+    vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
+    pModel->pModel = m_attachment.pModel;
+    pModel->pSceneItem = this;
+    pModel->worldMat = attachmentMat;
+    pModel->cullFace = m_attachment.cullMode;
+
+    // Update the camera if the camera is coming along
+    if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
+    {
+      udOrientedPoint<double> rotRay = udOrientedPoint<double>::create(startPosDiff, vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch));
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
+      pProgramState->camera.position = m_attachment.currentPos + rotRay.position;
+      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, rotRay.orientation);
+    }
+  }
+}
+
+void vcPOI::DoFlythrough(vcState *pProgramState)
+{
+  if (pProgramState->cameraInput.pAttachedToSceneItem == this && !m_cameraFollowingAttachment)
+  {
+    if (m_line.numPoints <= 1)
+    {
+      pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+    }
+    else
+    {
+      double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
+      udDoubleQuat startQuat = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
+
+      udDouble3 updatedPosition = {};
+
+      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
+      {
+        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udDoubleQuat::create(udNormalize(m_line.pPoints[1] - m_line.pPoints[0]), 0.0));
+        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+      }
+      else
+      {
+        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udSlerp(startQuat, udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2));
+      }
+
+      pProgramState->camera.position = updatedPosition;
+    }
+  }
 }

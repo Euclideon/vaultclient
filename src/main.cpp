@@ -1055,10 +1055,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           char bufferB[128];
           vcHotkey::GetKeyName(vcB_Cancel, bufferB);
           ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
-
-          ImGui::Separator();
-
-          pSceneItem->HandleToolUI(pProgramState);
         }
         else
         {

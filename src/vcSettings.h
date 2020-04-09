@@ -60,6 +60,7 @@ enum vcSettingsUIRegions
   vcSR_Inputs,
   vcSR_Maps,
   vcSR_Visualisations,
+  vcSR_Tools,
   vcSR_KeyBindings,
   vcSR_ConvertDefaults,
   vcSR_Screenshot,
@@ -77,6 +78,7 @@ enum vcSettingCategory
   vcSC_InputControls,
   vcSC_MapsElevation,
   vcSC_Visualization,
+  vcSC_Tools,
   vcSC_Convert,
   vcSC_Languages,
   vcSC_Bindings,
@@ -129,6 +131,26 @@ struct vcVisualizationSettings
   bool customClassificationToggles[256];
   uint32_t customClassificationColors[256];
   const char *customClassificationColorLabels[256];
+};
+
+struct vcToolSettings
+{
+  struct
+  {
+    float minWidth;
+    float maxWidth;
+    float width;
+    int fenceMode;
+    int style;
+    udFloat4 colour;
+  } line;
+
+  struct
+  {
+    udFloat4 textColour;
+    udFloat4 backgroundColour;
+    int textSize;
+  } label;
 };
 
 struct vcSettings
@@ -215,6 +237,7 @@ struct vcSettings
   } loginInfo;
 
   vcVisualizationSettings visualization;
+  vcToolSettings tools;  
 
   struct
   {

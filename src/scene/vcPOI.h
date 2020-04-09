@@ -11,6 +11,8 @@
 #include "vcLineRenderer.h"
 #include "gl/vcGLState.h"
 
+class  vcPOIState;
+struct vcRenderPolyInstance;
 struct udWorkerPool;
 struct vdkPointCloud;
 struct vcTexture;
@@ -34,6 +36,9 @@ struct vcLineInfo
 
 class vcPOI : public vcSceneItem
 {
+  friend class vcPOIState;
+  friend class vcPOIState_General;
+  friend class vcPOIState_Append;
 private:
   vcLineInfo m_line; // TODO: 1452
   uint32_t m_nameColour;
@@ -82,11 +87,13 @@ private:
     double segmentProgress;
   } m_flyThrough;
 
+  vcPOIState *m_pState;
+
   void HandleBasicUI(vcState *pProgramState, size_t itemID);
 
 public:
   vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
-  ~vcPOI() {};
+  ~vcPOI();
 
   void OnNodeUpdate(vcState *pProgramState);
 
@@ -112,6 +119,13 @@ public:
   bool IsSubitemSelected(uint64_t internalId);
 
 private:
+  void UpdateState(vcState *pProgramState);
+  vcRenderPolyInstance *AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i);
+  bool IsVisible(vcState *pProgramState);
+  void AddFenceToScene(vcRenderData *pRenderData);
+  void AddLabelsToScene(vcRenderData *pRenderData);
+  void AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRenderData);
+  void DoFlythrough(vcState *pProgramState);
   bool LoadAttachedModel(const char *pNewPath);
   bool GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress);
 };

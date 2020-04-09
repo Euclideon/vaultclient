@@ -297,6 +297,29 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->postVisualization.contours.rainbowIntensity = data.Get("postVisualization.contours.rainbowIntensity").AsFloat(0.f);
   }
 
+  if (group == vcSC_Tools || group == vcSC_All)
+  {
+    const float defaultLineColour[4] = {0.5f, 0.5f, 0.5f, 0.5f};
+    const float defaultTextColour[4] = {0.5f, 0.5f, 0.5f, 0.5f};
+    const float defaultBackgroundColour[4] = {0.5f, 0.5f, 0.5f, 0.5f};
+
+    //Lines
+    pSettings->tools.line.minWidth = data.Get("tools.line.minWidth").AsFloat(0.1f);
+    pSettings->tools.line.maxWidth = data.Get("tools.line.maxWidth").AsFloat(1000.f);
+    pSettings->tools.line.width = data.Get("tools.line.width").AsFloat(7.f);
+    pSettings->tools.line.fenceMode = data.Get("tools.line.fenceMode").AsInt(1);
+    pSettings->tools.line.style = data.Get("tools.line.style").AsInt(1);
+    for (int i = 0; i < 4; i++)
+      pSettings->tools.line.colour[i] = data.Get("tools.line.colour[%d]", i).AsFloat(defaultLineColour[i]);
+
+    //Labels
+    for (int i = 0; i < 4; i++)
+      pSettings->tools.label.textColour[i] = data.Get("tools.label.textColour[%d]", i).AsFloat(defaultTextColour[i]);
+    for (int i = 0; i < 4; i++)
+      pSettings->tools.label.backgroundColour[i] = data.Get("tools.label.backgroundColour[%d]", i).AsFloat(defaultBackgroundColour[i]);
+    pSettings->tools.label.textSize = data.Get("tools.label.textSize").AsInt(1);
+  }
+
   if (group == vcSC_Convert || group == vcSC_All)
   {
     udStrcpy(pSettings->convertdefaults.tempDirectory, data.Get("convert.tempDirectory").AsString(""));
@@ -598,6 +621,19 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("postVisualization.contours.bandHeight = %f", pSettings->postVisualization.contours.bandHeight);
   data.Set("postVisualization.contours.rainbowRepeat = %f", pSettings->postVisualization.contours.rainbowRepeat);
   data.Set("postVisualization.contours.rainbowIntensity = %f", pSettings->postVisualization.contours.rainbowIntensity);
+
+  //Tool Settings
+  data.Set("tools.line.width = %f", pSettings->tools.line.width);
+  data.Set("tools.line.fenceMode = %i", pSettings->tools.line.fenceMode);
+  data.Set("tools.line.style = %i", pSettings->tools.line.style);
+  for (int i = 0; i < 4; i++)
+    data.Set("tools.line.colour[] = %f", pSettings->tools.line.colour[i]);
+
+  for (int i = 0; i < 4; i++)
+    data.Set("tools.label.textColour[] = %f", pSettings->tools.label.textColour[i]);
+  for (int i = 0; i < 4; i++)
+    data.Set("tools.label.backgroundColour[] = %f", pSettings->tools.label.backgroundColour[i]);
+  data.Set("tools.label.textSize = %i", pSettings->tools.label.textSize);
 
   // Convert Settings
   tempNode.SetString(pSettings->convertdefaults.tempDirectory);
