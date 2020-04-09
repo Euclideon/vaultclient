@@ -19,7 +19,9 @@ struct vcNodeRenderInfo
     vcTLS_Loaded,
 
     vcTLS_Failed,
-  } volatile loadStatus;
+  };
+
+  udInterlockedInt32 loadStatus;
 
   bool tryLoad;
   float timeoutTime; // after a failed load, tiles have a time before they will request again
@@ -30,16 +32,14 @@ struct vcNodeRenderInfo
     vcTexture *pTexture;
     int32_t width, height;
     void *pData;
-  } colourData, demData;
+  } data;
 
   struct
   {
     vcTexture *pTexture; // which texture to draw this node with for this frame. Note: may belong to an ancestor node.
     udFloat2 uvStart;
     udFloat2 uvEnd;
-  } colourDrawInfo, demDrawInfo;
-
-  vcTileLoadStatus demLoadStatus;
+  } drawInfo;
 };
 
 struct vcQuadTreeNode
@@ -68,7 +68,8 @@ struct vcQuadTreeNode
   udInt2 demMinMax;  // in DEM units. For calculating AABB of node
   udDouble3 worldNormal;
 
-  vcNodeRenderInfo renderInfo;
+  vcNodeRenderInfo colourInfo;
+  vcNodeRenderInfo demInfo;
 };
 
 struct vcQuadTreeMetaData

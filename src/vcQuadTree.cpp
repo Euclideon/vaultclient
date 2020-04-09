@@ -113,11 +113,11 @@ double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point
 
 void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
 {
-  vcTexture_Destroy(&pNode->renderInfo.colourData.pTexture);
-  udFree(pNode->renderInfo.colourData.pData);
+  vcTexture_Destroy(&pNode->colourInfo.data.pTexture);
+  udFree(pNode->colourInfo.data.pData);
 
-  vcTexture_Destroy(&pNode->renderInfo.demData.pTexture);
-  udFree(pNode->renderInfo.demData.pData);
+  vcTexture_Destroy(&pNode->demInfo.data.pTexture);
+  udFree(pNode->demInfo.data.pData);
 
   memset(pNode, 0, sizeof(vcQuadTreeNode));
 }
@@ -165,8 +165,8 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
   pNode->slippyPosition = childSlippy;
   pNode->demMinMax = parentDemMinMax;
 
-  pNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_None;
-  pNode->renderInfo.demLoadStatus = vcNodeRenderInfo::vcTLS_None;
+  pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
+  pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
 
   vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
 }
@@ -503,7 +503,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
     vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[blockIndex + c];
-    if (pChildNode->touched || pChildNode->renderInfo.loadStatus == vcNodeRenderInfo::vcTLS_Downloading || pChildNode->renderInfo.demLoadStatus == vcNodeRenderInfo::vcTLS_Downloading)
+    if (pChildNode->touched || pChildNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading || pChildNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       return false;
   }
 
@@ -513,7 +513,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
     vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[blockIndex + c];
 
     // case #1: its a leaf node that could be being used for rendering by an ancestor
-    if (pNode->renderInfo.colourData.pTexture || pNode->renderInfo.demData.pTexture)
+    if (pNode->colourInfo.data.pTexture || pNode->demInfo.data.pTexture)
     {
       uint32_t parentIndex = pNode->parentIndex;
       while (parentIndex != INVALID_NODE_INDEX)
@@ -522,12 +522,12 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
         if (pParentNode->touched)
         {
           // We have an ancestor that has no texture, so it will need this node
-          if (pParentNode->renderInfo.colourData.pTexture == nullptr || pParentNode->renderInfo.demData.pTexture == nullptr)
+          if (pParentNode->colourInfo.data.pTexture == nullptr || pParentNode->demInfo.data.pTexture == nullptr)
             return false;
 
           break;
         }
-        else if (pParentNode->renderInfo.colourData.pTexture != nullptr && pParentNode->renderInfo.demData.pTexture != nullptr)
+        else if (pParentNode->colourInfo.data.pTexture != nullptr && pParentNode->demInfo.data.pTexture != nullptr)
         {
           // 'better' (closer to the root) 'non-touched' ancestor will be used instead of this one, throw out
           return true;

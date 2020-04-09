@@ -311,6 +311,7 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   }
   else
   {
+    // Assume ECEF
     udGeoZone destZone = {};
     udGeoZone_SetFromSRID(&destZone, 4978);
     earthCenter = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->gis.zone, destZone);
