@@ -311,15 +311,15 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       // process colour and/or dem request
       if (pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue))
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-        udSprintf(serverURL, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(serverURL, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
         UD_ERROR_CHECK(vcTileRenderer_HandleTileDownload(&pBestNode->colourInfo, serverURL, localURL));
       }
 
       if (pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue))
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-        udSprintf(serverURL, pDemTileServerAddress, pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y);
+        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         UD_ERROR_CHECK(vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL));
       }
 
