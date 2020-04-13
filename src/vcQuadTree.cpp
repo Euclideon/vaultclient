@@ -18,8 +18,7 @@ static int vcQuadTree_FrustumTest(const udDouble4 frustumPlanes[6], const udDoub
   {
     double distToCenter = udDot4(udDouble4::create(boundCenter, 1.0), frustumPlanes[i]);
     //optimized for case where boxExtents are all same: udFloat radiusBoxAtPlane = udDot3(boxExtents, udAbs(udVec3(curPlane)));
-    double adjacentEdgeLenth = udDot3(boundExtents, udAbs(frustumPlanes[i].toVector3()));
-    double radiusBoxAtPlane = udSqrt(udMag3(boundExtents) - adjacentEdgeLenth * adjacentEdgeLenth);
+    double radiusBoxAtPlane = udDot3(boundExtents, udAbs(frustumPlanes[i].toVector3()));
     if (distToCenter < -radiusBoxAtPlane)
       return -1; // Box is entirely behind at least one plane
     else if (distToCenter <= radiusBoxAtPlane) // If spanned (not entirely infront)
