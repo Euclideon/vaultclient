@@ -276,20 +276,24 @@ epilogue:
 void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRenderer *pAtmosphereRenderer)
 {
   pAtmosphereRenderer->exposure = pProgramState->settings.presentation.skybox.exposure;
-  float hourAngleRaians = UD_2PIf * (pProgramState->settings.presentation.skybox.timeOfDay / 24.0f);
-  float latitudeRaians = 0;
+
+  //At solar noon the hour angle is 0.000 degree, with the time before solar noon expressed as negative degrees, and the local time after solar noon expressed as positive degrees.
+  //For example, at 10:30 AM local apparent time the hour angle is -22.5° (15° per hour times 1.5 hours before noon).
+  float hourAngle = (pProgramState->settings.presentation.skybox.timeOfDay - 12.f) * 15;
+  float hourAngleRadians = UD_2PIf * hourAngle / 360.f;
+  float latitudeRadians = 0;
   if (pProgramState->gis.isProjected)
   {
     udDouble3 cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.matrices.camera.axis.t.toVector3());
-    latitudeRaians = (float)cameraLatLong.x;
+    latitudeRadians = UD_2PIf * (float)cameraLatLong.x / 360.f;
   }
 
-  double latitudeSin = udSin(latitudeRaians);
-  double latitudeCos = udCos(latitudeRaians);
-  pAtmosphereRenderer->sun_zenith_angle_cos = latitudeSin * pAtmosphereRenderer->sun_diclination_angle_sin + latitudeCos * pAtmosphereRenderer->sun_diclination_angle_cos * udCos(hourAngleRaians);
+  double latitudeSin = udSin(latitudeRadians);
+  double latitudeCos = udCos(latitudeRadians);
+  pAtmosphereRenderer->sun_zenith_angle_cos = latitudeSin * pAtmosphereRenderer->sun_diclination_angle_sin + latitudeCos * pAtmosphereRenderer->sun_diclination_angle_cos * udCos(hourAngleRadians);
   pAtmosphereRenderer->sun_zenith_angle_sin = sqrt(1 - pAtmosphereRenderer->sun_zenith_angle_cos * pAtmosphereRenderer->sun_zenith_angle_cos);
 
-  pAtmosphereRenderer->sun_azimuth_angle_sin = -udSin(hourAngleRaians) * pAtmosphereRenderer->sun_diclination_angle_cos / pAtmosphereRenderer->sun_zenith_angle_sin;
+  pAtmosphereRenderer->sun_azimuth_angle_sin = -udSin(hourAngleRadians) * pAtmosphereRenderer->sun_diclination_angle_cos / pAtmosphereRenderer->sun_zenith_angle_sin;
   pAtmosphereRenderer->sun_azimuth_angle_cos = (pAtmosphereRenderer->sun_diclination_angle_sin - pAtmosphereRenderer->sun_zenith_angle_cos * latitudeSin) / (pAtmosphereRenderer->sun_zenith_angle_sin * latitudeCos);
 }
 
