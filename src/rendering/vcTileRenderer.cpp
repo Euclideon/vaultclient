@@ -199,7 +199,7 @@ udResult vcTileRenderer_HandleTileDownload(vcNodeRenderInfo *pRenderNodeInfo, co
   int channelCount = 0;
   uint8_t *pData = nullptr;
 
-  // do we have the file 
+  // check for file in local cache
   const char *pTileURL = pLocalURL;
   if (!vcTileRenderer_CacheHasData(pTileURL))
   {
@@ -309,14 +309,14 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       char serverURL[vcMaxPathLength] = {};
 
       // process colour and/or dem request
-      if (pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_InQueue, vcNodeRenderInfo::vcTLS_Downloading))
+      if (pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue))
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
         udSprintf(serverURL, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
         UD_ERROR_CHECK(vcTileRenderer_HandleTileDownload(&pBestNode->colourInfo, serverURL, localURL));
       }
 
-      if (pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_InQueue, vcNodeRenderInfo::vcTLS_Downloading))
+      if (pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue))
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
         udSprintf(serverURL, pDemTileServerAddress, pNode->slippyPosition.z, pNode->slippyPosition.x, pNode->slippyPosition.y);
@@ -611,7 +611,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   pTileRenderer->cache.pSemaphore = udCreateSemaphore();
   pTileRenderer->cache.pMutex = udCreateMutex();
   pTileRenderer->cache.keepLoading = true;
-  pTileRenderer->cache.tileLoadList.Init(128);
+  pTileRenderer->cache.tileLoadList.Init(256);
   //pTileRenderer->cache.tileTimeoutList.Init(128);
 
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
@@ -719,17 +719,20 @@ void vcTileRenderer_RecursiveUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNod
 void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
-  if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_None, vcNodeRenderInfo::vcTLS_InQueue))
+  if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_InQueue, vcNodeRenderInfo::vcTLS_None))
   {
     pNode->demInfo.data.pData = nullptr;
     pNode->demInfo.data.pTexture = nullptr;
 
-    pTileCache->tileLoadList.PushBack(pNode);
-    udIncrementSemaphore(pTileCache->pSemaphore);
+    if (pNode->colourInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_InQueue)
+    {
+      pTileCache->tileLoadList.PushBack(pNode);
+      udIncrementSemaphore(pTileCache->pSemaphore);
+    }
   }
 
   pNode->demInfo.tryLoad = true;
-  if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloaded, vcNodeRenderInfo::vcTLS_Loaded))
+  if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Loaded, vcNodeRenderInfo::vcTLS_Downloaded))
   {
     pNode->demInfo.tryLoad = false;
 
@@ -768,18 +771,21 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
-  if (pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_None, vcNodeRenderInfo::vcTLS_InQueue))
+  if (pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_InQueue, vcNodeRenderInfo::vcTLS_None))
   {
     pNode->colourInfo.data.pData = nullptr;
     pNode->colourInfo.data.pTexture = nullptr;
     pNode->colourInfo.timeoutTime = pTileRenderer->totalTime;
 
-    pTileCache->tileLoadList.PushBack(pNode);
-    udIncrementSemaphore(pTileCache->pSemaphore);
+    if (pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_InQueue)
+    {
+      pTileCache->tileLoadList.PushBack(pNode);
+      udIncrementSemaphore(pTileCache->pSemaphore);
+    }
   }
 
   pNode->colourInfo.tryLoad = true;
-  if (pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloaded, vcNodeRenderInfo::vcTLS_Loaded))
+  if (pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Loaded, vcNodeRenderInfo::vcTLS_Downloaded))
   {
     pNode->colourInfo.tryLoad = false;
 
@@ -845,8 +851,8 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
       // TODO: Bug causing this data to be allocated, free just in case
       if (pTileRenderer->cache.tileLoadList[i]->colourInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_None)
       {
-        printf("YIKES\n");
-        __debugbreak();
+        //printf("YIKES\n");
+       // __debugbreak();
       //  udFree(pTileRenderer->cache.tileLoadList[i]->colourInfo.data.pData);
       //  vcTexture_Destroy(&pTileRenderer->cache.tileLoadList[i]->colourInfo.data.pTexture);
       }
@@ -854,8 +860,8 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
       //// TODO: Bug causing this data to rarely leak, free just in case
       if (pTileRenderer->cache.tileLoadList[i]->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_None)
       {
-        printf("YIKES2\n");
-        __debugbreak();
+       // printf("YIKES2\n");
+       // __debugbreak();
       //  udFree(pTileRenderer->cache.tileLoadList[i]->demInfo.data.pData);
       //  vcTexture_Destroy(&pTileRenderer->cache.tileLoadList[i]->demInfo.data.pTexture);
       }
