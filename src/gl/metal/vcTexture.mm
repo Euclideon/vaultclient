@@ -69,16 +69,6 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     storageMode = MTLStorageModePrivate;
     pixelSize = 4;
     break;
-  case vcTextureFormat_D24S8:
-    usage = MTLTextureUsageShaderRead;
-    storageMode = MTLStorageModePrivate;
-    pixelSize = 4;
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    pixelFormat = MTLPixelFormatDepth32Float;
-#elif UDPLATFORM_OSX
-    pixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-#endif
-    break;
 
   case vcTextureFormat_Unknown: // fall through
   case vcTextureFormat_Count:
@@ -344,10 +334,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
     else if (pTexture->blitBuffer.length < pixelBytes * pTexture->width * pTexture->height)
       pTexture->blitBuffer = [g_device newBufferWithLength:pixelBytes * pTexture->width * pTexture->height options:MTLResourceStorageModeShared];
 
-    if (pTexture->format == vcTextureFormat_D24S8)
-      [g_blitEncoder copyFromTexture:pTexture->texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:pTexture->blitBuffer destinationOffset:0 destinationBytesPerRow:pixelBytes * pTexture->width destinationBytesPerImage:pixelBytes * pTexture->width * pTexture->height options:MTLBlitOptionDepthFromDepthStencil];
-    else
-      [g_blitEncoder copyFromTexture:pTexture->texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:pTexture->blitBuffer destinationOffset:0 destinationBytesPerRow:pixelBytes * pTexture->width destinationBytesPerImage:pixelBytes * pTexture->width * pTexture->height];
+    [g_blitEncoder copyFromTexture:pTexture->texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(pTexture->width, pTexture->height, 1) toBuffer:pTexture->blitBuffer destinationOffset:0 destinationBytesPerRow:pixelBytes * pTexture->width destinationBytesPerImage:pixelBytes * pTexture->width * pTexture->height];
 
     vcGLState_FlushBlit();
   }

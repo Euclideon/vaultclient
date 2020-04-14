@@ -35,13 +35,6 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
       pass.depthAttachment.loadAction = MTLLoadActionClear;
       pass.depthAttachment.storeAction = MTLStoreActionStore;
       pass.depthAttachment.clearDepth = 1.0;
-      if (pFramebuffer->pDepth->format == vcTextureFormat_D24S8)
-      {
-        pass.stencilAttachment.texture = pFramebuffer->pDepth->texture;
-        pass.stencilAttachment.loadAction = MTLLoadActionClear;
-        pass.stencilAttachment.storeAction = MTLStoreActionStore;
-        pass.stencilAttachment.clearStencil = 0;
-      }
     }
 
     pFramebuffer->pRenderPass = pass;

@@ -125,7 +125,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   vcTexture *defaultTexture, *defaultDepth;
   vcTexture_Create(&defaultTexture, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget);
-  vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget);
+  vcTexture_Create(&defaultDepth, sdlview.frame.size.width, sdlview.frame.size.height, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget);
   
   vcFramebuffer_Create(&g_pDefaultFramebuffer, defaultTexture, defaultDepth);
   vcFramebuffer_Bind(g_pDefaultFramebuffer);
@@ -369,8 +369,6 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 
       g_pDefaultFramebuffer->pDepth = pIntermediate;
       g_pDefaultFramebuffer->pRenderPass.depthAttachment.texture = pIntermediate->texture;
-      if (pIntermediate->format == vcTextureFormat_D24S8)
-        g_pDefaultFramebuffer->pRenderPass.stencilAttachment.texture = g_pDefaultFramebuffer->pRenderPass.depthAttachment.texture;
     }
   }
 

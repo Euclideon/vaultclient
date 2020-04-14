@@ -279,7 +279,7 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   pRenderContext->viewShedRenderingContext.pDepthBuffer = udAllocType(float, ViewShedMapRes.x * ViewShedMapRes.y, udAF_Zero);
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pUDDepthTexture, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_Dynamic));
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDepthTex, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDepthTex, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->viewShedRenderingContext.pDummyColour, ViewShedMapRes.x, ViewShedMapRes.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->viewShedRenderingContext.pFramebuffer, pRenderContext->viewShedRenderingContext.pDummyColour, pRenderContext->viewShedRenderingContext.pDepthTex), udR_InternalError);
 
@@ -555,7 +555,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_RenderTarget));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFramebuffer[i], pRenderContext->pTexture[i], pRenderContext->pDepthTexture[i]), udR_InternalError);
   }
 
@@ -571,7 +571,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   }
 
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget));
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D24S8, vcTFM_Nearest, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth), udR_InternalError);
 
   if (pProgramState->pVDKContext)
@@ -596,14 +596,8 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
   UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes, pRenderContext->pFramebuffer[readBufferIndex]), udR_InternalError); // begin copy for next frame read
 
-  // 24 bit unsigned int -> float
-#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
-  pRenderContext->previousFrameDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
-  //uint8_t stencil = depthBytes[0];
-#else
-  pRenderContext->previousFrameDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
-  //uint8_t stencil = depthBytes[3];
-#endif
+  UDCOMPILEASSERT(udLengthOf(depthBytes) == sizeof(pRenderContext->previousFrameDepth), "Depth type mismatch!");
+  memcpy(&pRenderContext->previousFrameDepth, depthBytes, sizeof(depthBytes));
 
   // fbo state may not be valid (e.g. first read back will be '0')
   if (pRenderContext->previousFrameDepth == 0.0f)
@@ -1710,14 +1704,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
-    // 24 bit unsigned int -> float
-#if GRAPHICS_API_OPENGL || GRAPHICS_API_METAL
-    pickDepth = uint32_t((depthBytes[3] << 16) | (depthBytes[2] << 8) | (depthBytes[1] << 0)) / ((1 << 24) - 1.0f);
-    //uint8_t stencil = depthBytes[0];
-#else
-    pickDepth = uint32_t((depthBytes[2] << 16) | (depthBytes[1] << 8) | (depthBytes[0] << 0)) / ((1 << 24) - 1.0f);
-    //uint8_t stencil = depthBytes[3];
-#endif
+    UDCOMPILEASSERT(udLengthOf(depthBytes) == sizeof(pickDepth), "Depth type mismatch!");
+    memcpy(&pickDepth, depthBytes, sizeof(depthBytes));
 
     // note `-1`, and BGRA format
     int pickedPolygonId = (int)((colourBytes[1] << 0) | (colourBytes[0] << 8)) - 1;

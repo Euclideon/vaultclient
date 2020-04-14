@@ -39,13 +39,6 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, bool isRender
     textureFormat = DXGI_FORMAT_R16_SNORM;
     pixelSize = 2;
     break;
-  case vcTextureFormat_D24S8:
-    if (isRenderTarget)
-      textureFormat = DXGI_FORMAT_R24G8_TYPELESS;
-    else
-      textureFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    pixelSize = 4;
-    break;
   case vcTextureFormat_D32F:
     if (isRenderTarget)
       textureFormat = DXGI_FORMAT_R32_TYPELESS;
@@ -97,7 +90,7 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
 
   if (isRenderTarget)
   {
-    if (format == vcTextureFormat_D32F || format == vcTextureFormat_D24S8)
+    if (format == vcTextureFormat_D32F)
       bindFlags |= D3D11_BIND_DEPTH_STENCIL;
     else
       bindFlags |= D3D11_BIND_RENDER_TARGET;
@@ -205,10 +198,8 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
     srvDesc.Format = texFormat;
     if (isRenderTarget)
     {
-      if (format == vcTextureFormat_D24S8)
-        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-      else if (format == vcTextureFormat_D32F)
-        srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+      if (format == vcTextureFormat_D32F)
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
     }
 
     switch (type)
@@ -433,7 +424,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   }
 
   // Begin asynchronous copy
-  if (pTexture->format == vcTextureFormat_D24S8 || pTexture->format == vcTextureFormat_D32F)
+  if (pTexture->format == vcTextureFormat_D32F)
   {
     // If you use CopySubresourceRegion with a depth-stencil buffer or a multisampled resource, you must copy the whole subresource
     // TODO: What about D32F format? (its not a depth-stencil)
