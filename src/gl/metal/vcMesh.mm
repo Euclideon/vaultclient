@@ -277,7 +277,7 @@ bool vcMesh_Render(struct vcMesh *pMesh, uint32_t elementCount /* = 0*/, uint32_
           [g_pCurrFramebuffer->encoder setFragmentBytes:g_pCurrShader->bufferObjects[i].buffers[1].pCB length:g_pCurrShader->bufferObjects[i].expectedSize atIndex:g_pCurrShader->bufferObjects[i].buffers[1].index];
       }
 
-      [g_pCurrFramebuffer->encoder setVertexBuffer:pMesh->vBuffer offset:startElement * pMesh->vertexBytes atIndex:0];
+      [g_pCurrFramebuffer->encoder setVertexBuffer:pMesh->vBuffer offset:startElement * pMesh->vertexBytes atIndex:30];
       [g_pCurrFramebuffer->encoder drawPrimitives:primitiveType vertexStart:startElement * pMesh->vertexBytes vertexCount:elementCount];
     }
   }
