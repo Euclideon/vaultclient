@@ -18,15 +18,8 @@ void vcShader_CreatePipeline(vcShader *pShader, int pipelineIndex, id<MTLFunctio
     pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     if (useDepth)
     {
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
       pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-      pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-#elif UDPLATFORM_OSX
-      pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-      pDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-#else
-# error "Unknown platform!"
-#endif
+      pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
     }
     else
     {

@@ -338,6 +338,9 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
 
     vcGLState_FlushBlit();
   }
+
+  if ((pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
+    return vcTexture_EndReadPixels(pTexture, x, y, width, height, pPixels);
   
   return result == udR_Success;
 }
@@ -352,18 +355,23 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
 
   udResult result = udR_Success;
   int pixelBytes = 0;
+  uint32_t *pPixelData = nullptr;
   vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes);
 
-  uint32_t *pSource = (uint32_t*)[pTexture->blitBuffer contents];
-  pSource += ((y * pTexture->width) + x);
-  
-  uint32_t rowBytes = pixelBytes * width;
-  
-  for (uint32_t i = 0; i < height; ++i)
+  if (x == 0 && y == 0 && width == (uint32_t)pTexture->width && height == (uint32_t)pTexture->height)
   {
-    for (uint32_t j = 0; j < width; ++j)
-      *((uint32_t*)pPixels + (i * rowBytes)) = *(pSource + (i * pTexture->width) + j);
+    pPixelData = (uint32_t*)[pTexture->blitBuffer contents];
+    memcpy((uint8_t*)pPixels, pPixelData, height * width * pixelBytes);
   }
-  
+  else
+  {
+    pPixelData = ((uint32_t*)[pTexture->blitBuffer contents]) + (x + y * pTexture->width);
+    for (int i = 0; i < (int)height; ++i)
+    {
+      memcpy((uint8_t*)pPixels + (i * pTexture->width * pixelBytes), pPixelData, width * pixelBytes);
+      pPixelData += pTexture->width;
+    }
+  }
+
   return result == udR_Success;
 }
