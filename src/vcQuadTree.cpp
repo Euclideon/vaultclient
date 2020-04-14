@@ -2,8 +2,6 @@
 #include "vcGIS.h"
 #include "gl/vcTexture.h"
 
-#define INVALID_NODE_INDEX 0xffffffff
-
 enum
 {
   NodeChildCount = 4,
@@ -79,7 +77,7 @@ uint32_t vcQuadTree_FindFreeChildBlock(vcQuadTree *pQuadTree)
   return pQuadTree->nodes.used - NodeChildCount;
 }
 
-double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point)
+double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point, const udDouble3 &dem)
 {
   static const udInt2 edgePairs[] =
   {
@@ -94,14 +92,13 @@ double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point
   // test each edge to find minimum distance to quadrant shape (3d)
   for (int e = 0; e < 4; ++e)
   {
-    udDouble3 p1 = edges[edgePairs[e].x];
-    udDouble3 p2 = edges[edgePairs[e].y];
+    udDouble3 p1 = edges[edgePairs[e].x] + dem;
+    udDouble3 p2 = edges[edgePairs[e].y] + dem;
   
     udDouble3 edge = p2 - p1;
     double r = udDot3(edge, (point - p1)) / udMagSq3(edge);
   
-    // TODO: tile heights (DEM)
-    udDouble3 closestPointOnEdge = p1 + udClamp(r, 0.0, 1.0) * edge;
+    udDouble3 closestPointOnEdge = (p1 + udClamp(r, 0.0, 1.0) * edge);
   
     double distToEdge = udMag3(closestPointOnEdge - point);
     closestEdgeDistance = (e == 0) ? distToEdge : udMin(closestEdgeDistance, distToEdge);
@@ -178,7 +175,7 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
 inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
 {
   // trial and error'd this heuristic
-  const int RootRegionSize = 16000000;
+  const int RootRegionSize = 32000000; // higher == higher quality maps
   return distance < (RootRegionSize >> depth);
 }
 
@@ -230,12 +227,11 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->morten.x = pCurrentNode->morten.x | (mortenIndices[childQuadrant].x << (31 - pChildNode->slippyPosition.z));
     pChildNode->morten.y = pCurrentNode->morten.y | (mortenIndices[childQuadrant].y << (31 - pChildNode->slippyPosition.z));
 
-    // TODO: tile heights (DEM)
-    double distanceToQuadrant = pQuadTree->cameraDistanceZeroAltitude;
+    double distanceToQuadrant = pQuadTree->cameraDistanceZeroAltitude - pChildNode->demMinMax[1];
 
     int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
     if (slippyManhattanDist != 0)
-      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition);
+      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormal * pChildNode->demMinMax[1]);
 
     ++pQuadTree->metaData.nodeTouchedCount;
     if (pChildNode->visible)

@@ -278,11 +278,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
           betterNode = pNode->visible && !pBestNode->visible;
           if (pNode->visible == pBestNode->visible)
           {
-            //betterNode = !pNode->rendered && pBestNode->rendered;
-            //if (pNode->rendered == pBestNode->rendered)
-            betterNode = pNode->colourInfo.drawInfo.pTexture == nullptr && pBestNode->colourInfo.drawInfo.pTexture != nullptr;
-            if ((pNode->colourInfo.drawInfo.pTexture != nullptr && pBestNode->colourInfo.drawInfo.pTexture != nullptr) ||
-                (pNode->colourInfo.drawInfo.pTexture == nullptr && pBestNode->colourInfo.drawInfo.pTexture == nullptr))
+            betterNode = !pNode->rendered && pBestNode->rendered;
+            if (pNode->rendered == pBestNode->rendered)
             {
               betterNode = distanceToCameraSqr < bestDistancePrioritySqr;
             }
@@ -709,18 +706,45 @@ epilogue:
   return result;
 }
 
-void vcTileRenderer_RecursiveUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pParentNode, vcQuadTreeNode *pNode)
+void vcTileRenderer_RecursiveDownUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pParentNode, vcQuadTreeNode *pNode)
 {
   if (pParentNode != nullptr && !vcQuadTree_HasDemData(pNode))
+  {
     pNode->demMinMax = pParentNode->demMinMax; // inherit
-
-  vcQuadTree_CalculateNodeAABB(pNode);
+    vcQuadTree_CalculateNodeAABB(pNode);
+  }
+  //vcQuadTree_CalculateNodeAABB(pNode);
 
   if (!vcQuadTree_IsLeafNode(pNode))
   {
     for (int c = 0; c < 4; ++c)
-      vcTileRenderer_RecursiveUpdateNodeAABB(pQuadTree, pNode , &pQuadTree->nodes.pPool[pNode->childBlockIndex + c]);
+      vcTileRenderer_RecursiveDownUpdateNodeAABB(pQuadTree, pNode , &pQuadTree->nodes.pPool[pNode->childBlockIndex + c]);
   }
+}
+
+void vcTileRenderer_RecursiveUpUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
+{
+  if (pNode->parentIndex == INVALID_NODE_INDEX)
+    return;
+
+  vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[pNode->parentIndex];
+
+  if (!vcQuadTree_HasDemData(pParentNode))
+  {
+    pParentNode->demMinMax = pNode->demMinMax; // inherit
+    vcQuadTree_CalculateNodeAABB(pParentNode);
+  }
+
+  vcTileRenderer_RecursiveUpUpdateNodeAABB(pQuadTree, pParentNode);
+
+  //
+  //vcQuadTree_CalculateNodeAABB(pNode);
+  //
+  //if (!vcQuadTree_IsLeafNode(pNode))
+  //{
+  //  for (int c = 0; c < 4; ++c)
+  //    vcTileRenderer_RecursiveUpUpdateNodeAABB(pQuadTree, pNode, &pQuadTree->nodes.pPool[pNode->childBlockIndex + c]);
+  //}
 }
 
 void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
@@ -770,8 +794,10 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     udFree(pShortPixels);
     udFree(pNode->demInfo.data.pData);
 
+    vcQuadTree_CalculateNodeAABB(pNode);
     // update descendent AABB
-    vcTileRenderer_RecursiveUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
+    vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
+    vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
   }
 }
 
@@ -926,7 +952,10 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
 {
   vcTexture *pTexture = pNode->colourInfo.drawInfo.pTexture;
   if (pTexture == nullptr)
+  {
+    pNode->rendered = false;
     pTexture = pTileRenderer->pEmptyTileTexture;
+  }
 
   vcTexture *pDemTexture = pNode->demInfo.drawInfo.pTexture;
   if (pDemTexture == nullptr)
@@ -958,20 +987,10 @@ bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   vcShader_BindConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer, &pTileRenderer->presentShader.everyObject, sizeof(pTileRenderer->presentShader.everyObject));
   vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
 
-  pNode->rendered = true;
+  //pNode->rendered = true;
   ++pTileRenderer->quadTree.metaData.nodeRenderCount;
 
   return true;
-}
-
-void vcTileRenderer_RecursiveSetRendered(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, bool rendered)
-{
-  pNode->rendered = pNode->rendered || rendered;
-  if (!vcQuadTree_IsLeafNode(pNode))
-  {
-    for (int c = 0; c < 4; ++c)
-      vcTileRenderer_RecursiveSetRendered(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c], pNode->rendered);
-  }
 }
 
 void vcTileRenderer_DrapeColour(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
@@ -1034,6 +1053,8 @@ bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
 
   if (!pNode->visible)
     return false;
+
+  pNode->rendered = true;
 
   // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
   pNode->colourInfo.drawInfo.pTexture = nullptr;

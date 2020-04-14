@@ -6,6 +6,8 @@
 #include "udMath.h"
 #include "vcGIS.h"
 
+#define INVALID_NODE_INDEX 0xffffffff
+
 struct vcTexture;
 
 struct vcNodeRenderInfo
