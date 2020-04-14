@@ -496,6 +496,23 @@ bool vcQuadTree_IsBlockUsed(vcQuadTree *pQuadTree, uint32_t blockIndex)
   return isUsed;
 }
 
+bool vcQuadTree_NodeOrAncestorHasDrawData(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
+{
+  if (pNode->colourInfo.data.pTexture || pNode->demInfo.data.pTexture)
+    return true;
+
+  if (!vcQuadTree_IsLeafNode(pNode))
+  {
+    for (uint32_t c = 0; c < NodeChildCount; ++c)
+    {
+      if (vcQuadTree_NodeOrAncestorHasDrawData(pQuadTree, &pQuadTree->nodes.pPool[pNode->childBlockIndex + c]))
+        return true;
+    }
+  }
+
+  return false;
+}
+
 bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
 {
   for (uint32_t c = 0; c < NodeChildCount; ++c)
@@ -511,7 +528,10 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
     vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[blockIndex + c];
 
     // case #1: its a leaf node that could be being used for rendering by an ancestor
-    if (pNode->colourInfo.data.pTexture || pNode->demInfo.data.pTexture)
+    //if (vcQuadTree_IsLeafNode(pNode))
+    //  return false;
+
+    if (vcQuadTree_NodeOrAncestorHasDrawData(pQuadTree, pNode))
     {
       uint32_t parentIndex = pNode->parentIndex;
       while (parentIndex != INVALID_NODE_INDEX)

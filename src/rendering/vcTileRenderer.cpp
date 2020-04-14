@@ -19,6 +19,8 @@
 // Debug tiles with colour information
 #define VISUALIZE_DEBUG_TILES 0
 
+#define TILE_RETRY_TIME_SEC 5.0f
+
 // TODO: This is a temporary solution, where we know the dem data stops at level 13.
 #define HACK_DEM_LEVEL 13
 const char *pDemTileServerAddress = "https://az.vault.euclideon.com/dem/%d/%d/%d.png";
@@ -90,7 +92,6 @@ struct vcTileRenderer
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcQuadTreeNode*> tileLoadList;
-    //udChunkedArray<vcQuadTreeNode*> tileTimeoutList;
   } cache;
 
   struct
@@ -301,6 +302,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
       udResult result = udR_Failure_;
 
+      //udLockMutex(pCache->pMutex);
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
       pCache->tileLoadList.RemoveSwapLast(best);
       udReleaseMutex(pCache->pMutex);
@@ -327,30 +329,13 @@ epilogue:
       // TODO: Is this block still valid?
       if (result != udR_Success)
       {
-        pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading);
-        pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading);
+        if (pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading))
+          pBestNode->colourInfo.timeoutTime = 0.0f;
+        if (pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading))
+          pBestNode->demInfo.timeoutTime = 0.0f;
 
-        printf("Failed: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
-      //  pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Failed;
-      //  if (result == udR_Pending)
-      //  {
-      //    pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_InQueue;
-      //
-      //    udLockMutex(pCache->pMutex);
-      //    if (pBestNode->slippyPosition.z <= 10)
-      //    {
-      //      // TODO: server prioritizes these tiles, so will be available much sooner. Requeue immediately
-      //      pCache->tileLoadList.PushBack(pBestNode);
-      //    }
-      //    else
-      //    {
-      //      pBestNode->renderInfo.timeoutTime = pRenderer->totalTime + 15.0f; // 15 seconds
-      //      pCache->tileTimeoutList.PushBack(pBestNode); // timeout it, inserted last
-      //    }
-      //    udReleaseMutex(pCache->pMutex);
-      //  }
+        //printf("Failed: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
       }
-
     }
   }
 
@@ -616,7 +601,6 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   pTileRenderer->cache.pMutex = udCreateMutex();
   pTileRenderer->cache.keepLoading = true;
   pTileRenderer->cache.tileLoadList.Init(256);
-  //pTileRenderer->cache.tileTimeoutList.Init(128);
 
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
     UD_ERROR_CHECK(udThread_Create(&pTileRenderer->cache.pThreads[i], vcTileRenderer_LoadThread, pTileRenderer));
@@ -672,7 +656,6 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   udDestroySemaphore(&pTileRenderer->cache.pSemaphore);
 
   pTileRenderer->cache.tileLoadList.Deinit();
-  //pTileRenderer->cache.tileTimeoutList.Deinit();
 
   vcTileRenderer_DestroyShaders(pTileRenderer);
 
@@ -713,7 +696,6 @@ void vcTileRenderer_RecursiveDownUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTre
     pNode->demMinMax = pParentNode->demMinMax; // inherit
     vcQuadTree_CalculateNodeAABB(pNode);
   }
-  //vcQuadTree_CalculateNodeAABB(pNode);
 
   if (!vcQuadTree_IsLeafNode(pNode))
   {
@@ -750,8 +732,17 @@ void vcTileRenderer_RecursiveUpUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeN
 void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
-  if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_InQueue, vcNodeRenderInfo::vcTLS_None))
+  bool loadTile = pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_None;
+  if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Failed)
   {
+    pNode->demInfo.timeoutTime += pTileRenderer->frameDeltaTime;
+    if (pNode->demInfo.timeoutTime >= TILE_RETRY_TIME_SEC)
+      loadTile = true;
+  }
+
+  if (loadTile)
+  {
+    pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_InQueue);
     pNode->demInfo.data.pData = nullptr;
     pNode->demInfo.data.pTexture = nullptr;
 
@@ -804,11 +795,19 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
-  if (pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_InQueue, vcNodeRenderInfo::vcTLS_None))
+  bool loadTile = pNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_None;
+  if (pNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Failed)
   {
+    pNode->colourInfo.timeoutTime += pTileRenderer->frameDeltaTime;
+    if (pNode->colourInfo.timeoutTime >= TILE_RETRY_TIME_SEC)
+      loadTile = true;
+  }
+
+  if (loadTile)
+  {
+    pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_InQueue);
     pNode->colourInfo.data.pData = nullptr;
     pNode->colourInfo.data.pTexture = nullptr;
-    pNode->colourInfo.timeoutTime = pTileRenderer->totalTime;
 
     if (pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_InQueue)
     {
@@ -905,19 +904,6 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
       --i;
     }
   }
-
-  // Note: this is a FIFO queue, so only need to check the head
-  //while (pTileRenderer->cache.tileTimeoutList.length > 0)
-  //{
-  //  vcQuadTreeNode *pNode = pTileRenderer->cache.tileTimeoutList[0];
-  //  if (pNode->colourInfo.tryLoad && (pNode->colourInfo.timeoutTime - pTileRenderer->totalTime) > 0.0f)
-  //    break;
-  //
-  //  pTileRenderer->cache.tileLoadList.PushBack(pNode);
-  //  pTileRenderer->cache.tileTimeoutList.RemoveSwapLast(0); this will break the FIFO?!
-  //}
-
-  // TODO: For each tile in cache, LRU destroy
 }
 
 void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, vcGISSpace *pSpace, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix)
@@ -1151,8 +1137,14 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
   vcShader_Bind(nullptr);
 
+  static int count = 0;
+  ++count;
 #if 1
-  printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu...used=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length, pTileRenderer->quadTree.nodes.used);
+  if (count == 1000)
+  {
+    count = 0;
+    printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu...used=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length, pTileRenderer->quadTree.nodes.used);
+  }
 #endif
 }
 
