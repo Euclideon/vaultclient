@@ -278,8 +278,11 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
           betterNode = pNode->visible && !pBestNode->visible;
           if (pNode->visible == pBestNode->visible)
           {
-            betterNode = !pNode->rendered && pBestNode->rendered;
-            if (pNode->rendered == pBestNode->rendered)
+            //betterNode = !pNode->rendered && pBestNode->rendered;
+            //if (pNode->rendered == pBestNode->rendered)
+            betterNode = pNode->colourInfo.drawInfo.pTexture == nullptr && pBestNode->colourInfo.drawInfo.pTexture != nullptr;
+            if ((pNode->colourInfo.drawInfo.pTexture != nullptr && pBestNode->colourInfo.drawInfo.pTexture != nullptr) ||
+                (pNode->colourInfo.drawInfo.pTexture == nullptr && pBestNode->colourInfo.drawInfo.pTexture == nullptr))
             {
               betterNode = distanceToCameraSqr < bestDistancePrioritySqr;
             }
@@ -327,6 +330,10 @@ epilogue:
       // TODO: Is this block still valid?
       if (result != udR_Success)
       {
+        pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading);
+        pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading);
+
+        printf("Failed: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
       //  pBestNode->renderInfo.loadStatus = vcNodeRenderInfo::vcTLS_Failed;
       //  if (result == udR_Pending)
       //  {
@@ -1124,7 +1131,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcShader_Bind(nullptr);
 
 #if 1
-  printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length);
+  printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu...used=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length, pTileRenderer->quadTree.nodes.used);
 #endif
 }
 

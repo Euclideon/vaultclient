@@ -68,6 +68,7 @@ struct vcQuadTreeNode
   udInt2 demMinMax;  // in DEM units. For calculating AABB of node
   udDouble3 worldNormal;
 
+  // node payloads
   vcNodeRenderInfo colourInfo;
   vcNodeRenderInfo demInfo;
 };

@@ -353,6 +353,8 @@ void vcQuadTree_InitRootBlock(vcQuadTree *pQuadTree)
 
 void vcQuadTree_Reroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
 {
+  printf("Re root: from: %d to:%d\n", pQuadTree->nodes.pPool[pQuadTree->rootIndex].slippyPosition.z, slippyCoords.z);
+
   // First determine if that node already exists
   uint32_t newRootIndex = vcQuadTree_GetNodeIndex(pQuadTree, slippyCoords);
   if (newRootIndex == INVALID_NODE_INDEX)
@@ -403,6 +405,7 @@ void vcQuadTree_Reroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
 
 void vcQuadTree_CompleteReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
 {
+  printf("Complete re-root: from: %d, to %d\n", pQuadTree->nodes.pPool[pQuadTree->rootIndex].slippyPosition.z, slippyCoords.z);
   uint32_t freeBlockIndex = vcQuadTree_FindFreeChildBlock(pQuadTree);
   if (freeBlockIndex == INVALID_NODE_INDEX)
   {
@@ -528,7 +531,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
         }
         else if (pParentNode->colourInfo.data.pTexture != nullptr && pParentNode->demInfo.data.pTexture != nullptr)
         {
-          // 'better' (closer to the root) 'non-touched' ancestor will be used instead of this one, throw out
+          // better 'non-touched' ancestor (closer to the root) will be used instead of this one, throw out
           return true;
         }
         parentIndex = pParentNode->parentIndex;
