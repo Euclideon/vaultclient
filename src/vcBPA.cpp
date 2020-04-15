@@ -130,7 +130,7 @@ void vcBPA_Init(vcBPAManifold **ppManifold, vdkContext *pContext)
   vcBPAManifold *pManifold = udAllocType(vcBPAManifold, 1, udAF_Zero);
   pManifold->grids.Init(1 << 10);
   pManifold->nodes.Init(1 << 13);
-  udWorkerPool_Create(&pManifold->pPool, 8, "vcBPAPool");
+  udWorkerPool_Create(&pManifold->pPool, (uint8_t)udGetHardwareThreadCount(), "vcBPAPool");
   pManifold->pContext = pContext;
   *ppManifold = pManifold;
 }
@@ -205,6 +205,8 @@ void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkAttribut
 
 bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, vcBPAGrid **ppGrid)
 {
+  double startTime = udGetEpochMilliSecsUTCf();
+
   // Iterate octree to find grids
   for (size_t i = 0; i < pManifold->nodes.length; ++i)
   {
@@ -247,6 +249,9 @@ bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttribute
     }
   }
 
+  printf("Processing Grids (now at %.3f)\n", udGetEpochMilliSecsUTCf() - startTime);
+  startTime = udGetEpochMilliSecsUTCf();
+
   // Iterate generated grids and return valid grids
   for (size_t i = 0; i < pManifold->grids.length; ++i)
   {
@@ -271,9 +276,12 @@ bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttribute
       continue;
 
     *ppGrid = pManifold->grids.GetElement(i);
+
+    printf("Processing Grids SUCCESS (now at %.3f)\n", udGetEpochMilliSecsUTCf() - startTime);
     return true;
   }
 
+  printf("Processing Grids FAILED (now at %.3f)\n", udGetEpochMilliSecsUTCf() - startTime);
   return false;
 }
 
@@ -351,6 +359,13 @@ void vcBPA_GetNearbyPoints(vcBPAGrid *pGrid, udChunkedArray<uint64_t> *pPoints, 
   }
 }
 
+udDouble3 vcBPA_GetTriangleNormal(const udDouble3 & p0, const udDouble3 & p1, const udDouble3 & p2)
+{
+  udDouble3 a = p1 - p0;
+  udDouble3 b = p2 - p0;
+  return udNormalize(udCross(a, b));
+}
+
 vcBPATriangle vcBPA_FindSeedTriangle(vcBPAGrid *pGrid, double ballRadius)
 {
   // Pick any point not already in the triangle list
@@ -398,16 +413,11 @@ vcBPATriangle vcBPA_FindSeedTriangle(vcBPAGrid *pGrid, double ballRadius)
         udULong3 triangle = udULong3::create((uint64_t)pointIndex, (uint64_t)nearbyPoints[i], (uint64_t)nearbyPoints[j]);
 
         // Check that the triangle normal is consistent with the vertex normals - i.e. pointing outward
-        udDouble3 a = p1 - p0;
-        udDouble3 b = p2 - p0;
-        udDouble3 triangleNormal = udNormalize(udCross(a, b));
+        udDouble3 triangleNormal = vcBPA_GetTriangleNormal(p0, p1, p2);
         if (triangleNormal.z < 0) // Normal is pointing down, that's bad!
         {
           triangle.x = (uint64_t)nearbyPoints[i];
           triangle.y = (uint64_t)pointIndex;
-          a = p0 - p1;
-          b = p2 - p1;
-          triangleNormal = udNormalize(udCross(a, b));
         }
 
         // Test that a p-ball with center in the outward halfspace touches all three vertices and contains no other points
@@ -516,9 +526,7 @@ bool vcBPA_BallPivot(vcBPAGrid *pGrid, double ballRadius, vcBPAEdge edge, uint64
     };
 
     // Check that the triangle normal is consistent with the vertex normals - i.e. pointing outward
-    udDouble3 a = vertices[1] - vertices[0];
-    udDouble3 b = vertices[2] - vertices[0];
-    udDouble3 triangleNormal = udNormalize(udCross(a, b));
+    udDouble3 triangleNormal = vcBPA_GetTriangleNormal(vertices[0], vertices[1], vertices[2]);
     if (triangleNormal.z < 0) // Normal is pointing down, that's bad!
       continue;
 
@@ -781,7 +789,7 @@ void vcBPA_DoGrid(vcBPAGrid *pGrid, double ballRadius)
   }
 }
 
-double vcBPA_DistanceToTriangle(vcBPAGrid *pOldGrid, size_t triangleIndex, udDouble3 position)
+double vcBPA_DistanceToTriangle(vcBPAGrid *pOldGrid, size_t triangleIndex, udDouble3 position, udDouble3 *pPoint)
 {
   udDouble3 vertices[3] = {
     pOldGrid->vertices[pOldGrid->triangles[triangleIndex].vertices.x].position,
@@ -789,7 +797,23 @@ double vcBPA_DistanceToTriangle(vcBPAGrid *pOldGrid, size_t triangleIndex, udDou
     pOldGrid->vertices[pOldGrid->triangles[triangleIndex].vertices.z].position,
   };
 
-  return udDistanceToTriangle(vertices[0], vertices[1], vertices[2], position);
+  return udDistanceToTriangle(vertices[0], vertices[1], vertices[2], position, pPoint);
+}
+
+double vcBPA_SignedDistanceToTriangle(vcBPAGrid *pOldGrid, size_t triangleIndex, udDouble3 position, udDouble3 *pPoint)
+{
+  udDouble3 vertices[3] = {
+    pOldGrid->vertices[pOldGrid->triangles[triangleIndex].vertices.x].position,
+    pOldGrid->vertices[pOldGrid->triangles[triangleIndex].vertices.y].position,
+    pOldGrid->vertices[pOldGrid->triangles[triangleIndex].vertices.z].position,
+  };
+
+  double distance = udDistanceToTriangle(vertices[0], vertices[1], vertices[2], position, pPoint);
+  udDouble3 normal = vcBPA_GetTriangleNormal(vertices[0], vertices[1], vertices[2]);
+  udDouble3 p0_to_position = position - vertices[0];
+  if (udDot3(p0_to_position, normal) < 0.0)
+    distance = -distance;
+  return distance;
 }
 
 size_t vcBPA_FindClosestTriangle(vcBPAGrid *pOldGrid, udDouble3 position)
@@ -799,7 +823,7 @@ size_t vcBPA_FindClosestTriangle(vcBPAGrid *pOldGrid, udDouble3 position)
 
   for (size_t i = 0; i < pOldGrid->triangles.length; ++i)
   {
-    double distance = udAbs(vcBPA_DistanceToTriangle(pOldGrid, i, position));
+    double distance = vcBPA_DistanceToTriangle(pOldGrid, i, position, nullptr);
     if (distance < closestDistance)
     {
       closest = i;
@@ -947,6 +971,7 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   bool getNextGrid = true;
 
   uint32_t displacementOffset = 0;
+  udUInt3 displacementDistanceOffset = {};
   vdkError error = vE_Failure;
 
   static int gridCount = 0;
@@ -957,6 +982,18 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
     goto epilogue;
 
   error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacement", &displacementOffset);
+  if (error != vE_Success)
+    return error;
+
+  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionX", &displacementDistanceOffset.x);
+  if (error != vE_Success)
+    return error;
+
+  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionY", &displacementDistanceOffset.y);
+  if (error != vE_Success)
+    return error;
+
+  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionZ", &displacementDistanceOffset.z);
   if (error != vE_Success)
     return error;
 
@@ -972,9 +1009,11 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
     udDouble3 position = pData->activeItem.pGrid->vertices[i].position;
     size_t triangle = vcBPA_FindClosestTriangle(&pData->activeItem.oldGrid, position);
 
+    udDouble3 trianglePoint = {};
+
     double distance = FLT_MAX;
     if (triangle < pData->activeItem.oldGrid.triangles.length)
-      distance = udAbs(vcBPA_DistanceToTriangle(&pData->activeItem.oldGrid, triangle, position));
+      distance = vcBPA_SignedDistanceToTriangle(&pData->activeItem.oldGrid, triangle, position, &trianglePoint);
 
     // Position XYZ
     memcpy(&pBuffer->pPositions[pBuffer->pointCount * 3], &pData->activeItem.pGrid->pBuffer->pPositions[i * 3], sizeof(double) * 3);
@@ -1007,6 +1046,15 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
     // Displacement
     float *pDisplacement = (float*)udAddBytes(pBuffer->pAttributes, pointAttrOffset + displacementOffset);
     *pDisplacement = (float)distance;
+
+    for (int elementIndex = 0; elementIndex < 3; ++elementIndex) //X,Y,Z
+    {
+      float *pDisplacementDistance = (float*)udAddBytes(pBuffer->pAttributes, pointAttrOffset + displacementDistanceOffset[elementIndex]);
+      if (distance != FLT_MAX)
+        *pDisplacementDistance = (float)((trianglePoint[elementIndex] - position[elementIndex]) / distance);
+      else
+        *pDisplacementDistance = 0.0;
+    }
 
     ++pBuffer->pointCount;
   }
@@ -1099,10 +1147,17 @@ void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, cons
 
   uint32_t displacementOffset = 0;
   bool addDisplacement = true;
+
+  uint32_t displacementDirectionOffset = 0;
+  bool addDisplacementDirection = true;
+
   if (vdkAttributeSet_GetOffsetOfNamedAttribute(&header.attributes, "udDisplacement", &displacementOffset) == vE_Success)
     addDisplacement = false;
 
-  vdkAttributeSet_Generate(&item.attributes, vdkSAC_None, header.attributes.count + (addDisplacement ? 1 : 0));
+  if (vdkAttributeSet_GetOffsetOfNamedAttribute(&header.attributes, "udDisplacementDirectionX", &displacementDirectionOffset) == vE_Success)
+    addDisplacementDirection = false;
+
+  vdkAttributeSet_Generate(&item.attributes, vdkSAC_None, header.attributes.count + (addDisplacement ? 1 : 0) + (addDisplacementDirection ? 3 : 0));
 
   for (uint32_t i = 0; i < header.attributes.count; ++i)
   {
@@ -1117,6 +1172,24 @@ void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, cons
     item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
     item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
     udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacement");
+    ++item.attributes.count;
+  }
+
+  if (addDisplacementDirection)
+  {
+    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacementDirectionX");
+    ++item.attributes.count;
+
+    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacementDirectionY");
+    ++item.attributes.count;
+
+    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacementDirectionZ");
     ++item.attributes.count;
   }
 

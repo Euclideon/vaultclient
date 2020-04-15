@@ -1463,12 +1463,29 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
         pVoxelShaderData[numVisibleModels].data.classification.pCustomClassificationColors = pVisSettings->customClassificationColors;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Displacement) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDistance) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
       {
-        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Displacement;
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementDistance;
 
-        pVoxelShaderData[numVisibleModels].data.displacement.minThreshold = pVisSettings->displacement.x;
-        pVoxelShaderData[numVisibleModels].data.displacement.maxThreshold = pVisSettings->displacement.y;
+        pVoxelShaderData[numVisibleModels].data.displacementAmount.minThreshold = pVisSettings->displacement.bounds.x;
+        pVoxelShaderData[numVisibleModels].data.displacementAmount.maxThreshold = pVisSettings->displacement.bounds.y;
+
+        pVoxelShaderData[numVisibleModels].data.displacementAmount.errorColour = pVisSettings->displacement.error;
+
+        pVoxelShaderData[numVisibleModels].data.displacementAmount.maxColour = pVisSettings->displacement.max;
+        pVoxelShaderData[numVisibleModels].data.displacementAmount.minColour = pVisSettings->displacement.min;
+        pVoxelShaderData[numVisibleModels].data.displacementAmount.midColour = pVisSettings->displacement.mid;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDirection) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementDirection;
+        vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionX", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[0]);
+        vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionY", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[1]);
+        vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionZ", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[2]);
+
+        pVoxelShaderData[numVisibleModels].data.displacementDirection.cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
+        pVoxelShaderData[numVisibleModels].data.displacementDirection.posColour = pVisSettings->displacement.max;
+        pVoxelShaderData[numVisibleModels].data.displacementDirection.negColour = pVisSettings->displacement.min;
       }
 
       ++numVisibleModels;

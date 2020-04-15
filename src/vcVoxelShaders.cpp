@@ -29,12 +29,30 @@ uint32_t vcVoxelShader_Intensity(vdkPointCloud *pPointCloud, uint64_t voxelID, c
   return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
-uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+/*
+Blends two colours based on the contents of the first colours alpha channel
+*/
+inline uint32_t vcVoxelShader_FadeAlpha(uint32_t firstColour, uint32_t secondColour)
+{
+  float  alpha = (float)(firstColour>>24 & 0xFF)/255.0f;
+  uint32_t result = 0;
+  //extract the each colour and scale it by the alpha in the first channel
+  for (int shift = 0; shift < 24; shift += 8)
+  {
+    float scaledChannel = alpha * (float)((firstColour >> shift) & 0xFF);//scale the first colour by alpha
+    scaledChannel += (1 - alpha) * (float)((secondColour >> shift) & 0xFF);//scale the second by 1-alpha
+    result |= ((uint32_t) scaledChannel) << shift;
+  }
+  return result;
+}
+
+uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
-  uint32_t result = 0;
-  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &result);
+  uint32_t displacementColour = 0;
+  uint32_t baseColour = 0;
+  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &baseColour);
 
   float *pDisplacement = nullptr;
   vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
@@ -42,16 +60,64 @@ uint32_t vcVoxelShader_Displacement(vdkPointCloud *pPointCloud, uint64_t voxelID
   if (pDisplacement != nullptr)
   {
     if (*pDisplacement == FLT_MAX)
-      result = 0x7F007F + ((result >> 1) & 0x7F7F7F);
-    else if (*pDisplacement <= pData->data.displacement.minThreshold)
-      result = 0x007F00 + ((result >> 1) & 0x7F7F7F);
-    else if (*pDisplacement >= pData->data.displacement.maxThreshold)
-      result = 0x7F0000 + ((result >> 1) & 0x7F7F7F);
+      displacementColour = pData->data.displacementAmount.errorColour;
+    else if (*pDisplacement <= pData->data.displacementAmount.minThreshold)
+      displacementColour = pData->data.displacementAmount.minColour;
+    else if (*pDisplacement >= pData->data.displacementAmount.maxThreshold)
+      displacementColour = pData->data.displacementAmount.maxColour;
     else
-      result = 0x7F7F00 + ((result >> 1) & 0x7F7F7F);
+      displacementColour = pData->data.displacementAmount.midColour;
   }
 
-  return vcPCShaders_BuildAlpha(pData->pModel) | (result & 0xFFFFFF);
+  displacementColour = vcVoxelShader_FadeAlpha(displacementColour, baseColour);
+  return vcPCShaders_BuildAlpha(pData->pModel) | (displacementColour & 0xFFFFFF);
+}
+
+uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+
+  uint32_t displacementColour = 0;
+  uint32_t baseColour = 0;
+  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &baseColour);
+
+  float *pDisplacement = nullptr;
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
+
+  float *pDisplacementDirections[3];
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[0], (const void **)&pDisplacementDirections[0]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[1], (const void **)&pDisplacementDirections[1]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[2], (const void **)&pDisplacementDirections[2]);
+
+  if (pDisplacement != nullptr && pDisplacementDirections[0] != nullptr && pDisplacementDirections[1] != nullptr && pDisplacementDirections[2] != nullptr)
+  {
+    udDouble3 direction = udDouble3::create(*pDisplacementDirections[0], *pDisplacementDirections[1], *pDisplacementDirections[2]);
+    if (direction != udDouble3::zero())
+    {
+      double amount = udDot(direction, pData->data.displacementDirection.cameraDirection);
+
+      if (amount >= 0)
+        displacementColour = pData->data.displacementDirection.posColour;
+      else
+        displacementColour = pData->data.displacementDirection.negColour;
+
+      for (int i = 0; i < 3; ++i)
+      {
+        uint32_t shift = i * 8;
+        uint32_t mask = ~(0xFF << shift);
+        uint32_t val = (uint32_t(((displacementColour >> shift) & 0xFF) * udMin(*pDisplacement, 1.f) * 255) << shift);
+        displacementColour = (displacementColour & mask) | val;
+      }
+
+      displacementColour = vcVoxelShader_FadeAlpha(displacementColour, baseColour);
+    }
+    else
+    {
+      displacementColour = baseColour;
+    }
+  }
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | (displacementColour & 0xFFFFFF);
 }
 
 uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
