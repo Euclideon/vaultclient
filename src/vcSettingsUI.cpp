@@ -233,7 +233,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           else if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Atmosphere)
           {
             ImGui::Indent();
-            ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 0.0f, 24.0f);
+            ImGui::SliderInt(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
             ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);
             ImGui::Unindent();
           }

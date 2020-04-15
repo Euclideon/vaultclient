@@ -171,7 +171,7 @@ struct vcSettings
       vcSkyboxType type;
       udFloat4 colour;
 
-      float timeOfDay;
+      int timeOfDay;
       float exposure;
     } skybox;
 
