@@ -648,7 +648,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   }
 
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
-  UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyDemTileTexture, 1, 1, &blackPixel, vcTextureFormat_R16));
+  UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyDemTileTexture, 1, 1, &blackPixel, vcTextureFormat_RG8));
 
   *ppTileRenderer = pTileRenderer;
   pTileRenderer = nullptr;
@@ -761,7 +761,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     pNode->demMinMax[0] = 32767;
     pNode->demMinMax[1] = -32768;
 
-    int16_t *pShortPixels = udAllocType(int16_t, pNode->renderInfo.demData.width * pNode->renderInfo.demData.height, udAF_Zero);
+    uint8_t *pShortPixels = udAllocType(uint8_t, pNode->renderInfo.demData.width * pNode->renderInfo.demData.height * 2, udAF_Zero);
     for (int h = 0; h < pNode->renderInfo.demData.height; ++h)
     {
       for (int w = 0; w < pNode->renderInfo.demData.width; ++w)
@@ -778,10 +778,13 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
         pNode->demMinMax[0] = udMin(pNode->demMinMax.x, (int32_t)height);
         pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
-        pShortPixels[index] = height;
+
+        pShortPixels[index * 2 + 0] = r;
+        // Convert from [-32k, 32k] to [0, 65k]
+        pShortPixels[index * 2 + 1] = (g ^ 0x80);
       }
     }
-    vcTexture_CreateAdv(&pNode->renderInfo.demData.pTexture, vcTextureType_Texture2D, pNode->renderInfo.demData.width, pNode->renderInfo.demData.height, 1, pShortPixels, vcTextureFormat_R16, vcTFM_Linear, false, vcTWM_Clamp);
+    vcTexture_CreateAdv(&pNode->renderInfo.demData.pTexture, vcTextureType_Texture2D, pNode->renderInfo.demData.width, pNode->renderInfo.demData.height, 1, pShortPixels, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pShortPixels);
     udFree(pNode->renderInfo.demData.pData);
 

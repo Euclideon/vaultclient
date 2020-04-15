@@ -22,7 +22,7 @@ enum vcTextureFormat
   vcTextureFormat_RGBA16F,
   vcTextureFormat_RGBA32F,
 
-  vcTextureFormat_R16,
+  vcTextureFormat_RG8,
 
   vcTextureFormat_D32F,
 

@@ -89,7 +89,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   ID3D10Blob *pErrorBlob = nullptr;
 
   // Vertex Shader
-  D3DCompile(pVertexShader, udStrlen(pVertexShader), NULL, NULL, NULL, "main", "vs_4_0", 0, 0, &pVSBlob, &pErrorBlob);
+  D3DCompile(pVertexShader, udStrlen(pVertexShader), NULL, NULL, NULL, "main", "vs_4_0", 0 /*| D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION*/, 0, &pVSBlob, &pErrorBlob);
 
   if (pVSBlob == nullptr)
   {
@@ -103,7 +103,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
     return false;
 
   // Create the pixel shader
-  D3DCompile(pFragmentShader, udStrlen(pFragmentShader), NULL, NULL, NULL, "main", "ps_4_0", 0, 0, &pPSBlob, &pErrorBlob);
+  D3DCompile(pFragmentShader, udStrlen(pFragmentShader), NULL, NULL, NULL, "main", "ps_4_0", 0 /*| D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION*/, 0, &pPSBlob, &pErrorBlob);
 
   if (pPSBlob == nullptr)
   {
