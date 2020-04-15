@@ -72,6 +72,12 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
       if (pSceneItem->m_lastUpdateTime < pSceneItem->m_pNode->lastUpdate)
         pSceneItem->UpdateNode(pProgramState);
+
+      if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
+      {
+        vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
+        memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
+      }
     }
     else
     {
@@ -242,12 +248,6 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         }
 
         pSceneItem->SelectSubitem(0);
-      }
-
-      if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
-      {
-        vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
-        memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
       }
 
       if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && ImGui::IsMouseDragging(0))
