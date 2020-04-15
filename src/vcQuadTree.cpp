@@ -175,7 +175,7 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
 inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
 {
   // trial and error'd this heuristic
-  const int RootRegionSize = 32000000; // higher == higher quality maps
+  const int RootRegionSize = 21000000; // higher == higher quality maps
   return distance < (RootRegionSize >> depth);
 }
 
@@ -234,13 +234,13 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormal * pChildNode->demMinMax[1]);
 
     ++pQuadTree->metaData.nodeTouchedCount;
-    if (pChildNode->visible)
-      ++pQuadTree->metaData.visibleNodeCount;
-    else if ((pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0)
-      continue;
+    //if (pChildNode->visible)
+    //  ++pQuadTree->metaData.visibleNodeCount;
+    //else if ((pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0)
+    //  continue;
 
     int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
-    bool alwaysSubdivide = pChildNode->visible && totalDepth < 2;
+    bool alwaysSubdivide = false;//pChildNode->visible && totalDepth < 2;
     if (alwaysSubdivide || vcQuadTree_ShouldSubdivide(distanceToQuadrant, totalDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
@@ -431,32 +431,12 @@ void vcQuadTree_ConditionalReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoo
     vcQuadTree_CompleteReroot(pQuadTree, slippyCoords);
 }
 
-void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo)
+void vcQuadTree_Update2(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo)
 {
-  bool zoneChangeOccurred = pQuadTree->gisSpace.SRID != viewInfo.pSpace->SRID;
-  pQuadTree->gisSpace = *viewInfo.pSpace;
-
-  // invalidate so we can detect nodes that need pruning
-  for (uint32_t i = 0; i < pQuadTree->nodes.used; ++i)
-  {
-    vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[i];
-    pNode->rendered = false;
-    pNode->touched = false;
-    pNode->visible = false;
-
-    if (zoneChangeOccurred)
-      vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
-  }
-
-  pQuadTree->slippyCoords = viewInfo.slippyCoords;
   pQuadTree->cameraWorldPosition = viewInfo.cameraPosition;
-  pQuadTree->cameraDistanceZeroAltitude = udMag3(pQuadTree->cameraWorldPosition - viewInfo.cameraPositionZeroAltitude);
 
-  pQuadTree->metaData.nodeTouchedCount = 0;
-  pQuadTree->metaData.leafNodeCount = 0;
   pQuadTree->metaData.visibleNodeCount = 0;
   pQuadTree->metaData.nodeRenderCount = 0;
-  pQuadTree->metaData.maxTreeDepth = udMax(0, (viewInfo.maxVisibleTileLevel - 1) - viewInfo.slippyCoords.z);
 
   // extract frustum planes
   udDouble4x4 transposedViewProjection = udTranspose(viewInfo.viewProjectionMatrix);
@@ -469,6 +449,38 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   // Normalize the planes
   for (int j = 0; j < 6; ++j)
     pQuadTree->frustumPlanes[j] /= udMag3(pQuadTree->frustumPlanes[j]);
+}
+
+void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo)
+{
+  bool zoneChangeOccurred = pQuadTree->gisSpace.SRID != viewInfo.pSpace->SRID;
+  pQuadTree->gisSpace = *viewInfo.pSpace;
+
+  // invalidate so we can detect nodes that need pruning
+  for (uint32_t i = 0; i < pQuadTree->nodes.used; ++i)
+  {
+    vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[i];
+    pNode->rendered = false;
+    pNode->touched = false;
+    pNode->visible = false;
+  }
+
+  if (zoneChangeOccurred)
+  {
+    for (uint32_t i = 0; i < pQuadTree->nodes.used; ++i)
+    {
+      vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[i];
+      vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
+    }
+  }
+
+  pQuadTree->metaData.nodeTouchedCount = 0;
+  pQuadTree->metaData.leafNodeCount = 0;
+
+  pQuadTree->slippyCoords = viewInfo.slippyCoords;
+  pQuadTree->cameraDistanceZeroAltitude = udMag3(pQuadTree->cameraWorldPosition - viewInfo.cameraPositionZeroAltitude);
+
+  pQuadTree->metaData.maxTreeDepth = udMax(0, (viewInfo.maxVisibleTileLevel - 1) - viewInfo.slippyCoords.z);
 
   vcQuadTree_ConditionalReroot(pQuadTree, viewInfo.slippyCoords);
 

@@ -925,7 +925,15 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
 
   uint64_t startTime = udPerfCounterStart();
 
-  vcQuadTree_Update(&pTileRenderer->quadTree, viewInfo);
+  vcQuadTree_Update2(&pTileRenderer->quadTree, viewInfo);
+
+  static double timer = 0.5;
+  timer += deltaTime;
+  if (timer >= 0.5)
+  {
+    timer = 0.0;
+    vcQuadTree_Update(&pTileRenderer->quadTree, viewInfo);
+  }
 
   udLockMutex(pTileRenderer->cache.pMutex);
   vcTileRenderer_UpdateTextureQueues(pTileRenderer);
@@ -1031,15 +1039,18 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
 // 'false' indicates that the nodes ancestor needs to be rendered.
 bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, vcQuadTreeNode *pNode, vcQuadTreeNode *pBestTexturedAncestor, vcQuadTreeNode *pBestDemAncestor)
 {
+  pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
+
   if (!pNode->touched)
   {
     // re-test visibility
-    pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
+    //pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
   }
 
   if (!pNode->visible)
     return false;
 
+  pTileRenderer->quadTree.metaData.visibleNodeCount++;
   pNode->rendered = true;
 
   // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
@@ -1140,7 +1151,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   static int count = 0;
   ++count;
 #if 1
-  if (count == 1000)
+  //if (count == 1000)
   {
     count = 0;
     printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu...used=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length, pTileRenderer->quadTree.nodes.used);

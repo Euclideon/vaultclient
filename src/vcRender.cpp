@@ -774,8 +774,8 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     bool cameraInsideGround = false;//udDot3(cameraToZeroAltitude, surfaceNormal) < 0;
 
     // These values were trial and errored.
-    const double BaseViewDistance = 20000.0;
-    const double HeightViewDistanceScale = 40.0;
+    const double BaseViewDistance = 5000.0;
+    const double HeightViewDistanceScale = 30.0;
     double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraDistanceToAltitudeZero * HeightViewDistanceScale);
 
     // Cardinal Limits
