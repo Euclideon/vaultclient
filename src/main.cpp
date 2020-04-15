@@ -707,7 +707,7 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
 
   if (pLoadInfo->loadResult == udR_Success)
   {
-    const float FontSize = 16.f;
+    const float FontSize = 18.f;
     ImFontConfig fontCfg = ImFontConfig();
     fontCfg.FontDataOwnedByAtlas = false;
     ImGui::GetIO().Fonts->Clear();
@@ -1636,7 +1636,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         float northY = -(float)udCos(angle);
 
         ImGui::PushID("compassButton");
-        if (ImGui::ButtonEx("", ImVec2(28, 28)))
+        if (ImGui::ButtonEx("", ImVec2(36, 36)))
         {
           pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
           pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, udDouble2::create(0, pProgramState->camera.headingPitch.y));
@@ -1704,7 +1704,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         vcModals_OpenModal(pProgramState, vcMT_Convert);
 #endif //VC_HASCONVERT
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Remove, vcMBBG_FirstItem))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_FirstItem))
         vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
     }
 

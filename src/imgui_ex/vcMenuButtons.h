@@ -8,7 +8,7 @@ enum vcMenuBarButtonIcon
   vcMBBI_Scale = 2,
   vcMBBI_ShowCameraSettings = 3,
   vcMBBI_LockAltitude = 4,
-  vcMBBI_ShowGeospatialInfo = 5,
+  vcMBBI_Help = 5,
   vcMBBI_MeasureLine = 6,
   vcMBBI_MeasureArea = 7,
   vcMBBI_MeasureVolume = 8,
