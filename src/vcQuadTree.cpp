@@ -244,7 +244,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     //  continue;
 
     int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
-    bool alwaysSubdivide = false;//pChildNode->visible && totalDepth < 2;
+    bool alwaysSubdivide = pChildNode->visible && totalDepth < 2;
     if (alwaysSubdivide || vcQuadTree_ShouldSubdivide(distanceToQuadrant, totalDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
@@ -359,8 +359,9 @@ void vcQuadTree_Reroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
   uint32_t newRootIndex = vcQuadTree_GetNodeIndex(pQuadTree, slippyCoords);
   if (newRootIndex == INVALID_NODE_INDEX)
   {
-    // Could not find node, add a new root one layer higher
+    // Could not find node, add a new root
     vcQuadTreeNode *pOldRoot = &pQuadTree->nodes.pPool[pQuadTree->rootIndex];
+
     uint32_t newRootBlockIndex = vcQuadTree_FindFreeChildBlock(pQuadTree);
     if (newRootBlockIndex == INVALID_NODE_INDEX || pOldRoot->slippyPosition.z < slippyCoords.z)
     {
@@ -543,10 +544,7 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
   {
     vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[blockIndex + c];
 
-    // case #1: its a leaf node that could be being used for rendering by an ancestor
-    //if (vcQuadTree_IsLeafNode(pNode))
-    //  return false;
-
+    // case #1: its a leaf node that it (or its descendent) could be being used for rendering by an ancestor
     if (vcQuadTree_NodeOrAncestorHasDrawData(pQuadTree, pNode))
     {
       uint32_t parentIndex = pNode->parentIndex;

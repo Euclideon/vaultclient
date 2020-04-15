@@ -32,7 +32,7 @@ enum
   TileVertexResolution = 31,
   TileIndexResolution = (TileVertexResolution - 1),
 
-  MaxTextureUploadsPerFrame = 3,
+  //MaxTextureUploadsPerFrame = 3,
 };
 
 
@@ -265,7 +265,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       {
         pNode = pCache->tileLoadList[i];
 
-        if (!pNode->colourInfo.tryLoad && !pNode->demInfo.tryLoad)
+        if ((!pNode->colourInfo.tryLoad && !pNode->demInfo.tryLoad) || !pNode->touched)
           continue;
 
         double distanceToCameraSqr = udMagSq3(pNode->tileCenter - pRenderer->cameraPosition);
@@ -275,14 +275,18 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         {
           vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
 
-          // priorities: visibility > failed to render visible area > distance
+          // priorities: visibility > failed to render visible area > DEM > distance
           betterNode = pNode->visible && !pBestNode->visible;
-          if (pNode->visible == pBestNode->visible)
+          if (!betterNode && pNode->visible == pBestNode->visible)
           {
             betterNode = !pNode->rendered && pBestNode->rendered;
             if (pNode->rendered == pBestNode->rendered)
             {
-              betterNode = distanceToCameraSqr < bestDistancePrioritySqr;
+              //betterNode = (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_InQueue) && (pBestNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_InQueue);
+              //if (!betterNode)
+              {
+                betterNode = distanceToCameraSqr < bestDistancePrioritySqr;
+              }
             }
           }
         }
@@ -300,41 +304,53 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         break;
       }
 
-      udResult result = udR_Failure_;
+      udResult demResult = udR_Success;
+      udResult colourResult = udR_Success;
 
-      //udLockMutex(pCache->pMutex);
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
       pCache->tileLoadList.RemoveSwapLast(best);
+      pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
+      pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
       udReleaseMutex(pCache->pMutex);
 
       char localURL[vcMaxPathLength] = {};
       char serverURL[vcMaxPathLength] = {};
 
-      // process colour and/or dem request
-      if (pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue))
-      {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-        udSprintf(serverURL, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-        UD_ERROR_CHECK(vcTileRenderer_HandleTileDownload(&pBestNode->colourInfo, serverURL, localURL));
-      }
-
-      if (pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue))
+      // process dem and/or colour request
+      if (pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
         udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
-        UD_ERROR_CHECK(vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL));
+
+        // allow continue on failure
+        demResult = vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL);
       }
 
-epilogue:
-      // TODO: Is this block still valid?
-      if (result != udR_Success)
+      if (pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
-        if (pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading))
-          pBestNode->colourInfo.timeoutTime = 0.0f;
-        if (pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Failed, vcNodeRenderInfo::vcTLS_Downloading))
-          pBestNode->demInfo.timeoutTime = 0.0f;
+        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(serverURL, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
 
-        //printf("Failed: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+        // allow continue on failure
+        colourResult = vcTileRenderer_HandleTileDownload(&pBestNode->colourInfo, serverURL, localURL);
+      }
+
+//epilogue:
+      // TODO: Is this block still valid?
+      if (demResult != udR_Success)
+      {
+        pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
+        pBestNode->demInfo.timeoutTime = 0.0f;
+
+        //printf("Failed Dem: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+      }
+
+      if (colourResult != udR_Success)
+      {
+        pBestNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
+        pBestNode->colourInfo.timeoutTime = 0.0f;
+
+        //printf("Failed Colour: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
       }
     }
   }
@@ -786,7 +802,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     udFree(pNode->demInfo.data.pData);
 
     vcQuadTree_CalculateNodeAABB(pNode);
-    // update descendent AABB
+
+    // conditonal update AABBs of tree (up and down)
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
   }
@@ -829,21 +846,20 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
   return false;
 }
 
-void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, int &tileUploadCount)
+void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
-  if (tileUploadCount >= MaxTextureUploadsPerFrame)
-    return;
+  //if (tileUploadCount >= MaxTextureUploadsPerFrame)
+  //  return;
 
   if (!vcQuadTree_IsLeafNode(pNode))
   {
     for (int c = 0; c < 4; ++c)
-      vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c], tileUploadCount);
+      vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c]);
   }
 
   if (pNode->colourInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_Loaded && vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode))
   {
-    if (vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode))
-      ++tileUploadCount;
+    vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode);
   }
 
   // hacky - looking for specific DEM levels
@@ -868,38 +884,18 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
 
   // Limit the max number of tiles uploaded per frame
   // TODO: use timings instead
-  int tileUploadCount = 0;
 
   // update visible tiles textures
-  vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex], tileUploadCount);
+  vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex]);
 
   // remove from the queue any tiles that are invalid
   for (int i = 0; i < (int)pTileRenderer->cache.tileLoadList.length; ++i)
   {
-    if (!pTileRenderer->cache.tileLoadList[i]->colourInfo.tryLoad && !pTileRenderer->cache.tileLoadList[i]->demInfo.tryLoad)
+    vcQuadTreeNode *pNode = pTileRenderer->cache.tileLoadList[i];
+    if (!pNode->touched || (!pNode->colourInfo.tryLoad && !pNode->demInfo.tryLoad))
     {
-      // MAY HAVE FIXED THIS BUG
-
-      // TODO: Bug causing this data to be allocated, free just in case
-      if (pTileRenderer->cache.tileLoadList[i]->colourInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_None)
-      {
-        //printf("YIKES\n");
-       // __debugbreak();
-      //  udFree(pTileRenderer->cache.tileLoadList[i]->colourInfo.data.pData);
-      //  vcTexture_Destroy(&pTileRenderer->cache.tileLoadList[i]->colourInfo.data.pTexture);
-      }
-      //
-      //// TODO: Bug causing this data to rarely leak, free just in case
-      if (pTileRenderer->cache.tileLoadList[i]->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_None)
-      {
-       // printf("YIKES2\n");
-       // __debugbreak();
-      //  udFree(pTileRenderer->cache.tileLoadList[i]->demInfo.data.pData);
-      //  vcTexture_Destroy(&pTileRenderer->cache.tileLoadList[i]->demInfo.data.pTexture);
-      }
-
-      pTileRenderer->cache.tileLoadList[i]->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
-      pTileRenderer->cache.tileLoadList[i]->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
+      pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
+      pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
       pTileRenderer->cache.tileLoadList.RemoveSwapLast(i);
       --i;
     }
@@ -1146,7 +1142,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   static int count = 0;
   ++count;
 #if 1
-  //if (count == 1000)
+  if (count == 100)
   {
     count = 0;
     printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu...used=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length, pTileRenderer->quadTree.nodes.used);

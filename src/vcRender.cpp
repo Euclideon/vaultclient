@@ -752,10 +752,6 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
-    // Corners [nw, ne, sw, se]
-    udDouble3 localCorners[4];
-    udInt2 slippyCorners[4];
-
     int currentZoom = 21;
 
     // project camera position to base altitude
@@ -777,6 +773,10 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     const double BaseViewDistance = 5000.0;
     const double HeightViewDistanceScale = 30.0;
     double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraDistanceToAltitudeZero * HeightViewDistanceScale);
+
+    // Corners [nw, ne, sw, se]
+    udDouble3 localCorners[4];
+    udInt2 slippyCorners[4];
 
     // Cardinal Limits
     localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, 0);
