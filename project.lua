@@ -24,7 +24,7 @@ project "vaultClient"
 	includedirs { "src", "src/scene", "src/rendering" }
 	includedirs { "3rdParty/udcore/Include" }
 	includedirs { "3rdParty/imgui" }
-	includedirs { "3rdParty/stb" }
+	includedirs { "3rdParty/udcore/3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
 	includedirs { "3rdParty/poly2tri" }
 	includedirs { "3rdParty/atmosphere", "3rdParty/atmosphere/external/dimensional_types" }
