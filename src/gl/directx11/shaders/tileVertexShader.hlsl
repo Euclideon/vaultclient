@@ -72,7 +72,9 @@ PS_INPUT main(VS_INPUT input)
   }
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
-  float tileHeight = demTexture.SampleLevel( demSampler, demUV, 0 ).x * 32768.0;
+  float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
+  // Reconstruct uint16 in float space and then convert back to int16 in float space
+  float tileHeight = ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
   float3 heightOffset = u_tileNormal.xyz * tileHeight;
   float4 h = mul(u_view, float4(heightOffset, 1.0));
   float4 baseH = mul(u_view, float4(0, 0, 0, 1.0));

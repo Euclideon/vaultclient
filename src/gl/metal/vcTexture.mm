@@ -53,8 +53,8 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     storageMode = MTLStorageModeManaged;
 #endif
     break;
-  case vcTextureFormat_R16:  
-    pixelFormat = MTLPixelFormatR16Snorm;
+  case vcTextureFormat_RG8:  
+    pixelFormat = MTLPixelFormatRG8Unorm;
     usage = MTLTextureUsageShaderRead;
     pixelSize = 2;
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR

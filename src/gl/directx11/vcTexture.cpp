@@ -35,8 +35,8 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, bool isRender
     textureFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     pixelSize = 16;
     break;
-  case vcTextureFormat_R16:
-    textureFormat = DXGI_FORMAT_R16_SNORM;
+  case vcTextureFormat_RG8:
+    textureFormat = DXGI_FORMAT_R8G8_UNORM;
     pixelSize = 2;
     break;
   case vcTextureFormat_D32F:
