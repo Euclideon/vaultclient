@@ -60,13 +60,13 @@ uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud, uint64_t
   if (pDisplacement != nullptr)
   {
     if (*pDisplacement == FLT_MAX)
-      displacementColour = pData->data.displacement.errorColour;
-    else if (*pDisplacement <= pData->data.displacement.minThreshold)
-      displacementColour = pData->data.displacement.minColour;
-    else if (*pDisplacement >= pData->data.displacement.maxThreshold)
-      displacementColour = pData->data.displacement.maxColour;
+      displacementColour = pData->data.displacementAmount.errorColour;
+    else if (*pDisplacement <= pData->data.displacementAmount.minThreshold)
+      displacementColour = pData->data.displacementAmount.minColour;
+    else if (*pDisplacement >= pData->data.displacementAmount.maxThreshold)
+      displacementColour = pData->data.displacementAmount.maxColour;
     else
-      displacementColour = pData->data.displacement.midColour;
+      displacementColour = pData->data.displacementAmount.midColour;
   }
 
   displacementColour = vcVoxelShader_FadeAlpha(displacementColour, baseColour);
@@ -85,31 +85,38 @@ uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud, uint64_
   vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
 
   float *pDisplacementDirections[3];
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacement.attributeOffsets[0], (const void **)&pDisplacementDirections[0]);
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacement.attributeOffsets[1], (const void **)&pDisplacementDirections[1]);
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacement.attributeOffsets[2], (const void **)&pDisplacementDirections[2]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[0], (const void **)&pDisplacementDirections[0]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[1], (const void **)&pDisplacementDirections[1]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[2], (const void **)&pDisplacementDirections[2]);
 
   if (pDisplacement != nullptr && pDisplacementDirections[0] != nullptr && pDisplacementDirections[1] != nullptr && pDisplacementDirections[2] != nullptr)
   {
-    udFloat3 direction = udFloat3::create(*pDisplacementDirections[0], *pDisplacementDirections[1], *pDisplacementDirections[2]);
+    udDouble3 direction = udDouble3::create(*pDisplacementDirections[0], *pDisplacementDirections[1], *pDisplacementDirections[2]);
+    if (direction != udDouble3::zero())
+    {
+      double amount = udDot(direction, pData->data.displacementDirection.cameraDirection);
 
-    int32_t red = (int32_t)((*pDisplacementDirections[0] / 2.f + 0.5f) * 255);
-    int32_t green = (int32_t)((*pDisplacementDirections[1] / 2.f + 0.5f) * 255);
-    int32_t blue = (int32_t)((*pDisplacementDirections[2] / 2.f + 0.5f) * 255);
+      if (amount >= 0)
+        displacementColour = pData->data.displacementDirection.posColour;
+      else
+        displacementColour = pData->data.displacementDirection.negColour;
 
-    displacementColour = 0xFF000000 | ((red << 16) | (green << 8) | blue);
+      for (int i = 0; i < 3; ++i)
+      {
+        uint32_t shift = i * 8;
+        uint32_t mask = ~(0xFF << shift);
+        uint32_t val = (uint32_t(((displacementColour >> shift) & 0xFF) * udMin(*pDisplacement, 1.f) * 255) << shift);
+        displacementColour = (displacementColour & mask) | val;
+      }
 
-    //if (*pDisplacement == FLT_MAX)
-    //  displacementColour = pData->data.displacement.errorColour;
-    //else if (*pDisplacement <= pData->data.displacement.minThreshold)
-    //  displacementColour = pData->data.displacement.minColour;
-    //else if (*pDisplacement >= pData->data.displacement.maxThreshold)
-    //  displacementColour = pData->data.displacement.maxColour;
-    //else
-    //  displacementColour = pData->data.displacement.midColour;
+      displacementColour = vcVoxelShader_FadeAlpha(displacementColour, baseColour);
+    }
+    else
+    {
+      displacementColour = baseColour;
+    }
   }
 
-  displacementColour = vcVoxelShader_FadeAlpha(displacementColour, baseColour);
   return vcPCShaders_BuildAlpha(pData->pModel) | (displacementColour & 0xFFFFFF);
 }
 

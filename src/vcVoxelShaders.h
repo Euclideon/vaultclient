@@ -22,16 +22,20 @@ struct vcUDRSData
     } classification;
     struct
     {
-      uint32_t attributeOffsets[3];
-      udFloat3 cameraDirection;
-
       float minThreshold;
       float maxThreshold;
       uint32_t minColour;
       uint32_t maxColour;
       uint32_t midColour;
       uint32_t errorColour;
-    } displacement;
+    } displacementAmount;
+    struct
+    {
+      uint32_t attributeOffsets[3];
+      udDouble3 cameraDirection;
+      uint32_t posColour;
+      uint32_t negColour;
+    } displacementDirection;
   } data;
 };
 
