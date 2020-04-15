@@ -164,7 +164,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Simple);
     pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.93f, 1.f));
     pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
-    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(4.5f);
+    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsInt(9);
 
     switch (pSettings->presentation.styleIndex)
     {
@@ -484,7 +484,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("skybox.type = %d", pSettings->presentation.skybox.type);
   data.Set("skybox.colour = [%f, %f, %f, %f]", pSettings->presentation.skybox.colour.x, pSettings->presentation.skybox.colour.y, pSettings->presentation.skybox.colour.z, pSettings->presentation.skybox.colour.w);
   data.Set("skybox.exposure = %f", pSettings->presentation.skybox.exposure);
-  data.Set("skybox.timeOfDay = %f", pSettings->presentation.skybox.timeOfDay);
+  data.Set("skybox.timeOfDay = %d", pSettings->presentation.skybox.timeOfDay);
 
   data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
   for (int i = 0; i < 4; i++)

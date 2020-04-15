@@ -278,8 +278,8 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   pAtmosphereRenderer->exposure = pProgramState->settings.presentation.skybox.exposure;
 
   //At solar noon the hour angle is 0.000 degree, with the time before solar noon expressed as negative degrees, and the local time after solar noon expressed as positive degrees.
-  //For example, at 10:30 AM local apparent time the hour angle is -22.5° (15° per hour times 1.5 hours before noon).
-  float hourAngle = (pProgramState->settings.presentation.skybox.timeOfDay - 12.f) * 15;
+  //For example, at 10:30 AM local apparent time the hour angle is -22.5Â° (15Â° per hour times 1.5 hours before noon).
+  float hourAngle = ((float)pProgramState->settings.presentation.skybox.timeOfDay - 13.f) * 15;
   float hourAngleRadians = UD_2PIf * hourAngle / 360.f;
   float latitudeRadians = 0;
   if (pProgramState->gis.isProjected)
