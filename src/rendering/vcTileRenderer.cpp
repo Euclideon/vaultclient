@@ -1039,15 +1039,10 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
 // 'false' indicates that the nodes ancestor needs to be rendered.
 bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, vcQuadTreeNode *pNode, vcQuadTreeNode *pBestTexturedAncestor, vcQuadTreeNode *pBestDemAncestor)
 {
+  static bool doVisibilityTest = true;
   pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
 
-  if (!pNode->touched)
-  {
-    // re-test visibility
-    //pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
-  }
-
-  if (!pNode->visible)
+  if (doVisibilityTest && !pNode->visible)
     return false;
 
   pTileRenderer->quadTree.metaData.visibleNodeCount++;

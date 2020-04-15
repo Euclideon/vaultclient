@@ -123,10 +123,14 @@ void vcQuadTree_CalculateNodeAABB(vcQuadTreeNode *pNode)
   udDouble3 boundsMin = udDouble3::create(FLT_MAX, FLT_MAX, FLT_MAX);
   udDouble3 boundsMax = udDouble3::create(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+  udDouble3 n0 = pNode->worldNormal * pNode->demMinMax[0];
+  udDouble3 n1 = pNode->worldNormal * pNode->demMinMax[1];
   for (int edge = 0; edge < 9; ++edge)
   {
-    boundsMin = udMin(pNode->worldBounds[edge] + pNode->worldNormal * pNode->demMinMax[0], boundsMin);
-    boundsMax = udMax(pNode->worldBounds[edge] + pNode->worldNormal * pNode->demMinMax[1], boundsMax);
+    udDouble3 p0 = pNode->worldBounds[edge] + n0;
+    udDouble3 p1 = pNode->worldBounds[edge] + n1;
+    boundsMin = udMin(p0, udMin(p1, boundsMin));
+    boundsMax = udMax(p0, udMax(p1, boundsMax));
   }
 
   pNode->tileCenter = (boundsMax + boundsMin) * 0.5;

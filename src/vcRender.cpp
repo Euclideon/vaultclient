@@ -762,8 +762,8 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
     cameraPositionInLongLat.z = 0.0;
     udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraPositionInLongLat);
-    udDouble3 cameraToZeroAltitude = localCamPos - cameraZeroAltitude;
-    double cameraDistanceToAltitudeZero = udMag3(cameraToZeroAltitude);
+    udDouble3 earthNormal = localCamPos - cameraZeroAltitude;
+    double cameraDistanceToAltitudeZero = udMag3(earthNormal);
 
     // TODO: Fix this
     // determine if camera is 'inside' the ground
@@ -1703,6 +1703,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
       vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     }
 
+    vcRenderTerrain(pProgramState, pRenderContext, vcPMP_ColourOnly);
+
     udUInt2 readLocation = { pRenderContext->picking.location.x, pRenderContext->picking.location.y };
     uint8_t colourBytes[4] = {};
     uint8_t depthBytes[4] = {};
@@ -1711,8 +1713,6 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     // read upside down
     readLocation.y = (pRenderContext->effectResolution.y - readLocation.y - 1);
 #endif
-
-    vcRenderTerrain(pProgramState, pRenderContext, vcPMP_ColourOnly);
 
     // Synchronously read back data
     vcTexture_BeginReadPixels(pRenderContext->picking.pTexture, readLocation.x, readLocation.y, 1, 1, colourBytes, pRenderContext->picking.pFramebuffer);
