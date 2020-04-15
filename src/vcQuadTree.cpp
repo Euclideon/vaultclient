@@ -237,18 +237,14 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     if (slippyManhattanDist != 0)
       distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormal * pChildNode->demMinMax[1]);
 
-    ++pQuadTree->metaData.nodeTouchedCount;
-    //if (pChildNode->visible)
-    //  ++pQuadTree->metaData.visibleNodeCount;
-    //else if ((pQuadTree->pSettings->maptiles.mapOptions & vcTRF_OnlyRequestVisibleTiles) != 0)
-    //  continue;
-
     int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
     bool alwaysSubdivide = pChildNode->visible && totalDepth < 2;
     if (alwaysSubdivide || vcQuadTree_ShouldSubdivide(distanceToQuadrant, totalDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
       ++pQuadTree->metaData.leafNodeCount;
+
+    ++pQuadTree->metaData.nodeTouchedCount;
   }
 }
 
