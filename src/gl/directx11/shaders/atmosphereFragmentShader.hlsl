@@ -1283,10 +1283,8 @@ IrradianceSpectrum GetSunAndSkyIrradiance(
       (1.0 + dot(normal, p) / r) * 0.5;
 
   // Direct irradiance.
-  return atmosphere.solar_irradiance *
-      GetTransmittanceToSun(
-          atmosphere, transmittance_texture, r, mu_s) *
-      max(dot(normal, sun_direction), 0.0);
+  DimensionlessSpectrum transmit = GetTransmittanceToSun(atmosphere, transmittance_texture, r, mu_s) * max(dot(normal, sun_direction), 0.0);
+  return atmosphere.solar_irradiance * max(transmit, DimensionlessSpectrum(0.001, 0.001, 0.001));
 }
 
 
