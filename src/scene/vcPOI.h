@@ -37,6 +37,7 @@ struct vcLineInfo
 class vcPOI : public vcSceneItem
 {
   friend class vcPOIState_General;
+  friend class vcPOIState_Annotate;
   friend class vcPOIState_MeasureLine;
   friend class vcPOIState_MeasureArea;
 private:

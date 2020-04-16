@@ -70,6 +70,7 @@ enum vcActiveTool
   vcActiveTool_MeasureLine, // Clicking places nodes in the current selected POI (or creates one if the current selected item isn't a POI)
   vcActiveTool_MeasureArea, // Clicking places nodes in the current selected POI (or creates one if the current selected item isn't a POI)
 
+  vcActiveTool_Annotate, //Single POI
   vcActiveTool_Inspect, // Inspects the voxel under the mouse
 
   vcActiveTool_Count

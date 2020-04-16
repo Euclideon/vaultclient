@@ -1194,6 +1194,26 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           if (pProgramState->udModelNodeAttributes.IsObject())
             vcImGuiValueTreeObject(&pProgramState->udModelNodeAttributes);
         }
+        else if (pProgramState->activeTool == vcActiveTool_Annotate)
+        {
+          ImGui::Separator();
+          static size_t const bufSize = 64;
+          static bool isFirst = true;
+          static char buf[bufSize] = {};
+
+          if (isFirst)
+          {
+            udSprintf(buf, "%s", vcString::Get("toolAnnotateDefaultText"));
+            isFirst = false;
+          }
+
+          ImGui::InputText(vcString::Get("toolAnnotatePrompt"), buf, bufSize);
+          if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+          {
+            ImGui::Separator();
+            vdkProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->sceneExplorer.clickedItem.pItem, buf);
+          }
+        }
       }
     }
 
@@ -1670,6 +1690,13 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectionTool)), vcMBBI_Inspect, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectionTool) && !ImGui::IsAnyItemActive()))
         pProgramState->activeTool = vcActiveTool_Inspect;
 
+      // Activate Annotate
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolAnnotate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleAnnotateTool)), vcMBBI_AddPointOfInterest, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Annotate)) || (vcHotkey::IsPressed(vcB_ToggleAnnotateTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_Annotate;
+      }
+
       // Activate Measure
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureLine"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureLineTool)), vcMBBI_MeasureLine, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureLine)) || (vcHotkey::IsPressed(vcB_ToggleMeasureLineTool) && !ImGui::IsAnyItemActive()))
       {
@@ -1819,6 +1846,18 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       }
       break;
 
+    case vcActiveTool_Annotate:
+    {
+      vcProject_ClearSelection(pProgramState, false);
+      vdkProjectNode *pNode = nullptr;
+
+      if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("toolAnnotateDefaultText"), nullptr, nullptr) == vE_Success)
+      {
+        vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->worldMousePosLongLat.x);
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+      }
+      break;
+    }
     case vcActiveTool_Inspect:
       // Does nothing during operation
       break;

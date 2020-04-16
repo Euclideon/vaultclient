@@ -358,6 +358,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_ToggleMeasureLineTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureLineTool)).AsInt(64));
     vcHotkey::Set(vcB_ToggleMeasureAreaTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureAreaTool)).AsInt(65));
     vcHotkey::Set(vcB_ToggleInspectionTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleInspectionTool)).AsInt(66));
+    vcHotkey::Set(vcB_ToggleAnnotateTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleAnnotateTool)).AsInt(67));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)
