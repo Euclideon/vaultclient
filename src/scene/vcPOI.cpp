@@ -967,11 +967,28 @@ bool vcPOI::LoadAttachedModel(const char *pNewPath)
   return false;
 }
 
+double vcPOI::DistanceToPoint(udDouble3 const & point)
+{
+  int nSegments = m_line.numPoints;
+  if (!m_line.closed)
+    --nSegments;
+
+  double distanceSq = DBL_MAX;
+  for (int i = 0; i < nSegments; ++i)
+  {
+    udLineSegment<double> seg(m_line.pPoints[i], m_line.pPoints[(i + 1) % m_line.numPoints]);
+    double segDistanceSq = udDistanceSqLineSegmentPoint(seg, point);
+    if (segDistanceSq < distanceSq)
+      distanceSq = segDistanceSq;
+  }
+  return udSqrt(distanceSq);
+}
+
 bool vcPOI::IsVisible(vcState *pProgramState)
 {
   // if POI is invisible or if it exceeds maximum visible POI distance (unless selected)
   bool visible = m_visible;
-  visible = visible && (udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) < pProgramState->settings.presentation.POIFadeDistance);
+  visible = visible && (DistanceToPoint(pProgramState->camera.position) < pProgramState->settings.presentation.POIFadeDistance);
   visible = visible || m_selected;
   return visible;
 }
