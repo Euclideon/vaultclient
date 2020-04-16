@@ -162,6 +162,20 @@ udFloat4 vcIGSW_BGRAToImGui(uint32_t lineColour)
   return colours;
 }
 
+ uint32_t vcIGSW_ImGuiToBGRA(udFloat4 const & vec)
+{
+  uint32_t val = 0;
+
+  udFloat4 clamped = udClamp(vec, udFloat4::create(0.f, 0.f, 0.f, 0.f), udFloat4::create(1.f, 1.f, 1.f, 1.f));
+
+  val |= ((uint32_t)(clamped[0] * 255) << 16); // Blue
+  val |= ((uint32_t)(clamped[1] * 255) << 8); // Green
+  val |= ((uint32_t)(clamped[2] * 255) << 0); // Red
+  val |= ((uint32_t)(clamped[3] * 255) << 24); // Alpha
+
+  return val;
+}
+
 uint32_t vcIGSW_BGRAToRGBAUInt32(uint32_t lineColour)
 {
   // BGRA to RGBA

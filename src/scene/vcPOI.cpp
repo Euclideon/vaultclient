@@ -31,10 +31,299 @@ static const char *vcFRIMStrings[] =
 };
 UDCOMPILEASSERT(udLengthOf(vcFRIMStrings) == vcRRIM_Count, "New enum values");
 
+//----------------------------------------------------------------------------------------------------
+// vcPOIState_General
+//----------------------------------------------------------------------------------------------------
+
+class vcPOIState_General
+{
+protected:
+  vcPOI *m_pParent;
+public:
+  vcPOIState_General(vcPOI *pParent)
+    : m_pParent(pParent)
+  {
+
+  }
+
+  virtual ~vcPOIState_General()
+  {
+
+  }
+
+  virtual void HandlePopupUI(vcState * /*pProgramState*/)
+  {
+
+  }
+
+  virtual void AddPoint(vcState * pProgramState, const udDouble3 &position, bool /*isPreview*/)
+  {
+    m_pParent->InsertPoint(position);
+
+    m_pParent->UpdatePoints();
+
+    vcProject_UpdateNodeGeometryFromCartesian( m_pParent->m_pProject,  m_pParent->m_pNode, pProgramState->gis.zone,  m_pParent->m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString,  m_pParent->m_line.pPoints,  m_pParent->m_line.numPoints);
+    m_pParent->m_line.selectedPoint =  m_pParent->m_line.numPoints - 1;
+  }
+
+  virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
+  {
+    if (!m_pParent->IsVisible(pProgramState))
+      return;
+
+    if (m_pParent->m_selected)
+    {
+      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+      {
+        m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+      }
+    }
+
+    m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->AddAttachedModelsToScene(pProgramState, pRenderData);
+    m_pParent->DoFlythrough(pProgramState);
+  }
+
+  virtual vcPOIState_General *ChangeState(vcState *pProgramState);
+};
+
+//----------------------------------------------------------------------------------------------------
+// vcPOIState_MeasureLine
+//----------------------------------------------------------------------------------------------------
+
+class vcPOIState_MeasureLine : public vcPOIState_General
+{
+public:
+  vcPOIState_MeasureLine(vcPOI *pParent)
+    : vcPOIState_General(pParent)
+  {
+
+  }
+
+  ~vcPOIState_MeasureLine()
+  {
+
+  }
+
+  void HandlePopupUI(vcState *pProgramState) override
+  {
+    size_t itemID = size_t(-1);
+    if (m_pParent->m_line.numPoints > 1)
+    {
+      if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), itemID), &m_pParent->m_showLength))
+        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
+
+      if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_pParent->m_showAllLengths))
+        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
+
+      if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOICloseAndExit"), itemID), &m_pParent->m_line.closed))
+        vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->gis.zone, vdkPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+    }
+  }
+
+  //This and AddToScene() are essentially duplicated in vcPOIState_MeasureArea, but let's keep it this way for now.
+  //When these tools grow, we'll no doubt look different.
+  void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview) override
+  {
+    //For new nodes, we need to add a preview point
+    if (m_pParent->m_line.numPoints == 1)
+      m_pParent->InsertPoint(position);
+
+    if (isPreview)
+      m_pParent->m_line.pPoints[m_pParent->m_line.numPoints - 1] = position;
+    else
+      m_pParent->InsertPoint(position);
+
+    m_pParent->UpdatePoints();
+
+    if (!isPreview)
+    {
+      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->gis.zone, vdkPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+      m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
+    }
+  }
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override
+  {
+    if (!m_pParent->IsVisible(pProgramState))
+      return;
+
+    if (m_pParent->m_selected)
+    {
+      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+      {
+        vcRenderPolyInstance * pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+      }
+    }
+
+    m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData);
+  }
+
+  vcPOIState_General *ChangeState(vcState *pProgramState) override;
+};
+
+//----------------------------------------------------------------------------------------------------
+// vcPOIState_MeasureArea
+//----------------------------------------------------------------------------------------------------
+
+class vcPOIState_MeasureArea : public vcPOIState_General
+{
+public:
+  vcPOIState_MeasureArea(vcPOI *pParent)
+    : vcPOIState_General(pParent)
+  {
+
+  }
+
+  ~vcPOIState_MeasureArea()
+  {
+
+  }
+
+  void HandlePopupUI(vcState * /*pProgramState*/) override
+  {
+    size_t itemID = size_t(-1);
+    if (m_pParent->m_line.numPoints > 1)
+    {
+      if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_pParent->m_showAllLengths))
+        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
+
+      if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_pParent->m_showArea))
+        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showArea", m_pParent->m_showArea);
+    }
+  }
+
+  void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview) override
+  {
+    //For new nodes, we need to add a preview point
+    if (m_pParent->m_line.numPoints == 1)
+      m_pParent->InsertPoint(position);
+
+    if (isPreview)
+      m_pParent->m_line.pPoints[m_pParent->m_line.numPoints - 1] = position;
+    else
+      m_pParent->InsertPoint(position);
+
+    m_pParent->UpdatePoints();
+
+    if (!isPreview)
+    {
+      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->gis.zone, vdkPGT_Polygon, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+      m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
+    }
+  }
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override
+  {
+    if (!m_pParent->IsVisible(pProgramState))
+      return;
+
+    if (m_pParent->m_selected)
+    {
+      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+      {
+        vcRenderPolyInstance * pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+      }
+    }
+
+    m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData);
+  }
+
+  vcPOIState_General *ChangeState(vcState *pProgramState) override;
+};
+
+//----------------------------------------------------------------------------------------------------
+// State changes
+//----------------------------------------------------------------------------------------------------
+
+//A general POI set cannot be promoted to a measuring tool
+vcPOIState_General *vcPOIState_General::ChangeState(vcState * /*pProgramState*/)
+{
+  return this;
+}
+
+//We still have to query a lot of state for these state changes, but at least now it is localised in one place.
+vcPOIState_General *vcPOIState_MeasureLine::ChangeState(vcState *pProgramState)
+{
+  bool shouldChange = pProgramState->activeTool != vcActiveTool_MeasureLine;
+
+  //TODO Should we allow measure mode to act on a closed polygon?
+  shouldChange = shouldChange || m_pParent->m_line.closed;
+
+  if (shouldChange)
+  {
+    //We need to notify the program state that we have stopped measuring.
+    //Ideally we shouldn't be changing program state here; data should flow in one direction (into this object for example).
+    //But this would require other changes to the program framework.
+    if (pProgramState->activeTool == vcActiveTool_MeasureLine)
+      pProgramState->activeTool = vcActiveTool_Select;
+
+    //We need to remove the preview point
+    if (m_pParent->m_line.numPoints > 0)
+      m_pParent->RemovePoint(pProgramState, m_pParent->m_line.numPoints - 1);
+
+    // TODO: 1452
+    if (m_pParent->m_line.fenceMode != vcRRVM_ScreenLine && m_pParent->m_pFence != nullptr)
+    {
+      vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_line.closed);
+    }
+
+    m_pParent->ChangeProjection(pProgramState->gis.zone);
+    if (pProgramState->activeTool == vcActiveTool_MeasureArea)
+      return new vcPOIState_MeasureArea(m_pParent);
+    else
+      return new vcPOIState_General(m_pParent);
+  }
+
+  return this;
+}
+
+//TODO This is very similar to vcPOIState_MeasureLine::ChangeState(). Consider refactoring.
+vcPOIState_General *vcPOIState_MeasureArea::ChangeState(vcState *pProgramState)
+{
+  bool shouldChange = pProgramState->activeTool != vcActiveTool_MeasureArea;
+
+  if (shouldChange)
+  {
+    if (pProgramState->activeTool == vcActiveTool_MeasureArea)
+      pProgramState->activeTool = vcActiveTool_Select;
+
+    //We need to remove the preview point
+    if (m_pParent->m_line.numPoints > 0)
+      m_pParent->RemovePoint(pProgramState, m_pParent->m_line.numPoints - 1);
+
+    // TODO: 1452
+    if (m_pParent->m_line.fenceMode != vcRRVM_ScreenLine && m_pParent->m_pFence != nullptr)
+    {
+      vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_line.closed);
+    }
+
+    m_pParent->ChangeProjection(pProgramState->gis.zone);
+    if (pProgramState->activeTool == vcActiveTool_MeasureLine)
+      return new vcPOIState_MeasureLine(m_pParent);
+    else
+      return new vcPOIState_General(m_pParent);
+  }
+
+  return this;
+}
+
+//----------------------------------------------------------------------------------------------------
+// vcPOI
+//----------------------------------------------------------------------------------------------------
+
 vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
+  , m_pState(nullptr)
 {
-  m_nameColour = 0xFFFFFFFF;
+  m_nameColour =  0xFFFFFFFF;
   m_backColour = 0x7F000000;
   m_namePt = vcLFS_Medium;
 
@@ -49,7 +338,7 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
 
   m_line.selectedPoint = -1; // Sentinel for no point selected
 
-  m_line.colourPrimary = 0xFFFFFFFF;
+  m_line.colourPrimary = 0xFF000000;
   m_line.colourSecondary = 0xFFFFFFFF;
   m_line.lineWidth = 1.0;
   m_line.closed = (m_pNode->geomtype == vdkPGT_Polygon);
@@ -74,8 +363,34 @@ vcPOI::vcPOI(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState
   m_loadStatus = vcSLS_Loaded;
 }
 
+vcPOI::~vcPOI()
+{
+  delete m_pState;
+}
+
 void vcPOI::OnNodeUpdate(vcState *pProgramState)
 {
+  if (m_pState == nullptr)
+  {
+    switch (pProgramState->activeTool)
+    {
+    case vcActiveTool_MeasureLine:
+    {
+      m_pState = new vcPOIState_MeasureLine(this);
+      break;
+    }
+    case vcActiveTool_MeasureArea:
+    {
+      m_pState = new vcPOIState_MeasureArea(this);
+      break;
+    }
+    default:
+    {
+      m_pState = new vcPOIState_General(this);
+    }
+    }
+  }
+
   const char *pTemp;
   vdkProjectNode_GetMetadataString(m_pNode, "textSize", &pTemp, "Medium");
   if (udStrEquali(pTemp, "x-small") || udStrEquali(pTemp, "small"))
@@ -85,9 +400,9 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   else
     m_namePt = vcLFS_Medium;
 
-  vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, 0xFFFFFFFF);
-  vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, 0x7F000000);
-  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, 0xFFFFFFFF);
+  vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
+  vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
+  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
 
   if (vdkProjectNode_GetMetadataBool(m_pNode, "lineDualColour", &m_line.isDualColour, false) != vE_Success)
@@ -103,17 +418,17 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   m_line.closed = (m_pNode->geomtype == vdkPGT_Polygon);
 
   double tempDouble;
-  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, 1.0);
+  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, pProgramState->settings.tools.line.width);
   m_line.lineWidth = (float)tempDouble;
 
-  vdkProjectNode_GetMetadataString(m_pNode, "lineStyle", &pTemp, vcFRIMStrings[0]);
+  vdkProjectNode_GetMetadataString(m_pNode, "lineStyle", &pTemp, vcFRIMStrings[pProgramState->settings.tools.line.style]);
   int i = 0;
   for (; i < vcRRIM_Count; ++i)
     if (udStrEquali(pTemp, vcFRIMStrings[i]))
       break;
   m_line.lineStyle = (vcFenceRendererImageMode)i;
 
-  vdkProjectNode_GetMetadataString(m_pNode, "lineMode", &pTemp, vcFRVMStrings[0]);
+  vdkProjectNode_GetMetadataString(m_pNode, "lineMode", &pTemp, vcFRVMStrings[pProgramState->settings.tools.line.fenceMode]);
   for (i = 0; i < vcRRVM_Count; ++i)
     if (udStrEquali(pTemp, vcFRVMStrings[i]))
       break;
@@ -137,6 +452,7 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
+  UpdateState(pProgramState);
   ChangeProjection(pProgramState->gis.zone);
   UpdatePoints();
 }
@@ -194,144 +510,8 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  // if POI is invisible or if it exceeds maximum visible POI distance (unless selected)
-  if (!m_visible || ((udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) > pProgramState->settings.presentation.POIFadeDistance) && !m_selected))
-    return;
-
-  bool isMeasuring = (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea);
-  bool wasPreviouslyPreviewing = m_hasPreviewPoint;
-  if (m_hasPreviewPoint && (!m_selected || !isMeasuring))
-    ChangeProjection(pProgramState->gis.zone);
-
-  //Preview has ended
-  if (wasPreviouslyPreviewing && !m_hasPreviewPoint)
-  {
-    // TODO: 1452
-    if (m_line.fenceMode != vcRRVM_ScreenLine && m_pFence != nullptr)
-    {
-      vcFenceRenderer_ClearPoints(m_pFence);
-      vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
-    }
-  }
-
-  if (m_selected)
-  {
-    for (int i = 0; i < m_line.numPoints; ++i)
-    {
-      vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
-
-      udDouble3 linearDistance = (pProgramState->camera.position - m_line.pPoints[i]);
-
-      pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
-      pInstance->worldMat = udDouble4x4::translation(m_line.pPoints[i]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
-      pInstance->pSceneItem = this;
-      pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
-      pInstance->sceneItemInternalId = (uint64_t)(i+1);
-
-      if (isMeasuring)
-        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
-    }
-  }
-
-  // TODO: 1452
-  if (m_line.fenceMode != vcRRVM_ScreenLine && m_pFence != nullptr)
-    pRenderData->fences.PushBack(m_pFence);
-  else if (m_line.fenceMode == vcRRVM_ScreenLine && m_pLine != nullptr)
-    pRenderData->lines.PushBack(m_pLine);
-
-  if (m_pLabelInfo != nullptr)
-  {
-    if ((m_showLength && m_line.numPoints > 1) || (m_showArea && m_line.numPoints > 2))
-      m_pLabelInfo->pText = m_pLabelText;
-    else
-      m_pLabelInfo->pText = m_pNode->pName;
-
-    pRenderData->labels.PushBack(m_pLabelInfo);
-
-    if (m_showAllLengths && m_line.numPoints > 1)
-    {
-      for (size_t i = 0; i < m_lengthLabels.length; ++i)
-      {
-        if (m_line.closed || i > 0)
-          pRenderData->labels.PushBack(m_lengthLabels.GetElement(i));
-      }
-    }
-  }
-
-  // Model attached to the camera
-  if (m_attachment.pModel != nullptr)
-  {
-    double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
-    udDouble3 startYPR = m_attachment.eulerAngles;
-    udDouble3 startPosDiff = pProgramState->camera.position - m_attachment.currentPos;
-
-    udDouble3 updatedPosition = {};
-
-    if (remainingMovementThisFrame > 0)
-    {
-      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_attachment.segmentIndex, &m_attachment.segmentProgress))
-      {
-        if (m_line.numPoints > 1)
-          m_attachment.eulerAngles = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
-
-        m_attachment.currentPos = m_line.pPoints[0];
-      }
-      else
-      {
-        udDouble3 targetEuler = udDirectionToYPR(updatedPosition - m_attachment.currentPos);
-
-        m_attachment.eulerAngles = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
-        m_attachment.currentPos = updatedPosition;
-      }
-    }
-
-    udDouble4x4 attachmentMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
-
-    // Render the attachment
-    vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
-    pModel->pModel = m_attachment.pModel;
-    pModel->pSceneItem = this;
-    pModel->worldMat = attachmentMat;
-    pModel->cullFace = m_attachment.cullMode;
-
-    // Update the camera if the camera is coming along
-    if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
-    {
-      udOrientedPoint<double> rotRay = udOrientedPoint<double>::create(startPosDiff, vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch));
-      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
-      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
-      pProgramState->camera.position = m_attachment.currentPos + rotRay.position;
-      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, rotRay.orientation);
-    }
-  }
-
-  // Flythrough
-  if (pProgramState->cameraInput.pAttachedToSceneItem == this && !m_cameraFollowingAttachment)
-  {
-    if (m_line.numPoints <= 1)
-    {
-      pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
-    }
-    else
-    {
-      double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
-      udDoubleQuat startQuat = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
-
-      udDouble3 updatedPosition = {};
-
-      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
-      {
-        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udDoubleQuat::create(udNormalize(m_line.pPoints[1] - m_line.pPoints[0]), 0.0));
-        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
-      }
-      else
-      {
-        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udSlerp(startQuat, udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2));
-      }
-
-      pProgramState->camera.position = updatedPosition;
-    }
-  }
+  UpdateState(pProgramState);
+  m_pState->AddToScene(pProgramState, pRenderData);
 }
 
 void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
@@ -658,34 +838,26 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
 
 void vcPOI::HandleToolUI(vcState *pProgramState)
 {
-  HandleBasicUI(pProgramState, size_t(-1));
+  m_pState->HandlePopupUI(pProgramState);
+}
+
+void vcPOI::InsertPoint(const udDouble3 &position)
+{
+  m_line.numPoints++;
+
+  udDouble3 *pNewPoints = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
+
+  memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
+  pNewPoints[m_line.numPoints - 1] = position;
+
+  udFree(m_line.pPoints);
+  m_line.pPoints = pNewPoints;
 }
 
 void vcPOI::AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview)
 {
-  bool addingPoint = !m_hasPreviewPoint;
-  m_hasPreviewPoint = isPreview;
-
-  int totalPoints = m_line.numPoints + (addingPoint ? 1 : 0);
-
-  udDouble3 *pNewPoints = udAllocType(udDouble3, totalPoints, udAF_Zero);
-
-  memcpy(pNewPoints, m_line.pPoints, sizeof(udDouble3) * m_line.numPoints);
-  pNewPoints[addingPoint ? m_line.numPoints : m_line.numPoints - 1] = position;
-
-  udFree(m_line.pPoints);
-  m_line.pPoints = pNewPoints;
-
-  if (addingPoint)
-    ++m_line.numPoints;
-
-  UpdatePoints();
-
-  if (!isPreview)
-  {
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
-    m_line.selectedPoint = m_line.numPoints - 1;
-  }
+  UpdateState(pProgramState);
+  m_pState->AddPoint(pProgramState, position, isPreview);
 }
 
 void vcPOI::RemovePoint(vcState *pProgramState, int index)
@@ -752,6 +924,29 @@ bool vcPOI::IsSubitemSelected(uint64_t internalId)
   return (m_selected && (m_line.selectedPoint == ((int)internalId - 1) || m_line.selectedPoint == -1));
 }
 
+vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i)
+{
+  vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+
+  udDouble3 linearDistance = (pProgramState->camera.position - m_line.pPoints[i]);
+
+  pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
+  pInstance->worldMat = udDouble4x4::translation(m_line.pPoints[i]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
+  pInstance->pSceneItem = this;
+  pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
+  pInstance->sceneItemInternalId = (uint64_t)i + 1;
+  return pInstance;
+}
+
+void vcPOI::UpdateState(vcState *pProgramState)
+{
+
+  vcPOIState_General *pNewState = m_pState->ChangeState(pProgramState);
+  if (pNewState != m_pState)
+    delete m_pState;
+  m_pState = pNewState;
+}
+
 bool vcPOI::LoadAttachedModel(const char *pNewPath)
 {
   if (pNewPath == nullptr)
@@ -770,4 +965,123 @@ bool vcPOI::LoadAttachedModel(const char *pNewPath)
   }
 
   return false;
+}
+
+bool vcPOI::IsVisible(vcState *pProgramState)
+{
+  // if POI is invisible or if it exceeds maximum visible POI distance (unless selected)
+  bool visible = m_visible;
+  visible = visible && (udMag3(m_pLabelInfo->worldPosition - pProgramState->camera.position) < pProgramState->settings.presentation.POIFadeDistance);
+  visible = visible || m_selected;
+  return visible;
+}
+
+void vcPOI::AddFenceToScene(vcRenderData *pRenderData)
+{
+  // TODO: 1452
+  if (m_line.fenceMode != vcRRVM_ScreenLine && m_pFence != nullptr)
+    pRenderData->fences.PushBack(m_pFence);
+  else if (m_line.fenceMode == vcRRVM_ScreenLine && m_pLine != nullptr)
+    pRenderData->lines.PushBack(m_pLine);
+}
+
+void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
+{
+  if (m_pLabelInfo != nullptr)
+  {
+    if ((m_showLength && m_line.numPoints > 1) || (m_showArea && m_line.numPoints > 2))
+      m_pLabelInfo->pText = m_pLabelText;
+    else
+      m_pLabelInfo->pText = m_pNode->pName;
+
+    pRenderData->labels.PushBack(m_pLabelInfo);
+
+    if (m_showAllLengths && m_line.numPoints > 1)
+    {
+      for (size_t i = 0; i < m_lengthLabels.length; ++i)
+      {
+        if (m_line.closed || i > 0)
+          pRenderData->labels.PushBack(m_lengthLabels.GetElement(i));
+      }
+    }
+  }
+}
+
+void vcPOI::AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRenderData)
+{
+  if (m_attachment.pModel != nullptr)
+  {
+    double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
+    udDouble3 startYPR = m_attachment.eulerAngles;
+    udDouble3 startPosDiff = pProgramState->camera.position - m_attachment.currentPos;
+
+    udDouble3 updatedPosition = {};
+
+    if (remainingMovementThisFrame > 0)
+    {
+      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_attachment.segmentIndex, &m_attachment.segmentProgress))
+      {
+        if (m_line.numPoints > 1)
+          m_attachment.eulerAngles = udDirectionToYPR(m_line.pPoints[1] - m_line.pPoints[0]);
+
+        m_attachment.currentPos = m_line.pPoints[0];
+      }
+      else
+      {
+        udDouble3 targetEuler = udDirectionToYPR(updatedPosition - m_attachment.currentPos);
+
+        m_attachment.eulerAngles = udSlerp(udDoubleQuat::create(startYPR), udDoubleQuat::create(targetEuler), 0.2).eulerAngles();
+        m_attachment.currentPos = updatedPosition;
+      }
+    }
+
+    udDouble4x4 attachmentMat = udDouble4x4::rotationYPR(m_attachment.eulerAngles, m_attachment.currentPos);
+
+    // Render the attachment
+    vcRenderPolyInstance *pModel = pRenderData->polyModels.PushBack();
+    pModel->pModel = m_attachment.pModel;
+    pModel->pSceneItem = this;
+    pModel->worldMat = attachmentMat;
+    pModel->cullFace = m_attachment.cullMode;
+
+    // Update the camera if the camera is coming along
+    if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
+    {
+      udOrientedPoint<double> rotRay = udOrientedPoint<double>::create(startPosDiff, vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch));
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
+      rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
+      pProgramState->camera.position = m_attachment.currentPos + rotRay.position;
+      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, rotRay.orientation);
+    }
+  }
+}
+
+void vcPOI::DoFlythrough(vcState *pProgramState)
+{
+  if (pProgramState->cameraInput.pAttachedToSceneItem == this && !m_cameraFollowingAttachment)
+  {
+    if (m_line.numPoints <= 1)
+    {
+      pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+    }
+    else
+    {
+      double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
+      udDoubleQuat startQuat = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
+
+      udDouble3 updatedPosition = {};
+
+      if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
+      {
+        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udDoubleQuat::create(udNormalize(m_line.pPoints[1] - m_line.pPoints[0]), 0.0));
+        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+      }
+      else
+      {
+        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, udSlerp(startQuat, udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2));
+      }
+
+      pProgramState->camera.position = updatedPosition;
+    }
+  }
 }
