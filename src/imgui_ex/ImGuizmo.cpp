@@ -243,7 +243,7 @@ void vcGizmo_BeginFrame()
   ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 
   ImGui::Begin("gizmo", NULL, flags);
-  sGizmoContext.ImGuiDrawList = ImGui::GetWindowDrawList();
+  sGizmoContext.ImGuiDrawList = ImGui::GetForegroundDrawList();
   ImGui::End();
   ImGui::PopStyleVar();
   ImGui::PopStyleColor(2);
