@@ -46,6 +46,7 @@ namespace vcHotkey
     "ToggleMeasureLineTool",
     "ToggleMeasureAreaTool",
     "ToggleInspectionTool",
+    "ToggleAnnotateTool",
   };
   UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 

@@ -43,6 +43,7 @@ enum vcBind
   vcB_ToggleMeasureLineTool,
   vcB_ToggleMeasureAreaTool,
   vcB_ToggleInspectionTool,
+  vcB_ToggleAnnotateTool,
 
   vcB_Count
 };

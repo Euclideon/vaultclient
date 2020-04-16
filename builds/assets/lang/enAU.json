@@ -480,6 +480,7 @@
 
   "scenePOIDefaultName": "Point of Interest",
   "scenePOIAreaDefaultName": "Area of Interest",
+  "scenePOIAnnotateDefaultName": "New Annotation",
   "scenePOIAreaMeasureDefaultName": "Area Measurement",
   "scenePOILineDefaultName": "Line of Interest",
   "scenePOILineMeasureDefaultName": "Line Measurement",
@@ -596,9 +597,12 @@
   "attributeBlendingSingle": "Single Value",
   "attributeBlendingUnknown": "Unknown",
 
+  "toolAnnotatePrompt": "Annotation text",
+  "toolAnnotateDefaultText": "My Point",
   "toolSelect": "Selection Tool",
   "toolMeasureLine": "Line Measurement Tool",
   "toolMeasureArea": "Area Measurement Tool",
+  "toolAnnotate": "Single annotation point",
   "toolInspect": "Voxel Inspector",
 
   "toolMeasureStart": "Click a point to begin the measurement...",
@@ -642,6 +646,7 @@
   "bindingsToggleSceneExplorer": "Key to show/hide scene explorer",
   "bindingsToggleMeasureLineTool": "Key to toggle the line measurement tool",
   "bindingsToggleMeasureAreaTool": "Key to toggle the area measurement tool",
+  "bindingsToggleAnnotateTool": "Key to toggle the annotation tool",
   "bindingsToggleInspectionTool": "Key to toggle the inspection tool",
 
   "errorUnknown": "An unexpected error occurred.",

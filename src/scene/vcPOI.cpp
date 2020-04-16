@@ -92,6 +92,57 @@ public:
 // vcPOIState_MeasureLine
 //----------------------------------------------------------------------------------------------------
 
+class vcPOIState_Annotate : public vcPOIState_General
+{
+public:
+  vcPOIState_Annotate(vcPOI *pParent)
+    : vcPOIState_General(pParent)
+  {
+
+  }
+
+  ~vcPOIState_Annotate()
+  {
+
+  }
+
+  void HandlePopupUI(vcState * /*pProgramState*/) override
+  {
+    size_t const bufSize = 64;
+    char buf[bufSize] = {"A label"};
+    if (ImGui::InputText("A label", buf, bufSize))
+    {
+
+      vdkProjectNode_SetMetadataString(m_pParent->m_pNode, "name", buf);
+    }
+  }
+
+  void AddPoint(vcState * /*pProgramState*/, const udDouble3 & /*position*/, bool /*isPreview*/) override
+  {
+    //Disallow adding more points
+  }
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override
+  {
+    if (!m_pParent->IsVisible(pProgramState))
+      return;
+
+    if (m_pParent->m_selected)
+    {
+      vcRenderPolyInstance * pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, 0);
+      pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+    }
+
+    m_pParent->AddLabelsToScene(pRenderData);
+  }
+
+  vcPOIState_General *ChangeState(vcState *pProgramState) override;
+};
+
+//----------------------------------------------------------------------------------------------------
+// vcPOIState_MeasureLine
+//----------------------------------------------------------------------------------------------------
+
 class vcPOIState_MeasureLine : public vcPOIState_General
 {
 public:
@@ -247,6 +298,12 @@ vcPOIState_General *vcPOIState_General::ChangeState(vcState * /*pProgramState*/)
   return this;
 }
 
+//An Annotate cannot change state!
+vcPOIState_General *vcPOIState_Annotate::ChangeState(vcState * /*pProgramState*/)
+{
+  return this;
+}
+
 //We still have to query a lot of state for these state changes, but at least now it is localised in one place.
 vcPOIState_General *vcPOIState_MeasureLine::ChangeState(vcState *pProgramState)
 {
@@ -382,6 +439,11 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
     case vcActiveTool_MeasureArea:
     {
       m_pState = new vcPOIState_MeasureArea(this);
+      break;
+    }
+    case vcActiveTool_Annotate:
+    {
+      m_pState = new vcPOIState_Annotate(this);
       break;
     }
     default:
