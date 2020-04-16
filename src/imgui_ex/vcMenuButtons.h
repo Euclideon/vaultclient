@@ -29,9 +29,7 @@ enum vcMenuBarButtonIcon
 
   vcMBBI_Burger = 30,
   vcMBBI_Layers = 31,
-
-  // Reserved 32
-
+  vcMBBI_Select = 32,
   vcMBBI_FullScreen = 33,
   vcMBBI_MapMode = 34,
 

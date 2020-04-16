@@ -1683,7 +1683,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
 
       // Activate Select Tool
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolSelect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSelectTool)), vcMBBI_Crosshair, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Select)) || (vcHotkey::IsPressed(vcB_ToggleSelectTool) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolSelect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSelectTool)), vcMBBI_Select, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Select)) || (vcHotkey::IsPressed(vcB_ToggleSelectTool) && !ImGui::IsAnyItemActive()))
         pProgramState->activeTool = vcActiveTool_Select;
 
       // Activate Measure
