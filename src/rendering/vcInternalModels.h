@@ -16,9 +16,6 @@ enum vcInternalMeshType
   vcInternalMeshType_Sphere,
   vcInternalMeshType_Tube,
 
-  vcInternalMeshType_Compass,
-  vcInternalMeshType_Orbit,
-
   vcInternalMeshType_Count
 };
 extern vcMesh *gInternalMeshes[vcInternalMeshType_Count];

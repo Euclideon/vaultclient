@@ -6,7 +6,6 @@
 #include "vcFenceRenderer.h"
 #include "vcWaterRenderer.h"
 #include "vcTileRenderer.h"
-#include "vcCompass.h"
 #include "vcState.h"
 #include "vcVoxelShaders.h"
 #include "vcConstants.h"
@@ -183,7 +182,6 @@ struct vcRenderContext
   vcFenceRenderer *pDiagnosticFences;
 
   vcTileRenderer *pTileRenderer;
-  vcAnchor *pCompass;
 
   float previousFrameDepth;
   udFloat2 currentMouseUV;
@@ -405,9 +403,6 @@ udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext)
   udResult result;
 
   vcRender_DestroyShaders(pRenderContext);
-
-  vcCompass_Destroy(&pRenderContext->pCompass);
-  UD_ERROR_CHECK(vcCompass_Create(&pRenderContext->pCompass));
 
   UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pRenderContext->pAtmosphereRenderer));
   UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pRenderContext->pTileRenderer));
@@ -1333,30 +1328,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
-
-  // Draw Compass
-  if (pProgramState->settings.presentation.mouseAnchor != vcAS_None && (pProgramState->pickingSuccess || pProgramState->isUsingAnchorPoint))
-  {
-    // resolve (last frame) polygon vs. (current frame) UD here
-    udDouble3 pickPosition = vcRender_DepthToWorldPosition(pProgramState, pRenderContext, pRenderContext->previousFrameDepth);
-    if (udMagSq(pickPosition - pProgramState->camera.position) < udMagSq(pProgramState->worldMousePosCartesian - pProgramState->camera.position))
-      pProgramState->worldMousePosCartesian = pickPosition;
-
-    udDouble4x4 mvp = pProgramState->camera.matrices.viewProjection * udDouble4x4::translation(pProgramState->isUsingAnchorPoint ? pProgramState->worldAnchorPoint : pProgramState->worldMousePosCartesian);
-    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
-
-    // Render highlighting any occlusion
-    vcGLState_SetBlendMode(vcGLSBM_Additive);
-    vcGLState_SetDepthStencilMode(vcGLSDM_Greater, false);
-    vcCompass_Render(pRenderContext->pCompass, pProgramState->settings.presentation.mouseAnchor, mvp, udDouble4::create(0.0, 0.15, 1.0, 0.5));
-
-    // Render non-occluded
-    vcGLState_SetBlendMode(vcGLSBM_Interpolative);
-    vcGLState_SetDepthStencilMode(vcGLSDM_Less, true);
-    vcCompass_Render(pRenderContext->pCompass, pProgramState->settings.presentation.mouseAnchor, mvp);
-
-    vcGLState_ResetState();
-  }
 
   vcRender_PostProcessPass(pProgramState, pRenderContext);
   vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);

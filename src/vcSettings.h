@@ -42,15 +42,6 @@ enum vcDisplacementShaderType
   vcDST_Signed
 };
 
-enum vcAnchorStyle
-{
-  vcAS_None,
-  vcAS_Orbit,
-  vcAS_Compass,
-
-  vcAS_Count
-};
-
 enum
 {
   vcMaxPathLength = 512,
@@ -198,7 +189,6 @@ struct vcSettings
 
     float saturation;
 
-    vcAnchorStyle mouseAnchor;
     float POIFadeDistance;
     float imageRescaleDistance;
     bool limitFPSInBackground;

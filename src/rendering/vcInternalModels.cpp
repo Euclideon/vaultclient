@@ -23,9 +23,6 @@ udResult vcInternalModels_Init()
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Sphere], vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), pSphereVertices, (uint32_t)udLengthOf(sphereVerticesFltArray), sphereIndices, (uint32_t)udLengthOf(sphereIndices)));
   UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Tube], vcP3N3UV2VertexLayout, (int)udLengthOf(vcP3N3UV2VertexLayout), pTubeVertices, (uint32_t)udLengthOf(tubeVerticesFltArray), tubeIndices, (uint32_t)udLengthOf(tubeIndices)));
 
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Orbit], vcP3N3VertexLayout, (int)udLengthOf(vcP3N3VertexLayout), pOrbitVertices, (uint32_t)udLengthOf(orbitVerticesFltArray), orbitIndices, (uint32_t)udLengthOf(orbitIndices)));
-  UD_ERROR_CHECK(vcMesh_Create(&gInternalMeshes[vcInternalMeshType_Compass], vcP3N3VertexLayout, int(udLengthOf(vcP3N3VertexLayout)), pCompassVerts, (uint32_t)udLengthOf(compassVertsFltArray), compassIndices, (uint32_t)udLengthOf(compassIndices)));
-
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cube], (void *)cubeVerticesFltArray, (uint32_t)udLengthOf(cubeVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cubeIndices, (uint32_t)udLengthOf(cubeIndices)));
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Sphere], (void *)sphereVerticesFltArray, (uint32_t)udLengthOf(sphereVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), sphereIndices, (uint32_t)udLengthOf(sphereIndices)));
   UD_ERROR_CHECK(vcPolygonModel_CreateFromRawVertexData(&gInternalModels[vcInternalModelType_Cylinder], (void *)cylinderVerticesFltArray, (uint32_t)udLengthOf(cylinderVerticesFltArray), vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), cylinderIndices, (uint32_t)udLengthOf(cylinderIndices)));
