@@ -191,6 +191,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   {
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
+    pSettings->maptiles.demEnabled = data.Get("maptiles.demEnabled").AsBool(true);
     udStrcpy(pSettings->maptiles.tileServerAddress, data.Get("maptiles.serverURL").AsString("http://slippy.vault.euclideon.com/"));
     if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
       udStrcpy(pSettings->maptiles.tileServerAddress, "http://slippy.vault.euclideon.com");
@@ -667,6 +668,7 @@ bool vcSettings_Save(vcSettings *pSettings)
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
+  data.Set("maptiles.demEnabled = %s", pSettings->maptiles.demEnabled ? "true" : "false");
   data.Set("maptiles.blendMode = %d", pSettings->maptiles.blendMode);
   data.Set("maptiles.transparency = %f", pSettings->maptiles.transparency);
   data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);

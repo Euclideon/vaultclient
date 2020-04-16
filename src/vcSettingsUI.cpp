@@ -290,6 +290,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
             if (ImGui::Button(vcString::Get("settingsMapsTileServerButton"), ImVec2(-1, 0)))
               vcModals_OpenModal(pProgramState, vcMT_TileServer);
 
+            ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
+
             if (ImGui::SliderFloat(vcString::Get("settingsMapsMapHeight"), &pProgramState->settings.maptiles.mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
               pProgramState->settings.maptiles.mapHeight = udClamp(pProgramState->settings.maptiles.mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
 

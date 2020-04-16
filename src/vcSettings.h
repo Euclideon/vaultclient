@@ -298,6 +298,7 @@ struct vcSettings
   struct
   {
     bool mapEnabled;
+    bool demEnabled;
 
     vcTileRendererMapQuality mapQuality;
     vcTileRendererFlags mapOptions;

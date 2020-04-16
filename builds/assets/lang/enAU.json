@@ -125,6 +125,7 @@
 
   "settingsMaps": "Maps & Elevation",
   "settingsMapsMapTiles": "Map Tiles",
+  "settingsMapsDEM": "Digital Elevation Model",
   "settingsMapsMouseLock": "Mouse can lock to maps",
   "settingsMapsTileServerTitle": "Tile Server",
   "settingsMapsTileServerButton": "Tile Server",
