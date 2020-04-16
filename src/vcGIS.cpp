@@ -92,7 +92,10 @@ udDouble3 vcGIS_GetWorldLocalUp(const vcGISSpace &space, udDouble3 localCoords)
 
   udDouble3 upVector = udGeoZone_LatLongToCartesian(space.zone, latLong);
 
-  return udNormalize(upVector - localCoords);
+  if (udEqualApprox(upVector, localCoords))
+    return udDouble3::create(0, 0, 1);
+  else
+    return udNormalize(upVector - localCoords);
 }
 
 udDouble3 vcGIS_GetWorldLocalNorth(const vcGISSpace &space, udDouble3 localCoords)
@@ -106,6 +109,9 @@ udDouble3 vcGIS_GetWorldLocalNorth(const vcGISSpace &space, udDouble3 localCoord
   udDouble3 currentLatLong = udGeoZone_CartesianToLatLong(space.zone, localCoords);
   currentLatLong.x = udClamp(currentLatLong.x, -90.0, 89.9);
   northDirection = udNormalize(udGeoZone_LatLongToCartesian(space.zone, udDouble3::create(currentLatLong.x + 0.1, currentLatLong.y, currentLatLong.z)) - localCoords);
+
+  if (udEqualApprox(northDirection, up))
+    northDirection = udDouble3::create(up.x, up.z, -up.y);
 
   udDouble3 east = udCross(northDirection, up);
   udDouble3 northFlat = udCross(up, east);

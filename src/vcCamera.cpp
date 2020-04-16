@@ -140,10 +140,12 @@ void vcCamera_UpdateMatrices(const vcGISSpace &zone, vcCamera *pCamera, const vc
   }
 }
 
-void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime, float speedModifier /* = 1.f*/)
+void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime)
 {
   udDouble3 worldAnchorNormal = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->worldAnchorPoint);
   udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pCamera->position, pCamera->headingPitch);
+
+  udDouble3 cameraUp = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->camera.position);
 
   switch (pCamInput->inputState)
   {
@@ -152,33 +154,23 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     // fall through
   case vcCIS_None:
   {
-    udDouble3 addPos = udClamp(pCamInput->keyboardInput, udDouble3::create(-1, -1, -1), udDouble3::create(1, 1, 1)); // clamp in case 2 similarly mapped movement buttons are pressed
+    udDouble3 addPos = (pCamInput->keyboardInput + pCamInput->controllerDPADInput);
+
     double vertPos = addPos.z;
+
     addPos.z = 0.0;
+    addPos = orientation.apply(addPos);
 
     // Translation
-    //if (pCamSettings->lockAltitude)
-    //{
-    //  addPos = (udDouble4x4::rotationYPR(udDouble3::create(pCamera->eulerRotation.x, 0.0, 0.0)) * udDouble4::create(addPos, 1)).toVector3();
-    //  addPos.z = 0.0; // might be unnecessary now
-    //  if (addPos.x != 0.0 || addPos.y != 0.0)
-    //    addPos = udNormalize3(addPos);
-    //}
-    //else // Lock Altitude
-    {
-      addPos = (udDouble4x4::rotationQuat(orientation) * udDouble4::create(addPos, 1)).toVector3();
-    }
+    if (pCamSettings->lockAltitude && addPos != udDouble3::zero())
+      addPos -= udDot(cameraUp, addPos) * cameraUp;
 
-    // Panning - DPAD
-    pCamInput->controllerDPADInput = (udDouble4x4::rotationQuat(orientation) * udDouble4::create(pCamInput->controllerDPADInput, 1)).toVector3();
+    if (addPos != udDouble3::zero())
+      addPos = udNormalize3(addPos);
 
-    if (pCamSettings->lockAltitude)
-      pCamInput->controllerDPADInput.z = 0.0;
+    addPos += vertPos * cameraUp;
+    addPos *= pCamSettings->moveSpeed * deltaTime;
 
-    addPos += pCamInput->controllerDPADInput;
-
-    addPos.z += vertPos;
-    addPos *= pCamSettings->moveSpeed * speedModifier * deltaTime;
     pCamInput->smoothTranslation += addPos;
 
     // Check for a nan camera position and reset to zero, this allows the UI to be usable in the event of error
@@ -333,8 +325,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   // bring in values
   keyboardInput += oscMove;
-
-  float speedModifier = 1.f;
 
   ImVec2 mouseDelta = io.MouseDelta;
   float mouseWheel = io.MouseWheel;
@@ -559,7 +549,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
 
-  vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime, speedModifier);
+  vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime);
 
   if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->isUsingAnchorPoint = false;
