@@ -140,13 +140,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All || group == vcSC_Appearance)
   {
-    pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool();
+    pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool(true);
     udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(false);
-    pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(true);
-    pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(true);
+    pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(false);
+    pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
     pSettings->presentation.loginRenderLicense = data.Get("loginRenderLicense").AsBool(false);
     pSettings->presentation.saturation = data.Get("saturation").AsFloat(1.0f);
@@ -155,7 +155,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.imageRescaleDistance = data.Get("ImageRescaleDistance").AsFloat(10000.f);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
     pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
-    pSettings->presentation.layout = (vcWindowLayout)data.Get("layout").AsInt(vcWL_SceneLeft);
+    pSettings->presentation.layout = (vcWindowLayout)data.Get("layout").AsInt(vcWL_SceneRight);
     pSettings->presentation.sceneExplorerSize = data.Get("layoutSceneExplorerSize").AsInt(350);
     pSettings->presentation.convertLeftPanelPercentage = data.Get("convertLeftPanelPercentage").AsFloat(0.33f);
     pSettings->presentation.columnSizeCorrect = false;
@@ -183,8 +183,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
     pSettings->camera.scrollWheelMode = (vcCameraScrollWheelMode)data.Get("camera.scrollwheelBinding").AsInt(vcCSWM_Dolly);
 
-    pSettings->mouseSnap.enable = data.Get("mouseSnap.enable").AsBool(false);
-    pSettings->mouseSnap.range = data.Get("mouseSnap.range").AsInt(vcSL_MouseSnapRangeMax);
+    pSettings->mouseSnap.enable = data.Get("mouseSnap.enable").AsBool(true);
+    pSettings->mouseSnap.range = data.Get("mouseSnap.range").AsInt(8);
   }
 
   if (group == vcSC_All || group == vcSC_MapsElevation)
@@ -192,10 +192,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.demEnabled = data.Get("maptiles.demEnabled").AsBool(true);
-    udStrcpy(pSettings->maptiles.tileServerAddress, data.Get("maptiles.serverURL").AsString("http://slippy.vault.euclideon.com/"));
-    if (udStrEquali(pSettings->maptiles.tileServerAddress, "http://20.188.211.58"))
-      udStrcpy(pSettings->maptiles.tileServerAddress, "http://slippy.vault.euclideon.com");
-
+    udStrcpy(pSettings->maptiles.tileServerAddress, data.Get("maptiles.serverURL").AsString("https://slippy.vault.euclideon.com/"));
     udUUID_GenerateFromString(&pSettings->maptiles.tileServerAddressUUID, pSettings->maptiles.tileServerAddress);
 
     udStrcpy(pSettings->maptiles.tileServerExtension, data.Get("maptiles.imgExtension").AsString("png"));
