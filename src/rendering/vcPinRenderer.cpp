@@ -162,7 +162,7 @@ bool vcPinRenderer_AddPin(vcPinRenderer *pPinRenderer, vcState *pProgramState, c
     double distToBinSqr = udMagSq3(position - pBin->position);
     double cameraDistToBinSqr = udMagSq3(pBin->position - pProgramState->camera.position);
 
-    if (pBin->pIcon == pIcon && distToBinSqr <= (cameraDistToBinSqr * COLLAPSE_DISTANCE_RATIO))
+    if (pBin->pIcon == pIcon && distToBinSqr <= (cameraDistToBinSqr * COLLAPSE_DISTANCE_RATIO * COLLAPSE_DISTANCE_RATIO))
     {
       // 'put' in this bin
       pBin->position = (pBin->position * pBin->realPins + position) / (pBin->realPins + 1);
