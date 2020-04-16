@@ -1006,7 +1006,7 @@ epilogue:
 
 void vcMain_ProfileMenu(vcState *pProgramState)
 {
-  if (ImGui::BeginPopupContextItem("profileMenu", 0))
+  if (ImGui::BeginPopupContextWindow("profileMenu", 0))
   {
     if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
       vcModals_OpenModal(pProgramState, vcMT_Profile);
@@ -1618,7 +1618,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     if (panelOpen)
     {
       // Avatar Profile
-      ImGui::Image(pProgramState->pProfileAvatar ? pProgramState->pProfileAvatar : pProgramState->pWhiteTexture, ImVec2(ProfileTextureSize, ProfileTextureSize)); //TODO: Maybe make this a burger instead?
+      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneProfileMenu"), nullptr, vcMBBI_Burger, vcMBBG_FirstItem);
       vcMain_ProfileMenu(pProgramState);
 
       // Compass
@@ -1662,7 +1662,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
 
       // Hide/show screen explorer
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_ToggleScreenExplorer, vcMBBG_FirstItem, !pProgramState->sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Layers, vcMBBG_FirstItem, !pProgramState->sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
       {
         pProgramState->sceneExplorerCollapsed = !pProgramState->sceneExplorerCollapsed;
         pProgramState->settings.presentation.columnSizeCorrect = false;
@@ -1673,7 +1673,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->activeTool = vcActiveTool_Select;
 
       // Activate Measure
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectionTool)), vcMBBI_FilterSphere, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectionTool) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectionTool)), vcMBBI_Inspect, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectionTool) && !ImGui::IsAnyItemActive()))
         pProgramState->activeTool = vcActiveTool_Inspect;
 
       // Activate Measure
