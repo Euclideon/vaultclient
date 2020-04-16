@@ -293,8 +293,10 @@ Modules are currently:
 - `settingsViewportCameraLens100mm`: Label for the 100mm lens option,
 - `settingsViewportFOV`: Label next to slider for setting a custom field of view
 - `settingsMaps`: Title of the Maps & Elevation subheading in Settings
+- `settingsMapsDEM`: Title of the Digital Elevation Model heading in map settings
 - `settingsMapsRestoreDefaults`: Used to restore default values for all maps settings
 - `settingsMapsMapTiles`: Label next to checkbox for toggling the visibility of map tiles in the scene
+- `settingsMapsMapTilesdem`: Label next to checkbox for toggling the visibility of map tiles in the scene
 - `settingsMapsMouseLock`: Label next to checkbox for toggling whether or not the user can click on map tiles within the scene
 - `settingsMapsTileServerTitle`: Title used on tile server window
 - `settingsMapsTileServerButton`: Label used on button for opening the tile server window

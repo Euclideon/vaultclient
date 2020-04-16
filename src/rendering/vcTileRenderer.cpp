@@ -854,7 +854,7 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
   }
 
   // hacky - looking for specific DEM levels
-  if (pNode->slippyPosition.z <= HACK_DEM_LEVEL)
+  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->slippyPosition.z <= HACK_DEM_LEVEL)
   {
     bool demLeaf = vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode) || (pNode->slippyPosition.z == HACK_DEM_LEVEL);
     if (demLeaf && pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_Loaded)
@@ -937,7 +937,7 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   }
 
   vcTexture *pDemTexture = pNode->demInfo.drawInfo.pTexture;
-  if (pDemTexture == nullptr)
+  if (pDemTexture == nullptr || !pTileRenderer->pSettings->maptiles.demEnabled)
   {
     // TODO: completeRender = false?
     pDemTexture = pTileRenderer->pEmptyDemTileTexture;
