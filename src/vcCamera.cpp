@@ -189,6 +189,8 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     udDouble2 result = pCamera->headingPitch + rotation;
     if (result.y > UD_HALF_PI)
       rotation.y = UD_HALF_PI - pCamera->headingPitch.y;
+    else if (result.y < -UD_HALF_PI)
+      rotation.y = -UD_HALF_PI - pCamera->headingPitch.y;
 
     pCamInput->smoothRotation += rotation;
   }
