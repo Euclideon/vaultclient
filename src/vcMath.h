@@ -228,6 +228,64 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
   return udMag3(closestPoint - point);
 }
 
+template<typename T>
+class udLineSegment
+{
+public:
+
+  udLineSegment(udVector3<T> const &p0, udVector3<T> const &p1)
+    : m_origin(p0)
+    , m_direction(p1 - p0)
+  {}
+
+  udVector3<T> origin() const { return m_origin; }
+  udVector3<T> direction() const { return m_direction; }
+
+  udVector3<T> P0() const { return m_origin; }
+  udVector3<T> P1() const { return m_origin + m_direction; }
+
+  udVector3<T> center() const { return m_origin + static_cast<T>(0.5) * m_direction; }
+
+  void setEndPoints(udVector3<T> const &p0, udVector3<T> const &p1) { m_origin = p0; m_direction = p1 - p0; }
+  void setOriginDirection(udVector3<T> const &originIn, udVector3<T> const &directionIn) { m_origin = originIn; m_direction = directionIn; }
+
+  T length() const { return udMag3(m_direction); }
+  T lengthSquared() const { return udMagSq3(m_direction); }
+
+private:
+
+  udVector3<T> m_origin;
+  udVector3<T> m_direction;
+};
+
+template <typename T>
+static T udDistanceSqLineSegmentPoint(udLineSegment<T> const & segment, udVector3<T> const & point, T * pU = nullptr)
+{
+  T u;
+  udVector3<T> w = point - segment.origin();
+  T proj = udDot3(w, segment.direction());
+
+  //Should we check agains some epsilon?
+  if (proj <= T(0))
+  {
+    u = T(0);
+  }
+  else
+  {
+    T vsq = segment.lengthSquared();
+
+    if (proj >= vsq)
+      u = T(1);
+    else
+      u = (proj / vsq);
+  }
+
+  if (pU != nullptr)
+    *pU = u;
+
+  return udMagSq3(point - (segment.origin() + u * segment.direction()));
+}
+
 template <typename T>
 struct udOrientedPoint
 {

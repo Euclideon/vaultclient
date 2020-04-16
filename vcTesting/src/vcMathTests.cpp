@@ -270,3 +270,63 @@ TEST(vcMath, TriangleTest_PointBelowTrianglePlane)
   EXPECT_NEAR(TRI_DIST, 1.0, EPSILON_DOUBLE);
   EXPECT_VEC_NEAR(out, udDouble3::create(0.0, 0.0, 0.0));
 }
+
+TEST(vcMath, LineSegment_General)
+{
+  udDouble3 p0 = udDouble3::create(-1.0, 1.0, 0.0);
+  udDouble3 p1 = udDouble3::create(1.0, 1.0, 0.0);
+  udLineSegment<double> seg(p0, p1);
+
+  EXPECT_EQ(seg.origin(), p0);
+  EXPECT_EQ(seg.direction(), p1 - p0);
+  EXPECT_EQ(seg.P0(), p0);
+  EXPECT_EQ(seg.P1(), p1);
+
+  EXPECT_EQ(seg.length(), 2.0);
+  EXPECT_EQ(seg.lengthSquared(), 4.0);
+}
+
+TEST(vcMath, LineSegmentPointQuery)
+{
+  udDouble3 p0 = udDouble3::create(-1.0, 1.0, 0.0);
+  udDouble3 p1 = udDouble3::create(1.0, 1.0, 0.0);
+  udLineSegment<double> seg(p0, p1);
+
+  double u;
+  udDouble3 point;
+
+  //Point on the segment
+  point = udDouble3::create(-1.0, 1.0, 0.0);
+  EXPECT_EQ(0.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(0.0, u);
+
+  point = udDouble3::create(1.0, 1.0, 0.0);
+  EXPECT_EQ(0.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(1.0, u);
+
+  point = udDouble3::create(0.0, 1.0, 0.0);
+  EXPECT_EQ(0.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(0.5, u);
+
+  //Point on line, not on segment
+  point = udDouble3::create(-9.0, 1.0, 0.0);
+  EXPECT_EQ(64.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(0.0, u);
+
+  point = udDouble3::create(10.0, 1.0, 0.0);
+  EXPECT_EQ(81.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(1.0, u);
+
+  //Point of line and segment
+  point = udDouble3::create(-2.0, 1.0, 1.0);
+  EXPECT_EQ(2.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(0.0, u);
+
+  point = udDouble3::create(0.0, 2.0, 1.0);
+  EXPECT_EQ(2.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(0.5, u);
+
+  point = udDouble3::create(2.0, 1.0, 1.0);
+  EXPECT_EQ(2.0, udDistanceSqLineSegmentPoint(seg, point, &u));
+  EXPECT_EQ(1.0, u);
+}

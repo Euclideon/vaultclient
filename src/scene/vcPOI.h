@@ -121,6 +121,7 @@ public:
 private:
   void InsertPoint(const udDouble3 &position);
   void UpdateState(vcState *pProgramState);
+  double DistanceToPoint(udDouble3 const &point);
   vcRenderPolyInstance *AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i);
   bool IsVisible(vcState *pProgramState);
   void AddFenceToScene(vcRenderData *pRenderData);
