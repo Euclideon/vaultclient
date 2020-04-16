@@ -23,25 +23,19 @@ enum vcMenuBarButtonIcon
   vcMBBI_AddOther = 16,
   vcMBBI_SaveViewport = 17,
   vcMBBI_Settings = 18,
+  vcMBBI_Inspect = 19,
 
-  // Reserved 17-19
+  // Reserved 20-29
 
-  vcMBBI_FilterSphere = 20,
-  vcMBBI_FilterBox = 21,
-  vcMBBI_FilterCylinder = 22,
-  vcMBBI_FilterCrossSection = 23,
+  vcMBBI_Burger = 30,
+  vcMBBI_Layers = 31,
 
-  //Reserved = 24 - 29
-
-  vcMBBI_ShowColour = 30,
-  vcMBBI_ShowIntensity = 31,
-  vcMBBI_ShowClassification = 32,
+  // Reserved 32
 
   vcMBBI_FullScreen = 33,
   vcMBBI_MapMode = 34,
-  vcMBBI_ToggleScreenExplorer = 35,
 
-  //Reserved = 36 - 39
+  //Reserved = 35 - 39
 
   vcMBBI_Crosshair = 40,
 

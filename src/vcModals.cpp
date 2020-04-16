@@ -677,13 +677,6 @@ void vcModals_DrawProfile(vcState* pProgramState)
     }
     else
     {
-      if (pProgramState->pProfileAvatar)
-      {
-        udInt2 texSize;
-        vcTexture_GetSize(pProgramState->pProfileAvatar, &texSize.x, &texSize.y);
-        ImGui::Image(pProgramState->pProfileAvatar, ImVec2((float)texSize.x, (float)texSize.y));
-      }
-
       const char *pUsername = pProgramState->profileInfo.Get("user.username").AsString("");
       ImGui::InputText(vcString::Get("modalProfileUsername"), (char*)pUsername, udStrlen(pUsername), ImGuiInputTextFlags_ReadOnly);
 
