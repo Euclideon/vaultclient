@@ -227,7 +227,7 @@ void vcGizmo_SetRect(float x, float y, float width, float height)
 
 void vcGizmo_SetDrawList()
 {
-  sGizmoContext.ImGuiDrawList = ImGui::GetWindowDrawList();
+  sGizmoContext.ImGuiDrawList = ImGui::GetForegroundDrawList();
 }
 
 void vcGizmo_BeginFrame()
