@@ -9,8 +9,8 @@
 
 bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/, float scale /*= 1.f*/)
 {
-  const float buttonSize = 32.f;
-  const float textureRelativeButtonSize = 320.f;
+  const float buttonSize = 24.f;
+  const float textureRelativeButtonSize = 240.f;
   const float buttonUVSize = buttonSize / textureRelativeButtonSize;
   const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
   const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);

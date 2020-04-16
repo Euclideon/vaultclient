@@ -281,10 +281,52 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           if (pProgramState->settings.maptiles.mapEnabled)
           {
-            if (ImGui::Button(vcString::Get("settingsMapsTileServerButton"), ImVec2(-1, 0)))
-              vcModals_OpenModal(pProgramState, vcMT_TileServer);
-
             ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
+
+            //"settingsMapsAttribution"
+
+            int selectedMode = 0;
+            const char *modes[] = { vcString::Get("settingsMapTypeEucOSM"), vcString::Get("settingsMapTypeEucAzAerial"), vcString::Get("settingsMapTypeEucAzRoads"), vcString::Get("settingsMapTypeCustom") };
+            const char *modeStrs[] = { "euc-osm-base", "euc-az-aerial", "euc-az-roads", "custom" };
+
+            UDCOMPILEASSERT(udLengthOf(modes) == udLengthOf(modeStrs), "Update Tables!");
+
+            for (size_t mi = 0; mi < udLengthOf(modes); ++mi)
+            {
+              if (udStrEqual(pProgramState->settings.maptiles.mapType, modeStrs[mi]))
+              {
+                selectedMode = (int)mi;
+                break;
+              }
+            }
+
+            if (ImGui::Combo(vcString::Get("settingsMapType"), &selectedMode, modes, (int)udLengthOf(modes)))
+            {
+              udStrcpy(pProgramState->settings.maptiles.mapType, modeStrs[selectedMode]);
+              vcSettings_ApplyMapChange(&pProgramState->settings);
+              vcRender_ClearTiles(pProgramState->pRenderContext);
+            }
+
+            if (udStrEqual(pProgramState->settings.maptiles.mapType, "custom"))
+            {
+              ImGui::Indent();
+
+              bool changed = false;
+
+              ImGui::TextWrapped(vcString::Get("settingsMapsTileServerInstructions"));
+
+              changed |= vcIGSW_InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.customServer.tileServerAddress, vcMaxPathLength);
+              changed |= vcIGSW_InputText(vcString::Get("settingsMapsAttribution"), pProgramState->settings.maptiles.customServer.attribution, vcMaxPathLength);
+
+              if (changed)
+              {
+                vcSettings_ApplyMapChange(&pProgramState->settings);
+                vcRender_ClearTiles(pProgramState->pRenderContext);
+              }
+
+              ImGui::Unindent();
+            }
+
 
             if (ImGui::SliderFloat(vcString::Get("settingsMapsMapHeight"), &pProgramState->settings.maptiles.mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
               pProgramState->settings.maptiles.mapHeight = udClamp(pProgramState->settings.maptiles.mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
@@ -308,9 +350,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
             if (ImGui::SliderFloat(vcString::Get("settingsMapsOpacity"), &pProgramState->settings.maptiles.transparency, vcSL_OpacityMin, vcSL_OpacityMax, "%.3f"))
               pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, vcSL_OpacityMin, vcSL_OpacityMax);
-
-            if (ImGui::Button(vcString::Get("settingsMapsSetHeight")))
-              pProgramState->settings.maptiles.mapHeight = (float)pProgramState->camera.position.z;
           }
         }
 

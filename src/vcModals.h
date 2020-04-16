@@ -5,7 +5,6 @@ enum vcModalTypes
 {
   // These are handled by DrawModals
   vcMT_LoggedOut,
-  vcMT_TileServer,
   vcMT_AddSceneItem,
   vcMT_ImportProject,
   vcMT_ExportProject,

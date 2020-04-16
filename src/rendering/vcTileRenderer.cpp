@@ -3,6 +3,7 @@
 #include "vcGIS.h"
 #include "vcSettings.h"
 #include "vcPolygonModel.h"
+#include "vcStringFormat.h"
 
 #include "gl/vcGLState.h"
 #include "gl/vcShader.h"
@@ -308,10 +309,15 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       char localURL[vcMaxPathLength] = {};
       char serverURL[vcMaxPathLength] = {};
 
+      char xSlippyStr[16];
+      char ySlippyStr[16];
+      char zSlippyStr[16];
+      const char *pSlippyStrs[] = { zSlippyStr, xSlippyStr, ySlippyStr };
+
       // process dem and/or colour request
       if (pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
 
         // allow continue on failure
@@ -320,8 +326,13 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
       if (pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.%s", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
-        udSprintf(serverURL, "%s/%d/%d/%d.%s", pRenderer->pSettings->maptiles.tileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pRenderer->pSettings->maptiles.tileServerExtension);
+        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.activeServer.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+
+        udStrItoa(xSlippyStr, pBestNode->slippyPosition.x);
+        udStrItoa(ySlippyStr, pBestNode->slippyPosition.y);
+        udStrItoa(zSlippyStr, pBestNode->slippyPosition.z);
+        
+        vcStringFormat(serverURL, udLengthOf(serverURL), pRenderer->pSettings->maptiles.activeServer.tileServerAddress, pSlippyStrs, udLengthOf(pSlippyStrs));
 
         // allow continue on failure
         colourResult = vcTileRenderer_HandleTileDownload(&pBestNode->colourInfo, serverURL, localURL);

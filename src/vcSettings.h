@@ -285,6 +285,13 @@ struct vcSettings
 
   vcCameraSettings camera;
 
+  struct vcMapServer
+  {
+    char tileServerAddress[vcMaxPathLength];
+    char attribution[vcMaxPathLength];
+    udUUID tileServerAddressUUID;
+  } activeMapServer;
+
   struct
   {
     bool mapEnabled;
@@ -294,9 +301,10 @@ struct vcSettings
     vcTileRendererFlags mapOptions;
 
     float mapHeight;
-    char tileServerAddress[vcMaxPathLength];
-    udUUID tileServerAddressUUID;
-    char tileServerExtension[4];
+
+    char mapType[32]; // 'custom', 'euc-osm-base', 'euc-az-aerial', 'euc-az-roads'
+    vcMapServer customServer;
+    vcMapServer activeServer; // The server settings actually in use
 
     vcMapTileBlendMode blendMode;
     float transparency;
@@ -415,5 +423,6 @@ udResult vcSettings_RegisterAssetFileHandler();
 
 // Various settings helpers
 udResult vcSettings_UpdateLanguageOptions(vcSettings *pSettings);
+void vcSettings_ApplyMapChange(vcSettings *pSettings);
 
 #endif // !vcSettings_h__

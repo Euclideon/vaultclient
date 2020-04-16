@@ -225,8 +225,6 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
 
 void vcMain_LoadSettings(vcState *pProgramState)
 {
-  vcTexture_Destroy(&pProgramState->tileModal.pServerIcon);
-
   if (vcSettings_Load(&pProgramState->settings))
   {
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
@@ -700,7 +698,7 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
 
   if (pLoadInfo->loadResult == udR_Success)
   {
-    const float FontSize = 18.f;
+    const float FontSize = 16.f;
     ImFontConfig fontCfg = ImFontConfig();
     fontCfg.FontDataOwnedByAtlas = false;
     ImGui::GetIO().Fonts->Clear();
@@ -981,7 +979,6 @@ epilogue:
   udWorkerPool_Destroy(&programState.pWorkerPool); // This needs to occur before logout
   vcProject_Deinit(&programState, &programState.activeProject); // This needs to be destroyed before the renderer is shutdown
   vcRender_Destroy(&programState, &programState.pRenderContext);
-  vcTexture_Destroy(&programState.tileModal.pServerIcon);
   vcString::FreeTable(&programState.languageInfo);
   vcSession_Logout(&programState);
 
@@ -1650,7 +1647,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         float northY = -(float)udCos(angle);
 
         ImGui::PushID("compassButton");
-        if (ImGui::ButtonEx("", ImVec2(36, 36)))
+        if (ImGui::ButtonEx("", ImVec2(28, 28)))
         {
           pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
           pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, udDouble2::create(0, pProgramState->camera.headingPitch.y));
@@ -1729,16 +1726,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
     }
 
-    ImGui::End();
-  }
-
-  if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)
-  {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
-    ImGui::SetNextWindowBgAlpha(0.5f);
-
-    if (ImGui::Begin(vcString::Get("sceneMapCopyright"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
-      ImGui::TextUnformatted(vcString::Get("sceneMapData"));
     ImGui::End();
   }
 }
