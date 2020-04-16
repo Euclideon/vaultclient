@@ -150,7 +150,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
     pSettings->presentation.loginRenderLicense = data.Get("loginRenderLicense").AsBool(false);
     pSettings->presentation.saturation = data.Get("saturation").AsFloat(1.0f);
-    pSettings->presentation.mouseAnchor = (vcAnchorStyle)data.Get("mouseAnchor").AsInt(vcAS_Orbit);
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
     pSettings->presentation.imageRescaleDistance = data.Get("ImageRescaleDistance").AsFloat(10000.f);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
@@ -486,7 +485,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("loginRenderLicense = %s", pSettings->presentation.loginRenderLicense ? "true" : "false");
   data.Set("saturation = %f", pSettings->presentation.saturation);
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
-  data.Set("mouseAnchor = %d", pSettings->presentation.mouseAnchor);
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
   data.Set("POIfadeDistance = %f", pSettings->presentation.POIFadeDistance);
   data.Set("ImageRescaleDistance = %f", pSettings->presentation.imageRescaleDistance);

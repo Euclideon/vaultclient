@@ -191,9 +191,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::SameLine();
           ImGui::TextUnformatted(vcString::Get("settingsAppearanceLanguage"));
 
-          // Checks so the casts below are safe
-          UDCOMPILEASSERT(sizeof(pProgramState->settings.presentation.mouseAnchor) == sizeof(int), "MouseAnchor is no longer sizeof(int)");
-
           ImGui::Checkbox(vcString::Get("sceneCameraInfo"), &pProgramState->settings.presentation.showCameraInfo);
           ImGui::Checkbox(vcString::Get("sceneProjectionInfo"), &pProgramState->settings.presentation.showProjectionInfo);
           ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
@@ -229,9 +226,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           // limit the value between 0-5.
           if (ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f))
             pProgramState->settings.presentation.saturation = udClamp(pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
-
-          const char *anchorOptions[] = { vcString::Get("settingsAppearanceNone"), vcString::Get("settingsAppearanceOrbit"), vcString::Get("settingsAppearanceCompass") };
-          ImGui::Combo(vcString::Get("settingsAppearanceMouseAnchor"), (int*)&pProgramState->settings.presentation.mouseAnchor, anchorOptions, (int)udLengthOf(anchorOptions));
 
           const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
           ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
