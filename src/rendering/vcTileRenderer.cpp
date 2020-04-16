@@ -19,7 +19,11 @@
 // Debug tiles with colour information
 #define VISUALIZE_DEBUG_TILES 0
 
+// Timeout wait time of failed tile loads
 #define TILE_RETRY_TIME_SEC 5.0f
+
+// Frequency of how often to update quad tree.
+#define QUAD_TREE_UPDATE_FREQUENCY_SEC 0.5
 
 // TODO: This is a temporary solution, where we know the dem data stops at level 13.
 #define HACK_DEM_LEVEL 13
@@ -72,6 +76,7 @@ int MeshConfigurations[] =
 
 struct vcTileRenderer
 {
+  float updateTimer;
   float frameDeltaTime;
   float totalTime;
 
@@ -607,6 +612,8 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   pTileRenderer = udAllocType(vcTileRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pTileRenderer, udR_MemoryAllocationFailure);
 
+  pTileRenderer->updateTimer = QUAD_TREE_UPDATE_FREQUENCY_SEC;
+
   UD_ERROR_CHECK(udUUID_GenerateFromString(&demTileServerAddresUUID, pDemTileServerAddress));
 
   vcQuadTree_Create(&pTileRenderer->quadTree, pSettings);
@@ -916,23 +923,21 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
     MaxVisibleTileLevel
   };
 
-  uint64_t startTime = udPerfCounterStart();
+  vcQuadTree_UpdateView(&pTileRenderer->quadTree, viewInfo.cameraPosition, viewInfo.viewProjectionMatrix);
 
-  vcQuadTree_Update2(&pTileRenderer->quadTree, viewInfo);
-
-  static double timer = 0.5;
-  timer += deltaTime;
-  if (timer >= 0.5)
+  pTileRenderer->updateTimer += deltaTime;
+  if (pTileRenderer->updateTimer >= QUAD_TREE_UPDATE_FREQUENCY_SEC)
   {
-    timer = 0.0;
+    pTileRenderer->updateTimer = 0.0;
+
+    uint64_t startTime = udPerfCounterStart();
     vcQuadTree_Update(&pTileRenderer->quadTree, viewInfo);
+    pTileRenderer->quadTree.metaData.generateTimeMs = udPerfCounterMilliseconds(startTime);
   }
 
   udLockMutex(pTileRenderer->cache.pMutex);
   vcTileRenderer_UpdateTextureQueues(pTileRenderer);
   udReleaseMutex(pTileRenderer->cache.pMutex);
-
-  pTileRenderer->quadTree.metaData.generateTimeMs = udPerfCounterMilliseconds(startTime);
 }
 
 bool vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcMesh *pMesh, const udDouble4x4 &view)
@@ -1093,7 +1098,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   if (!pRootNode->touched) // can occur on failed re-roots
     return;
 
-  udDouble4x4 viewWithMapTranslation = view * udDouble4x4::translation(0, 0, pTileRenderer->pSettings->maptiles.mapHeight);
+  pTileRenderer->quadTree.metaData.visibleNodeCount = 0;
+  pTileRenderer->quadTree.metaData.nodeRenderCount = 0;
 
   vcGLStateCullMode cullMode = vcGLSCM_Back;
   if (cameraInsideGround)
@@ -1127,6 +1133,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   else
     pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
+  udDouble4x4 viewWithMapTranslation = view * udDouble4x4::translation(0, 0, pTileRenderer->pSettings->maptiles.mapHeight);
   vcTileRenderer_RecursiveRenderNodes(pTileRenderer, viewWithMapTranslation, pRootNode, nullptr, nullptr);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);

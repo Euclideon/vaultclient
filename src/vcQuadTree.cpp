@@ -432,15 +432,12 @@ void vcQuadTree_ConditionalReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoo
     vcQuadTree_CompleteReroot(pQuadTree, slippyCoords);
 }
 
-void vcQuadTree_Update2(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo)
+void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPosition, const udDouble4x4 &viewProjectionMatrix)
 {
-  pQuadTree->cameraWorldPosition = viewInfo.cameraPosition;
-
-  pQuadTree->metaData.visibleNodeCount = 0;
-  pQuadTree->metaData.nodeRenderCount = 0;
+  pQuadTree->cameraWorldPosition = cameraPosition;
 
   // extract frustum planes
-  udDouble4x4 transposedViewProjection = udTranspose(viewInfo.viewProjectionMatrix);
+  udDouble4x4 transposedViewProjection = udTranspose(viewProjectionMatrix);
   pQuadTree->frustumPlanes[0] = transposedViewProjection.c[3] + transposedViewProjection.c[0]; // Left
   pQuadTree->frustumPlanes[1] = transposedViewProjection.c[3] - transposedViewProjection.c[0]; // Right
   pQuadTree->frustumPlanes[2] = transposedViewProjection.c[3] + transposedViewProjection.c[1]; // Bottom

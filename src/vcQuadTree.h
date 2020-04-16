@@ -131,7 +131,7 @@ void vcQuadTree_Destroy(vcQuadTree *pQuadTree);
 void vcQuadTree_Reset(vcQuadTree *pQuadTree);
 
 void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo);
-void vcQuadTree_Update2(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo);
+void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPosition, const udDouble4x4 &viewProjectionMatrix);
 void vcQuadTree_Prune(vcQuadTree *pQuadTree);
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode);
