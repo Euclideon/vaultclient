@@ -142,7 +142,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   {
     pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool();
     udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
-    pSettings->presentation.styleIndex = data.Get("style").AsInt(1); // dark style by default
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(false);
@@ -165,13 +164,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.93f, 1.f));
     pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
     pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsInt(9);
-
-    switch (pSettings->presentation.styleIndex)
-    {
-    case 0: ImGui::StyleColorsClassic(); break;
-    case 1: ImGui::StyleColorsDark(); break;
-    case 2: ImGui::StyleColorsLight(); break;
-    }
   }
 
   if (group == vcSC_All || group == vcSC_InputControls)
@@ -486,8 +478,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   udJSON tempNode;
 
   // Misc Settings
-  data.Set("style = %i", pSettings->presentation.styleIndex);
-
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
   data.Set("showEuclideonLogo = %s", pSettings->presentation.showEuclideonLogo ? "true" : "false");
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");

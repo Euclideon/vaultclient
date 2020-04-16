@@ -191,19 +191,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::SameLine();
           ImGui::TextUnformatted(vcString::Get("settingsAppearanceLanguage"));
 
-          int styleIndex = pProgramState->settings.presentation.styleIndex - 1;
-
-          const char *themeOptions[] = { vcString::Get("settingsAppearanceDark"), vcString::Get("settingsAppearanceLight") };
-          if (ImGui::Combo(vcString::Get("settingsAppearanceTheme"), &styleIndex, themeOptions, (int)udLengthOf(themeOptions)))
-          {
-            pProgramState->settings.presentation.styleIndex = styleIndex + 1;
-            switch (styleIndex)
-            {
-            case 0: ImGui::StyleColorsDark(); break;
-            case 1: ImGui::StyleColorsLight(); break;
-            }
-          }
-
           // Checks so the casts below are safe
           UDCOMPILEASSERT(sizeof(pProgramState->settings.presentation.mouseAnchor) == sizeof(int), "MouseAnchor is no longer sizeof(int)");
 
