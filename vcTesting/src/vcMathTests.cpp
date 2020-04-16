@@ -330,3 +330,21 @@ TEST(vcMath, LineSegmentPointQuery)
   EXPECT_EQ(2.0, udDistanceSqLineSegmentPoint(seg, point, &u));
   EXPECT_EQ(1.0, u);
 }
+
+TEST(vcMath, PolygonArea)
+{
+  udDouble2 points[4]; 
+  points[0] = udDouble2::create(1.0, 1.0);
+  points[1] = udDouble2::create(4.0, 1.0);
+  points[2] = udDouble2::create(4.0, 4.0);
+  points[3] = udDouble2::create(1.0, 4.0);
+
+  EXPECT_EQ(udSignedSimplePolygonArea(points, 4), 9.0);
+
+  points[0] = udDouble2::create(1.0, 1.0);
+  points[1] = udDouble2::create(1.0, 5.0);
+  points[2] = udDouble2::create(5.0, 5.0);
+  points[3] = udDouble2::create(5.0, 1.0);
+
+  EXPECT_EQ(udSignedSimplePolygonArea(points, 4), -16.0);
+}
