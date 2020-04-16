@@ -617,7 +617,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   vcP3Vertex verts[TileVertexResolution * TileVertexResolution] = {};
   int indicies[TileIndexResolution * TileIndexResolution * 6] = {};
   uint32_t greyPixel = 0xf3f3f3ff;
-  uint16_t blackPixel = 0x0;
+  uint16_t flatDemPixel = 0x8000;
   UD_ERROR_NULL(ppTileRenderer, udR_InvalidParameter_);
 
   pTileRenderer = udAllocType(vcTileRenderer, 1, udAF_Zero);
@@ -648,7 +648,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   }
 
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
-  UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyDemTileTexture, 1, 1, &blackPixel, vcTextureFormat_RG8));
+  UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyDemTileTexture, 1, 1, &flatDemPixel, vcTextureFormat_RG8));
 
   *ppTileRenderer = pTileRenderer;
   pTileRenderer = nullptr;
