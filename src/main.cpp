@@ -231,13 +231,6 @@ void vcMain_LoadSettings(vcState *pProgramState)
   {
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
-    switch (pProgramState->settings.presentation.styleIndex)
-    {
-    case 0: ImGui::StyleColorsDark(); ++pProgramState->settings.presentation.styleIndex; break;
-    case 1: ImGui::StyleColorsDark(); break;
-    case 2: ImGui::StyleColorsLight(); break;
-    }
-
 #if !(UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
     SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
     SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
@@ -899,6 +892,7 @@ int main(int argc, char **args)
     goto epilogue;
 
   ImGui::CreateContext();
+  ImGui::StyleColorsDark();
   ImGui::GetStyle().WindowRounding = 0.0f;
 
   vcMain_LoadSettings(&programState);

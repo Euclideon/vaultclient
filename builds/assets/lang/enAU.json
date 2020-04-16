@@ -59,9 +59,6 @@
 
   "settingsAppearance": "Appearance",
   "settingsAppearanceLanguage": "Language",
-  "settingsAppearanceTheme": "Theme",
-  "settingsAppearanceDark": "Dark Theme",
-  "settingsAppearanceLight": "Light Theme",
   "settingsAppearancePOIDistance": "Max POI Distance",
   "settingsAppearanceImageRescale": "Image Rescale Distance",
   "settingsAppearanceShowDiagnostics": "Show Diagnostic Information",
