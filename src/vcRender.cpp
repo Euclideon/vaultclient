@@ -771,7 +771,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
 
     // These values were trial and errored.
     const double BaseViewDistance = 5000.0;
-    const double HeightViewDistanceScale = 30.0;
+    const double HeightViewDistanceScale = 35.0;
     double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraDistanceToAltitudeZero * HeightViewDistanceScale);
 
     // Corners [nw, ne, sw, se]

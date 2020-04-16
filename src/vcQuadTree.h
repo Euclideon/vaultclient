@@ -8,6 +8,13 @@
 
 #define INVALID_NODE_INDEX 0xffffffff
 
+enum
+{
+  // Always descend a certain depth to ensure the resulting geometry
+  // is somewhat the shape of the projection (e.g. ECEF).
+  vcQuadTree_MinimumDescendLayer = 2
+};
+
 struct vcTexture;
 
 struct vcNodeRenderInfo

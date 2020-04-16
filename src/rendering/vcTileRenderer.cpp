@@ -848,9 +848,6 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
 
 void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
-  //if (tileUploadCount >= MaxTextureUploadsPerFrame)
-  //  return;
-
   if (!vcQuadTree_IsLeafNode(pNode))
   {
     for (int c = 0; c < 4; ++c)
@@ -894,8 +891,8 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
     vcQuadTreeNode *pNode = pTileRenderer->cache.tileLoadList[i];
     if (!pNode->touched || (!pNode->colourInfo.tryLoad && !pNode->demInfo.tryLoad))
     {
-      pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
-      pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
+      pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_None, vcNodeRenderInfo::vcTLS_InQueue);
+      pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_None, vcNodeRenderInfo::vcTLS_InQueue);
       pTileRenderer->cache.tileLoadList.RemoveSwapLast(i);
       --i;
     }
@@ -1037,7 +1034,7 @@ bool vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
 {
   // re-test visibility here
   pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
-  if (!pNode->visible && pNode->slippyPosition.z > 2)
+  if (!pNode->visible && pNode->slippyPosition.z >= vcQuadTree_MinimumDescendLayer)
     return false;
 
   pTileRenderer->quadTree.metaData.visibleNodeCount++;

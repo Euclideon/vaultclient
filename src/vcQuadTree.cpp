@@ -179,7 +179,7 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
 inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
 {
   // trial and error'd this heuristic
-  const int RootRegionSize = 21000000; // higher == higher quality maps
+  const int RootRegionSize = 16000000; // higher == higher quality maps
   return distance < (RootRegionSize >> depth);
 }
 
@@ -238,7 +238,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
       distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormal * pChildNode->demMinMax[1]);
 
     int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
-    bool alwaysSubdivide = pChildNode->visible && totalDepth < 2;
+    bool alwaysSubdivide = pChildNode->visible && totalDepth < vcQuadTree_MinimumDescendLayer;
     if (alwaysSubdivide || vcQuadTree_ShouldSubdivide(distanceToQuadrant, totalDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
     else
