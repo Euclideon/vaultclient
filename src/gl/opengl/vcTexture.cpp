@@ -10,6 +10,15 @@
 
 #include "stb_image.h"
 
+#if UDPLATFORM_EMSCRIPTEN
+#include <emscripten.h>
+
+EM_JS(void, vcTexture_glGetBufferSubData, (GLenum target, GLintptr offset, GLsizeiptr size, void *data, GLenum type), {
+  var heap = __heapObjectForWebGLType(type);
+  GLctx.getBufferSubData(target, offset, heap, data >> (__heapAccessShiftForWebGLType[type] | 0), size);
+});
+#endif
+
 void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSize = nullptr, GLint *pTextureFormat = nullptr, GLenum *pPixelType = nullptr, GLint *pPixelFormat = nullptr)
 {
   GLint textureFormat = GL_INVALID_ENUM;
@@ -125,16 +134,14 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   if (hasMipmaps)
     glGenerateMipmap(target);
 
-  if ((flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
+  // Always generate PBOs
+  glGenBuffers(2, pTexture->pbos);
+  for (int i = 0; i < 2; ++i)
   {
-    glGenBuffers(2, pTexture->pbos);
-    for (int i = 0; i < 2; ++i)
-    {
-      glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[i]);
-      glBufferData(GL_PIXEL_PACK_BUFFER, width * height * pixelBytes, 0, GL_STREAM_READ);
-    }
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[i]);
+    glBufferData(GL_PIXEL_PACK_BUFFER, width * height * pixelBytes, 0, GL_STREAM_READ);
   }
+  glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
   glBindTexture(target, 0);
 
@@ -282,7 +289,6 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
     return false;
 
   udResult result = udR_Success;
-  void *pPixelBuffer = pPixels;
   GLenum pixelType = GL_INVALID_ENUM;
   GLint pixelFormat = GL_INVALID_ENUM;
   vcTexture_GetFormatAndPixelSize(pTexture->format, nullptr, nullptr, &pixelType, &pixelFormat);
@@ -290,20 +296,17 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   UD_ERROR_IF(!vcFramebuffer_Bind(pFramebuffer), udR_InternalError);
   VERIFY_GL();
 
-  // Only asychronously transfer if texture is configured for it
-  if ((pTexture->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
-  {
-    // Copy to PBO
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[pTexture->pboIndex]);
-    pPixelBuffer = nullptr;
-  }
+  // Copy to PBO asychronously
+  glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[pTexture->pboIndex]);
   VERIFY_GL();
 
-  glReadPixels(x, y, width, height, pixelFormat, pixelType, pPixelBuffer);
+  glReadPixels(x, y, width, height, pixelFormat, pixelType, nullptr);
   VERIFY_GL();
 
-  if ((pTexture->flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+  glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+  if ((pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
+    vcTexture_EndReadPixels(pTexture, x, y, width, height, pPixels);
 
 epilogue:
   VERIFY_GL();
@@ -315,23 +318,30 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
   if (pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
     return false;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count || (pTexture->flags & vcTCF_AsynchronousRead) != vcTCF_AsynchronousRead)
+  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
     return false;
 
   udResult result = udR_Success;
   int pixelBytes = 0;
-  vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes);
+  GLenum pixelType = GL_INVALID_ENUM;
+  vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes, nullptr, &pixelType);
 
   // Read previous PBO back to CPU
   glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[pTexture->pboIndex]);
   pTexture->pboIndex = (pTexture->pboIndex + 1) & 1;
 
+#if UDPLATFORM_EMSCRIPTEN
+  vcTexture_glGetBufferSubData(GL_PIXEL_PACK_BUFFER, 0, width * height * pixelBytes, pPixels, pixelType);
+#else
+  udUnused(pixelType);
   uint8_t *pData = (uint8_t *)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, width * height * pixelBytes, GL_MAP_READ_BIT);
   if (pData != nullptr)
   {
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
     memcpy(pPixels, pData, width * height * pixelBytes);
   }
+#endif
+
   glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 //epilogue:
