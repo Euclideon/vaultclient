@@ -313,7 +313,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
               bool changed = false;
 
-              ImGui::TextWrapped(vcString::Get("settingsMapsTileServerInstructions"));
+              ImGui::TextWrapped("%s", vcString::Get("settingsMapsTileServerInstructions"));
 
               changed |= vcIGSW_InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.customServer.tileServerAddress, vcMaxPathLength);
               changed |= vcIGSW_InputText(vcString::Get("settingsMapsAttribution"), pProgramState->settings.maptiles.customServer.attribution, vcMaxPathLength);
