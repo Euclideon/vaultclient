@@ -1275,10 +1275,13 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
   vcTexture_GetSize(pWatermark, &imageSize.x, &imageSize.y);
 
   udFloat3 position = udFloat3::create(float(imageSize.x) / pRenderContext->sceneResolution.x - 1, float(imageSize.y) / pRenderContext->sceneResolution.y - 1, 0);
+  udFloat3 scale = udFloat3::create(2.0f * float(imageSize.x) / pRenderContext->sceneResolution.x, -2.0f * float(imageSize.y) / pRenderContext->sceneResolution.y, 1.0);
+
 #if GRAPHICS_API_OPENGL
   position.y = -position.y;
+  scale.y = -scale.y;
 #endif
-  udFloat3 scale = udFloat3::create(2.0f * float(imageSize.x) / pRenderContext->sceneResolution.x, -2.0f * float(imageSize.y) / pRenderContext->sceneResolution.y, 1.0);
+
   pRenderContext->watermarkShader.params.u_worldViewProjectionMatrix = udFloat4x4::scaleNonUniform(scale, position);
 
   vcShader_Bind(pRenderContext->watermarkShader.pProgram);
