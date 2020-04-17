@@ -681,6 +681,9 @@ bool vcSettings_Save(vcSettings *pSettings)
   tempNode.SetString(pSettings->maptiles.customServer.tileServerAddress);
   data.Set(&tempNode, "maptiles.serverURL");
 
+  tempNode.SetString(pSettings->maptiles.customServer.attribution);
+  data.Set(&tempNode, "maptiles.attribution");
+
   for (size_t i = 0; i < vcB_Count; ++i)
     data.Set("keys.%s = %d", vcHotkey::GetBindName((vcBind)i), vcHotkey::Get((vcBind)i));
 
