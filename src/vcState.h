@@ -172,13 +172,6 @@ struct vcState
 
   vcActiveTool activeTool;
 
-  struct
-  {
-    vcTexture *pServerIcon;
-    volatile void *pImageData;
-    volatile int64_t loadStatus; // >0 is the size of pImageData
-  } tileModal;
-
   vcProject activeProject;
 
   struct

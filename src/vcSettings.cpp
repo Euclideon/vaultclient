@@ -191,10 +191,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.demEnabled = data.Get("maptiles.demEnabled").AsBool(true);
-    udStrcpy(pSettings->maptiles.tileServerAddress, data.Get("maptiles.serverURL").AsString("https://slippy.vault.euclideon.com/"));
-    udUUID_GenerateFromString(&pSettings->maptiles.tileServerAddressUUID, pSettings->maptiles.tileServerAddress);
+    udStrcpy(pSettings->maptiles.mapType, data.Get("maptiles.type").AsString("euc-osm-base"));
+    udStrcpy(pSettings->maptiles.customServer.tileServerAddress, data.Get("maptiles.serverURL").AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
+    udStrcpy(pSettings->maptiles.customServer.attribution, data.Get("maptiles.attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
+    vcSettings_ApplyMapChange(pSettings);
 
-    udStrcpy(pSettings->maptiles.tileServerExtension, data.Get("maptiles.imgExtension").AsString("png"));
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
     pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
@@ -671,10 +672,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("maptiles.mapQuality = %d", int(pSettings->maptiles.mapQuality));
   data.Set("maptiles.mapOptions = %d", int(pSettings->maptiles.mapOptions));
 
-  tempNode.SetString(pSettings->maptiles.tileServerAddress);
+  tempNode.SetString(pSettings->maptiles.customServer.tileServerAddress);
   data.Set(&tempNode, "maptiles.serverURL");
-  tempNode.SetString(pSettings->maptiles.tileServerExtension);
-  data.Set(&tempNode, "maptiles.imgExtension");
 
   for (size_t i = 0; i < vcB_Count; ++i)
     data.Set("keys.%s = %d", vcHotkey::GetBindName((vcBind)i), vcHotkey::Get((vcBind)i));
@@ -897,4 +896,36 @@ epilogue:
   udUnused(pSetting);
 #endif
   return result;
+}
+
+void vcSettings_ApplyMapChange(vcSettings *pSettings)
+{
+  // 'custom', 'euc-osm-base', 'euc-az-aerial', 'euc-az-roads'
+
+  if (udStrEqual(pSettings->maptiles.mapType, "euc-osm-base"))
+  {
+    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, "https://slippy.vault.euclideon.com/{0}/{1}/{2}.png");
+    udStrcpy(pSettings->maptiles.activeServer.attribution, "\xC2\xA9 OpenStreetMap contributors");
+    udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, "https://slippy.vault.euclideon.com");
+  }
+  else if (udStrEqual(pSettings->maptiles.mapType, "euc-az-aerial"))
+  {
+    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, "https://slippy.vault.euclideon.com/aerial/{0}/{1}/{2}.png");
+    udStrcpy(pSettings->maptiles.activeServer.attribution, "\xC2\xA9 1992 - 2020 TomTom");
+    udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, "https://slippy.vault.euclideon.com/aerial");
+  }
+  else if (udStrEqual(pSettings->maptiles.mapType, "euc-az-roads"))
+  {
+    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, "https://slippy.vault.euclideon.com/roads/{0}/{1}/{2}.png");
+    udStrcpy(pSettings->maptiles.activeServer.attribution, "\xC2\xA9 1992 - 2020 TomTom");
+    udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, "https://slippy.vault.euclideon.com/roads");
+  }
+  else // `custom` or not supported
+  {
+    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, pSettings->maptiles.customServer.tileServerAddress);
+    udStrcpy(pSettings->maptiles.activeServer.attribution, pSettings->maptiles.customServer.attribution);
+    udUUID_GenerateFromString(&pSettings->maptiles.customServer.tileServerAddressUUID, pSettings->maptiles.customServer.tileServerAddress);
+
+    pSettings->maptiles.activeServer.tileServerAddressUUID = pSettings->maptiles.customServer.tileServerAddressUUID;
+  }
 }
