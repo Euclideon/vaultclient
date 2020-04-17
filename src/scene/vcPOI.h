@@ -47,12 +47,13 @@ private:
   vcLabelFontSize m_namePt;
 
   bool m_showArea;
-  double m_calculatedArea;
-
   bool m_showLength;
-  double m_calculatedLength;
-
   bool m_showAllLengths;
+
+  double m_totalLength;
+  double m_area;
+  udDouble3 m_centroid;
+
   udChunkedArray<vcLabelInfo> m_lengthLabels;
 
   vcFenceRenderer *m_pFence;
@@ -60,8 +61,6 @@ private:
   const char *m_pLabelText;
 
   vcLineInstance *m_pLine; // TODO: 1452
-
-  bool m_hasPreviewPoint;
 
   bool m_cameraFollowingAttachment; //True if following attachment, false if flying through points
 
@@ -121,6 +120,10 @@ public:
 
 private:
   void InsertPoint(const udDouble3 &position);
+  void CalculateArea();
+  void CalculateTotalLength();
+  void CalculateCentroid();
+  void AddLengths();
   void UpdateState(vcState *pProgramState);
   double DistanceToPoint(udDouble3 const &point);
   vcRenderPolyInstance *AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i);

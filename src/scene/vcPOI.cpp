@@ -149,7 +149,9 @@ public:
   vcPOIState_MeasureLine(vcPOI *pParent)
     : vcPOIState_General(pParent)
   {
-
+    m_pParent->m_showArea = false;
+    m_pParent->m_showAllLengths = true;
+    m_pParent->m_showLength = true;
   }
 
   ~vcPOIState_MeasureLine()
@@ -226,7 +228,9 @@ public:
   vcPOIState_MeasureArea(vcPOI *pParent)
     : vcPOIState_General(pParent)
   {
-
+    m_pParent->m_showArea = true;
+    m_pParent->m_showAllLengths = false;
+    m_pParent->m_showLength = false;
   }
 
   ~vcPOIState_MeasureArea()
@@ -239,6 +243,9 @@ public:
     size_t itemID = size_t(-1);
     if (m_pParent->m_line.numPoints > 1)
     {
+      if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), itemID), &m_pParent->m_showLength))
+        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
+
       if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_pParent->m_showAllLengths))
         vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
 
@@ -390,7 +397,6 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
 
   memset(&m_line, 0, sizeof(m_line));
 
-  m_hasPreviewPoint = false;
   m_cameraFollowingAttachment = false;
 
   m_line.selectedPoint = -1; // Sentinel for no point selected
@@ -595,61 +601,26 @@ void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcPOI::UpdatePoints()
 {
-  // Calculate length, area and label position
-  m_calculatedLength = 0;
-  m_calculatedArea = 0;
+  CalculateArea();
+  CalculateTotalLength();
+  CalculateCentroid();
 
-  m_pLabelInfo->worldPosition = udDouble3::zero();
+  m_pLabelInfo->worldPosition = m_centroid;
 
-  // j = previous, i = current
-  int j = udMax(0, m_line.numPoints - 1);
-  for (int i = 0; i < m_line.numPoints; i++)
-  {
-    if (m_showArea && m_line.closed && m_line.numPoints > 2) // Area requires at least 3 points
-      m_calculatedArea = m_calculatedArea + (m_line.pPoints[j].x + m_line.pPoints[i].x) * (m_line.pPoints[j].y - m_line.pPoints[i].y);
+  char labelBuf[128] = {};
+  udStrcat(labelBuf, m_pNode->pName);
 
-    double lineLength = udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
-    m_pLabelInfo->worldPosition += m_line.pPoints[i];
+  if (m_showLength)
+    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("scenePOILineLength"), m_totalLength));
+  if (m_showArea)
+    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("scenePOIArea"), m_area));
 
-    if (m_line.closed || i > 0) // Calculate length
-      m_calculatedLength += lineLength;
-
-    if (m_showAllLengths && m_line.numPoints > 1)
-    {
-      int numLabelDiff = m_line.numPoints - (int)m_lengthLabels.length;
-      if (numLabelDiff < 0) // Too many labels, delete one
-      {
-        vcLabelInfo popLabel = {};
-        m_lengthLabels.PopBack(&popLabel);
-        udFree(popLabel.pText);
-      }
-      else if (numLabelDiff > 0) // Not enough labels, add one
-      {
-        vcLabelInfo label = vcLabelInfo(*m_pLabelInfo);
-        label.pText = nullptr;
-        m_lengthLabels.PushBack(label);
-      }
-
-      vcLabelInfo* pLabel = m_lengthLabels.GetElement(i);
-      pLabel->worldPosition = (m_line.pPoints[j] + m_line.pPoints[i]) / 2;
-      udSprintf(&pLabel->pText, "%.3f", lineLength);
-    }
-
-    j = i;
-  }
-
-  m_calculatedArea = udAbs(m_calculatedArea) / 2;
+  udFree(m_pLabelText);
+  m_pLabelText = udStrdup(labelBuf);
 
   // update the fence renderer as well
   if (m_line.numPoints > 1)
   {
-    if (m_showArea && m_showLength && m_line.numPoints > 2)
-      udSprintf(&m_pLabelText, "%s\n%s: %.3f\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength, vcString::Get("scenePOIArea"), m_calculatedArea);
-    else if (m_showLength)
-      udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOILineLength"), m_calculatedLength);
-    else if (m_showArea && m_line.numPoints > 2)
-      udSprintf(&m_pLabelText, "%s\n%s: %.3f", m_pNode->pName, vcString::Get("scenePOIArea"), m_calculatedArea);
-
     if (m_line.fenceMode != vcRRVM_ScreenLine)
     {
       if (m_pFence == nullptr)
@@ -679,20 +650,12 @@ void vcPOI::UpdatePoints()
       vcLineRenderer_UpdatePoints(m_pLine, m_line.pPoints, m_line.numPoints, vcIGSW_BGRAToImGui(m_line.colourPrimary), m_line.lineWidth);
     }
   }
-  else
-  {
-    udFree(m_pLabelText);
-    m_pLabelText = udStrdup(m_pNode->pName);
-  }
 
   // Update the label as well
   m_pLabelInfo->pText = m_pLabelText;
   m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
   m_pLabelInfo->textSize = m_namePt;
-
-  if (m_line.numPoints > 0)
-    m_pLabelInfo->worldPosition /= m_line.numPoints;
 
   for (size_t i = 0; i < m_lengthLabels.length; ++i)
   {
@@ -935,7 +898,6 @@ void vcPOI::RemovePoint(vcState *pProgramState, int index)
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
-  m_hasPreviewPoint = false;
   udFree(m_line.pPoints);
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &m_line.pPoints, &m_line.numPoints);
   UpdatePoints();
@@ -998,6 +960,86 @@ vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRende
   pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
   pInstance->sceneItemInternalId = (uint64_t)i + 1;
   return pInstance;
+}
+
+void vcPOI::CalculateArea()
+{
+  m_area = 0.0;
+
+  if (m_line.numPoints < 3)
+    return;
+
+  //TODO This assumes we have a simple polygon.
+  //     Also we currently project the points onto the ground plane to find area,
+  //     we should be able to project these onto any plane.
+  m_area = udAbs(udSignedSimplePolygonArea3(m_line.pPoints, (size_t)m_line.numPoints));
+}
+
+void vcPOI::CalculateTotalLength()
+{
+  m_totalLength = 0.0;
+
+  int j = udMax(0, m_line.numPoints - 1);
+  for (int i = 0; i < m_line.numPoints; i++)
+  {
+    double lineLength = udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
+
+    if (m_line.closed || i > 0)
+      m_totalLength += lineLength;
+
+    j = i;
+  }
+}
+
+//TODO This is will work but not show the true centroid.
+// We should find the centroid of the convex hull.
+void vcPOI::CalculateCentroid()
+{
+  m_centroid = udDouble3::zero();
+
+  udDouble3 aabbMin = udDouble3::create(DBL_MAX, DBL_MAX, DBL_MAX);
+  udDouble3 aabbMax = udDouble3::create(DBL_MIN, DBL_MIN, DBL_MIN);
+
+  for (int p = 0; p < m_line.numPoints; p++)
+  {
+    aabbMin = udMin(aabbMin, m_line.pPoints[p]);
+    aabbMax = udMax(aabbMax, m_line.pPoints[p]);
+  }
+
+  m_centroid = (aabbMin + aabbMax) * 0.5;
+}
+
+void vcPOI::AddLengths()
+{
+  // j = previous, i = current
+  int j = udMax(0, m_line.numPoints - 1);
+  for (int i = 0; i < m_line.numPoints; i++)
+  {
+    double lineLength = udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
+
+    if (m_line.numPoints > 1)
+    {
+      int numLabelDiff = m_line.numPoints - (int)m_lengthLabels.length;
+      if (numLabelDiff < 0) // Too many labels, delete one
+      {
+        vcLabelInfo popLabel = {};
+        m_lengthLabels.PopBack(&popLabel);
+        udFree(popLabel.pText);
+      }
+      else if (numLabelDiff > 0) // Not enough labels, add one
+      {
+        vcLabelInfo label = vcLabelInfo(*m_pLabelInfo);
+        label.pText = nullptr;
+        m_lengthLabels.PushBack(label);
+      }
+
+      vcLabelInfo* pLabel = m_lengthLabels.GetElement(i);
+      pLabel->worldPosition = (m_line.pPoints[j] + m_line.pPoints[i]) / 2;
+      udSprintf(&pLabel->pText, "%.3f", lineLength);
+    }
+
+    j = i;
+  }
 }
 
 void vcPOI::UpdateState(vcState *pProgramState)
@@ -1068,6 +1110,17 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
 {
   if (m_pLabelInfo != nullptr)
   {
+    if (m_showAllLengths && m_line.numPoints > 1)
+    {
+      AddLengths();
+
+      for (size_t i = 0; i < m_lengthLabels.length; ++i)
+      {
+        if (m_line.closed || i > 0)
+          pRenderData->labels.PushBack(m_lengthLabels.GetElement(i));
+      }
+    }
+
     if ((m_showLength && m_line.numPoints > 1) || (m_showArea && m_line.numPoints > 2))
       m_pLabelInfo->pText = m_pLabelText;
     else
@@ -1075,14 +1128,6 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
 
     pRenderData->labels.PushBack(m_pLabelInfo);
 
-    if (m_showAllLengths && m_line.numPoints > 1)
-    {
-      for (size_t i = 0; i < m_lengthLabels.length; ++i)
-      {
-        if (m_line.closed || i > 0)
-          pRenderData->labels.PushBack(m_lengthLabels.GetElement(i));
-      }
-    }
   }
 }
 
