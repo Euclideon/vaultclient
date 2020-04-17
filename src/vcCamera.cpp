@@ -211,6 +211,9 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       // Save it back to the camera
       pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
       pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
+
+      if (pCamera->headingPitch.y > UD_PI)
+        pCamera->headingPitch.y -= UD_2PI;
     }
   }
   break;
