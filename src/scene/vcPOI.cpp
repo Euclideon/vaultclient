@@ -335,7 +335,7 @@ vcPOIState_General *vcPOIState_MeasureLine::ChangeState(vcState *pProgramState)
     if (m_pParent->m_line.fenceMode != vcRRVM_ScreenLine && m_pParent->m_pFence != nullptr)
     {
       vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
-      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_line.closed);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_worldUp, m_pParent->m_line.closed);
     }
 
     m_pParent->ChangeProjection(pProgramState->gis.zone);
@@ -366,7 +366,7 @@ vcPOIState_General *vcPOIState_MeasureArea::ChangeState(vcState *pProgramState)
     if (m_pParent->m_line.fenceMode != vcRRVM_ScreenLine && m_pParent->m_pFence != nullptr)
     {
       vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
-      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_line.closed);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_worldUp, m_pParent->m_line.closed);
     }
 
     m_pParent->ChangeProjection(pProgramState->gis.zone);
@@ -578,6 +578,8 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
+  SetWorldUp(pProgramState->gis);
+
   UpdateState(pProgramState);
   m_pState->AddToScene(pProgramState, pRenderData);
 }
@@ -639,7 +641,7 @@ void vcPOI::UpdatePoints()
       vcFenceRenderer_SetConfig(m_pFence, config);
 
       vcFenceRenderer_ClearPoints(m_pFence);
-      vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
+      vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_worldUp, m_line.closed);
     }
     else
     {
@@ -946,6 +948,12 @@ void vcPOI::SelectSubitem(uint64_t internalId)
 bool vcPOI::IsSubitemSelected(uint64_t internalId)
 {
   return (m_selected && (m_line.selectedPoint == ((int)internalId - 1) || m_line.selectedPoint == -1));
+}
+
+//TODO FRANK Just the centroid?
+void vcPOI::SetWorldUp(const vcGISSpace &space)
+{
+  m_worldUp = udFloat3::create(vcGIS_GetWorldLocalUp(space, m_centroid));
 }
 
 vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i)

@@ -46,6 +46,8 @@ private:
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
 
+  udFloat3 m_worldUp;
+
   bool m_showArea;
   bool m_showLength;
   bool m_showAllLengths;
@@ -117,6 +119,8 @@ public:
 
   void SelectSubitem(uint64_t internalId);
   bool IsSubitemSelected(uint64_t internalId);
+
+  void SetWorldUp(const vcGISSpace &space);
 
 private:
   void InsertPoint(const udDouble3 &position);
