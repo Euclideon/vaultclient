@@ -148,6 +148,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(false);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
+    pSettings->presentation.sceneExplorerCollapsed = data.Get("sceneExplorerCollapsed").AsBool(true);
     pSettings->presentation.loginRenderLicense = data.Get("loginRenderLicense").AsBool(false);
     pSettings->presentation.saturation = data.Get("saturation").AsFloat(1.0f);
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
@@ -159,8 +160,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.convertLeftPanelPercentage = data.Get("convertLeftPanelPercentage").AsFloat(0.33f);
     pSettings->presentation.columnSizeCorrect = false;
 
-    pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Simple);
-    pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.93f, 1.f));
+    pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Colour);
+    pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.66f, 1.f));
     pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
     pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsInt(9);
   }
@@ -299,15 +300,15 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Tools || group == vcSC_All)
   {
-    const float defaultLineColour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    const float defaultLineColour[4] = {1.0f, 1.0f, 0.0f, 1.0f};
     const float defaultTextColour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     const float defaultBackgroundColour[4] = {0.0f, 0.0f, 0.0f, 0.5f};
 
     //Lines
     pSettings->tools.line.minWidth = data.Get("tools.line.minWidth").AsFloat(0.1f);
     pSettings->tools.line.maxWidth = data.Get("tools.line.maxWidth").AsFloat(1000.f);
-    pSettings->tools.line.width = data.Get("tools.line.width").AsFloat(7.f);
-    pSettings->tools.line.fenceMode = data.Get("tools.line.fenceMode").AsInt(1);
+    pSettings->tools.line.width = data.Get("tools.line.width").AsFloat(10.f);
+    pSettings->tools.line.fenceMode = data.Get("tools.line.fenceMode").AsInt(0);
     pSettings->tools.line.style = data.Get("tools.line.style").AsInt(1);
     for (int i = 0; i < 4; i++)
       pSettings->tools.line.colour[i] = data.Get("tools.line.colour[%d]", i).AsFloat(defaultLineColour[i]);
@@ -487,6 +488,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("loginRenderLicense = %s", pSettings->presentation.loginRenderLicense ? "true" : "false");
   data.Set("saturation = %f", pSettings->presentation.saturation);
   data.Set("showAdvancedGISOptions = %s", pSettings->presentation.showAdvancedGIS ? "true" : "false");
+  data.Set("sceneExplorerCollapsed = %s", pSettings->presentation.sceneExplorerCollapsed ? "true" : "false");
   data.Set("limitFPSInBackground = %s", pSettings->presentation.limitFPSInBackground ? "true" : "false");
   data.Set("POIfadeDistance = %f", pSettings->presentation.POIFadeDistance);
   data.Set("ImageRescaleDistance = %f", pSettings->presentation.imageRescaleDistance);
