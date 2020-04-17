@@ -290,7 +290,7 @@ struct vcSettings
     char tileServerAddress[vcMaxPathLength];
     char attribution[vcMaxPathLength];
     udUUID tileServerAddressUUID;
-  } activeMapServer;
+  };
 
   struct
   {
