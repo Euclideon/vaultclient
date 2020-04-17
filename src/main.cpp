@@ -1227,7 +1227,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
   if (showInfoPanel)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x, windowPos.y), ImGuiCond_Always, ImVec2(0.f, 0.f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + 32.f, windowPos.y), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
@@ -1482,7 +1482,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
     if (pBuffer != nullptr)
     {
-      ImGui::SetNextWindowPos(ImVec2(0, windowSize.y), ImGuiCond_Always, ImVec2(0.f, 1.f));
+      ImGui::SetNextWindowPos(ImVec2(windowPos.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.f, 1.f));
       ImGui::SetNextWindowBgAlpha(0.5f);
 
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -1561,7 +1561,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
   // Tool Panel
   {
-    ImVec2 buttonPanelPos = ImVec2(windowPos.x + 2.f, windowPos.y + infoPanelSize + 2.f);
+    ImVec2 buttonPanelPos = ImVec2(windowPos.x + 2.f, windowPos.y + 2.f);
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
