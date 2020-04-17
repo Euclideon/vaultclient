@@ -1108,7 +1108,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   float bottomLeftOffset = 0.f;
 
   float attachmentPanelSize = 0.f;
-  float infoPanelSize = 0.f;
 
   if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
   {
@@ -1460,7 +1459,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
     }
 
-    infoPanelSize = ImGui::GetWindowSize().y;
     ImGui::End();
   }
 
