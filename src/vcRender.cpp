@@ -1332,7 +1332,9 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
 
+#if !UDPLATFORM_EMSCRIPTEN
   vcRender_PostProcessPass(pProgramState, pRenderContext);
+#endif
   vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);
 
   vcGLState_ResetState();
