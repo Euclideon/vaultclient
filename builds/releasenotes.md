@@ -6,17 +6,39 @@ Known Issues In Current Release
     - Round trip for exporting pointclouds doesn't always give the same model
     - Export to UDS doesn't copy all metadata
   - Map mode is unavailable
-  - Offline mode
-    - The user profile modal is still available
-    - Frequent stalls occur (~15s)
   - Lots of minor UI sizing/positioning issues
   - Displacement compare
     - Calculation doesn't always work correctly
     - Sits at 0% for a long time while during initial processing
-  - Maps are sometimes flickering when close to the pointcloud
   - Lack of prompts for destructive actions
   - Some LAZ files fail to convert
   - Some SLPK files fail to render correctly and SLPK pointcloud is unsupported
+
+Version 0.6.0
+  - Major overhaul to the entire UI
+    - Moved the frequently used tools to the UI
+    - Added key bindings for many of the tools
+    - Increased the scene size to use as much of the window as possible
+    - Removed menu bar and moved its contents to other parts of the UI
+    - Shrunk the compass and using a more traditional compass style
+  - Better limits on movement speed
+  - Added support for Earth Centred, Earth Fixed (Globe Rendering)
+  - Improvements to custom tile servers to allow API keys and other (supported) texture formats
+  - Optimisations to polygon loading (particularly with lots of textures)
+  - Voxel shaders can now be set per model in the scene rather than using the global scene settings
+  - Added setting to snap the mouse to a nearby voxel (helps to avoid 'missing' the pointcloud and zooming off into space)
+  - [Technical] Shaders are now stored as assets rather than embedded
+  - Fixes to SLPK loader (thanks to everyone that submitted broken SLPK files!)
+  - Tidied up the settings so that settings are more logically grouped together
+  - Added a more standard 'line' mode (screen space lines)
+  - Added prompts for confirmation of destructive actions
+  - Improved support for offline sessions
+  - Added information when no licenses are available (relogging can help)
+  - Added convert status to the scene UI
+  - Added attribution text using metadata from the UDS "Copyright" field
+  - Added "Help" button to open the website for the latest support documentation
+  - Added Euclideon hosted Elevation data to the terrain
+  - [Experimental] Atmospheric Scattering (available as a skybox)
 
 Version 0.5.0
   - Reenabled FBX conversion on Windows and macOS
