@@ -231,8 +231,8 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
 //A simple polygon does not have holes and does not self-intersect.
 //If the area > 0, the points are ordered clockwise.
 //If the area < 0, the points are ordered counterclockwise.
-template<template<typename> typename Vec, typename T>
-T udSignedSimplePolygonArea(Vec<T> const * pPoints, size_t nPoints)
+template<typename T>
+T udSignedSimplePolygonArea2(udVector2<T> const * pPoints, size_t nPoints)
 {
   if (pPoints == nullptr || nPoints < 3)
     return T(0);
@@ -246,6 +246,23 @@ T udSignedSimplePolygonArea(Vec<T> const * pPoints, size_t nPoints)
 
   return area / T(2);
 }
+
+template<typename T>
+T udSignedSimplePolygonArea3(udVector3<T> const * pPoints, size_t nPoints)
+{
+  if (pPoints == nullptr || nPoints < 3)
+    return T(0);
+
+  T area = T(0);
+  for (size_t i = 0; i < nPoints; ++i)
+  {
+    size_t j = (i + 1) % nPoints;
+    area += (pPoints[i].x * pPoints[j].y) - (pPoints[i].y * pPoints[j].x);
+  }
+
+  return area / T(2);
+}
+
 template<typename T>
 class udLineSegment
 {

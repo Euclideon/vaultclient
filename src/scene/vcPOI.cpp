@@ -972,7 +972,7 @@ void vcPOI::CalculateArea()
   //TODO This assumes we have a simple polygon.
   //     Also we currently project the points onto the ground plane to find area,
   //     we should be able to project these onto any plane.
-  m_area = udAbs(udSignedSimplePolygonArea(m_line.pPoints, (size_t)m_line.numPoints));
+  m_area = udAbs(udSignedSimplePolygonArea3(m_line.pPoints, (size_t)m_line.numPoints));
 }
 
 void vcPOI::CalculateTotalLength()
@@ -1002,13 +1002,8 @@ void vcPOI::CalculateCentroid()
 
   for (int p = 0; p < m_line.numPoints; p++)
   {
-    for (int i = 0; i < 3; i++)
-    {
-      if (m_line.pPoints[p][i] < aabbMin[i])
-        aabbMin[i] = m_line.pPoints[p][i];
-      if (m_line.pPoints[p][i] > aabbMax[i])
-        aabbMax[i] = m_line.pPoints[p][i];
-    }
+    aabbMin = udMin(aabbMin, m_line.pPoints[p]);
+    aabbMax = udMax(aabbMax, m_line.pPoints[p]);
   }
 
   m_centroid = (aabbMin + aabbMax) * 0.5;
