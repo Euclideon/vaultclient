@@ -281,32 +281,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           if (pProgramState->settings.maptiles.mapEnabled)
           {
-            ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
-
-            //"settingsMapsAttribution"
-
-            int selectedMode = 0;
-            const char *modes[] = { vcString::Get("settingsMapTypeEucOSM"), vcString::Get("settingsMapTypeEucAzAerial"), vcString::Get("settingsMapTypeEucAzRoads"), vcString::Get("settingsMapTypeCustom") };
-            const char *modeStrs[] = { "euc-osm-base", "euc-az-aerial", "euc-az-roads", "custom" };
-
-            UDCOMPILEASSERT(udLengthOf(modes) == udLengthOf(modeStrs), "Update Tables!");
-
-            for (size_t mi = 0; mi < udLengthOf(modes); ++mi)
-            {
-              if (udStrEqual(pProgramState->settings.maptiles.mapType, modeStrs[mi]))
-              {
-                selectedMode = (int)mi;
-                break;
-              }
-            }
-
-            if (ImGui::Combo(vcString::Get("settingsMapType"), &selectedMode, modes, (int)udLengthOf(modes)))
-            {
-              udStrcpy(pProgramState->settings.maptiles.mapType, modeStrs[selectedMode]);
-              vcSettings_ApplyMapChange(&pProgramState->settings);
-              vcRender_ClearTiles(pProgramState->pRenderContext);
-            }
-
+            vcSettingsUI_BasicMapSettings(pProgramState);
+            
             if (udStrEqual(pProgramState->settings.maptiles.mapType, "custom"))
             {
               ImGui::Indent();
@@ -908,6 +884,33 @@ const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t c
       return udTempStr("%d. %s", classification, vcString::Get("settingsVisClassUserDefined"));
     else
       return udTempStr("%d. %s", classification, pProgramState->settings.visualization.customClassificationColorLabels[classification]);
+  }
+}
+
+void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
+{
+  ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
+
+  int selectedMode = 0;
+  const char *modes[] = { vcString::Get("settingsMapTypeEucOSM"), vcString::Get("settingsMapTypeEucAzAerial"), vcString::Get("settingsMapTypeEucAzRoads"), vcString::Get("settingsMapTypeCustom") };
+  const char *modeStrs[] = { "euc-osm-base", "euc-az-aerial", "euc-az-roads", "custom" };
+
+  UDCOMPILEASSERT(udLengthOf(modes) == udLengthOf(modeStrs), "Update Tables!");
+
+  for (size_t mi = 0; mi < udLengthOf(modes); ++mi)
+  {
+    if (udStrEqual(pProgramState->settings.maptiles.mapType, modeStrs[mi]))
+    {
+      selectedMode = (int)mi;
+      break;
+    }
+  }
+
+  if (ImGui::Combo(vcString::Get("settingsMapType"), &selectedMode, modes, (int)udLengthOf(modes)))
+  {
+    udStrcpy(pProgramState->settings.maptiles.mapType, modeStrs[selectedMode]);
+    vcSettings_ApplyMapChange(&pProgramState->settings);
+    vcRender_ClearTiles(pProgramState->pRenderContext);
   }
 }
 

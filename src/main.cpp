@@ -1467,11 +1467,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   // Attribution
   {
     vdkProjectNode *pNode = pProgramState->activeProject.pRoot;
-    const char *pBuffer = nullptr;
-    
+    const char *pBuffer = udStrdup("Euclideon");
+
     if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)
     {
-      udSprintf(&pBuffer, "%s", pProgramState->settings.maptiles.activeServer.attribution);
+      if (pProgramState->settings.maptiles.activeServer.attribution[0] != '\0')
+        udSprintf(&pBuffer, "%s, %s", pBuffer, pProgramState->settings.maptiles.activeServer.attribution);
 
       if (pProgramState->settings.maptiles.demEnabled)
         udSprintf(&pBuffer, "%s, NOAA, GEBCO", pBuffer);
@@ -1577,6 +1578,69 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneProfileMenu"), nullptr, vcMBBI_Burger, vcMBBG_FirstItem);
       vcMain_ProfileMenu(pProgramState);
 
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_FirstItem))
+        vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
+
+#if VC_HASCONVERT
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem))
+        vcModals_OpenModal(pProgramState, vcMT_Convert);
+#endif //VC_HASCONVERT
+
+      // Hide/show screen explorer
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Layers, vcMBBG_FirstItem, !pProgramState->sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
+      {
+        pProgramState->sceneExplorerCollapsed = !pProgramState->sceneExplorerCollapsed;
+        pProgramState->settings.presentation.columnSizeCorrect = false;
+      }
+
+      // Activate Select Tool
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolSelect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSelectTool)), vcMBBI_Select, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Select)) || (vcHotkey::IsPressed(vcB_ToggleSelectTool) && !ImGui::IsAnyItemActive()))
+        pProgramState->activeTool = vcActiveTool_Select;
+
+      // Activate Voxel Inspector
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectionTool)), vcMBBI_Inspect, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectionTool) && !ImGui::IsAnyItemActive()))
+        pProgramState->activeTool = vcActiveTool_Inspect;
+
+      // Activate Annotate
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolAnnotate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleAnnotateTool)), vcMBBI_AddPointOfInterest, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Annotate)) || (vcHotkey::IsPressed(vcB_ToggleAnnotateTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_Annotate;
+      }
+
+      // Activate Measure Line
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureLine"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureLineTool)), vcMBBI_MeasureLine, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureLine)) || (vcHotkey::IsPressed(vcB_ToggleMeasureLineTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_MeasureLine;
+      }
+
+      // Activate Measure Area
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureArea"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureAreaTool)), vcMBBI_MeasureArea, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureArea)) || (vcHotkey::IsPressed(vcB_ToggleMeasureAreaTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_MeasureArea;
+      }
+    }
+
+    ImGui::End();
+  }
+
+  // Scene Control Panel
+  {
+    ImVec2 buttonPanelPos = ImVec2(windowPos.x + windowSize.x - 2.f, windowPos.y + windowSize.y - 2.f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    ImGui::SetNextWindowPos(buttonPanelPos, ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+    ImGui::SetNextWindowBgAlpha(0.f);
+
+    bool panelOpen = ImGui::Begin("controlPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImGui::PopStyleVar(2);
+
+    if (panelOpen)
+    {
       // Compass
       {
         udDouble3 cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
@@ -1617,58 +1681,22 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         ImGui::GetWindowDrawList()->AddLine(middle, south, 0xFFFFFFFF, 2);
       }
 
-      // Hide/show screen explorer
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Layers, vcMBBG_FirstItem, !pProgramState->sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
+      // Lock Altitude
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_LockAltitude)), vcMBBI_LockAltitude, vcMBBG_FirstItem, pProgramState->settings.camera.lockAltitude))
+        pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
+
+      // AMap Setin
+      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem);
+      if (ImGui::BeginPopupContextWindow(nullptr, 0))
       {
-        pProgramState->sceneExplorerCollapsed = !pProgramState->sceneExplorerCollapsed;
-        pProgramState->settings.presentation.columnSizeCorrect = false;
-      }
+        vcSettingsUI_BasicMapSettings(pProgramState);
 
-      // Activate Select Tool
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolSelect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSelectTool)), vcMBBI_Select, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Select)) || (vcHotkey::IsPressed(vcB_ToggleSelectTool) && !ImGui::IsAnyItemActive()))
-        pProgramState->activeTool = vcActiveTool_Select;
-
-      // Activate Measure
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolInspect"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleInspectionTool)), vcMBBI_Inspect, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Inspect)) || (vcHotkey::IsPressed(vcB_ToggleInspectionTool) && !ImGui::IsAnyItemActive()))
-        pProgramState->activeTool = vcActiveTool_Inspect;
-
-      // Activate Annotate
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolAnnotate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleAnnotateTool)), vcMBBI_AddPointOfInterest, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_Annotate)) || (vcHotkey::IsPressed(vcB_ToggleAnnotateTool) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_Annotate;
-      }
-
-      // Activate Measure
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureLine"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureLineTool)), vcMBBI_MeasureLine, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureLine)) || (vcHotkey::IsPressed(vcB_ToggleMeasureLineTool) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_MeasureLine;
-      }
-
-      // Activate Measure
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureArea"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureAreaTool)), vcMBBI_MeasureArea, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureArea)) || (vcHotkey::IsPressed(vcB_ToggleMeasureAreaTool) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_MeasureArea;
+        ImGui::EndPopup();
       }
 
       // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_Fullscreen)), vcMBBI_FullScreen, vcMBBG_FirstItem, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
         vcMain_PresentationMode(pProgramState);
-
-      // Lock Altitude
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_LockAltitude)), vcMBBI_LockAltitude, vcMBBG_FirstItem, pProgramState->settings.camera.lockAltitude))
-        pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
-
-
-#if VC_HASCONVERT
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem))
-        vcModals_OpenModal(pProgramState, vcMT_Convert);
-#endif //VC_HASCONVERT
-
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_FirstItem))
-        vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
     }
 
     ImGui::End();

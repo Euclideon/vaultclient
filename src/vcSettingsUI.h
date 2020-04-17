@@ -10,6 +10,7 @@ struct vcVisualizationSettings;
 void vcSettingsUI_Show(vcState *pProgramState);
 bool vcSettingsUI_LangCombo(vcState *pProgramState);
 bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings);
+void vcSettingsUI_BasicMapSettings(vcState *pProgramState);
 
 const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t classification);
 
