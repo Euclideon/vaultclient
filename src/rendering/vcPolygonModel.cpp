@@ -27,6 +27,7 @@ enum vcPolygonModelShaderType
   vcPMST_P3N3UV2_Opaque,
   vcPMST_P3N3UV2_FlatColour,
   vcPMST_P3N3UV2_DepthOnly,
+  vcPMST_P3N3UV2_Opaque_Image,
 
   vcPMST_Count
 };
@@ -502,17 +503,20 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
     if (pModelMesh->pMesh == nullptr)// || pModelMesh->material.pTexture == nullptr)
       continue;
 
-    if (pDiffuseOverride)
-      pDiffuseTexture = pDiffuseOverride;
-
-    if (pDiffuseTexture == nullptr)
-      pDiffuseTexture = pWhiteTexture;
-
     // conditionally override
     if (passType == vcPMP_ColourOnly)
       pPolygonShader = &gShaders[vcPMST_P3N3UV2_FlatColour];
     else if (passType == vcPMP_Shadows)
       pPolygonShader = &gShaders[vcPMST_P3N3UV2_DepthOnly];
+
+    if (pDiffuseOverride)
+    {
+      pDiffuseTexture = pDiffuseOverride;
+      pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque_Image]; // Assuming that models with textures could skip lighting.
+    }
+
+    if (pDiffuseTexture == nullptr)
+      pDiffuseTexture = pWhiteTexture;
 
     vcShader_Bind(pPolygonShader->pShader);
 
@@ -586,6 +590,11 @@ udResult vcPolygonModel_CreateShaders()
 
   pPolygonShader = &gShaders[vcPMST_P3N3UV2_DepthOnly];
   UD_ERROR_IF(!vcShader_CreateFromFile(&pPolygonShader->pShader, "asset://assets/shaders/polygonP3N3UV2VertexShader", "asset://assets/shaders/depthOnlyFragmentShader", vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_Bind(pPolygonShader->pShader), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
+
+  pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque_Image];
+  UD_ERROR_IF(!vcShader_CreateFromFile(&pPolygonShader->pShader, "asset://assets/shaders/polygonP3N3UV2VertexShader", "asset://assets/shaders/polygonImageFragmentShader", vcP3N3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_Bind(pPolygonShader->pShader), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pPolygonShader->pEveryObjectConstantBuffer, pPolygonShader->pShader, "u_EveryObject", sizeof(vcPolygonModelShader::everyObject)), udR_InternalError);
 
