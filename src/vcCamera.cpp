@@ -283,6 +283,9 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     {
       pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, udSlerp(pCamInput->startAngle, pCamInput->targetAngle, pCamInput->progress));
     }
+
+    if (pCamera->headingPitch.y > UD_PI)
+      pCamera->headingPitch.y -= UD_2PI;
   }
   break;
 
