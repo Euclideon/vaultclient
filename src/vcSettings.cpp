@@ -193,7 +193,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.demEnabled = data.Get("maptiles.demEnabled").AsBool(true);
 
-    udStrcpy(pSettings->maptiles.mapType, data.Get("maptiles.type").AsString("euc-osm-base"));
+    udStrcpy(pSettings->maptiles.mapType, data.Get("maptiles.type").AsString("euc-az-aerial"));
 
     udStrcpy(pSettings->maptiles.customServer.tileServerAddress, data.Get("maptiles.serverURL").AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
     udStrcpy(pSettings->maptiles.customServer.attribution, data.Get("maptiles.attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
