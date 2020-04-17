@@ -14,7 +14,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcPlaceLayer::vcPlaceLayer(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcPlaceLayer::vcPlaceLayer(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_places.Init(512);

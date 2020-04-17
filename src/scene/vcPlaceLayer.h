@@ -39,7 +39,7 @@ private:
   double m_labelDistance;
 
 public:
-  vcPlaceLayer(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcPlaceLayer(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPlaceLayer() {};
 
   void OnNodeUpdate(vcState *pProgramState);

@@ -11,7 +11,7 @@ struct vcWaterRenderer;
 class vcWater : public vcSceneItem
 {
 public:
-  vcWater(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcWater(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcWater() {};
 
   void OnNodeUpdate(vcState *pProgramState);

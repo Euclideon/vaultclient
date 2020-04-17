@@ -10,7 +10,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcWater::vcWater(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcWater::vcWater(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_pWaterRenderer = nullptr;

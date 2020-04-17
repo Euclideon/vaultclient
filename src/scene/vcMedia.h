@@ -16,7 +16,7 @@ struct vcState;
 class vcMedia : public vcSceneItem
 {
 public:
-  vcMedia(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcMedia(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcMedia();
 
   void OnNodeUpdate(vcState *pProgramState);

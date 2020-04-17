@@ -558,7 +558,7 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
       vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
       vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "Folder", item.dataset.pName, nullptr, nullptr);
 
-      vcFolder *pFolder = new vcFolder(pProgramState->activeProject.pProject, pNode, pProgramState);
+      vcFolder *pFolder = new vcFolder(&pProgramState->activeProject, pNode, pProgramState);
       pNode->pUserData = pFolder;
 
       pItemData->at(index).sceneFolder = { pParentNode, pNode };

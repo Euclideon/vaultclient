@@ -295,7 +295,7 @@ epilogue:
 }
 
 
-vcLiveFeed::vcLiveFeed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcLiveFeed::vcLiveFeed(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_selectedItem(0),
   m_visibleItems(0),

@@ -12,7 +12,7 @@
 const double DistMin = 100.0;
 const double DistMax = 1500.0;
 
-vcViewShed::vcViewShed(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcViewShed::vcViewShed(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_position(udDouble3::zero()),
   m_distance(2500.0),

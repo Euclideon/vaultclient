@@ -24,7 +24,7 @@ void vcProject_InitBlankScene(vcState *pProgramState)
 
   vdkProject_CreateLocal(&pProgramState->activeProject.pProject, "New Project");
   vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
-  pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
+  pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 }
 
@@ -41,7 +41,7 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pP
       udDouble3 *pPoint = nullptr;
       int numPoints = 0;
 
-      vcProject_FetchNodeGeometryAsCartesian(pProgramState->activeProject.pProject, pNode, pProgramState->gis.zone, &pPoint, &numPoints);
+      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, pNode, pProgramState->gis.zone, &pPoint, &numPoints);
       if (numPoints == 1)
         position = pPoint[0];
 
@@ -99,7 +99,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
 
       pProgramState->activeProject.pProject = pProject;
       vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
-      pProgramState->activeProject.pFolder = new vcFolder(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState);
+      pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
       pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
       udFilename temp(pFilename);
@@ -387,7 +387,7 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
   return true;
 }
 
-bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
+bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
 {
   if (pProject == nullptr || pNode == nullptr)
     return false;
@@ -404,18 +404,18 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vdkProject *pProject, vdkProjectN
     for (int i = 0; i < numPoints; ++i)
       pGeom[i] = udGeoZone_CartesianToLatLong(zone, pPoints[i], true);
 
-    result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pGeom);
+    result = vdkProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pGeom);
     udFree(pGeom);
   }
   else
   {
-    result = vdkProjectNode_SetGeometry(pProject, pNode, newType, numPoints, (double*)pPoints);
+    result = vdkProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pPoints);
   }
 
   return (result == vE_Success);
 }
 
-bool vcProject_FetchNodeGeometryAsCartesian(vdkProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)
+bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)
 {
   if (pProject == nullptr || pNode == nullptr)
     return false;

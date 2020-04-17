@@ -58,7 +58,7 @@ public:
 
   udMutex *m_pMutex;
 
-  vcLiveFeed(vdkProject *pProject, vdkProjectNode *pProjectNode, vcState *pProgramState);
+  vcLiveFeed(vcProject *pProject, vdkProjectNode *pProjectNode, vcState *pProgramState);
   ~vcLiveFeed() {};
 
   void OnNodeUpdate(vcState *pProgramState);

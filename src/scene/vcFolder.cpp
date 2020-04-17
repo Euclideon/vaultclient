@@ -50,7 +50,7 @@ void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkPro
   memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
 }
 
-vcFolder::vcFolder(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcFolder::vcFolder(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Loaded;
@@ -83,31 +83,31 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       // We need to create one
       if (pNode->itemtype == vdkPNT_Folder)
-        pNode->pUserData = new vcFolder(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcFolder(&pProgramState->activeProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_PointOfInterest)
-        pNode->pUserData = new vcPOI(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcPOI(&pProgramState->activeProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_PointCloud)
-        pNode->pUserData = new vcModel(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcModel(&pProgramState->activeProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_LiveFeed)
-        pNode->pUserData = new vcLiveFeed(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcLiveFeed(&pProgramState->activeProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Media)
-        pNode->pUserData = new vcMedia(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcMedia(&pProgramState->activeProject, pNode, pProgramState);
       else if (pNode->itemtype == vdkPNT_Viewpoint)
-        pNode->pUserData = new vcViewpoint(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcViewpoint(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "I3S"))
-        pNode->pUserData = new vcI3S(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcI3S(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Water"))
-        pNode->pUserData = new vcWater(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcWater(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "ViewMap"))
-        pNode->pUserData = new vcViewShed(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcViewShed(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
-        pNode->pUserData = new vcPolyModelNode(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcPolyModelNode(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "QFilter"))
-        pNode->pUserData = new vcQueryNode(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcQueryNode(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Places"))
-        pNode->pUserData = new vcPlaceLayer(pProgramState->activeProject.pProject, pNode, pProgramState);
+        pNode->pUserData = new vcPlaceLayer(&pProgramState->activeProject, pNode, pProgramState);
       else
-        pNode->pUserData = new vcUnsupportedNode(pProgramState->activeProject.pProject, pNode, pProgramState); // Catch all
+        pNode->pUserData = new vcUnsupportedNode(&pProgramState->activeProject, pNode, pProgramState); // Catch all
     }
 
     HandleNodeSelection(pProgramState, m_pNode, pNode);

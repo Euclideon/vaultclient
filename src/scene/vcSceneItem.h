@@ -30,8 +30,8 @@ typedef void (udSceneItemBasicCallback)(vcState *pProgramState, vcSceneItem *pBa
 class vcSceneItem
 {
 public:
+  vcProject *m_pProject;
   vdkProjectNode *m_pNode;
-  vdkProject *m_pProject;
 
   volatile int32_t m_loadStatus;
   bool m_visible;
@@ -47,7 +47,7 @@ public:
   udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pPreferredProjection; // nullptr if there is no preferred zone
 
-  vcSceneItem(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcSceneItem(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   vcSceneItem(vcState *pProgramState, const char *pType, const char *pName);
   virtual ~vcSceneItem();
 

@@ -15,7 +15,7 @@ private:
   udDouble2 m_CameraHeadingPitch;
 
 public:
-  vcViewpoint(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcViewpoint(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcViewpoint() {};
 
   void OnNodeUpdate(vcState *pProgramState);

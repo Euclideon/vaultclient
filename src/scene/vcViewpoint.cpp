@@ -8,7 +8,7 @@
 
 #include "imgui.h"
 
-vcViewpoint::vcViewpoint(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcViewpoint::vcViewpoint(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Loaded;

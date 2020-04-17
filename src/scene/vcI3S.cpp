@@ -10,7 +10,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcI3S::vcI3S(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcI3S::vcI3S(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_pSceneRenderer(nullptr)
 {

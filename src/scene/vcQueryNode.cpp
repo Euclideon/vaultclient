@@ -12,7 +12,7 @@
 
 #include "imgui.h"
 
-vcQueryNode::vcQueryNode(vdkProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcQueryNode::vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_shape(vcQNFS_Box),
   m_inverted(false),
