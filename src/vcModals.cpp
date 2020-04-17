@@ -192,6 +192,64 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawNewProject(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_NewProject))
+    ImGui::OpenPopup(vcString::Get("modalProjectNewTitle"));
+
+  ImGui::SetNextWindowSize(ImVec2(600, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("modalProjectNewTitle")))
+  {
+    pProgramState->modalOpen = true;
+
+    static int zoneType = 0;
+    static int zoneCustomSRID = 84;
+
+    vcIGSW_InputText(vcString::Get("modalProjectNewName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
+
+    if (ImGui::RadioButton(vcString::Get("modalProjectNewGeolocated"), &zoneType, 0))
+      zoneCustomSRID = 84;
+    if (ImGui::RadioButton(vcString::Get("modalProjectNewNonGeolocated"), &zoneType, 1))
+      zoneCustomSRID = 0;
+
+    ImGui::RadioButton(vcString::Get("modalProjectNewGeolocatedSpecificZone"), &zoneType, 2);
+    if (zoneType == 2)
+    {
+      ImGui::Indent();
+      ImGui::InputInt(vcString::Get("modalProjectNewGeolocatedSpecificZoneID"), &zoneCustomSRID);
+
+      udGeoZone zone;
+      if (udGeoZone_SetFromSRID(&zone, zoneCustomSRID) != udR_Success)
+        ImGui::TextUnformatted(vcString::Get("sceneUnsupportedSRID"));
+      else
+        ImGui::Text("%s (%s: %d)", zone.zoneName, vcString::Get("sceneSRID"), zoneCustomSRID);
+
+      ImGui::Unindent();
+    }
+
+    if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(100.f, 0)) && vcProject_AbleToChange(pProgramState))
+    {
+      vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::Separator();
+
+    //TODO: Additional export settings
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_DrawExportProject(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ExportProject))
@@ -609,6 +667,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   pProgramState->modalOpen = false;
   vcModals_DrawLoggedOut(pProgramState);
   vcModals_DrawAddSceneItem(pProgramState);
+  vcModals_DrawNewProject(pProgramState);
   vcModals_DrawExportProject(pProgramState);
   vcModals_DrawImportProject(pProgramState);
   vcModals_DrawProjectChangeResult(pProgramState);

@@ -348,7 +348,6 @@
   "sceneMousePointWGS": "Mouse Point (WGS84)",
   "sceneSRID": "SRID",
   "sceneOverrideSRID": "Override SRID",
-  "sceneSetMapHeight": "Set as map height",
   "sceneAddPOI": "Add POI Here",
   "sceneMoveTo": "Move To",
   "sceneAddMenu": "Add New Item",
@@ -638,5 +637,12 @@
   "Small": "Small",
   "Medium": "Medium",
   "Large": "Large",
+  "modalProjectNewTitle": "New Project",
+  "modalProjectNewName": "Project Name",
+  "modalProjectNewGeolocated": "Geolocated (GeoJSON format)",
+  "modalProjectNewNonGeolocated": "Non Geolocated",
+  "modalProjectNewGeolocatedSpecificZone": "Geolocated (Specific Zone)",
+  "modalProjectNewGeolocatedSpecificZoneID": "Zone SRID",
+  "modalProjectNewCreate": "Create New Project",
   "_last": "Last item so no one forgets the comma on the line above"
 }
