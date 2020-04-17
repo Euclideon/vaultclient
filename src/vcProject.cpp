@@ -460,9 +460,9 @@ void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **
       if (pAttributionText)
       {
         if (*ppCurrentText != nullptr)
-          udSprintf(ppCurrentText, "%s       %s      ", *ppCurrentText, pAttributionText);
+          udSprintf(ppCurrentText, "%s, %s", *ppCurrentText, pAttributionText);
         else
-          udSprintf(ppCurrentText, "%s      ", pAttributionText);
+          udSprintf(ppCurrentText, "%s", pAttributionText);
       }
     }
 

@@ -191,10 +191,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Map Tiles
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.demEnabled = data.Get("maptiles.demEnabled").AsBool(true);
+
     udStrcpy(pSettings->maptiles.mapType, data.Get("maptiles.type").AsString("euc-osm-base"));
+
     udStrcpy(pSettings->maptiles.customServer.tileServerAddress, data.Get("maptiles.serverURL").AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
     udStrcpy(pSettings->maptiles.customServer.attribution, data.Get("maptiles.attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
-    vcSettings_ApplyMapChange(pSettings);
 
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
     pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
@@ -202,6 +203,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
     pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
     pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
+
+    vcSettings_ApplyMapChange(pSettings);
   }
 
   if (group == vcSC_All || group == vcSC_Visualization)
@@ -671,6 +674,9 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);
   data.Set("maptiles.mapQuality = %d", int(pSettings->maptiles.mapQuality));
   data.Set("maptiles.mapOptions = %d", int(pSettings->maptiles.mapOptions));
+
+  tempNode.SetString(pSettings->maptiles.mapType);
+  data.Set(&tempNode, "maptiles.type");
 
   tempNode.SetString(pSettings->maptiles.customServer.tileServerAddress);
   data.Set(&tempNode, "maptiles.serverURL");
