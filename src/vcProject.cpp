@@ -26,6 +26,30 @@ void vcProject_InitBlankScene(vcState *pProgramState)
   vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
   pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+
+  udGeoZone cameraZone = {};
+  udGeoZone_SetFromSRID(&cameraZone, 4978); // ECEF
+
+  if (vcGIS_ChangeSpace(&pProgramState->gis, cameraZone))
+    pProgramState->activeProject.pFolder->ChangeProjection(cameraZone);
+
+  // refresh map tiles when geozone changes
+  vcRender_ClearTiles(pProgramState->pRenderContext);
+
+  double locations[][5] = {
+    { 309281.960926, 5640790.149293, 2977479.571028, 55.74, -32.45 }, // Mount Everest
+    { 4443919.137517, 556287.927124, 4540116.021340, 21.07, -10.85 }, // Valley in France
+    { 6390753.962424, 1173147.659817, 5866300.533479, 3.25, -76.07 }, // Europe High
+    { -5345572.793165, 5951831.265765, -4079550.822723, 1.33, -84.59 }, // Australia High
+  };
+
+  uint64_t length = (uint64_t)udLengthOf(locations);
+  uint64_t seed = udGetEpochMilliSecsUTCd();
+  int randomIndex = (int)(seed % length);
+  double *pPlace = locations[randomIndex];
+
+  pProgramState->camera.position = udDouble3::create(pPlace[0], pPlace[1], pPlace[2]);
+  pProgramState->camera.headingPitch = { UD_DEG2RAD(pPlace[3]), UD_DEG2RAD(pPlace[4]) };
 }
 
 bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pParentNode)
