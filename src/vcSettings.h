@@ -176,6 +176,7 @@ struct vcSettings
     bool showDiagnosticInfo;
     bool showEuclideonLogo;
     bool showAdvancedGIS;
+    bool sceneExplorerCollapsed; // True if scene explorer is collapsed.
     bool loginRenderLicense;
 
     struct

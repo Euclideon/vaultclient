@@ -196,7 +196,6 @@ struct vcState
   vcFileDialog fileDialog;
 
   vcTranslationInfo languageInfo;
-  bool sceneExplorerCollapsed; // True if scene explorer is collapsed.
 
   int currentKey;
 };
