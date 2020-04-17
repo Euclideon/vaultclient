@@ -18,7 +18,7 @@ Version 0.6.0
   - Major overhaul to the entire UI
     - Moved the frequently used tools to the UI
     - Added key bindings for many of the tools
-    - Increases the scene size to use as much as the window as possible
+    - Increased the scene size to use as much of the window as possible
     - Removed menu bar and moved its contents to other parts of the UI
     - Shrunk the compass and using a more traditional compass style
   - Better limits on movement speed
