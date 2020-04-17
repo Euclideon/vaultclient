@@ -1002,10 +1002,10 @@ void vcMain_ProfileMenu(vcState *pProgramState)
     if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
       vcModals_OpenModal(pProgramState, vcMT_Profile);
 
-    if (ImGui::MenuItem(vcString::Get("modalProfileChangePassword"), nullptr, nullptr, false))
-    {
-      // Does nothing yet
-    }
+    //if (ImGui::MenuItem(vcString::Get("modalProfileChangePassword"), nullptr, nullptr, false))
+    //{
+    //  // Does nothing yet
+    //}
 
     if (ImGui::MenuItem(vcString::Get("menuSettings")))
       pProgramState->openSettings = true;
@@ -1014,6 +1014,13 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 
     if (ImGui::MenuItem(vcString::Get("menuLogout")) && vcModals_ConfirmEndSession(pProgramState, false))
       pProgramState->forceLogout = true;
+
+#if VC_HASCONVERT
+    ImGui::Separator();
+
+    if (ImGui::MenuItem(vcString::Get("menuConvert")))
+      vcModals_OpenModal(pProgramState, vcMT_Convert);
+#endif //VC_HASCONVERT
 
     ImGui::Separator();
 
@@ -1131,7 +1138,18 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
-  if (pProgramState->activeTool != vcActiveTool_Select || pProgramState->gizmo.inUse)
+  bool showToolWindow = false;
+  showToolWindow |= (pProgramState->activeTool != vcActiveTool_Select);
+  showToolWindow |= pProgramState->gizmo.inUse;
+  showToolWindow |= (pProgramState->backgroundWork.exportsRunning.Get() > 0);
+
+#if VC_HASCONVERT
+  const char *pConvertInfoBuffer = nullptr;
+  int convertProgress = vcConvert_CurrentProgressPercent(pProgramState, &pConvertInfoBuffer);
+  showToolWindow |= ((convertProgress >= 0) || pConvertInfoBuffer != nullptr);
+#endif
+
+  if (showToolWindow)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + attachmentPanelSize), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
@@ -1155,6 +1173,40 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
 
         ImGui::Separator();
+      }
+
+      // Background work
+      {
+#if VC_HASCONVERT
+        if (convertProgress >= 0)
+        {
+          bool clicked = false;
+
+          ImGui::ProgressBar(convertProgress / 100.f, ImVec2(200, 0), pConvertInfoBuffer);
+          clicked |= ImGui::IsItemClicked();
+
+          ImGui::SameLine();
+          ImGui::Text("%s", vcString::Get("convertTitle"));
+          clicked |= ImGui::IsItemClicked();
+
+          if (clicked)
+            vcModals_OpenModal(pProgramState, vcMT_Convert);
+        }
+        else if (pConvertInfoBuffer != nullptr)
+        {
+          ImGui::Text("%s: %s", vcString::Get("convertTitle"), pConvertInfoBuffer);
+
+          if (ImGui::IsItemClicked())
+            vcModals_OpenModal(pProgramState, vcMT_Convert);
+        }
+        udFree(pConvertInfoBuffer);
+#endif //VC_HASCONVERT
+
+        if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
+        {
+          vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+          ImGui::TextUnformatted(vcString::Get("sceneExplorerExportRunning"));
+        }
       }
 
       if (pProgramState->activeTool != vcActiveTool_Select)
@@ -1397,65 +1449,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             ImGui::TextUnformatted(tempData);
           }
         }
-
-        // Background work
-        {
-#if VC_HASCONVERT
-          const char *pBuffer = nullptr;
-          int convertProgress = vcConvert_CurrentProgressPercent(pProgramState, &pBuffer);
-          if (convertProgress >= 0)
-          {
-            bool clicked = false;
-
-            udStrcpy(tempData, " / ");
-            xPosition -= ImGui::CalcTextSize(tempData).x;
-            ImGui::SameLine(xPosition);
-            ImGui::TextUnformatted(tempData);
-            clicked |= ImGui::IsItemClicked();
-
-            xPosition -= 200;
-            ImGui::SameLine(xPosition);
-            ImGui::ProgressBar(convertProgress / 100.f, ImVec2(200, 0), pBuffer);
-            clicked |= ImGui::IsItemClicked();
-
-            udSprintf(tempData, "%s: ", vcString::Get("convertTitle"));
-
-            xPosition -= ImGui::CalcTextSize(tempData).x;
-            ImGui::SameLine(xPosition);
-            ImGui::TextUnformatted(tempData);
-            clicked |= ImGui::IsItemClicked();
-
-            if (clicked)
-              vcModals_OpenModal(pProgramState, vcMT_Convert);
-          }
-          else if (pBuffer != nullptr)
-          {
-            udSprintf(tempData, "%s: %s / ", vcString::Get("convertTitle"), pBuffer);
-
-            xPosition -= ImGui::CalcTextSize(tempData).x;
-            ImGui::SameLine(xPosition);
-            ImGui::TextUnformatted(tempData);
-
-            if (ImGui::IsItemClicked())
-              vcModals_OpenModal(pProgramState, vcMT_Convert);
-          }
-          udFree(pBuffer);
-#endif //VC_HASCONVERT
-
-          if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
-          {
-            udSprintf(tempData, "%s / ", vcString::Get("sceneExplorerExportRunning"));
-
-            xPosition -= ImGui::CalcTextSize(tempData).x;
-            ImGui::SameLine(xPosition);
-            ImGui::TextUnformatted(tempData);
-
-            xPosition -= 20;
-            ImGui::SameLine(xPosition);
-            vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
-          }
-        }
-
       }
     }
 
@@ -1578,11 +1571,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_FirstItem))
         vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
-
-#if VC_HASCONVERT
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem))
-        vcModals_OpenModal(pProgramState, vcMT_Convert);
-#endif //VC_HASCONVERT
 
       // Hide/show screen explorer
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Layers, vcMBBG_FirstItem, !pProgramState->sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
