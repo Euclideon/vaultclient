@@ -198,7 +198,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     udStrcpy(pSettings->maptiles.customServer.attribution, data.Get("maptiles.attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
 
     pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
-    pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(1);
+    pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(vcMTBM_Hybrid);
     pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
 
     pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
@@ -398,9 +398,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     }
 
     // Login Info
-    pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(false);
+    pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(true);
     if (pSettings->loginInfo.rememberServer)
-      udStrcpy(pSettings->loginInfo.serverURL, data.Get("login.serverURL").AsString());
+      udStrcpy(pSettings->loginInfo.serverURL, data.Get("login.serverURL").AsString("https://earth.vault.euclideon.com"));
 
     pSettings->loginInfo.rememberUsername = data.Get("login.rememberUsername").AsBool(false);
     if (pSettings->loginInfo.rememberUsername)
