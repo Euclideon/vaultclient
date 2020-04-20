@@ -69,6 +69,10 @@ enum vcSettingsUIRegions
   vcSR_ReleaseNotes,
   vcSR_Update,
   vcSR_About,
+
+  vcSR_DiagnosticMissingStrings,
+  vcSR_DiagnosticTranslation,
+
   vcSR_Count
 };
 
