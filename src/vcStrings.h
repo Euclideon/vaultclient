@@ -19,6 +19,9 @@ namespace vcString
   udResult LoadTableFromMemory(const char *pFilename, vcTranslationInfo *pInfo);
   udResult LoadTableFromFile(const char *pFilename, vcTranslationInfo *pInfo);
   void FreeTable(vcTranslationInfo *pInfo);
+
+  void ShowMissingStringUI();
+  void ShowTranslationHelperUI();
 }
 
 #endif //vcStrings_h__

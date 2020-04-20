@@ -167,6 +167,12 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         ImGui::Separator();
 
+        if (pProgramState->settings.presentation.showDiagnosticInfo)
+        {
+          change |= ImGui::RadioButton(udTempStr("%s##MissingStringsSettings", vcString::Get("settingsMissingStrings")), &pProgramState->activeSetting, vcSR_DiagnosticMissingStrings);
+          change |= ImGui::RadioButton(udTempStr("%s##TranslationSettings", vcString::Get("settingsTranslation")), &pProgramState->activeSetting, vcSR_DiagnosticTranslation);
+        }
+
         change |= ImGui::RadioButton(udTempStr("%s##ReleaseNotes", vcString::Get("menuReleaseNotes")), &pProgramState->activeSetting, vcSR_ReleaseNotes);
 
         if (pProgramState->packageInfo.Get("success").AsBool())
@@ -814,6 +820,19 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::EndChild();
         }
 
+        if (pProgramState->activeSetting == vcSR_DiagnosticMissingStrings)
+        {
+          ImGui::BeginChild("MissingStrings");
+          vcString::ShowMissingStringUI();
+          ImGui::EndChild();
+        }
+
+        if (pProgramState->activeSetting == vcSR_DiagnosticTranslation)
+        {
+          ImGui::BeginChild("Translation");
+          vcString::ShowTranslationHelperUI();
+          ImGui::EndChild();
+        }
       }
       ImGui::EndChild();
     }
