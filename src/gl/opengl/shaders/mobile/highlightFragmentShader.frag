@@ -18,7 +18,7 @@ void main()
     highp vec4 _99;
     switch (0u)
     {
-        default:
+        case 0u:
         {
             highp vec4 _47 = texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, varying_TEXCOORD0);
             highp float _48 = _47.w;

@@ -32,7 +32,7 @@ void main()
         highp vec4 _534;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 highp vec2 _123 = _67;
                 _123.x = varying_TEXCOORD0.x;
