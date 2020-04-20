@@ -235,8 +235,8 @@ namespace vcString
           continue;
 
         const char *pCurrentVal = pCurrent->GetElement(i)->value.AsString();
-        const char *pPreviousVal = g_enAUPrevious.Get(pKey).AsString();
-        const char *pTranslatedVal = g_targetVersion.Get(pKey).AsString();
+        const char *pPreviousVal = g_enAUPrevious.Get("%s", pKey).AsString();
+        const char *pTranslatedVal = g_targetVersion.Get("%s", pKey).AsString();
 
         if (hideUnchanged && udStrEqual(pCurrentVal, pPreviousVal) && pTranslatedVal != nullptr)
           continue;
@@ -284,7 +284,7 @@ namespace vcString
           {
             udJSON temp;
             temp.SetString(newValue);
-            g_targetVersion.Set(&temp, pKey);
+            g_targetVersion.Set(&temp, "%s", pKey);
             pModifyKey = nullptr;
             modified = true;
           }
@@ -319,7 +319,7 @@ namespace vcString
           if (pKey[0] == '_')
             continue;
 
-          if (g_enAUCurrent.Get(pKey).IsString())
+          if (g_enAUCurrent.Get("%s", pKey).IsString())
             continue;
 
           if (removeUnused)
