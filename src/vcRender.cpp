@@ -567,7 +567,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
 
   for (int i = 0; i < 2; ++i)
   {
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pAuxiliaryTextures[i], pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_RenderTarget));
+    UD_ERROR_CHECK(vcTexture_CreateAdv(&pRenderContext->pAuxiliaryTextures[i], vcTextureType_Texture2D, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, 1, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget));
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i]), udR_InternalError);
   }
 

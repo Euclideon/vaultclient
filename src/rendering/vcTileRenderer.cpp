@@ -1146,6 +1146,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
 void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
 {
+  pTileRenderer->generateTreeUpdateTimer = QuadTreeUpdateFrequencySec;
+
   udLockMutex(pTileRenderer->cache.pMutex);
 
   pTileRenderer->cache.tileLoadList.Clear();
