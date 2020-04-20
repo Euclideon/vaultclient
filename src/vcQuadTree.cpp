@@ -109,11 +109,18 @@ double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point
 
 void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
 {
+  // Just to be safe
+  while (pNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading || pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+    udYield();
+
   vcTexture_Destroy(&pNode->colourInfo.data.pTexture);
   udFree(pNode->colourInfo.data.pData);
 
   vcTexture_Destroy(&pNode->demInfo.data.pTexture);
   udFree(pNode->demInfo.data.pData);
+
+  pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
+  pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
 
   memset(pNode, 0, sizeof(vcQuadTreeNode));
 }
@@ -168,14 +175,6 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
   pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Inherited;
   if (pNode->demMinMax[0] == 0 && pNode->demMinMax[1] == 0)
     pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_None;
-
-  pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
-  pNode->colourInfo.timeoutTime = 0;
-  pNode->colourInfo.loadRetryCount = 0;
-
-  pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
-  pNode->demInfo.timeoutTime = 0;
-  pNode->demInfo.loadRetryCount = 0;
 
   vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
 }
