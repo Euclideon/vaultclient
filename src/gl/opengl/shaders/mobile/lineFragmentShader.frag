@@ -16,7 +16,10 @@ layout(location = 0) out highp vec4 out_var_SV_Target;
 
 void main()
 {
-    out_var_SV_Target = varying_COLOR0;
-    gl_FragDepth = log2(varying_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    highp float _34 = log2(varying_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    highp vec4 _35 = varying_COLOR0;
+    _35.w = _34;
+    out_var_SV_Target = _35;
+    gl_FragDepth = _34;
 }
 

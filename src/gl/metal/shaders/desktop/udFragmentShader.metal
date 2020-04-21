@@ -17,8 +17,12 @@ struct main0_in
 fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> sceneColourTexture [[texture(0)]], texture2d<float> sceneDepthTexture [[texture(1)]], sampler sceneColourSampler [[sampler(0)]], sampler sceneDepthSampler [[sampler(1)]])
 {
     main0_out out = {};
-    out.out_var_SV_Target = float4(sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD0).zyx, 1.0);
-    out.gl_FragDepth = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD0).x;
+    float4 _34 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD0);
+    float _35 = _34.x;
+    float4 _40 = float4(sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD0).zyx, 1.0);
+    _40.w = _35;
+    out.out_var_SV_Target = _40;
+    out.gl_FragDepth = _35;
     return out;
 }
 

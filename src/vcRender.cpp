@@ -93,7 +93,7 @@ struct vcRenderContext
   uint32_t activeRenderTarget;
 
   vcFramebuffer *pFramebuffer[vcRender_RenderBufferCount];
-  vcTexture *pTexture[vcRender_RenderBufferCount];
+  vcTexture *pTexture[vcRender_RenderBufferCount]; // note: a copy of depth is packed into .w
   vcTexture *pDepthTexture[vcRender_RenderBufferCount];
 
   vcFramebuffer *pAuxiliaryFramebuffers[2];
@@ -215,7 +215,7 @@ struct vcRenderContext
     udUInt2 location;
 
     vcFramebuffer *pFramebuffer;
-    vcTexture *pTexture;
+    vcTexture *pTexture; // note: a copy of depth is packed into .w
     vcTexture *pDepth;
   } picking;
 
@@ -555,8 +555,8 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
 
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_RenderTarget));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFramebuffer[i], pRenderContext->pTexture[i], pRenderContext->pDepthTexture[i]), udR_InternalError);
   }
 
@@ -571,7 +571,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i]), udR_InternalError);
   }
 
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA16F, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth), udR_InternalError);
 
@@ -582,6 +582,44 @@ epilogue:
   return result;
 }
 
+// TODO: Move to udCore (AB#1573)
+// Unit tests:
+//float a = Float16ToFloat32(0b0000000000000001); //0.000000059605
+//float b = Float16ToFloat32(0b0000001111111111); //0.000060976
+//float c = Float16ToFloat32(0b0000010000000000); //0.000061035
+//float d = Float16ToFloat32(0b0111101111111111); //65504
+//float e = Float16ToFloat32(0b0011101111111111); //0.99951
+//float f = Float16ToFloat32(0b0011110000000000); //1
+//float g = Float16ToFloat32(0b0011110000000001); //1.001
+//float h = Float16ToFloat32(0b0011010101010101); //0.333251953125
+//float i = Float16ToFloat32(0b1100000000000000); //-2
+//float j = Float16ToFloat32(0b0000000000000000); //0
+//float k = Float16ToFloat32(0b1000000000000000); //-0
+//float l = Float16ToFloat32(0b0111110000000000); //inf
+//float m = Float16ToFloat32(0b1111110000000000); //-inf
+float Float16ToFloat32(uint16_t float16)
+{
+  uint16_t sign_bit = (float16 & 0b1000000000000000) >> 15;
+  uint16_t exponent = (float16 & 0b0111110000000000) >> 10;
+  uint16_t fraction = (float16 & 0b0000001111111111) >> 0;
+
+  float sign = (sign_bit) ? -1.0f : 1.0f;
+  float m = 1.0f;
+  uint16_t exponentBias = 15;
+
+  // The exponents '00000' and '11111' are interpreted specially
+  if (exponent == 31)
+    return sign * INFINITY;
+
+  if (exponent == 0)
+  {
+    m = 0.0f;
+    exponentBias = 14;
+  }
+
+  return sign * udPow(2.0f, float(exponent - exponentBias)) * (m + (fraction / 1024.0f));
+}
+
 // Asychronously read a 1x1 region of last frames depth buffer 
 udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 {
@@ -590,15 +628,17 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
     return result;
 
-  uint8_t depthBytes[4] = {};
+  static udUInt2 lastPickLocation = udUInt2::zero();
+
+  uint8_t colourBytes[8] = {};
   udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
 
-  static const int readBufferIndex = 0;
-  UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes), udR_InternalError); // read previous copy
-  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pDepthTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, depthBytes, pRenderContext->pFramebuffer[readBufferIndex]), udR_InternalError); // begin copy for next frame read
+  int readBufferIndex = pRenderContext->activeRenderTarget;
+  UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pTexture[readBufferIndex], lastPickLocation.x, lastPickLocation.y, 1, 1, colourBytes), udR_InternalError); // read previous copy
+  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, colourBytes, pRenderContext->pFramebuffer[readBufferIndex]), udR_InternalError); // begin copy for next frame read
 
-  UDCOMPILEASSERT(udLengthOf(depthBytes) == sizeof(pRenderContext->previousFrameDepth), "Depth type mismatch!");
-  memcpy(&pRenderContext->previousFrameDepth, depthBytes, sizeof(depthBytes));
+  lastPickLocation = pickLocation;
+  pRenderContext->previousFrameDepth = Float16ToFloat32(uint16_t(((colourBytes[6] & 0xFF) << 0) | ((colourBytes[7] & 0xFF) << 8)));
 
   // fbo state may not be valid (e.g. first read back will be '0')
   if (pRenderContext->previousFrameDepth == 0.0f)
@@ -1015,6 +1055,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
 void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
+  // note: depth copy is packed into alpha, clear to 1.0
   vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
 
   vcGLState_ResetState();
@@ -1174,7 +1215,9 @@ void vcRender_ApplySelectionBuffer(vcState *pProgramState, vcRenderContext *pRen
 
 udFloat4 vcRender_EncodeIdAsColour(uint32_t id)
 {
-  return udFloat4::create(0.0f, ((id & 0xff) / 255.0f), ((id & 0xff00) >> 8) / 255.0f, 1.0f);// ((id & 0xff0000) >> 16) / 255.0f);// ((id & 0xff000000) >> 24) / 255.0f);
+  // encode id into G channel (as float16)
+  const float maxValue = (256 * 256) - 1.0f;
+  return udFloat4::create(0.0f, ((id & 0xffffffff) / maxValue), 0.0f, 1.0f);
 }
 
 bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
@@ -1659,15 +1702,15 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 #endif
 
   float pickDepth = 1.0f;
-
-  if (doSelectRender && (renderData.models.length > 0 || renderData.polyModels.length > 0))
+  if (doSelectRender)
   {
     // render pickable geometry with id encoded in colour
     vcGLState_SetBlendMode(vcGLSBM_None);
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
-    vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer, vcFramebufferClearOperation_All);
+    // note: depth copy is packed into alpha, clear to 1.0
+    vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer, vcFramebufferClearOperation_All, 0xff000000);
 
     vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
     vcGLState_Scissor(pRenderContext->picking.location.x, pRenderContext->picking.location.y, pRenderContext->picking.location.x + 1, pRenderContext->picking.location.y + 1);
@@ -1679,7 +1722,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
       for (size_t i = 0; i < renderData.polyModels.length; ++i)
       {
         vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-        udFloat4 idAsColour = vcRender_EncodeIdAsColour((uint32_t)(modelId++));
+        udFloat4 idAsColour = vcRender_EncodeIdAsColour(modelId++);
 
         vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
@@ -1693,34 +1736,38 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
       vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     }
 
+    vcRenderTerrain(pProgramState, pRenderContext, vcPMP_ColourOnly);
+
     udUInt2 readLocation = { pRenderContext->picking.location.x, pRenderContext->picking.location.y };
-    uint8_t colourBytes[4] = {};
-    uint8_t depthBytes[4] = {};
+    uint8_t colourBytes[8] = {};
 
 #if GRAPHICS_API_OPENGL
     // read upside down
     readLocation.y = (pRenderContext->effectResolution.y - readLocation.y - 1);
 #endif
 
-    vcRenderTerrain(pProgramState, pRenderContext, vcPMP_ColourOnly);
-
     // Synchronously read back data
     vcTexture_BeginReadPixels(pRenderContext->picking.pTexture, readLocation.x, readLocation.y, 1, 1, colourBytes, pRenderContext->picking.pFramebuffer);
-    vcTexture_BeginReadPixels(pRenderContext->picking.pDepth, readLocation.x, readLocation.y, 1, 1, depthBytes, pRenderContext->picking.pFramebuffer);
 
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
-    UDCOMPILEASSERT(udLengthOf(depthBytes) == sizeof(pickDepth), "Depth type mismatch!");
-    memcpy(&pickDepth, depthBytes, sizeof(depthBytes));
+    //uint16_t r16 = uint16_t((colourBytes[0] & 0xFF) | ((colourBytes[1] & 0xFF) << 8));
+    uint16_t g16 = uint16_t((colourBytes[2] & 0xFF) | ((colourBytes[3] & 0xFF) << 8));
+    //uint16_t b16 = uint16_t((colourBytes[4] & 0xFF) | ((colourBytes[5] & 0xFF) << 8));
+    uint16_t a16 = uint16_t((colourBytes[6] & 0xFF) | ((colourBytes[7] & 0xFF) << 8)); // depth packed into here
 
+    pickDepth = Float16ToFloat32(a16);
+
+    // decode from F16 to an ID
     // note `-1`, and BGRA format
-    int pickedPolygonId = (int)((colourBytes[1] << 0) | (colourBytes[0] << 8)) - 1;
+    const float maxValue = (256 * 256) - 1.0f;
+    int pickedPolygonId = (int)((Float16ToFloat32(g16) * maxValue) + 0.5f) - 1;
     if (pickedPolygonId != -1)
     {
       result.success = true;
       result.pPolygon = &renderData.polyModels[pickedPolygonId];
     }
-    else if (pickDepth > -1 && pickDepth < 1.0)
+    else if (pickDepth > 0 && pickDepth < 1.0)
     {
       result.success = true;
     }

@@ -81,7 +81,9 @@ void main()
         _350 = _82;
         _351 = vec4(_200.x, _200.y, _200.z, _77.w);
     }
-    out_var_SV_Target = vec4(_351.xyz, 1.0);
+    highp vec4 _356 = vec4(_351.xyz, 1.0);
+    _356.w = _350;
+    out_var_SV_Target = _356;
     gl_FragDepth = _350;
 }
 

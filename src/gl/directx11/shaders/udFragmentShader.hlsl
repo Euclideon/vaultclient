@@ -34,5 +34,6 @@ PS_OUTPUT main(PS_INPUT input)
   output.Color0 = float4(col.zyx, 1.0);// UD always opaque, UD is BGRA but uploaded as RGBA
   output.Depth0 = depth;
 
+  output.Color0.a = output.Depth0; // depth packed here
   return output;
 }
