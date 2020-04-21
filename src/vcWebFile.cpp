@@ -104,20 +104,28 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
   pFile->fpRead = vcWebFile_SeekRead;
   pFile->fpClose = vcWebFile_Close;
 
-  UD_ERROR_IF(vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != vE_Success, udR_OpenFailure);
+  if ((flags & udFOF_FastOpen) == 0)
+  {
+    UD_ERROR_IF(vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != vE_Success, udR_OpenFailure);
 
-  // TODO: (EVC-615) JIRA task to expand these
-  if (responseCode == 403)
-    UD_ERROR_SET(udR_NotAllowed);
-  else if (responseCode == 503)
-    UD_ERROR_SET(udR_Pending);
-  else if (responseCode >= 500 && responseCode <= 599)
-    UD_ERROR_SET(udR_ServerError);
-  else if (responseCode < 200 || responseCode >= 300)
-    UD_ERROR_SET(udR_OpenFailure);
+    // TODO: (EVC-615) JIRA task to expand these
+    if (responseCode == 403)
+      UD_ERROR_SET(udR_NotAllowed);
+    else if (responseCode == 503)
+      UD_ERROR_SET(udR_Pending);
+    else if (responseCode >= 500 && responseCode <= 599)
+      UD_ERROR_SET(udR_ServerError);
+    else if (responseCode < 200 || responseCode >= 300)
+      UD_ERROR_SET(udR_OpenFailure);
 
-  pFile->totalBytes = dataLength;
-  pFile->fileLength = dataLength;
+    pFile->totalBytes = dataLength;
+    pFile->fileLength = dataLength;
+  }
+  else
+  {
+    pFile->totalBytes = 0;
+    pFile->fileLength = 0;
+  }
 
   *ppFile = pFile;
   pFile = nullptr;
