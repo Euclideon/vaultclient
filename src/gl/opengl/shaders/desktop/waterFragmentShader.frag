@@ -33,7 +33,10 @@ void main()
     vec3 _108 = normalize((vec4(_90, 0.0) * u_EveryFrameFrag.u_eyeNormalMatrix).xyz);
     vec3 _110 = normalize(reflect(_92, _108));
     vec3 _134 = normalize((vec4(_110, 0.0) * u_EveryFrameFrag.u_inverseViewMatrix).xyz);
-    out_var_SV_Target = (vec4(mix(texture(SPIRV_Cross_CombinedskyboxTextureskyboxSampler, vec2(atan(_134.x, _134.y) + 3.1415927410125732421875, acos(_134.z)) * vec2(0.15915493667125701904296875, 0.3183098733425140380859375)).xyz, in_var_COLOR1.xyz * mix(vec3(1.0, 1.0, 0.60000002384185791015625), vec3(0.3499999940395355224609375), vec3(pow(max(0.0, _90.z), 5.0))), vec3(((dot(_108, _92) * (-0.5)) + 0.5) * 0.75)) + vec3(pow(abs(dot(_110, normalize((vec4(normalize(u_EveryFrameFrag.u_specularDir.xyz), 0.0) * u_EveryFrameFrag.u_eyeNormalMatrix).xyz))), 50.0) * 0.5), 1.0) * 0.300000011920928955078125) + vec4(0.20000000298023223876953125, 0.4000000059604644775390625, 0.699999988079071044921875, 1.0);
-    gl_FragDepth = log2(in_var_TEXCOORD2.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    float _162 = log2(in_var_TEXCOORD2.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    vec4 _165 = (vec4(mix(texture(SPIRV_Cross_CombinedskyboxTextureskyboxSampler, vec2(atan(_134.x, _134.y) + 3.1415927410125732421875, acos(_134.z)) * vec2(0.15915493667125701904296875, 0.3183098733425140380859375)).xyz, in_var_COLOR1.xyz * mix(vec3(1.0, 1.0, 0.60000002384185791015625), vec3(0.3499999940395355224609375), vec3(pow(max(0.0, _90.z), 5.0))), vec3(((dot(_108, _92) * (-0.5)) + 0.5) * 0.75)) + vec3(pow(abs(dot(_110, normalize((vec4(normalize(u_EveryFrameFrag.u_specularDir.xyz), 0.0) * u_EveryFrameFrag.u_eyeNormalMatrix).xyz))), 50.0) * 0.5), 1.0) * 0.300000011920928955078125) + vec4(0.20000000298023223876953125, 0.4000000059604644775390625, 0.699999988079071044921875, 1.0);
+    _165.w = _162;
+    out_var_SV_Target = _165;
+    gl_FragDepth = _162;
 }
 

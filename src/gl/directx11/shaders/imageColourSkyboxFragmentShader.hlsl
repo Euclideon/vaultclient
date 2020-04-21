@@ -20,5 +20,5 @@ float4 main(PS_INPUT input) : SV_Target
 {
   float4 colour = albedoTexture.Sample(albedoSampler, input.uv).rgba;
   float effectiveAlpha = min(colour.a, input.tintColour.a);
-  return float4((colour.rgb * effectiveAlpha) + (input.tintColour.rgb * (1 - effectiveAlpha)), 1);
+  return float4((colour.rgb * effectiveAlpha) + (input.tintColour.rgb * (1 - effectiveAlpha)), 1.0);
 }

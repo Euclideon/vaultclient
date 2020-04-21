@@ -82,5 +82,7 @@ PS_OUTPUT main(PS_INPUT input)
   
   // dull colour until sort out ECEF water
   output.Color0 = output.Color0 * 0.3 + float4(0.2, 0.4, 0.7, 1.0);
+  
+  output.Color0.a = output.Depth0; // depth packed here
   return output;
 }

@@ -458,7 +458,7 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
 
   udResult result = udR_Success;
   int pixelBytes = 0;
-  uint32_t *pPixelData = nullptr;
+  uint8_t *pPixelData = nullptr;
   D3D11_MAPPED_SUBRESOURCE msr;
   vcTexture_GetFormatAndPixelSize(pTexture->format, pTexture->isRenderTarget, &pixelBytes);
 
@@ -469,16 +469,16 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
 
   if (x == 0 && y == 0 && width == (uint32_t)pTexture->width && height == (uint32_t)pTexture->height)
   {
-    pPixelData = (uint32_t*)msr.pData;
+    pPixelData = (uint8_t*)msr.pData;
     memcpy((uint8_t*)pPixels, pPixelData, height * width * pixelBytes);
   }
   else
   {
-    pPixelData = ((uint32_t *)msr.pData) + (x + y * pTexture->width);
+    pPixelData = ((uint8_t *)msr.pData) + (x + y * pTexture->width) * pixelBytes;
     for (int i = 0; i < (int)height; ++i)
     {
-      memcpy((uint8_t*)pPixels + (i * pTexture->width * pixelBytes), pPixelData, width * pixelBytes);
-      pPixelData += pTexture->width;
+      memcpy((uint8_t*)pPixels + (i * width * pixelBytes), pPixelData, width * pixelBytes);
+      pPixelData += pTexture->width * pixelBytes;
     }
   }
 

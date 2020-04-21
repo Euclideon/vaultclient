@@ -16,10 +16,14 @@ layout(location = 1) in vec2 in_var_TEXCOORD0;
 layout(location = 2) in vec2 in_var_TEXCOORD1;
 layout(location = 0) out vec4 out_var_SV_Target;
 
+float _33;
+
 void main()
 {
-    vec4 _40 = texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, in_var_TEXCOORD0);
-    out_var_SV_Target = vec4(_40.xyz * in_var_COLOR0.xyz, _40.w * in_var_COLOR0.w);
-    gl_FragDepth = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    float _56 = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    vec4 _57 = vec4(texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, in_var_TEXCOORD0).xyz * in_var_COLOR0.xyz, _33);
+    _57.w = _56;
+    out_var_SV_Target = _57;
+    gl_FragDepth = _56;
 }
 

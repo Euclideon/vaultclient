@@ -32,5 +32,7 @@ PS_OUTPUT main(PS_INPUT input)
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
 
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
+  
+  output.Color0.a = output.Depth0; // depth packed here
   return output;
 }

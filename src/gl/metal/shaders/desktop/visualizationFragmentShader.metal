@@ -97,7 +97,9 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
         _350 = _82;
         _351 = float4(_200.x, _200.y, _200.z, _77.w);
     }
-    out.out_var_SV_Target = float4(_351.xyz, 1.0);
+    float4 _356 = float4(_351.xyz, 1.0);
+    _356.w = _350;
+    out.out_var_SV_Target = _356;
     out.gl_FragDepth = _350;
     return out;
 }

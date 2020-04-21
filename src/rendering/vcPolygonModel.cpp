@@ -508,8 +508,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const udDouble4x4 &modelM
       pPolygonShader = &gShaders[vcPMST_P3N3UV2_FlatColour];
     else if (passType == vcPMP_Shadows)
       pPolygonShader = &gShaders[vcPMST_P3N3UV2_DepthOnly];
-
-    if (pDiffuseOverride)
+    else if (pDiffuseOverride)
     {
       pDiffuseTexture = pDiffuseOverride;
       pPolygonShader = &gShaders[vcPMST_P3N3UV2_Opaque_Image]; // Assuming that models with textures could skip lighting.
