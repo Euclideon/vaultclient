@@ -93,7 +93,7 @@ void main()
         highp vec3 _413;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 _288 = (2.0 * _270) * _271;
                 highp float _293 = clamp(sqrt((_276 * (_276 + _288)) + _278), u_fragParams.u_earthCenter.w, _113);
@@ -154,7 +154,7 @@ void main()
         highp vec3 _511;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 highp float _501 = _497.x;
                 if (_501 == 0.0)
@@ -195,7 +195,7 @@ void main()
         highp vec3 _610;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 highp float _600 = _596.x;
                 if (_600 == 0.0)
@@ -213,7 +213,7 @@ void main()
             highp vec3 _716;
             switch (0u)
             {
-                default:
+                case 0u:
                 {
                     highp float _617 = clamp(_519 / _518, -1.0, 1.0);
                     if (_284)
@@ -247,7 +247,7 @@ void main()
         highp vec3 _738;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 if (_723 == 0.0)
                 {
@@ -318,7 +318,7 @@ void main()
         highp vec3 _1012;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 _887 = (2.0 * _869) * _870;
                 highp float _892 = clamp(sqrt((_875 * (_875 + _887)) + _877), u_fragParams.u_earthCenter.w, _113);
@@ -378,7 +378,7 @@ void main()
         highp vec3 _1110;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 highp float _1100 = _1096.x;
                 if (_1100 == 0.0)
@@ -418,7 +418,7 @@ void main()
         highp vec3 _1208;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 highp float _1198 = _1194.x;
                 if (_1198 == 0.0)
@@ -437,7 +437,7 @@ void main()
         highp vec3 _1229;
         switch (0u)
         {
-            default:
+            case 0u:
             {
                 if (_1214 == 0.0)
                 {
@@ -459,7 +459,7 @@ void main()
     highp vec3 _1416;
     switch (0u)
     {
-        default:
+        case 0u:
         {
             highp float _1251 = length(_756);
             highp float _1254 = _113 * _113;
@@ -524,7 +524,7 @@ void main()
             highp vec3 _1403;
             switch (0u)
             {
-                default:
+                case 0u:
                 {
                     highp float _1393 = _1389.x;
                     if (_1393 == 0.0)

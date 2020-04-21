@@ -46,3 +46,6 @@ done
 # Modify ESSL shaders
 sed -i 's/out_var_/varying_/g' ../src/gl/opengl/shaders/mobile/*.vert
 sed -i 's/in_var_/varying_/g' ../src/gl/opengl/shaders/mobile/*.frag
+
+# Modify ESSL shaders to bypass bug in WebGL
+sed -i 's/default:/case 0u:/g' ../src/gl/opengl/shaders/mobile/*
