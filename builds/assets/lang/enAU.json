@@ -8,11 +8,9 @@
     "contactemail": "support@euclideon.com",
     "targetVersion": "0.6.0"
   },
-
   "popupClose": "Close",
   "popupConfirmYes": "Yes",
   "popupConfirmNo": "No",
-
   "loginButton": "Login",
   "loginAbout": "About",
   "loginServerURL": "ServerURL",
@@ -31,7 +29,6 @@
   "loginProxyTestFailed": "Test Failed (Error:{0})",
   "loginProxyTestCouldNotConnect": "Could not connect. Verify your network is working & proxy details are correct",
   "loginProxyRequiresAuth": "Require Proxy Authentication",
-
   "loginUserAgent": "User Agent",
   "loginSelectUserAgent": "Select User Agent",
   "loginIgnoreCert": "Ignore Certificate Verification",
@@ -39,7 +36,6 @@
   "loginSupportIssueTracker": "Want to report an issue? Let us know on {1}!",
   "loginSupportDirectEmail": "Email {0} for confidential support",
   "loginTranslationBy": "{0} translation provided by {1}\nReport translation issues to {2}",
-
   "loginPending": "Pending",
   "loginMessageCredentials": "Please enter your credentials...",
   "loginMessageChecking": "Checking with server...",
@@ -53,10 +49,8 @@
   "loginErrorProxyAuthPending": "Waiting for valid proxy credentials...",
   "loginErrorProxyAuthFailed": "No valid proxy credentials were supplied, please try another proxy or supply valid proxy credentials",
   "loginErrorOther": "Unknown error occurred, please try again later.",
-
   "settingsTitle": "Settings",
   "settingsRestoreDefaults": "Restore Defaults",
-
   "settingsAppearance": "Appearance",
   "settingsAppearanceLanguage": "Language",
   "settingsAppearancePOIDistance": "Max POI Distance",
@@ -85,7 +79,6 @@
   "settingsAppearanceWindowLayoutScSx": "Scene on left and scene explorer on right",
   "settingsAppearanceWindowLayoutSxSc": "Scene explorer on left and scene on right",
   "settingsAppearanceTranslationDifferentVersion": "This language package is not intended to be used with this version of the software.\nSome text may be displayed incorrectly.",
-
   "settingsControls": "Input & Controls",
   "settingsControlsOSC": "On Screen Controls",
   "settingsControlsTouchUI": "Touch Friendly UI",
@@ -106,7 +99,6 @@
   "settingsControlsMiddle": "Middle",
   "settingsControlsRight": "Right",
   "settingsControlsScrollWheel": "Scroll Wheel",
-
   "settingsViewport": "Viewport",
   "settingsViewportViewDistance": "View Distance",
   "settingsViewportCameraLens": "Camera Lens (fov)",
@@ -118,7 +110,6 @@
   "settingsViewportCameraLens70mm": "70mm",
   "settingsViewportCameraLens100mm": "100mm",
   "settingsViewportFOV": "Field Of View",
-
   "settingsMaps": "Maps & Elevation",
   "settingsMapsMapTiles": "Map Tiles",
   "settingsMapsDEM": "Digital Elevation Model",
@@ -134,13 +125,11 @@
   "settingsMapsUnderlay": "Underlay",
   "settingsMapsBlending": "Blending",
   "settingsMapsOpacity": "Opacity",
-
   "settingsMapType": "Base Map",
   "settingsMapTypeEucOSM": "Open Street Maps",
   "settingsMapTypeEucAzAerial": "Azure Aerial",
   "settingsMapTypeEucAzRoads": "Azure Roads",
   "settingsMapTypeCustom": "Custom",
-
   "settingsVis": "Visualisation",
   "settingsVisObjectHighlight": "Enable Selected Objects Highlighting",
   "settingsVisHighlightColour": "Highlight Colour",
@@ -151,6 +140,8 @@
   "settingsVisModeColour": "Colour",
   "settingsVisModeIntensity": "Intensity",
   "settingsVisModeDisplacement": "Displacement",
+  "settingsVisModeDisplacementDistance": "Displacement Distance",
+  "settingsVisModeDisplacementDirection": "Displacement Direction",
   "settingsVisMinIntensity": "Min Intensity",
   "settingsVisMaxIntensity": "Max Intensity",
   "settingsVisEdge": "Enable Edge Highlighting",
@@ -172,14 +163,11 @@
   "settingsVisContoursBandHeight": "Contours Band Height",
   "settingsVisContoursRainbowRepeatRate": "Rainbow Repeat Distance",
   "settingsVisContoursRainbowIntensity": "Rainbow Intensity",
-  "settingsVisDisplacementAbs": "Absolute Displacement",
-  "settingsVisDisplacementSigned": "Signed Displacement",
   "settingsVisDisplacementRange": "Displacement Range",
   "settingsVisDisplacementColourMax": "Maximum Displacement",
   "settingsVisDisplacementColourMin": "Minimum Displacement",
   "settingsVisDisplacementColourMid": "Mid Displacement",
   "settingsVisDisplacementColourNoMatch": "No Match",
-
   "settingsVisClassShowColourTable": "Show Custom Classification Colour Table",
   "settingsVisClassShowAll": "Show All Classifications",
   "settingsVisClassDisableAll": "Disable All Classifications",
@@ -208,11 +196,8 @@
   "settingsVisClassUserDefined": "User defined",
   "settingsVisClassRename": "Rename",
   "settingsVisClassSet": "Set",
-
   "settingsToolsDefaultValues": "Default values for new tool items",
-
   "settingsConvert": "Convert Defaults",
-
   "convertTitle": "Convert",
   "convertReadingFile": "Reading File {0}/{1}",
   "convertWritingPoints": "Writing Points {0}/{1}",
@@ -286,7 +271,6 @@
   "convertSetOutput": "Set Output Name",
   "convertWatermark": "Watermark",
   "convertNoJobSelected": "No job is selected. Please select one on the left or create a new job.",
-
   "menuSystem": "System",
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
@@ -305,11 +289,9 @@
   "menuProjectNone": "No server projects",
   "menuFileName": "File Name",
   "menuHelp": "Help",
-
   "menuLogout": "Logout",
   "menuLogoutTitle": "Logged Out",
   "menuLogoutMessage": "You were logged out.",
-
   "endSessionExitTitle": "Quit?",
   "endSessionExitMessage": "Are you sure you want to quit?",
   "endSessionLogoutTitle": "Logout?",
@@ -317,29 +299,24 @@
   "endSessionConfirmEndConvert": "There are pending on running conversion jobs",
   "endSessionConfirmProjectUnsaved": "The current project has unsaved changes",
   "endSessionConfirmExportsRunning": "There are pointcloud exports in progress",
-
   "modalProfileTitle": "Profile",
   "modalProfileUsername": "User Name",
   "modalProfileRealName": "Real Name",
   "modalProfileEmail": "Email",
   "modalProfileOffline": "Using an offline dongle",
   "modalProfileDongle": "Dongle ID",
-
   "menuReleaseNotes": "Release Notes",
   "menuReleaseNotesTitle": "Release Notes",
   "menuReleaseNotesFail": "Unable to load release notes from package.",
   "menuReleaseNotesShort": "ReleaseNotes",
-
   "menuAbout": "About",
   "menuAboutTitle": "About",
   "menuAboutVersion": "Version",
   "menuAboutLicenseInfo": "Third Party License Information",
   "menuAboutPackageUpdate": "Package Update",
-
   "menuNewVersionAvailableTitle": "New Version Available",
   "menuNewVersion": "New Version",
   "menuNewVersionDownloadPrompt": "Please visit the Vault server in your browser to download the package.",
-
   "menuBarUpdateAvailable": "Update Available",
   "menuBarFilesQueued": "{0} Files Queued",
   "menuBarFilesFailed": "{0} Files Failed",
@@ -356,11 +333,9 @@
   "menuBarInactive": "Inactive",
   "popupMenuCopy": "Copy",
   "popupMenuPaste": "Paste",
-
   "settingsConnection": "Connection",
   "modalProxyUsername": "Proxy Username",
   "modalProxyPassword": "Proxy Password",
-
   "sceneTitle": "Scene",
   "sceneImageViewerTitle": "Image Viewer",
   "sceneGeographicInfo": "Geographic Information",
@@ -384,10 +359,8 @@
   "sceneAddFilterSphere": "Add Sphere Filter",
   "sceneAddFilterCylinder": "Add Cylinder Filter",
   "sceneResetRotation": "Reset Camera Rotation",
-
   "sceneCameraAttachmentWarning": "The camera is currently attached to '{0}'",
   "sceneCameraAttachmentDetach": "Detach",
-
   "sceneLockAltitude": "Lock Altitude",
   "sceneCameraInfo": "Show Camera Information",
   "sceneProjectionInfo": "Show Projection Information",
@@ -399,7 +372,6 @@
   "sceneMapMode": "Map Mode",
   "toggleSceneExplorer": "Show/Hide Scene Explorer",
   "sceneTrueNorthTooltip": "Face North",
-
   "sceneCameraSettings": "Camera Settings",
   "sceneCameraInformation": "Camera Information",
   "sceneCameraPosition": "Scene Position",
@@ -409,7 +381,6 @@
   "sceneCameraOutOfBounds": "Camera is outside recommended limits of this GeoZone",
   "sceneCameraOSCMove": "Move Camera",
   "sceneCameraOSCUpDown": "U/D",
-
   "sceneExplorerTitle": "Scene Explorer",
   "sceneExplorerRemove": "Remove Selected",
   "sceneExplorerRemoveItem": "Remove Item",
@@ -439,31 +410,26 @@
   "sceneModelPosition": "Model Position",
   "sceneModelRotation": "Model Rotation",
   "sceneModelScale": "Model Scale",
-
   "sceneExplorerExportPointCloud": "Export Pointcloud",
   "sceneExplorerExportQueryFilter": "Filter",
   "sceneExplorerExportFilename": "Filename",
   "sceneExplorerExportBegin": "Start Export",
   "sceneExplorerExportRunning": "Exporting...",
   "sceneExplorerExportEntireModel": "Export entire model",
-
   "sceneModelMetreScale": "Metre Scale: {0}",
   "sceneModelLODLayers": "LODs: {0}",
   "sceneModelResolution": "Resolution: {0}",
   "sceneModelAttributes": "Attributes ({0} total)",
-
   "sceneExplorerProjectChangeFailedMessage": "Sorry, this change you requested to the project was unable to be completed.",
   "sceneExplorerProjectChangeFailedWrite": "Sorry, the project could not be exported.",
   "sceneExplorerProjectChangeFailedParse": "Sorry, the project file could not be interpreted.",
   "sceneExplorerProjectChangeFailedRead": "Sorry, this file could not be loaded.",
   "sceneExplorerProjectChangeSucceededMessage": "The requested operation has been completed successfully.",
-
   "sceneExplorerProjectReadOnlyTitle": "Read Only!",
   "sceneExplorerProjectReadOnlyMessage": "The project you tried to modify is marked read only. You do not have permission to make changes.",
   "sceneExplorerUnsupportedFilesTitle": "Unsupported Files",
   "sceneExplorerUnsupportedFilesMessage": "The files you tried to add are currently unsupported by Euclideon Vault Client.",
   "sceneExplorerClearAllButton": "Clear All",
-
   "sceneExplorerErrorOpen": "Could not open the resource, perhaps it is missing or you don't have permission to access it",
   "sceneExplorerErrorCorrupt": "This resource is corrupt",
   "sceneExplorerErrorLoad": "Failed to load resource",
@@ -476,7 +442,6 @@
   "sceneExplorerFilterSphereDefaultName": "Sphere Filter",
   "sceneExplorerFilterCylinderDefaultName": "Cylinder Filter",
   "sceneExplorerI3S": "I3S File",
-
   "scenePOIDefaultName": "Point of Interest",
   "scenePOIAreaDefaultName": "Area of Interest",
   "scenePOIAnnotateDefaultName": "New Annotation",
@@ -515,7 +480,6 @@
   "scenePOIAttachModelFailed": "Failed to load model",
   "scenePOIAttachmentSpeed": "Attached Model Speed",
   "scenePOIAttachCameraToAttachment": "Link camera to attachment",
-
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
   "scenePOILineShowAllLengths": "Show All Lengths",
@@ -534,10 +498,8 @@
   "scenePOILineOrientationVert": "Vertical / Fence",
   "scenePOILineOrientationHorz": "Horizontal / Path",
   "scenePOILineOrientationScreenLine": "Screen Line",
-
   "scenePOICancelFlyThrough": "Cancel Fly Through",
   "scenePOIPerformFlyThrough": "Fly Camera Through All Points",
-
   "sceneFilterPosition": "Position",
   "sceneFilterRotation": "Rotation",
   "sceneFilterExtents": "Size",
@@ -546,13 +508,11 @@
   "sceneFilterShapeSphere": "Sphere",
   "sceneFilterShapeCylinder": "Cylinder",
   "sceneFilterInverted": "Invert Filter",
-
   "sceneViewpointSetCamera": "Set Viewpoint to Camera",
   "sceneViewpointPosition": "Viewpoint Position",
   "sceneViewpointRotation": "Viewpoint Rotation",
   "sceneExplorerAddViewpoint": "Save Current Camera",
   "viewpointDefaultName": "Viewpoint",
-
   "liveFeedDefaultName": "Live Feed",
   "liveFeedUpdateFrequency": "Update frequency",
   "liveFeedMaxDisplayTime": "Oldest display time",
@@ -561,7 +521,6 @@
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
   "liveFeedGroupID": "Group ID",
   "liveFeedLODModifier": "LOD Distance Modifier",
-
   "polyModelCullFace": "Face Culling",
   "polyModelCullFaceBack": "Standard",
   "polyModelCullFaceFront": "Inverted",
@@ -570,11 +529,9 @@
   "polyModelTexture": "Texture",
   "polyModelMatColour": "Material Colour",
   "polyModelIgnoreTint": "Ignore Tint",
-
   "viewShedDistance": "Distance",
   "viewShedVisibleColour": "Highlight Visible",
   "viewShedHiddenColour": "Highlight Hidden",
-
   "attributeType": "Type: {0}",
   "attributeTypeUint8": "Uint8",
   "attributeTypeUint16": "Uint16",
@@ -590,12 +547,10 @@
   "attributeTypeNormal": "Packed Normal",
   "attributeTypeVec3F32": "3D Vector",
   "attributeTypeUnknown": "Unknown",
-
   "attributeBlending": "Blending: {0}",
   "attributeBlendingMean": "Average Value",
   "attributeBlendingSingle": "Single Value",
   "attributeBlendingUnknown": "Unknown",
-
   "toolAnnotatePrompt": "Annotation text",
   "toolAnnotateDefaultText": "My Point",
   "toolSelect": "Selection Tool",
@@ -603,12 +558,9 @@
   "toolMeasureArea": "Area Measurement Tool",
   "toolAnnotate": "Single annotation point",
   "toolInspect": "Voxel Inspector",
-
   "toolMeasureStart": "Click a point to begin the measurement...",
   "toolMeasureNext": "Click the next point to continue measuring (or press {0} to end measurement)...",
-
   "toolInspectRunning": "Mouse over or touch a voxel to inspect its attributes...",
-
   "bindingsTitle": "Key Bindings",
   "bindingsSettingsSave": "Save",
   "bindingsColumnName": "Name",
@@ -617,7 +569,6 @@
   "bindingsErrorBound": "Already bound to \"{0}\"",
   "bindingsClear": "Clear",
   "bindingsSelectKey": "Press a key combination to bind.",
-
   "bindingsLockAltitude": "Toggles altitude lock, preventing up/down movement",
   "bindingsGizmoTranslate": "Sets the gizmo to translation mode, allowing you to move objects.",
   "bindingsGizmoRotate": "Sets the gizmo to rotation mode, allowing you to rotate objects.",
@@ -647,7 +598,6 @@
   "bindingsToggleMeasureAreaTool": "Key to toggle the area measurement tool",
   "bindingsToggleAnnotateTool": "Key to toggle the annotation tool",
   "bindingsToggleInspectionTool": "Key to toggle the inspection tool",
-
   "errorUnknown": "An unexpected error occurred.",
   "errorCorruptData": "Corrupt data.",
   "errorUnsupported": "Unsupported file formats.",
@@ -655,7 +605,6 @@
   "errorReadFailure": "Failed to read.",
   "errorWriteFailure": "Failed to write to file. Drive may be full or file may already be in use.",
   "errorCloseFailure": "Failed to close file. Data may be corrupt.",
-
   "settingsScreenshot": "Screenshot",
   "settingsScreenshotResLabel": "Resolution",
   "settingsScreenshotRes720p": "720p",
@@ -665,7 +614,6 @@
   "settingsScreenshotFilename": "Filename",
   "settingsScreenshotView": "View Once Taken",
   "settingsScreenshotPathAlert": "This folder will be created when you first take a photo",
-
   "settingsMissingStrings": "Missing Strings",
   "settingsTranslation": "Translation Table",
   "translationLoaded": "Translation Code",
@@ -680,6 +628,6 @@
   "translationInstructionRemoved": "These following strings were added errorneously or have been removed.",
   "translationStringsMissing": "These following strings were requested but no translation existed",
   "translationStringsNoneMissing": "No strings were requested that weren't available",
-
+  "sceneProfileMenu": "Scene Profile Menu",
   "_last": "Last item so no one forgets the comma on the line above"
 }
