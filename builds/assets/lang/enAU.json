@@ -631,5 +631,9 @@
   "sceneProfileMenu": "Scene Profile Menu",
   "mapSettings": "Map Settings",
   "translationOverride": "Translation Override",
+  "Tools": "Tools",
+  "Small": "Small",
+  "Medium": "Medium",
+  "Large": "Large",
   "_last": "Last item so no one forgets the comma on the line above"
 }

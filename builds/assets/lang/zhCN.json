@@ -630,5 +630,9 @@
   "translationStringsNoneMissing": "全部正确。",
   "sceneProfileMenu": "菜单",
   "mapSettings": "地图设置",
-  "translationOverride": "确定覆盖翻译文件吗?"
+  "translationOverride": "确定覆盖翻译文件吗?",
+  "Tools": "工具",
+  "Small": "小",
+  "Medium": "中",
+  "Large": "大"
 }
