@@ -1302,8 +1302,6 @@ bool vcRender_CreateSelectionBuffer(vcState *pProgramState, vcRenderContext *pRe
       vcShader_BindConstantBuffer(pRenderContext->blurShader.pProgram, pRenderContext->blurShader.uniform_params, &pRenderContext->blurShader.params, sizeof(pRenderContext->blurShader.params));
 
       vcMesh_Render(gInternalMeshes[vcInternalMeshType_ScreenQuad]);
-
-      vcShader_BindTexture(pRenderContext->blurShader.pProgram, nullptr, 0, pRenderContext->blurShader.uniform_texture);
     }
   }
   return true;

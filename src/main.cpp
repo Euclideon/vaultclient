@@ -314,7 +314,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
 #ifndef GIT_BUILD
-  if (ImGui::IsKeyPressed(SDL_SCANCODE_P))
+  if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_P))
     vcRender_ReloadShaders(pProgramState->pRenderContext);
 #endif
 

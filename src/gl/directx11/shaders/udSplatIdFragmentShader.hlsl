@@ -38,7 +38,8 @@ PS_OUTPUT main(PS_INPUT input)
   output.Color0 = float4(0.0, 0.0, 0.0, 0.0);
   if ((u_idOverride.w == 0.0 || floatEquals(u_idOverride.w, col.w)))
   {
-    output.Color0 = float4(col.w, 0, 0, 1.0);
+    // mask the UD that matches this ID
+    output.Color0 = float4(1.0, 1.0, 0.0, 0.0);
   }
 
   return output;
