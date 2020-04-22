@@ -6,7 +6,7 @@
     "englishname": "Australian English",
     "translationby": "Euclideon Pty Ltd",
     "contactemail": "support@euclideon.com",
-    "targetVersion": "0.6.0"
+    "targetVersion": "0.6.1"
   },
   "popupClose": "Close",
   "popupConfirmYes": "Yes",
@@ -629,5 +629,7 @@
   "translationStringsMissing": "These following strings were requested but no translation existed",
   "translationStringsNoneMissing": "No strings were requested that weren't available",
   "sceneProfileMenu": "Scene Profile Menu",
+  "mapSettings": "Map Settings",
+  "translationOverride": "Translation Override",
   "_last": "Last item so no one forgets the comma on the line above"
 }
