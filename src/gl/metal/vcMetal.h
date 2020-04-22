@@ -76,6 +76,13 @@ struct vcShader
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;
 
+  struct
+  {
+    float cameraNearPlane;
+    float cameraFarPlane;
+    float clipZNear;
+    float clipZFar;
+  } cameraPlane;
   vcShaderConstantBuffer *pCameraPlaneParams;
 };
 
