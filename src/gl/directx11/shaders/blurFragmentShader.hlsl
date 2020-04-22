@@ -17,9 +17,10 @@ struct PS_INPUT
 sampler colourSampler;
 Texture2D colourTexture;
 
-static float4 kernel[3] = { float4(0.0, 0.0, 0.0, 0.27901),
-                            float4(1.0, 1.0, 1.0, 0.44198),
-                            float4(0.0, 0.0, 0.0, 0.27901) };
+// keep the edges in tact in the red channel, and the blurred edges in the green
+static float4 kernel[3] = { float4(0.0, 0.27901, 0.0, 0.0),
+                            float4(1.0, 0.44198, 0.0, 0.0),
+                            float4(0.0, 0.27901, 0.0, 0.0) };
 
 float4 main(PS_INPUT input) : SV_Target
 {

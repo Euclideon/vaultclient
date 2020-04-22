@@ -33,10 +33,9 @@ PS_INPUT main(VS_INPUT input)
 
   // sample on edges, taking advantage of bilinear sampling
   float2 sampleOffset = 1.42 * u_stepSize.xy;
-  float2 uv = input.uv;
-  output.uv0 = uv - sampleOffset;
-  output.uv1 = uv;
-  output.uv2 = uv + sampleOffset;
+  output.uv0 = input.uv - sampleOffset;
+  output.uv1 = input.uv;
+  output.uv2 = input.uv + sampleOffset;
 
   return output;
 }
