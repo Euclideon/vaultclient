@@ -6,11 +6,11 @@
     "englishname": "Simplified Chinese",
     "translationby": "深圳优立视觉科技有限公司",
     "contactemail": "support@euclideon.com.cn",
-    "targetVersion": "0.5.0"
+    "targetVersion": "0.6.0"
   },
   "popupClose": "关闭",
   "popupConfirmYes": "是",
-  "popupConfirmNo": "没有",
+  "popupConfirmNo": "否",
   "loginButton": "登录",
   "loginAbout": "关于",
   "loginServerURL": "服务器URL",
@@ -628,5 +628,11 @@
   "translationInstructionRemoved": "以下的字符串可能被错误添加或者已删除。",
   "translationStringsMissing": "以下的字符串被使用但是缺少翻译。",
   "translationStringsNoneMissing": "全部正确。",
-  "sceneProfileMenu": "菜单"
+  "sceneProfileMenu": "菜单",
+  "mapSettings": "地图设置",
+  "translationOverride": "确定覆盖翻译文件吗?",
+  "Tools": "工具",
+  "Small": "小",
+  "Medium": "中",
+  "Large": "大"
 }

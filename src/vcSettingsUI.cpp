@@ -160,7 +160,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         ImGui::Unindent();
         change |= ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
         change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
-        change |= ImGui::RadioButton(udTempStr("%s", "Tools"), &pProgramState->activeSetting, vcSR_Tools);
+        change |= ImGui::RadioButton(udTempStr("%s##Tools", vcString::Get("Tools")), &pProgramState->activeSetting, vcSR_Tools);
         change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
         change |= ImGui::RadioButton(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")), &pProgramState->activeSetting, vcSR_Screenshot);
         change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
@@ -456,7 +456,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Tools)
         {
-          vcSettingsUI_ShowHeader(pProgramState, "Tools", vcSC_Tools);
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("Tools"), vcSC_Tools);
           ImGui::Text("%s", vcString::Get("settingsToolsDefaultValues"));
           ImGui::SliderFloat(vcString::Get("scenePOILineWidth"), &pProgramState->settings.tools.line.width, pProgramState->settings.tools.line.minWidth, pProgramState->settings.tools.line.maxWidth, "%.2f", 3.f);
            
@@ -470,7 +470,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::ColorEdit4(vcString::Get("scenePOILabelColour"), &pProgramState->settings.tools.label.textColour[0], ImGuiColorEditFlags_None);
           ImGui::ColorEdit4(vcString::Get("scenePOILabelBackgroundColour"), &pProgramState->settings.tools.label.backgroundColour[0], ImGuiColorEditFlags_None);
 
-          const char *labelSizeOptions[] = { "Small", "Medium", "Large" };
+          const char *labelSizeOptions[] = { vcString::Get("Small"), vcString::Get("Medium"), vcString::Get("Large") };
           ImGui::Combo(vcString::Get("scenePOILabelSize"), &pProgramState->settings.tools.label.textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions));
         }
 
