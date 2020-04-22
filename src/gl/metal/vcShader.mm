@@ -279,14 +279,8 @@ bool vcShader_Bind(vcShader *pShader)
         if (g_pCurrShader != nullptr && g_pCurrFramebuffer != nullptr)
           [g_pCurrFramebuffer->encoder setRenderPipelineState:g_pCurrShader->pipelines[g_internalState.blendMode + (g_pCurrFramebuffer->pDepth != nullptr ? 0 : vcGLSBM_Count)]];
 
-        struct
-        {
-          float cameraNearPlane;
-          float cameraFarPlane;
-          float clipZNear;
-          float clipZFar;
-        } cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 1.f };
-        vcShader_BindConstantBuffer(pShader, pShader->pCameraPlaneParams, &cameraPlane, sizeof(cameraPlane));
+        pShader->cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 1.f };
+        vcShader_BindConstantBuffer(pShader, pShader->pCameraPlaneParams, &pShader->cameraPlane, sizeof(pShader->cameraPlane));
       }
       else
       {
