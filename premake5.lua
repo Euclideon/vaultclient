@@ -150,11 +150,19 @@ newoption {
 	description = "Force the use of the vaultsdk repository"
 }
 
+if os.target() == premake.MACOSX or os.target() == premake.IOS then
+	gfxDefault = "metal"
+elseif os.target() == premake.WINDOWS then
+	gfxDefault = "d3d11"
+else
+	gfxDefault = "opengl"
+end
+
 newoption {
 	trigger     = "gfxapi",
 	value       = "API",
 	description = "Choose a particular 3D API for rendering",
-	default     = "opengl",
+	default     = gfxDefault,
 	allowed = {
 		{ "opengl", "OpenGL" },
 		{ "d3d11", "Direct3D 11 (Windows only)" },
