@@ -119,6 +119,12 @@ struct vcTileRenderer
   } presentShader;
 };
 
+struct ProxyTexture
+{
+  int32_t width, height;
+  void *pData;
+};
+
 // This functionality here for now until the cache module is implemented
 bool vcTileRenderer_TryWriteTile(const char *filename, void *pFileData, size_t fileLen)
 {
@@ -193,7 +199,7 @@ void vcTileRenderer_CacheDataToDisk(const char *pFilename, void *pData, int64_t 
   }
 }
 
-udResult vcTileRenderer_HandleTileDownload(vcNodeRenderInfo *pRenderNodeInfo, const char *pRemoteURL, const char *pLocalURL)
+udResult vcTileRenderer_HandleTileDownload(ProxyTexture *pProxyTexture, const char *pRemoteURL, const char *pLocalURL)
 {
   udResult result;
 
@@ -219,11 +225,9 @@ udResult vcTileRenderer_HandleTileDownload(vcNodeRenderInfo *pRenderNodeInfo, co
   pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
   UD_ERROR_NULL(pData, udR_InternalError);
 
-  pRenderNodeInfo->data.width = width;
-  pRenderNodeInfo->data.height = height;
-  pRenderNodeInfo->data.pData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
-
-  pRenderNodeInfo->loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
+  pProxyTexture->width = width;
+  pProxyTexture->height = height;
+  pProxyTexture->pData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
 
   stbi_image_free(pData);
   result = udR_Success;
@@ -304,53 +308,88 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       pCache->tileLoadList.RemoveSwapLast(best);
       pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
       pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
-      udReleaseMutex(pCache->pMutex);
 
-      char localURL[vcMaxPathLength] = {};
-      char serverURL[vcMaxPathLength] = {};
+      bool canDownloadDEM = pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading;
+      bool canDownloadColour = pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading;
+
+      char localURLDEM[vcMaxPathLength] = {};
+      char serverURLDEM[vcMaxPathLength] = {};
+      char localURLColour[vcMaxPathLength] = {};
+      char serverURLColour[vcMaxPathLength] = {};
 
       char xSlippyStr[16];
       char ySlippyStr[16];
       char zSlippyStr[16];
       const char *pSlippyStrs[] = { zSlippyStr, xSlippyStr, ySlippyStr };
 
-      // process dem and/or colour request
-      if (pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (canDownloadDEM)
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
-        udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
-
-        // allow continue on failure
-        demResult = vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL);
+        udSprintf(localURLDEM, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        udSprintf(serverURLDEM, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
       }
 
-      if (pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (canDownloadColour)
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.activeServer.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        udSprintf(localURLColour, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.activeServer.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
 
         udStrItoa(xSlippyStr, pBestNode->slippyPosition.x);
         udStrItoa(ySlippyStr, pBestNode->slippyPosition.y);
         udStrItoa(zSlippyStr, pBestNode->slippyPosition.z);
-        
-        vcStringFormat(serverURL, udLengthOf(serverURL), pRenderer->pSettings->maptiles.activeServer.tileServerAddress, pSlippyStrs, udLengthOf(pSlippyStrs));
 
-        // allow continue on failure
-        colourResult = vcTileRenderer_HandleTileDownload(&pBestNode->colourInfo, serverURL, localURL);
+        vcStringFormat(serverURLColour, udLengthOf(serverURLColour), pRenderer->pSettings->maptiles.activeServer.tileServerAddress, pSlippyStrs, udLengthOf(pSlippyStrs));
       }
 
-      if (demResult != udR_Success)
+      //We release the mutex to allow work to continue on the quadtree.
+      //For instance, the quadtree may be cleared duting the loads below.
+      udReleaseMutex(pCache->pMutex);
+
+      ProxyTexture textureDEM = {};
+      ProxyTexture textureColour = {};
+
+      if (canDownloadDEM)
+        demResult = vcTileRenderer_HandleTileDownload(&textureDEM, serverURLDEM, localURLDEM);
+
+      if (canDownloadColour)
+        colourResult = vcTileRenderer_HandleTileDownload(&textureColour, serverURLColour, localURLColour);
+
+      udLockMutex(pCache->pMutex);
+
+      //Check if the node is still valid.
+      if (canDownloadDEM && pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
-        pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
-        pBestNode->demInfo.timeoutTime = 0.0f;
-        ++pBestNode->demInfo.loadRetryCount;
+        if (demResult != udR_Success)
+        {
+          pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
+          pBestNode->demInfo.timeoutTime = 0.0f;
+          ++pBestNode->demInfo.loadRetryCount;
+        }
+        else
+        {
+          pBestNode->demInfo.data.height = textureDEM.height;
+          pBestNode->demInfo.data.width = textureDEM.width;
+          pBestNode->demInfo.data.pData = textureDEM.pData;
+          pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
+        }
       }
 
-      if (colourResult != udR_Success)
+      if (canDownloadColour && pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
-        pBestNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
-        pBestNode->colourInfo.timeoutTime = 0.0f;
-        ++pBestNode->colourInfo.loadRetryCount;
+        if (colourResult != udR_Success)
+        {
+          pBestNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
+          pBestNode->colourInfo.timeoutTime = 0.0f;
+          ++pBestNode->colourInfo.loadRetryCount;
+        }
+        else
+        {
+          pBestNode->colourInfo.data.height = textureColour.height;
+          pBestNode->colourInfo.data.width = textureColour.width;
+          pBestNode->colourInfo.data.pData = textureColour.pData;
+          pBestNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
+        }
       }
+
+      udReleaseMutex(pCache->pMutex);
     }
   }
 

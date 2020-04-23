@@ -109,10 +109,6 @@ double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point
 
 void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
 {
-  // Just to be safe
-  while (pNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading || pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
-    udYield();
-
   vcTexture_Destroy(&pNode->colourInfo.data.pTexture);
   udFree(pNode->colourInfo.data.pData);
 
