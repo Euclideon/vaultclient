@@ -188,8 +188,11 @@ struct vcSettings
       vcSkyboxType type;
       udFloat4 colour;
 
-      int timeOfDay;
+      float timeOfDay;
+      float month;
       float exposure;
+      bool keepSameTime;
+      bool useLiveTime;
     } skybox;
 
     float saturation;

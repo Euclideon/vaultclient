@@ -35,12 +35,7 @@ struct vcAtmosphereRenderer
 
   // some model params
   Luminance use_luminance;
-  double sun_zenith_angle_sin;
-  double sun_zenith_angle_cos;
-  double sun_azimuth_angle_sin;
-  double sun_azimuth_angle_cos;
-  double sun_diclination_angle_sin;
-  double sun_diclination_angle_cos;
+  udDouble3 sunDirection;
   double exposure;
 
   struct
@@ -82,7 +77,6 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   udResult result;
   vcAtmosphereRenderer *pAtmosphereRenderer = nullptr;
 
-  float sun_diclination_angle = UD_2PIf * (23.44f / 360.f); //June solstice
   bool use_constant_solar_spectrum_ = false;
   //bool use_ozone_ = true;
   //bool use_half_precision_ = true;
@@ -192,11 +186,7 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
 
   // some defaults
   pAtmosphereRenderer->use_luminance = NONE;
-  pAtmosphereRenderer->sun_zenith_angle_cos = udCos(1.3);
-  pAtmosphereRenderer->sun_zenith_angle_sin = udSin(1.3);
-
-  pAtmosphereRenderer->sun_diclination_angle_sin = udSin(sun_diclination_angle);
-  pAtmosphereRenderer->sun_diclination_angle_cos = udCos(sun_diclination_angle);
+  pAtmosphereRenderer->sunDirection = udDouble3::create(0, 0, 1);
   pAtmosphereRenderer->exposure = 10.0;
 
   pAtmosphereRenderer->pModel = new atmosphere::Model();
@@ -279,22 +269,66 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
 
   //At solar noon the hour angle is 0.000 degree, with the time before solar noon expressed as negative degrees, and the local time after solar noon expressed as positive degrees.
   //For example, at 10:30 AM local apparent time the hour angle is -22.5° (15° per hour times 1.5 hours before noon).
-  float hourAngle = ((float)pProgramState->settings.presentation.skybox.timeOfDay - 13.f) * 15;
-  float hourAngleRadians = UD_2PIf * hourAngle / 360.f;
-  float latitudeRadians = 0;
-  if (pProgramState->gis.isProjected)
+  float hourAngle = ((float)pProgramState->settings.presentation.skybox.timeOfDay - 12.f) * 15;
+  float hourAngleRadians = UD_DEG2RADf(hourAngle);
+  float yearNormalized = (float)(pProgramState->settings.presentation.skybox.month / 12.0);
+
+  if (pProgramState->settings.presentation.skybox.useLiveTime)
   {
-    udDouble3 cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.matrices.camera.axis.t.toVector3());
-    latitudeRadians = UD_2PIf * (float)cameraLatLong.x / 360.f;
+    hourAngle = 0;
+    yearNormalized = 0;
+  }
+  else if (pProgramState->settings.presentation.skybox.keepSameTime && pProgramState->gis.isProjected)
+  {
+    udDouble3 latLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+    hourAngleRadians -= (float)UD_DEG2RAD(latLong.y);
   }
 
-  double latitudeSin = udSin(latitudeRadians);
-  double latitudeCos = udCos(latitudeRadians);
-  pAtmosphereRenderer->sun_zenith_angle_cos = latitudeSin * pAtmosphereRenderer->sun_diclination_angle_sin + latitudeCos * pAtmosphereRenderer->sun_diclination_angle_cos * udCos(hourAngleRadians);
-  pAtmosphereRenderer->sun_zenith_angle_sin = sqrt(1 - pAtmosphereRenderer->sun_zenith_angle_cos * pAtmosphereRenderer->sun_zenith_angle_cos);
+  double terrestrialDateJ2000 = (udGetEpochSecsUTCf() / 86400.0) - 10957.5 + hourAngleRadians / UD_2PI + yearNormalized * 365.25;
+  double terrestrialCenturiesJ2000 = terrestrialDateJ2000 / 365.25;
 
-  pAtmosphereRenderer->sun_azimuth_angle_sin = -udSin(hourAngleRadians) * pAtmosphereRenderer->sun_diclination_angle_cos / pAtmosphereRenderer->sun_zenith_angle_sin;
-  pAtmosphereRenderer->sun_azimuth_angle_cos = (pAtmosphereRenderer->sun_diclination_angle_sin - pAtmosphereRenderer->sun_zenith_angle_cos * latitudeSin) / (pAtmosphereRenderer->sun_zenith_angle_sin * latitudeCos);
+  double meanSunLongitudeDegrees = 280.460 + 0.9856474 * terrestrialDateJ2000; // Already corrected for aberration
+  double meanSunAnomalyRadians = UD_DEG2RAD(357.528 + 0.9856003 * terrestrialDateJ2000);
+
+  while (meanSunLongitudeDegrees < 0.0)
+    meanSunLongitudeDegrees += 360.0;
+
+  while (meanSunLongitudeDegrees > 360.0)
+    meanSunLongitudeDegrees -= 360.0;
+
+  while (meanSunAnomalyRadians < 0.0)
+    meanSunAnomalyRadians += UD_2PI;
+
+  while (meanSunAnomalyRadians > UD_2PI)
+    meanSunAnomalyRadians -= UD_2PI;
+
+  // The Ecliptic Latitude is always ~0.0;
+  double eclipticLongitudeRadians = UD_DEG2RAD(meanSunLongitudeDegrees + 1.915 * udSin(meanSunAnomalyRadians) + 0.02 * udSin(2 * meanSunAnomalyRadians));
+  double sunDistAU = 1.00014 - 0.01671 * udCos(meanSunAnomalyRadians) - 0.00014 * udCos(2 * meanSunAnomalyRadians);
+
+  double eclipticObliquityRadians = UD_DEG2RAD(23.45229 - 0.0130125 * terrestrialCenturiesJ2000 - 0.000001638889 * terrestrialCenturiesJ2000 * terrestrialCenturiesJ2000 + 5.027778e-7 * terrestrialCenturiesJ2000 * terrestrialCenturiesJ2000 * terrestrialCenturiesJ2000);
+
+  pAtmosphereRenderer->sunDirection.x = sunDistAU * udCos(eclipticLongitudeRadians);
+  pAtmosphereRenderer->sunDirection.y = sunDistAU * udCos(eclipticObliquityRadians) * udSin(eclipticLongitudeRadians);
+  pAtmosphereRenderer->sunDirection.z = sunDistAU * udSin(eclipticObliquityRadians) * udSin(eclipticLongitudeRadians);
+
+  pAtmosphereRenderer->sunDirection = udDoubleQuat::create({ 0, 0, 1 }, -yearNormalized * UD_2PI - hourAngleRadians).apply(pAtmosphereRenderer->sunDirection);
+
+  if (!pProgramState->gis.isProjected)
+  {
+    pAtmosphereRenderer->sunDirection = { pAtmosphereRenderer->sunDirection.z, pAtmosphereRenderer->sunDirection.x, pAtmosphereRenderer->sunDirection.y };
+  }
+  else if (pProgramState->gis.isProjected && pProgramState->gis.zone.projection >= udGZPT_TransverseMercator)
+  {
+    udGeoZone zone = {};
+    udGeoZone_SetFromSRID(&zone, 4978);
+
+    udDouble3 camPos = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->gis.zone, zone);
+
+    pAtmosphereRenderer->sunDirection = udGeoZone_TransformPoint(camPos + pAtmosphereRenderer->sunDirection, zone, pProgramState->gis.zone) - pProgramState->camera.position;
+  }
+
+  pAtmosphereRenderer->sunDirection = udNormalize(pAtmosphereRenderer->sunDirection);
 }
 
 bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcState *pProgramState, vcTexture *pSceneColour, vcTexture *pSceneDepth)
@@ -350,9 +384,7 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->camera.position.z;
   pAtmosphereRenderer->renderShader.fragParams.camera.w = (float)(pAtmosphereRenderer->use_luminance != NONE ? pAtmosphereRenderer->exposure * 1e-5 : pAtmosphereRenderer->exposure);
 
-  pAtmosphereRenderer->renderShader.fragParams.sunDirection.x = (float)(pAtmosphereRenderer->sun_azimuth_angle_cos * pAtmosphereRenderer->sun_zenith_angle_sin);
-  pAtmosphereRenderer->renderShader.fragParams.sunDirection.y = (float)(pAtmosphereRenderer->sun_azimuth_angle_sin * pAtmosphereRenderer->sun_zenith_angle_sin);
-  pAtmosphereRenderer->renderShader.fragParams.sunDirection.z = (float)(pAtmosphereRenderer->sun_zenith_angle_cos);
+  pAtmosphereRenderer->renderShader.fragParams.sunDirection = udFloat4::create(udFloat3::create(pAtmosphereRenderer->sunDirection), 0);
 
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pTransmittance_texture_, 0, pAtmosphereRenderer->renderShader.uniform_transmittance);
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pScattering_texture_, 1, pAtmosphereRenderer->renderShader.uniform_scattering);
