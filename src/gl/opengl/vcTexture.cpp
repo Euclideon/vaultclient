@@ -282,7 +282,7 @@ udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
 
 bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels, vcFramebuffer *pFramebuffer)
 {
-  if (pFramebuffer == nullptr || pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height || UDPLATFORM_ANDROID)
+  if (pFramebuffer == nullptr || pTexture == nullptr || pPixels == nullptr || int(x + width) > pTexture->width || int(y + height) > pTexture->height)
     return false;
 
   if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)

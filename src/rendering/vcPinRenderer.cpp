@@ -103,6 +103,9 @@ udResult vcPinRenderer_Create(vcPinRenderer **ppPinRenderer)
 
 udResult vcPinRenderer_Destroy(vcPinRenderer **ppPinRenderer)
 {
+  if (ppPinRenderer == nullptr || *ppPinRenderer == nullptr)
+    return udR_NothingToDo;
+  
   vcPinRenderer *pPinRenderer = (*ppPinRenderer);
   *ppPinRenderer = nullptr;
 
