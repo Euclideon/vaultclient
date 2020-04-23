@@ -1,11 +1,11 @@
-VAULTSDK_HOME = path.translate(os.getenv('VAULTSDK_HOME') or '')
+VAULTSDK_HOME = path.translate(_OPTIONS["vaultsdk"] or '')
 
 project "EuclideonVaultClient"
 	-- Settings
 	kind "packaging"
 	system "android"
 
-	files { "../../builds/**.json", "../../builds/**.md", "../../builds/**.otf", "../../builds/**.png", "../../builds/**.jpg" }
+	files { "../../builds/**.json", "../../builds/**.md", "../../builds/**.otf", "../../builds/**.png", "../../builds/**.jpg", "../../builds/**.dat" }
 	files { "../../3rdParty/SDL2-2.0.8/lib/android/%{cfg.platform}/**.so" }
 	files { "res/**.xml", "res/**.png" }
 	files { "src/**.java"}
