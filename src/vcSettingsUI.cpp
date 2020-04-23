@@ -224,8 +224,17 @@ void vcSettingsUI_Show(vcState *pProgramState)
           else if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Atmosphere)
           {
             ImGui::Indent();
-            ImGui::SliderInt(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
+            ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxUseLiveTime"), &pProgramState->settings.presentation.skybox.useLiveTime);
+
+            if (!pProgramState->settings.presentation.skybox.useLiveTime)
+            {
+              ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxLockSunPosition"), &pProgramState->settings.presentation.skybox.keepSameTime);
+              ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
+              ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 0, 12);
+            }
+
             ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);
+
             ImGui::Unindent();
           }
 
