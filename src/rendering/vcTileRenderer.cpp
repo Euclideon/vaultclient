@@ -240,6 +240,23 @@ epilogue:
   return result;
 }
 
+static void vcTileRenderer_HandleResponseData(udResult result, vcNodeRenderInfo *pNodeInfo, ProxyTexture const & texture)
+{
+  if (result == udR_Success)
+  {
+    pNodeInfo->data.height = texture.height;
+    pNodeInfo->data.width = texture.width;
+    pNodeInfo->data.pData = texture.pData;
+    pNodeInfo->loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
+  }
+  else
+  {
+    pNodeInfo->loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
+    pNodeInfo->timeoutTime = 0.0f;
+    ++pNodeInfo->loadRetryCount;
+  }
+}
+
 uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 {
   vcTileRenderer *pRenderer = (vcTileRenderer*)pThreadData;
@@ -301,9 +318,6 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         break;
       }
 
-      udResult demResult = udR_Success;
-      udResult colourResult = udR_Success;
-
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
       pCache->tileLoadList.RemoveSwapLast(best);
       pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
@@ -339,6 +353,9 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         vcStringFormat(serverURLColour, udLengthOf(serverURLColour), pRenderer->pSettings->maptiles.activeServer.tileServerAddress, pSlippyStrs, udLengthOf(pSlippyStrs));
       }
 
+      pBestNode->tag++;
+      uint32_t currentTag = pBestNode->tag;
+
       //We release the mutex to allow work to continue on the quadtree.
       //For instance, the quadtree may be cleared duting the loads below.
       udReleaseMutex(pCache->pMutex);
@@ -346,47 +363,29 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       ProxyTexture textureDEM = {};
       ProxyTexture textureColour = {};
 
+      udResult DEMResult = udR_Failure_;
+      udResult colourResult = udR_Failure_;
+
       if (canDownloadDEM)
-        demResult = vcTileRenderer_HandleTileDownload(&textureDEM, serverURLDEM, localURLDEM);
+        DEMResult = vcTileRenderer_HandleTileDownload(&textureDEM, serverURLDEM, localURLDEM);
 
       if (canDownloadColour)
         colourResult = vcTileRenderer_HandleTileDownload(&textureColour, serverURLColour, localURLColour);
 
       udLockMutex(pCache->pMutex);
 
-      //Check if the node is still valid.
-      if (canDownloadDEM && pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      //Check if the node is still valid. If the tag is different, another thread has taken this node.
+      if (currentTag == pBestNode->tag)
       {
-        if (demResult != udR_Success)
-        {
-          pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
-          pBestNode->demInfo.timeoutTime = 0.0f;
-          ++pBestNode->demInfo.loadRetryCount;
-        }
-        else
-        {
-          pBestNode->demInfo.data.height = textureDEM.height;
-          pBestNode->demInfo.data.width = textureDEM.width;
-          pBestNode->demInfo.data.pData = textureDEM.pData;
-          pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
-        }
+        if (canDownloadDEM)
+          vcTileRenderer_HandleResponseData(DEMResult, &pBestNode->demInfo, textureDEM);
+        if (canDownloadColour)
+          vcTileRenderer_HandleResponseData(colourResult, &pBestNode->colourInfo, textureColour);
       }
-
-      if (canDownloadColour && pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      else
       {
-        if (colourResult != udR_Success)
-        {
-          pBestNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
-          pBestNode->colourInfo.timeoutTime = 0.0f;
-          ++pBestNode->colourInfo.loadRetryCount;
-        }
-        else
-        {
-          pBestNode->colourInfo.data.height = textureColour.height;
-          pBestNode->colourInfo.data.width = textureColour.width;
-          pBestNode->colourInfo.data.pData = textureColour.pData;
-          pBestNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
-        }
+        udFree(textureDEM.pData);
+        udFree(textureColour.pData);
       }
 
       udReleaseMutex(pCache->pMutex);

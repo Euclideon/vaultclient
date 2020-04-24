@@ -67,6 +67,8 @@ struct vcQuadTreeNode
   bool visible;
   volatile bool touched;
 
+  uint32_t tag;
+
   // if a node was rendered with missing information (only considers colour at the moment, includes any failed descendents)
   bool completeRender;
 
