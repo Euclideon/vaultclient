@@ -348,3 +348,38 @@ TEST(vcMath, PolygonArea)
 
   EXPECT_EQ(udSignedSimplePolygonArea2(points, 4), -16.0);
 }
+
+TEST(vcMath, PrependicularVector)
+{
+  udDouble3 vec;
+
+  vec = udDouble3::create(1.0, 0.0, 0.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(0.0, 1.0, 0.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(0.0, 0.0, 1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(1.0, 1.0, 0.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(0.0, 1.0, 1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(1.0, 0.0, 1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(1.0, 1.0, 1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+
+  vec = udDouble3::create(-1.0, 0.0, 0.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(0.0, -1.0, 0.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(0.0, 0.0, -1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(-1.0, -1.0, 0.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(0.0, -1.0, -1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(1.0, 0.0, -1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+  vec = udDouble3::create(-1.0, -1.0, -1.0);
+  EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
+}

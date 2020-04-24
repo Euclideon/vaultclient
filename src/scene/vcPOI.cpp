@@ -60,7 +60,7 @@ public:
   {
     m_pParent->InsertPoint(position);
 
-    m_pParent->UpdatePoints();
+    m_pParent->UpdatePoints(pProgramState);
 
     vcProject_UpdateNodeGeometryFromCartesian( m_pParent->m_pProject,  m_pParent->m_pNode, pProgramState->geozone,  m_pParent->m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString,  m_pParent->m_line.pPoints,  m_pParent->m_line.numPoints);
     m_pParent->m_line.selectedPoint =  m_pParent->m_line.numPoints - 1;
@@ -188,7 +188,7 @@ public:
     else
       m_pParent->InsertPoint(position);
 
-    m_pParent->UpdatePoints();
+    m_pParent->UpdatePoints(pProgramState);
 
     if (!isPreview)
     {
@@ -265,7 +265,7 @@ public:
     else
       m_pParent->InsertPoint(position);
 
-    m_pParent->UpdatePoints();
+    m_pParent->UpdatePoints(pProgramState);
 
     if (!isPreview)
     {
@@ -335,10 +335,11 @@ vcPOIState_General *vcPOIState_MeasureLine::ChangeState(vcState *pProgramState)
     if (m_pParent->m_line.fenceMode != vcRRVM_ScreenLine && m_pParent->m_pFence != nullptr)
     {
       vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
-      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_worldUp, m_pParent->m_line.closed);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_line.closed);
     }
 
     m_pParent->ChangeProjection(pProgramState->geozone);
+    m_pParent->UpdatePoints(pProgramState);
     if (pProgramState->activeTool == vcActiveTool_MeasureArea)
       return new vcPOIState_MeasureArea(m_pParent);
     else
@@ -366,10 +367,11 @@ vcPOIState_General *vcPOIState_MeasureArea::ChangeState(vcState *pProgramState)
     if (m_pParent->m_line.fenceMode != vcRRVM_ScreenLine && m_pParent->m_pFence != nullptr)
     {
       vcFenceRenderer_ClearPoints(m_pParent->m_pFence);
-      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_worldUp, m_pParent->m_line.closed);
+      vcFenceRenderer_AddPoints(m_pParent->m_pFence, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints - 1, m_pParent->m_line.closed);
     }
 
     m_pParent->ChangeProjection(pProgramState->geozone);
+    m_pParent->UpdatePoints(pProgramState);
     if (pProgramState->activeTool == vcActiveTool_MeasureLine)
       return new vcPOIState_MeasureLine(m_pParent);
     else
@@ -522,7 +524,7 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
 
   UpdateState(pProgramState);
   ChangeProjection(pProgramState->geozone);
-  UpdatePoints();
+  UpdatePoints(pProgramState);
 }
 
 bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress)
@@ -578,8 +580,6 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  SetWorldUp(pProgramState->geozone);
-
   UpdateState(pProgramState);
   m_pState->AddToScene(pProgramState, pRenderData);
 }
@@ -596,12 +596,12 @@ void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
     m_line.pPoints[m_line.selectedPoint] = (delta * udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint])).axis.t.toVector3();
   }
 
-  UpdatePoints();
+  UpdatePoints(pProgramState);
 
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 }
 
-void vcPOI::UpdatePoints()
+void vcPOI::UpdatePoints(vcState *pProgramState)
 {
   CalculateArea();
   CalculateTotalLength();
@@ -637,11 +637,12 @@ void vcPOI::UpdatePoints()
       config.ribbonWidth = m_line.lineWidth;
       config.textureScrollSpeed = 1.f;
       config.textureRepeatScale = 1.f;
-
+      config.worldUp = udFloat3::create(vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid));
+      
       vcFenceRenderer_SetConfig(m_pFence, config);
 
       vcFenceRenderer_ClearPoints(m_pFence);
-      vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_worldUp, m_line.closed);
+      vcFenceRenderer_AddPoints(m_pFence, m_line.pPoints, m_line.numPoints, m_line.closed);
     }
     else
     {
@@ -737,7 +738,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
   if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int *)&m_namePt, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
   {
-    UpdatePoints();
+    UpdatePoints(pProgramState);
     const char *pTemp;
     m_pLabelInfo->textSize = m_namePt;
     switch (m_namePt)
@@ -894,7 +895,7 @@ void vcPOI::RemovePoint(vcState *pProgramState, int index)
 
   --m_line.numPoints;
 
-  UpdatePoints();
+  UpdatePoints(pProgramState);
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 }
 
@@ -902,7 +903,6 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
   udFree(m_line.pPoints);
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &m_line.pPoints, &m_line.numPoints);
-  UpdatePoints();
 }
 
 void vcPOI::Cleanup(vcState *pProgramState)
@@ -948,12 +948,6 @@ void vcPOI::SelectSubitem(uint64_t internalId)
 bool vcPOI::IsSubitemSelected(uint64_t internalId)
 {
   return (m_selected && (m_line.selectedPoint == ((int)internalId - 1) || m_line.selectedPoint == -1));
-}
-
-//TODO FRANK Just the centroid?
-void vcPOI::SetWorldUp(const udGeoZone &zone)
-{
-  m_worldUp = udFloat3::create(vcGIS_GetWorldLocalUp(zone, m_centroid));
 }
 
 vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i)
@@ -1005,10 +999,13 @@ void vcPOI::CalculateCentroid()
 {
   m_centroid = udDouble3::zero();
 
-  udDouble3 aabbMin = udDouble3::create(DBL_MAX, DBL_MAX, DBL_MAX);
-  udDouble3 aabbMax = udDouble3::create(DBL_MIN, DBL_MIN, DBL_MIN);
+  if (m_line.numPoints == 0)
+    return;
 
-  for (int p = 0; p < m_line.numPoints; p++)
+  udDouble3 aabbMin = m_line.pPoints[0];
+  udDouble3 aabbMax = m_line.pPoints[0];
+
+  for (int p = 1; p < m_line.numPoints; p++)
   {
     aabbMin = udMin(aabbMin, m_line.pPoints[p]);
     aabbMax = udMax(aabbMax, m_line.pPoints[p]);
