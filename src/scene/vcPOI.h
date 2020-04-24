@@ -112,7 +112,7 @@ public:
 
   void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview = false);
   void RemovePoint(vcState *pProgramState, int index);
-  void UpdatePoints();
+  void UpdatePoints(vcState *pProgramState);
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();

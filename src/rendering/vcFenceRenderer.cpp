@@ -35,13 +35,11 @@ struct vcFenceRenderer
     {
       udFloat4 primaryColour;
       udFloat4 secondaryColour;
-      float orientation; // 0 == fence, 1 == flat
+      udFloat4 extendVector;
       float width;
       float textureRepeatScale;
       float textureScrollSpeed;
       float time;
-
-      char _padding[12]; // 16 byte alignment
     } everyFrameParams;
 
     struct
@@ -58,7 +56,7 @@ static vcTexture *gGlowTexture = nullptr;
 static vcTexture *gSolidTexture = nullptr;
 static vcTexture *gDiagonalTexture = nullptr;
 
-udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment, udFloat3 worldUp);
+udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment);
 udResult vcFenceRenderer_Init();
 udResult vcFenceRenderer_Destroy();
 
@@ -195,96 +193,15 @@ udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenc
   {
     for (size_t i = 0; i < pFenceRenderer->segments.length; ++i)
     {
-      //TODO FRANK fix
-      if (vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &pFenceRenderer->segments[i], udFloat3::create(0, 0, 1)) != udR_Success)
-      {
+      if (vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &pFenceRenderer->segments[i]) != udR_Success)
         result = udR_InternalError;
-      }
     }
   }
 
   return result;
 }
 
-
-udFloat3 vcFenceRenderer_CreateEndJointExpandVector(const udFloat3 &previous, const udFloat3 &center, float width, udFloat3 worldUp)
-{
-  udFloat3 Vpc = center - previous;
-  float magVpc = udMag3(Vpc);
-
-  if (magVpc < 0.00001f)
-    return worldUp;
-
-  Vpc /= magVpc;
-
-  udFloat3 Vleft = udCross(Vpc, worldUp);
-  float magVleft = udMag3(Vleft);
-
-  //Just choose perpendicular vector to the world up
-  if (magVleft <= 0.00001f)
-    return (udFloat3::create(-worldUp[1], worldUp[0], 0.f));
-
-  Vleft /= magVleft;
-
-  return udCross(Vleft, Vpc) * width * 0.5f;
-}
-
-udFloat3 vcFenceRenderer_CreateStartJointExpandVector(const udFloat3 &center, const udFloat3 &next, float width, udFloat3 worldUp)
-{
-  udFloat3 Vcn = next - center;
-  float magVcn = udMag3(Vcn);
-
-  if (magVcn < 0.00001f)
-    return worldUp;
-
-  Vcn /= magVcn;
-
-  udFloat3 Vleft = udCross(Vcn, worldUp);
-  float magVleft = udMag3(Vleft);
-
-  //Just choose perpendicular vector to the world up
-  if (magVleft <= 0.00001f)
-    return (udFloat3::create(-worldUp[1], worldUp[0], 0.f));
-
-  Vleft /= magVleft;
-
-  return udCross(Vleft, Vcn) * width * 0.5f;
-}
-
-//TODO FRANK these need tweaking
-udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous, const udFloat3 &center, const udFloat3 &next, float width, bool *pJointFlipped, udFloat3 worldUp)
-{
-  udFloat3 v1 = udMag3(center - previous) == 0 ? center - previous : udNormalize(center - previous);
-  udFloat3 v2 = udMag3(next - center) == 0 ? next - center : udNormalize(next - center);
-  float d = udMin(udDot(v1, v2), 1.f);
-  float theta = udACos(d);
-
-  // limit angle to something reasonable
-  theta = udMin(2.85f, theta);
-
-  // determine sign of angle
-  udFloat3 cross = udCross(v1, v2);
-  *pJointFlipped = udDot(worldUp, cross) < 0;
-  if (*pJointFlipped)
-    theta *= -1;
-
-  if (d >= 0.99f) // straight edge case
-  {
-    udFloat3 up = udFloat3::create(0, 0, 1);
-    udFloat3 right = udCross(v1, up);
-    return right * 0.5f * width;
-  }
-
-  float u = width / (2.0f * udSin(theta));
-  float v = width / (2.0f * udSin(theta));
-
-  udFloat3 u0 = udMag3(previous - center) == 0 ? previous - center : udNormalize(previous - center) * u;
-  udFloat3 v0 = udMag3(next - center) == 0 ? next - center : udNormalize(next - center) * v;
-
-  return -(u0 + v0);
-}
-
-udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment, udFloat3 worldUp)
+udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment)
 {
   udResult result = udR_Success;
 
@@ -341,9 +258,11 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
   // start segment
   current = udFloat3::create(pSegment->pCachedPoints[0]);
   next = udFloat3::create(pSegment->pCachedPoints[1]);
-  expandVector = vcFenceRenderer_CreateStartJointExpandVector(current, next, pFenceRenderer->config.ribbonWidth, worldUp);
-  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
-  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
+
+  //We don't use the full vec4, but leave it as is; we may want to use it laster to support
+  //individual extend vectors for each point in the line.
+  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(0.0, 0.0, 0.0, 0.0f);
+  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(0.0, 0.0, 0.0, 1.0f);
   vertIndex += 2;
 
   // middle segments
@@ -352,8 +271,6 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
     prev = udFloat3::create(pSegment->pCachedPoints[i - 1]);
     current = udFloat3::create(pSegment->pCachedPoints[i]);
     next = udFloat3::create(pSegment->pCachedPoints[i + 1]);
-
-    expandVector = vcFenceRenderer_CreateSegmentJointExpandVector(prev, current, next, pFenceRenderer->config.ribbonWidth, &jointFlipped, worldUp);
 
     udFloat3 pLeft = current + expandVector;
     udFloat3 pRight = current - expandVector;
@@ -398,9 +315,8 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
   // end segment
   prev = udFloat3::create(pSegment->pCachedPoints[pSegment->pointCount - 2]);
   current = udFloat3::create(pSegment->pCachedPoints[pSegment->pointCount - 1]);
-  expandVector = vcFenceRenderer_CreateEndJointExpandVector(prev, current, pFenceRenderer->config.ribbonWidth, worldUp);
-  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
-  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
+  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(0.0, 0.0, 0.0, 0.0f);
+  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(0.0, 0.0, 0.0, 1.0f);
 
   uv0 = udMag3((current + pVerts[vertIndex + 0].ribbonInfo.toVector3()) - (prev + pVerts[vertIndex - 2].ribbonInfo.toVector3()));
   uv1 = udMag3((current + pVerts[vertIndex + 1].ribbonInfo.toVector3()) - (prev + pVerts[vertIndex - 1].ribbonInfo.toVector3()));
@@ -419,7 +335,7 @@ epilogue:
   return result;
 }
 
-udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, udFloat3 worldUp, bool closed)
+udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool closed)
 {
   udResult result = udR_Success;
   vcFenceSegment newSegment = {};
@@ -440,7 +356,7 @@ udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *p
   if (closed)
     newSegment.pCachedPoints[pointCount] = udDouble3::zero();
 
-  vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &newSegment, worldUp);
+  vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &newSegment);
   pFenceRenderer->segments.PushBack(newSegment);
 
 epilogue:
@@ -483,11 +399,11 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   switch (pFenceRenderer->config.visualMode)
   {
   case vcRRVM_Fence:
-    pFenceRenderer->renderShader.everyFrameParams.orientation = 0.0f;
+    pFenceRenderer->renderShader.everyFrameParams.extendVector = udFloat4::create(pFenceRenderer->config.worldUp, 0.0);
     pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
     break;
   case vcRRVM_Flat:
-    pFenceRenderer->renderShader.everyFrameParams.orientation = 1.0f;
+    pFenceRenderer->renderShader.everyFrameParams.extendVector = udFloat4::create(udPerpendicular3(pFenceRenderer->config.worldUp), 0.0);
     pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale / pFenceRenderer->config.ribbonWidth;
     break;
   case vcRRVM_ScreenLine: // do nothing

@@ -264,6 +264,26 @@ T udSignedSimplePolygonArea3(udVector3<T> const * pPoints, size_t nPoints)
 }
 
 template<typename T>
+udVector3<T> udPerpendicular3(udVector3<T> const & a_vector)
+{
+  udVector3<T> result;
+
+  if (a_vector[0] != 0 || a_vector[1] != 0)
+  {
+    result[0] = -a_vector[1];
+    result[1] = a_vector[0];
+    result[2] = T(0);
+  }
+  else
+  {
+    result[0] = -a_vector[2];
+    result[1] = T(0);
+    result[2] = a_vector[0];
+  }
+  return udNormalize3(result);
+}
+
+template<typename T>
 class udLineSegment
 {
 public:

@@ -1595,10 +1595,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       }
       corners.push_back(udDouble3::create(corners[0]));
 
-      //TODO FRANK What local coordinate do we use? Origin is a placeholder
-      udDouble3 dworldUp = vcGIS_GetWorldLocalUp(pProgramState->gis, udDouble3::create(0.0, 0.0, 0.0));
-      udFloat3 worldUp = udFloat3::create(dworldUp);
-      vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, &corners[0], corners.size(), worldUp);
+      vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, &corners[0], corners.size());
     }
   }
 

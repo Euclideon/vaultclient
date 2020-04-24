@@ -34,6 +34,7 @@ struct vcFenceRendererConfig
 {
   vcFenceRendererVisualMode visualMode;
   vcFenceRendererImageMode imageMode;
+  udFloat3 worldUp;
   bool isDualColour;
   udFloat4 primaryColour;
   udFloat4 secondaryColour;
@@ -47,7 +48,7 @@ udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer);
 
 udResult vcFenceRenderer_ReloadShaders(vcFenceRenderer *pFenceRenderer);
 
-udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, udFloat3 worldUp, bool closed = false);
+udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool closed = false);
 void vcFenceRenderer_ClearPoints(vcFenceRenderer *pFenceRenderer);
 
 udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenceRendererConfig &config);
