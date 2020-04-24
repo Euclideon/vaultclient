@@ -353,8 +353,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         vcStringFormat(serverURLColour, udLengthOf(serverURLColour), pRenderer->pSettings->maptiles.activeServer.tileServerAddress, pSlippyStrs, udLengthOf(pSlippyStrs));
       }
 
-      pBestNode->tag++;
-      uint32_t currentTag = pBestNode->tag;
+      ++pBestNode->tag;
+      int32_t currentTag = pBestNode->tag.Get();
 
       //We release the mutex to allow work to continue on the quadtree.
       //For instance, the quadtree may be cleared duting the loads below.
@@ -375,7 +375,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       udLockMutex(pCache->pMutex);
 
       //Check if the node is still valid. If the tag is different, another thread has taken this node.
-      if (currentTag == pBestNode->tag)
+      if (currentTag == pBestNode->tag.Get())
       {
         if (canDownloadDEM)
           vcTileRenderer_HandleResponseData(DEMResult, &pBestNode->demInfo, textureDEM);
