@@ -2138,7 +2138,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
 
-  if (!pProgramState->modalOpen && (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released)))
+  if (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released))
     vcMain_PresentationMode(pProgramState);
 
   vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
