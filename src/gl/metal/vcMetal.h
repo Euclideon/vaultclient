@@ -21,6 +21,7 @@ extern vcShader *g_pCurrShader;
 extern id<MTLBlitCommandEncoder> g_blitEncoder;
 
 void vcGLState_FlushBlit();
+void vcShader_UpdatePipeline(vcShader *pShader);
 
 enum vcRendererFramebufferActions
 {
@@ -71,7 +72,8 @@ struct vcShader
   bool inititalised;
   id<MTLLibrary> vertexLibrary;
   id<MTLLibrary> fragmentLibrary;
-  id<MTLRenderPipelineState> pipelines[vcGLSBM_Count * 2];
+  MTLRenderPipelineDescriptor *pDesc;
+  id<MTLRenderPipelineState> pipeline;
 
   vcShaderConstantBuffer bufferObjects[16];
   int numBufferObjects;

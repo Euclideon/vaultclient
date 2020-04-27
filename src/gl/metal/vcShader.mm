@@ -7,7 +7,7 @@
 #import "udStringUtil.h"
 #import "udFile.h"
 
-void vcShader_CreatePipeline(vcShader *pShader, int pipelineIndex, id<MTLFunction> vFunc, id<MTLFunction> fFunc, MTLVertexDescriptor *vertexDesc, vcGLStateBlendMode blendMode, bool useDepth, CFTypeRef *pReflectionObj = nullptr)
+void vcShader_CreatePipelineDesc(vcShader *pShader, int pipelineIndex, id<MTLFunction> vFunc, id<MTLFunction> fFunc, MTLVertexDescriptor *vertexDesc)
 {
   @autoreleasepool {
     MTLRenderPipelineDescriptor *pDesc = [[MTLRenderPipelineDescriptor alloc] init];
@@ -15,69 +15,103 @@ void vcShader_CreatePipeline(vcShader *pShader, int pipelineIndex, id<MTLFunctio
     pDesc.fragmentFunction = fFunc;
     pDesc.vertexDescriptor = vertexDesc;
 
-    pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    if (useDepth)
-    {
-      pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
-      pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
-    }
-    else
-    {
-      pDesc.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
-      pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
-    }
+    pDesc.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+    pDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+    pDesc.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
 
-    if (blendMode != vcGLSBM_None)
-    {
-      pDesc.colorAttachments[0].blendingEnabled = YES;
-      pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
-      pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+    pDesc.colorAttachments[0].blendingEnabled = YES;
+    pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+    pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
 
-      switch (blendMode)
+    pShader->pDesc = pDesc;
+  }
+}
+
+void vcShader_UpdatePipeline(vcShader *pShader)
+{
+  bool modified = false;
+
+  // Update render target colour format
+  if (pShader->pDesc.colorAttachments[0].pixelFormat != g_pCurrFramebuffer->pColor->texture.pixelFormat)
+  {
+    pShader->pDesc.colorAttachments[0].pixelFormat = g_pCurrFramebuffer->pColor->texture.pixelFormat;
+    modified = true;
+  }
+
+  // Update render target depth format
+  if (g_pCurrFramebuffer->pDepth != nullptr && pShader->pDesc.depthAttachmentPixelFormat != g_pCurrFramebuffer->pDepth->texture.pixelFormat)
+  {
+    pShader->pDesc.depthAttachmentPixelFormat = g_pCurrFramebuffer->pDepth->texture.pixelFormat;
+    modified = true;
+  }
+  else if (g_pCurrFramebuffer->pDepth == nullptr && pShader->pDesc.depthAttachmentPixelFormat != MTLPixelFormatInvalid)
+  {
+    pShader->pDesc.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+    modified = true;
+  }
+
+  // Update blend mode
+  switch (g_internalState.blendMode)
+  {
+    case vcGLSBM_None:
+      if (pShader->pDesc.colorAttachments[0].blendingEnabled != NO)
       {
-        case vcGLSBM_None:
-          break;
-        case vcGLSBM_Interpolative:
-          pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
-          pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-          pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-          pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
-          break;
-        case vcGLSBM_Additive:
-          pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
-          pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-          pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
-          pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-          break;
-        case vcGLSBM_Multiplicative:
-          pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
-          pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
-          pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
-          pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
-          break;
-        case vcGLSBM_Count:
-          break;
+        pShader->pDesc.colorAttachments[0].blendingEnabled = NO;
+        modified = true;
       }
-    }
-    
-    NSError *err = nil;
-    if (pReflectionObj)
-    {
-      MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
-      MTLRenderPipelineReflection *reflectionObj = nil;
-      pShader->pipelines[pipelineIndex] = [g_device newRenderPipelineStateWithDescriptor:pDesc options:option reflection:&reflectionObj error:&err];
-      *pReflectionObj = (__bridge_retained CFTypeRef)reflectionObj;
-    }
-    else
-    {
-      pShader->pipelines[pipelineIndex] = [g_device newRenderPipelineStateWithDescriptor:pDesc error:&err];
-    }
+      break;
+    case vcGLSBM_Interpolative:
+      if (pShader->pDesc.colorAttachments[0].blendingEnabled != YES || pShader->pDesc.colorAttachments[0].sourceRGBBlendFactor != MTLBlendFactorSourceAlpha)
+      {
+        pShader->pDesc.colorAttachments[0].blendingEnabled = YES;
+        pShader->pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+        pShader->pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pShader->pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+        pShader->pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOne;
+        modified = true;
+      }
+      break;
+    case vcGLSBM_Additive:
+      if (pShader->pDesc.colorAttachments[0].blendingEnabled != YES || pShader->pDesc.colorAttachments[0].sourceRGBBlendFactor != MTLBlendFactorOne)
+      {
+        pShader->pDesc.colorAttachments[0].blendingEnabled = YES;
+        pShader->pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorOne;
+        pShader->pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pShader->pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOne;
+        pShader->pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        modified = true;
+      }
+      break;
+    case vcGLSBM_Multiplicative:
+      if (pShader->pDesc.colorAttachments[0].blendingEnabled != YES || pShader->pDesc.colorAttachments[0].sourceRGBBlendFactor != MTLBlendFactorDestinationColor)
+      {
+        pShader->pDesc.colorAttachments[0].blendingEnabled = YES;
+        pShader->pDesc.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorDestinationColor;
+        pShader->pDesc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
+        pShader->pDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorZero;
+        pShader->pDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorZero;
+        modified = true;
+      }
+      break;
+    case vcGLSBM_Count:
+      if (pShader->pDesc.colorAttachments[0].blendingEnabled != YES || pShader->pDesc.colorAttachments[0].sourceRGBBlendFactor != MTLBlendOperationAdd)
+      {
+        pShader->pDesc.colorAttachments[0].blendingEnabled = YES;
+        pShader->pDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+        pShader->pDesc.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+        modified = true;
+      }
+      break;
+  }
+
+  NSError *err = nil;
+  if (modified)
+    pShader->pipeline = [g_device newRenderPipelineStateWithDescriptor:pShader->pDesc error:&err];
 
 #ifdef METAL_DEBUG
-    if (err != nil)
-      NSLog(@"Error: failed to create Metal pipeline state: %@", err);
+  if (err != nil)
+    NSLog(@"Error: failed to create Metal pipeline state: %@", err);
 #endif
-  }
 }
 
 bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexShaderFilename, const char *pVertexShader, const char *pFragmentShaderFilename, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
@@ -158,17 +192,17 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
 
     pShader->inititalised = false;
 
-    CFTypeRef reflectionObj;
-    vcShader_CreatePipeline(pShader, 0, vFunc, fFunc, vertexDesc, vcGLSBM_None, true, &reflectionObj);
-    vcShader_CreatePipeline(pShader, 1, vFunc, fFunc, vertexDesc, vcGLSBM_Interpolative, true);
-    vcShader_CreatePipeline(pShader, 2, vFunc, fFunc, vertexDesc, vcGLSBM_Additive, true);
-    vcShader_CreatePipeline(pShader, 3, vFunc, fFunc, vertexDesc, vcGLSBM_Multiplicative, true);
-    vcShader_CreatePipeline(pShader, 4, vFunc, fFunc, vertexDesc, vcGLSBM_None, false);
-    vcShader_CreatePipeline(pShader, 5, vFunc, fFunc, vertexDesc, vcGLSBM_Interpolative, false);
-    vcShader_CreatePipeline(pShader, 6, vFunc, fFunc, vertexDesc, vcGLSBM_Additive, false);
-    vcShader_CreatePipeline(pShader, 7, vFunc, fFunc, vertexDesc, vcGLSBM_Multiplicative, false);
+    vcShader_CreatePipelineDesc(pShader, 0, vFunc, fFunc, vertexDesc);
 
-    MTLRenderPipelineReflection *pReflectionObj = (__bridge_transfer MTLRenderPipelineReflection *)reflectionObj;
+    NSError *err = nil;
+    MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
+    MTLRenderPipelineReflection *pReflectionObj = nil;
+    pShader->pipeline = [g_device newRenderPipelineStateWithDescriptor:pShader->pDesc options:option reflection:&pReflectionObj error:&err];
+#ifdef METAL_DEBUG
+  if (err != nil)
+    NSLog(@"Error: failed to create Metal pipeline state: %@", err);
+#endif
+
     for (MTLArgument *arg in pReflectionObj.vertexArguments)
     {
       if (arg.type != MTLArgumentTypeBuffer)
@@ -260,8 +294,8 @@ void vcShader_DestroyShader(vcShader **ppShader)
   {
     (*ppShader)->vertexLibrary = nil;
     (*ppShader)->fragmentLibrary = nil;
-    for (size_t i = 0; i < udLengthOf((*ppShader)->pipelines); ++i)
-      (*ppShader)->pipelines[i] = nil;
+    (*ppShader)->pDesc = nil;
+    (*ppShader)->pipeline = nil;
   }
 
   udFree(*ppShader);
@@ -276,8 +310,10 @@ bool vcShader_Bind(vcShader *pShader)
       {
         g_pCurrShader = pShader;
 
+        vcShader_UpdatePipeline(pShader);
+
         if (g_pCurrShader != nullptr && g_pCurrFramebuffer != nullptr)
-          [g_pCurrFramebuffer->encoder setRenderPipelineState:g_pCurrShader->pipelines[g_internalState.blendMode + (g_pCurrFramebuffer->pDepth != nullptr ? 0 : vcGLSBM_Count)]];
+          [g_pCurrFramebuffer->encoder setRenderPipelineState:g_pCurrShader->pipeline];
 
         pShader->cameraPlane = { s_CameraNearPlane, s_CameraFarPlane, 0.f, 1.f };
         vcShader_BindConstantBuffer(pShader, pShader->pCameraPlaneParams, &pShader->cameraPlane, sizeof(pShader->cameraPlane));

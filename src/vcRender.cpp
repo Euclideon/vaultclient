@@ -1773,7 +1773,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   }
   else
   {
-    if (pRenderContext->previousFrameDepth > -1 && pRenderContext->previousFrameDepth < 1.0)
+    if (pRenderContext->previousFrameDepth > 0.0 && pRenderContext->previousFrameDepth < 1.0)
     {
       result.success = true;
       pickDepth = pRenderContext->previousFrameDepth;

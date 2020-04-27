@@ -227,7 +227,10 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
   {
     g_internalState.blendMode = blendMode;
     if (g_pCurrShader != nullptr && g_pCurrFramebuffer != nullptr)
-      [g_pCurrFramebuffer->encoder setRenderPipelineState:g_pCurrShader->pipelines[blendMode + (g_pCurrFramebuffer->pDepth != nullptr ? 0 : vcGLSBM_Count)]];
+    {
+      vcShader_UpdatePipeline(g_pCurrShader);
+      [g_pCurrFramebuffer->encoder setRenderPipelineState:g_pCurrShader->pipeline];
+    }
   }
   return true;
 }
