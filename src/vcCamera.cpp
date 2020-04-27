@@ -206,8 +206,10 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       }
 
       //
-      if (pCamera->headingPitch.y < UD_DEG2RADf(-89.0) && pCamInput->mouseInput.y <= 0) break;
-      if (pCamera->headingPitch.y > UD_DEG2RADf(89.0) && pCamInput->mouseInput.y >= 0) break;
+      if (pCamera->headingPitch.y < UD_DEG2RADf(-89.0) && pCamInput->mouseInput.y <= 0)
+        break;
+      if (pCamera->headingPitch.y > UD_DEG2RADf(89.0) && pCamInput->mouseInput.y >= 0)
+        break;
 
       // Orbit Up/Down
       udDoubleQuat rotation = udDoubleQuat::create(orientation.apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
