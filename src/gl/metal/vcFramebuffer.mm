@@ -38,8 +38,6 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
     }
 
     pFramebuffer->pRenderPass = pass;
-    pFramebuffer->commandBuffer = [g_queue commandBuffer];
-    pFramebuffer->encoder = [pFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:pass];
   }
   
   *ppFramebuffer = pFramebuffer;
@@ -92,13 +90,28 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
       [g_pCurrFramebuffer->commandBuffer commit];
       [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
 
-      g_pCurrFramebuffer->commandBuffer = [g_queue commandBuffer];
-      g_pCurrFramebuffer->encoder = [g_pCurrFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:g_pCurrFramebuffer->pRenderPass];
+      g_pCurrFramebuffer->commandBuffer = nil;
+      g_pCurrFramebuffer->encoder = nil;
     }
     g_pCurrFramebuffer->actions = 0;
   }
 
   g_pCurrFramebuffer = pFramebuffer;
+
+  if (pFramebuffer->clear != clearColour)
+  {
+    udFloat4 col = udFloat4::create(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
+    pFramebuffer->pRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
+    pFramebuffer->pRenderPass.depthAttachment.clearDepth = 1.0;
+  }
+
+  if (g_pCurrFramebuffer != g_pDefaultFramebuffer)
+  {
+    @autoreleasepool {
+      g_pCurrFramebuffer->commandBuffer = [g_queue commandBuffer];
+      g_pCurrFramebuffer->encoder = [g_pCurrFramebuffer->commandBuffer renderCommandEncoderWithDescriptor:g_pCurrFramebuffer->pRenderPass];
+    }
+  }
 
   [pFramebuffer->encoder setViewport:{
     .originX = double(g_internalState.viewportZone.x),
@@ -108,14 +121,6 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
     .znear = g_internalState.depthRange.x,
     .zfar = g_internalState.depthRange.y
   }];
-
-  if (pFramebuffer->clear != clearColour)
-  {
-    udFloat4 col = udFloat4::create(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
-
-    pFramebuffer->pRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
-    pFramebuffer->pRenderPass.depthAttachment.clearDepth = 1.0;
-  }
 
   // Set variables from global state
   vcGLState_SetFaceMode(g_internalState.fillMode, g_internalState.cullMode, g_internalState.isFrontCCW, true);
