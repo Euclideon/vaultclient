@@ -1160,6 +1160,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
       vcFenceRenderer_Render(renderData.fences[i], pProgramState->camera.matrices.viewProjection, pProgramState->deltaTime);
   }
 
+  // Transparent polygons
   udFloat4 transparentColour = udFloat4::create(1, 1, 1, 0.65f);
   for (size_t i = 0; i < renderData.polyModels.length; ++i)
   {

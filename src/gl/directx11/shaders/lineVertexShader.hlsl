@@ -34,9 +34,7 @@ PS_INPUT main(VS_INPUT input)
   float aspect = u_thickness.y;
   
   float4 clipPos = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz, 1.0));
-  float clipW = clipPos.w; // preserve
-  clipPos /= clipPos.w;
-  float2 currentScreen = clipPos.xy * float2(0.5, 0.5) + float2(0.5, 0.5);
+  float2 currentScreen = (clipPos.xy / clipPos.w) * float2(0.5, 0.5) + float2(0.5, 0.5);
   
   float4 previousScreen = mul(u_worldViewProjectionMatrix, float4(input.previous.xyz, 1.0));
   previousScreen.xy = (previousScreen.xy / previousScreen.w)* float2(0.5, 0.5) + float2(0.5, 0.5);
@@ -48,7 +46,8 @@ PS_INPUT main(VS_INPUT input)
   {
     // TODO: Handle me
   }
-	
+  
+  // correct aspect ratio
   currentScreen.x *= aspect;
   nextScreen.x *= aspect;
   previousScreen.x *= aspect;
@@ -60,12 +59,12 @@ PS_INPUT main(VS_INPUT input)
   
   // artificially make corners thicker to try keep line width consistent
   float cornerThicken = (1.0 - (dot(dirPrev, dirNext) * 0.5 + 0.5));
-  // extrude from center & correct aspect ratio
+  // extrude from center
   normal *= u_thickness.x / 2.0 * (1.0 + pow(cornerThicken, 7.0) * 7.0);
   normal.x /= aspect;
 
-  output.pos = clipPos + float4(normal * input.pos.w, 0.0, 0.0);
-  output.fLogDepth.x = 1.0 + clipW;
+  output.pos = clipPos + float4(normal * input.pos.w * clipPos.w, 0.0, 0.0);
+  output.fLogDepth.x = 1.0 + clipPos.w;
   
   output.colour = u_colour;
   return output;

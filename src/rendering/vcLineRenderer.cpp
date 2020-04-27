@@ -118,12 +118,12 @@ udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPo
     udDouble3 prev = udDouble3::zero();
     udDouble3 next = udDouble3::zero();
     if (i == 0)
-      prev = p + (p - pPoints[i + 1]) * 0.01; // fake a vert
+      prev = p + udNormalize3(p - pPoints[i + 1]) * 0.1; // fake a vert
     else
       prev = pPoints[i - 1];
 
     if (i == pointCount - 1)
-      next = p + (p - pPoints[i - 1]) * 0.01; // fake a vert
+      next = p + udNormalize3(p - pPoints[i - 1]) * 0.1; // fake a vert
     else
       next = pPoints[i + 1];
 
