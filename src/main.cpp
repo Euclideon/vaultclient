@@ -1672,7 +1672,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
 
       // AMap Setin
-      ImGuiID id = GImGui->CurrentWindow->GetID("mapSettings");
+      ImGuiID id = ImGui::GetID("mapSettings");
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem))
       {
         if(!ImGui::IsPopupOpen(id) && ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
