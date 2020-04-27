@@ -44,6 +44,7 @@ SetFile -c icnC "/Volumes/vaultClient/.VolumeIcon.icns"
 SetFile -a C /Volumes/vaultClient
 sync
 sync
+hdiutil unmount /Volumes/vaultClient -force
 hdiutil detach ${device} -force
 hdiutil convert "builds/vaultClient.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "builds/vaultClient.dmg"
 rm -f builds/vaultClient.temp.dmg
