@@ -1672,12 +1672,22 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
 
       // AMap Setin
-      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem);
-      if (ImGui::BeginPopupContextWindow(nullptr, 0))
+      ImGuiID id = GImGui->CurrentWindow->GetID("mapSettings");
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem))
       {
-        vcSettingsUI_BasicMapSettings(pProgramState);
+        if(!ImGui::IsPopupOpen(id) && ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup))
+          ImGui::OpenPopupEx(id);
+      }
 
-        ImGui::EndPopup();
+      if(ImGui::IsPopupOpen(id))
+      {
+        if (ImGui::BeginPopupEx(id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
+        {
+          vcSettingsUI_BasicMapSettings(pProgramState);
+
+          ImGui::EndPopup();
+        }
+
       }
 
       // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
