@@ -1360,7 +1360,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           if (vcGIS_ChangeSpace(&pProgramState->gis, zone, &pProgramState->camera.position))
           {
             pProgramState->activeProject.pFolder->ChangeProjection(zone);
-            vcRender_ClearTiles(pProgramState->pRenderContext);
           }
         }
       }

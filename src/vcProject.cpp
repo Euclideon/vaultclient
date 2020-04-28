@@ -14,7 +14,6 @@ void vcProject_InitBlankScene(vcState *pProgramState)
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
   udGeoZone zone = {};
-  vcRender_ClearTiles(pProgramState->pRenderContext);
   vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
   pProgramState->camera.position = udDouble3::zero();
@@ -32,9 +31,6 @@ void vcProject_InitBlankScene(vcState *pProgramState)
 
   if (vcGIS_ChangeSpace(&pProgramState->gis, cameraZone))
     pProgramState->activeProject.pFolder->ChangeProjection(cameraZone);
-
-  // refresh map tiles when geozone changes
-  vcRender_ClearTiles(pProgramState->pRenderContext);
 
   double locations[][5] = {
     { 309281.960926, 5640790.149293, 2977479.571028, 55.74, -32.45 }, // Mount Everest
@@ -115,7 +111,6 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
       udGeoZone zone = {};
-      vcRender_ClearTiles(pProgramState->pRenderContext);
       vcGIS_ChangeSpace(&pProgramState->gis, zone);
 
       pProgramState->sceneExplorer.selectedItems.clear();
@@ -401,9 +396,6 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
 
   if (vcGIS_ChangeSpace(&pProgramState->gis, *pItem->m_pPreferredProjection))
     pProgramState->activeProject.pFolder->ChangeProjection(*pItem->m_pPreferredProjection);
-
-  // refresh map tiles when geozone changes
-  vcRender_ClearTiles(pProgramState->pRenderContext);
 
   // move camera to the new item's position
   pItem->SetCameraPosition(pProgramState);

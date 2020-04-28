@@ -281,8 +281,6 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->camera.position))
           {
             pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
-            // refresh map tiles when geozone changes
-            vcRender_ClearTiles(pProgramState->pRenderContext);
           }
         }
 
