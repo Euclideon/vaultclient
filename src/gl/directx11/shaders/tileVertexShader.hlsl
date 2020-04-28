@@ -16,7 +16,7 @@ struct PS_INPUT
   float4 pos : SV_POSITION;
   float4 colour : COLOR0;
   float2 uv : TEXCOORD0;
-  float2 fLogDepth : TEXCOORD1;
+  float2 depth : TEXCOORD1;
 };
 
 // This should match CPU struct size
@@ -36,13 +36,12 @@ cbuffer u_EveryObject : register(b0)
 sampler demSampler;
 Texture2D demTexture;
 
-// this could be used instead instead of writing to depth directly,
-// for highly tesselated geometry (hopefully tiles in the future)
-//float CalcuteLogDepth(float4 clipPos)
-//{
-//  float Fcoef  = 2.0 / log2(s_CameraFarPlane + 1.0);
-//  return log2(max(1e-6, 1.0 + clipPos.w)) * Fcoef - 1.0;
-//}
+// this works for highly tesselated geometry
+float CalcuteLogDepth(float4 clipPos)
+{
+  float Fcoef = (u_clipZFar - u_clipZNear) / log2(s_CameraFarPlane + 1.0);
+  return (log2(max(1e-6, 1.0 + clipPos.w)) * Fcoef + u_clipZNear) * clipPos.w;
+}
 
 PS_INPUT main(VS_INPUT input)
 {
@@ -81,12 +80,13 @@ PS_INPUT main(VS_INPUT input)
   float4 diff = (h - baseH);
 
   float4 finalClipPos = mul(u_projection, (eyePos + diff));
-  
+  finalClipPos.z = CalcuteLogDepth(finalClipPos);
+	
   // note: could have precision issues on some devices
   output.colour = u_colour;
   output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
-  output.fLogDepth.x = 1.0 + output.pos.w;
-
+  output.depth = float2(output.pos.z, output.pos.w);
+  
   return output;
 }
