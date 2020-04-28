@@ -69,6 +69,8 @@ struct vcShader
   int numBufferObjects;
 
   vcShaderConstantBuffer *pCameraPlaneParams;
+  bool loaded; // Set to true after first bind
+  bool writesDepth; // Used to ensure compatibility with Metal
 };
 
 struct vcShaderSampler

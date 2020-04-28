@@ -78,6 +78,28 @@ bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, 
   return true;
 }
 
+bool vsShader_InternalReflectShaderRenderTargets(vcShader *pShader, ID3D10Blob *pBlob)
+{
+  ID3D11ShaderReflection *pReflection = NULL;
+  D3DReflect(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void **)&pReflection);
+
+  UINT outputIndex = 0;
+  D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
+  while (pReflection->GetOutputParameterDesc(outputIndex, &paramDesc) == S_OK)
+  {
+    ++outputIndex;
+    if (paramDesc.SystemValueType == D3D_NAME_DEPTH)
+    {
+      pShader->writesDepth = true;
+      break;
+    }
+  }
+
+  pReflection->Release();
+
+  return true;
+}
+
 bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
 {
   if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr || pInputTypes == nullptr)
@@ -173,6 +195,7 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 
   vsShader_InternalReflectShaderConstantBuffers(pVSBlob, 0, pShader->bufferObjects, &pShader->numBufferObjects);
   vsShader_InternalReflectShaderConstantBuffers(pPSBlob, 1, pShader->bufferObjects, &pShader->numBufferObjects);
+  vsShader_InternalReflectShaderRenderTargets(pShader, pPSBlob);
 
   pVSBlob->Release();
   pPSBlob->Release();
@@ -229,6 +252,20 @@ bool vcShader_Bind(vcShader *pShader)
 
     g_pd3dDeviceContext->VSSetShader(pShader->pVertexShader, NULL, 0);
     g_pd3dDeviceContext->PSSetShader(pShader->pPixelShader, NULL, 0);
+
+#if !defined(GIT_BUILD)
+    // Only check if depth is being written to, and ignore first load
+    if (pShader->writesDepth && pShader->loaded)
+    {
+      ID3D11RenderTargetView *pRenderTargetView = nullptr;
+      ID3D11DepthStencilView *pDepthStencilView = nullptr;
+      g_pd3dDeviceContext->OMGetRenderTargets(1, &pRenderTargetView, &pDepthStencilView);
+
+      UDRELASSERT(pDepthStencilView != nullptr, "Shader writes to depth target that isn't bound!");
+    }
+
+    pShader->loaded = true;
+#endif
 
     struct
     {
