@@ -125,6 +125,17 @@ udDouble2 vcGIS_QuaternionToHeadingPitch(const vcGISSpace &space, udDouble3 loca
   {
     udDouble2 headingPitch = orientation.eulerAngles().toVector2();
     headingPitch.x *= -1;
+
+    while (headingPitch.x > UD_PI)
+      headingPitch.x -= UD_2PI;
+    while (headingPitch.x < -UD_PI)
+      headingPitch.x += UD_2PI;
+
+    while (headingPitch.y > UD_PI)
+      headingPitch.y -= UD_2PI;
+    while (headingPitch.y < -UD_PI)
+      headingPitch.y += UD_2PI;
+
     return headingPitch;
   }
 
@@ -136,14 +147,17 @@ udDouble2 vcGIS_QuaternionToHeadingPitch(const vcGISSpace &space, udDouble3 loca
   udDouble4x4 referenceFrame = udDouble4x4::create(udDouble4::create(east, 0), udDouble4::create(north, 0), udDouble4::create(up, 0), udDouble4::identity());
 
   udDouble3 headingData = (referenceFrame.inverse() * rotation).extractYPR();
-
-  if (headingData.x > UD_PI)
-    headingData.x -= UD_2PI;
-
-  if (headingData.y > UD_PI)
-    headingData.y -= UD_2PI;
-
   headingData.x *= -1;
+
+  while (headingData.x > UD_PI)
+    headingData.x -= UD_2PI;
+  while (headingData.x < -UD_PI)
+    headingData.x += UD_2PI;
+
+  while (headingData.y > UD_PI)
+    headingData.y -= UD_2PI;
+  while (headingData.y < -UD_PI)
+    headingData.y += UD_2PI;
 
   return headingData.toVector2();
 }

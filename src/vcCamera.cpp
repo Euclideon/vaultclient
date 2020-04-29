@@ -194,17 +194,26 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     if (distanceToPointSqr != 0.0 && (pCamInput->mouseInput.x != 0 || pCamInput->mouseInput.y != 0))
     {
       // Orbit Left/Right
-      udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, pCamInput->mouseInput.x);
-      udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
+      if (pCamInput->mouseInput.x != 0)
+      {
+        udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, pCamInput->mouseInput.x);
+        udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
 
-      orientation = (rotation * orientation);
+        orientation = (rotation * orientation);
 
-      pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
-      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
+        pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
+        pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
+      }
+
+      //
+      if (pCamera->headingPitch.y < UD_DEG2RADf(-89.0) && pCamInput->mouseInput.y <= 0)
+        break;
+      if (pCamera->headingPitch.y > UD_DEG2RADf(89.0) && pCamInput->mouseInput.y >= 0)
+        break;
 
       // Orbit Up/Down
-      rotation = udDoubleQuat::create(orientation.apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
-      direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
+      udDoubleQuat rotation = udDoubleQuat::create(orientation.apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
+      udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
 
       orientation = (rotation * orientation);
 
@@ -212,8 +221,6 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
       pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
 
-      if (pCamera->headingPitch.y > UD_PI)
-        pCamera->headingPitch.y -= UD_2PI;
     }
   }
   break;
