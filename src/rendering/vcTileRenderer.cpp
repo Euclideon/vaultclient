@@ -1105,11 +1105,6 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetFaceMode(vcGLSFM_Solid, cullMode);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
-  if (pTileRenderer->pSettings->maptiles.transparency >= 1.0f)
-    vcGLState_SetBlendMode(vcGLSBM_None);
-  else
-    vcGLState_SetBlendMode(vcGLSBM_Interpolative);
-
   if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
   {
     vcGLState_SetViewportDepthRange(0.0f, 0.0f);

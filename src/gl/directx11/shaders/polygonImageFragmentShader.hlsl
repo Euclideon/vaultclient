@@ -19,7 +19,6 @@ struct PS_OUTPUT
 {
   float4 Color0 : SV_Target0;
   float4 Normal : SV_Target1;
-  float DepthCopy : SV_Target2;
   float Depth0 : SV_Depth;
 };
 
@@ -36,6 +35,6 @@ PS_OUTPUT main(PS_INPUT input)
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
 
   output.Normal = float4(0, 0, 0, 0);
-  output.DepthCopy = output.Depth0;
+  output.Normal.w = output.Depth0; // depth packed here
   return output;
 }
