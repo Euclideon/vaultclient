@@ -98,6 +98,30 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
 
   g_pCurrFramebuffer = pFramebuffer;
 
+  switch (clearOperation)
+  {
+    case vcFramebufferClearOperation_None:
+      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+      pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionLoad;
+      pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
+      break;
+    case vcFramebufferClearOperation_Colour:
+      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
+      pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionLoad;
+      pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
+      break;
+    case vcFramebufferClearOperation_DepthStencil:
+      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+      pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionClear;
+      pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionClear;
+      break;
+    case vcFramebufferClearOperation_All:
+      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
+      pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionClear;
+      pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionClear;
+      break;
+  }
+
   if (pFramebuffer->clear != clearColour)
   {
     udFloat4 col = udFloat4::create(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
