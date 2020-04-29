@@ -26,11 +26,8 @@ struct main0_in
 fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]])
 {
     main0_out out = {};
-    float _34 = log2(in.in_var_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
-    float4 _35 = in.in_var_COLOR0;
-    _35.w = _34;
-    out.out_var_SV_Target = _35;
-    out.gl_FragDepth = _34;
+    out.out_var_SV_Target = in.in_var_COLOR0;
+    out.gl_FragDepth = log2(in.in_var_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
     return out;
 }
 

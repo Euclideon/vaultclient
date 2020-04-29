@@ -17,14 +17,10 @@ in highp vec2 varying_TEXCOORD0;
 in highp vec2 varying_TEXCOORD1;
 layout(location = 0) out highp vec4 out_var_SV_Target;
 
-float _33;
-
 void main()
 {
-    highp float _56 = log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
-    highp vec4 _57 = vec4(texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, varying_TEXCOORD0).xyz * varying_COLOR0.xyz, _33);
-    _57.w = _56;
-    out_var_SV_Target = _57;
-    gl_FragDepth = _56;
+    highp vec4 _40 = texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, varying_TEXCOORD0);
+    out_var_SV_Target = vec4(_40.xyz * varying_COLOR0.xyz, _40.w * varying_COLOR0.w);
+    gl_FragDepth = log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
 }
 
