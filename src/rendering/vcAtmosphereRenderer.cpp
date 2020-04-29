@@ -45,6 +45,7 @@ struct vcAtmosphereRenderer
     vcShaderSampler *uniform_scattering;
     vcShaderSampler *uniform_irradiance;
     vcShaderSampler *uniform_sceneColour;
+    vcShaderSampler *uniform_sceneNormal;
     vcShaderSampler *uniform_sceneDepth;
     vcShaderConstantBuffer *uniform_vertParams;
     vcShaderConstantBuffer *uniform_fragParams;
@@ -253,6 +254,7 @@ udResult vcAtmosphereRenderer_ReloadShaders(vcAtmosphereRenderer *pAtmosphereRen
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_scattering, pAtmosphereRenderer->renderShader.pProgram, "scattering"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_irradiance, pAtmosphereRenderer->renderShader.pProgram, "irradiance"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneColour, pAtmosphereRenderer->renderShader.pProgram, "sceneColour"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneNormal, pAtmosphereRenderer->renderShader.pProgram, "sceneNormal"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pAtmosphereRenderer->renderShader.uniform_sceneDepth, pAtmosphereRenderer->renderShader.pProgram, "sceneDepth"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_vertParams, pAtmosphereRenderer->renderShader.pProgram, "u_vertParams", sizeof(pAtmosphereRenderer->renderShader.vertParams)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pAtmosphereRenderer->renderShader.uniform_fragParams, pAtmosphereRenderer->renderShader.pProgram, "u_fragParams", sizeof(pAtmosphereRenderer->renderShader.fragParams)), udR_InternalError);
@@ -343,7 +345,7 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   pAtmosphereRenderer->sunDirection = udNormalize(pAtmosphereRenderer->sunDirection);
 }
 
-bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcState *pProgramState, vcTexture *pSceneColour, vcTexture *pSceneDepth)
+bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcState *pProgramState, vcTexture *pSceneColour, vcTexture *pSceneNormal, vcTexture *pSceneDepth)
 {
   bool result = true;
 
@@ -402,7 +404,8 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pScattering_texture_, 1, pAtmosphereRenderer->renderShader.uniform_scattering);
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pIrradiance_texture_, 2, pAtmosphereRenderer->renderShader.uniform_irradiance);
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pSceneColour, 3, pAtmosphereRenderer->renderShader.uniform_sceneColour);
-  vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pSceneDepth, 4, pAtmosphereRenderer->renderShader.uniform_sceneDepth);
+  vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pSceneNormal, 4, pAtmosphereRenderer->renderShader.uniform_sceneNormal);
+  vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pSceneDepth, 5, pAtmosphereRenderer->renderShader.uniform_sceneDepth);
 
   vcShader_BindConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_vertParams, &pAtmosphereRenderer->renderShader.vertParams, sizeof(pAtmosphereRenderer->renderShader.vertParams));
   vcShader_BindConstantBuffer(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->renderShader.uniform_fragParams, &pAtmosphereRenderer->renderShader.fragParams, sizeof(pAtmosphereRenderer->renderShader.fragParams));

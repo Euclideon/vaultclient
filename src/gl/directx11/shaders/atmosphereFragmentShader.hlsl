@@ -43,7 +43,8 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-  float4 Color0 : SV_Target;
+  float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
   float Depth0 : SV_Depth;
 };
 
@@ -1320,6 +1321,9 @@ cbuffer u_fragParams : register(b0)
 sampler sceneColourSampler;
 Texture2D sceneColourTexture;
 
+sampler sceneNormalSampler;
+Texture2D sceneNormalTexture;
+
 sampler sceneDepthSampler;
 Texture2D sceneDepthTexture;
 
@@ -1358,6 +1362,13 @@ float linearizeDepth(float depth)
   return (2.0 * s_CameraNearPlane) / (s_CameraFarPlane + s_CameraNearPlane - depth * (s_CameraFarPlane - s_CameraNearPlane));
 }
 
+float3 unpackNormal(float4 normalPacked)
+{
+  return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+                (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+}
+
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
@@ -1374,11 +1385,14 @@ PS_OUTPUT main(PS_INPUT input)
   // Normalized view direction vector.
   float3 view_direction = normalize(input.view_ray);
 
-  float sceneLogDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
-  float sceneDepth = logToLinearDepth(sceneLogDepth);
   float4 sceneColour = sceneColourTexture.Sample(sceneColourSampler, input.uv);
+  float4 sceneNormalPacked = sceneNormalTexture.Sample(sceneNormalSampler, input.uv);
+  float sceneLogDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
+  
+  float sceneDepth = logToLinearDepth(sceneLogDepth);
   sceneColour.xyz = pow(abs(sceneColour.xyz), float3(2.2, 2.2, 2.2));
 
+  output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
 
   float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;

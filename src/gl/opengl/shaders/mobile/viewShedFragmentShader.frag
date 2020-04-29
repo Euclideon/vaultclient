@@ -24,7 +24,7 @@ uniform highp sampler2D SPIRV_Cross_CombinedshadowMapAtlasTextureshadowMapAtlasS
 
 in highp vec4 varying_TEXCOORD0;
 in highp vec2 varying_TEXCOORD1;
-layout(location = 0) out highp vec4 out_var_SV_Target;
+layout(location = 0) out highp vec4 out_var_SV_Target0;
 
 void main()
 {
@@ -61,6 +61,6 @@ void main()
     {
         _225 = vec4(0.0);
     }
-    out_var_SV_Target = vec4(_225.xyz * _225.w, 1.0);
+    out_var_SV_Target0 = vec4(_225.xyz * _225.w, 1.0);
 }
 

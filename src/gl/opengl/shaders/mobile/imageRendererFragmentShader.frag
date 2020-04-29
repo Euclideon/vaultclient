@@ -15,11 +15,14 @@ uniform highp sampler2D SPIRV_Cross_CombinedalbedoTexturealbedoSampler;
 in highp vec2 varying_TEXCOORD0;
 in highp vec4 varying_COLOR0;
 in highp vec2 varying_TEXCOORD1;
-layout(location = 0) out highp vec4 out_var_SV_Target;
+layout(location = 0) out highp vec4 out_var_SV_Target0;
+layout(location = 1) out highp vec4 out_var_SV_Target1;
 
 void main()
 {
-    out_var_SV_Target = texture(SPIRV_Cross_CombinedalbedoTexturealbedoSampler, varying_TEXCOORD0) * varying_COLOR0;
-    gl_FragDepth = log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    highp float _50 = log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    out_var_SV_Target0 = texture(SPIRV_Cross_CombinedalbedoTexturealbedoSampler, varying_TEXCOORD0) * varying_COLOR0;
+    out_var_SV_Target1 = vec4(0.0, 0.0, 0.0, _50);
+    gl_FragDepth = _50;
 }
 

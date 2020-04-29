@@ -112,6 +112,7 @@ struct vcTileRenderer
       udFloat4x4 viewMatrix;
       udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
+      udFloat4 objectInfo; // objectId.x
       udFloat4 uvOffsetScale;
       udFloat4 demUVOffsetScale;
       udFloat4 tileNormal;
@@ -331,7 +332,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         udStrItoa(xSlippyStr, pBestNode->slippyPosition.x);
         udStrItoa(ySlippyStr, pBestNode->slippyPosition.y);
         udStrItoa(zSlippyStr, pBestNode->slippyPosition.z);
-        
+
         vcStringFormat(serverURL, udLengthOf(serverURL), pRenderer->pSettings->maptiles.activeServer.tileServerAddress, pSlippyStrs, udLengthOf(pSlippyStrs));
 
         // allow continue on failure
@@ -548,7 +549,7 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
       {
         if ((y & 1) == 0)
         {
-           // collapse
+          // collapse
           pIndicies[index * 6 + 3] = vertIndex + 1;
           pIndicies[index * 6 + 4] = vertIndex + 1;
         }
@@ -588,7 +589,7 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
       pVerts[index].position.x = minUV.x + normX * (maxUV.x - minUV.x);
       pVerts[index].position.y = minUV.y + normY * (maxUV.y - minUV.y);
       pVerts[index].position.z = (float)index;
-      
+
     }
   }
 }
@@ -1090,7 +1091,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   vcTileRenderer_DrawNode(pTileRenderer, pNode, pTileRenderer->pTileMeshes[meshIndex], view);
 }
 
-void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, const int passType)
+void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, const float encodedObjectId)
 {
   vcQuadTreeNode *pRootNode = &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex];
   if (!pRootNode->touched) // can occur on failed re-roots
@@ -1106,9 +1107,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetFaceMode(vcGLSFM_Solid, cullMode);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
-  if (pTileRenderer->pSettings->maptiles.transparency >= 1.0f)
-    vcGLState_SetBlendMode(vcGLSBM_None);
-  else
+  if (pTileRenderer->pSettings->maptiles.transparency < 1.0f)
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
 
   if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
@@ -1125,10 +1124,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTileRenderer->presentShader.everyObject.viewMatrix = udFloat4x4::create(view);
 
-  if (passType == vcPMP_ColourOnly)
-    pTileRenderer->presentShader.everyObject.colour = udFloat4::zero();
-  else
-    pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
+  pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(encodedObjectId, 0, 0, 0);
+  pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
   vcTileRenderer_RecursiveRenderNodes(pTileRenderer, view, pRootNode, nullptr, nullptr);
 

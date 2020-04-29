@@ -19,12 +19,16 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-  float4 Color0 : SV_Target;
+  float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
   float Depth0 : SV_Depth;
 };
 
 sampler sceneColourSampler;
 Texture2D sceneColourTexture;
+
+sampler sceneNormalSampler;
+Texture2D sceneNormalTexture;
 
 sampler sceneDepthSampler;
 Texture2D sceneDepthTexture;
@@ -164,7 +168,9 @@ PS_OUTPUT main(PS_INPUT input)
   PS_OUTPUT output;
 
   float4 col = sceneColourTexture.Sample(sceneColourSampler, input.uv);
+  float4 packedNormal = sceneNormalTexture.Sample(sceneNormalSampler, input.uv);
   float logDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
+	
   float depth = logToLinearDepth(logDepth);
   float clipZ = linearDepthToClipZ(depth);
 
@@ -185,9 +191,9 @@ PS_OUTPUT main(PS_INPUT input)
     logDepth = edgeResult.w; // to preserve outlines, depth written may be adjusted
   }
 
-  output.Color0 = float4(col.xyz, 1.0);// UD always opaque
+  output.Color0 = float4(col.xyz, 1.0);
   output.Depth0 = logDepth;
   
-  output.Color0.a = output.Depth0; // depth packed here
+  output.Normal = packedNormal;
   return output;
 }
