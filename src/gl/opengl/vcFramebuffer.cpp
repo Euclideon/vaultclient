@@ -1,13 +1,13 @@
 #include "gl/vcFramebuffer.h"
 #include "vcOpenGL.h"
 
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/)
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/, vcTexture *pAttachment2 /*= nullptr*/, vcTexture *pAttachment3 /*= nullptr*/)
 {
   if (ppFramebuffer == nullptr || pTexture == nullptr)
     return false;
 
   udResult result = udR_Success;
-  static const GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+  static const GLenum DrawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
   UD_ERROR_NULL(pFramebuffer, udR_MemoryAllocationFailure);
@@ -19,11 +19,20 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, pDepth->id, 0);
 
   glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pTexture->id, level);
-  glDrawBuffers(1, DrawBuffers);
+
+  int drawCount = 1;
+  if (pTexture2 != nullptr)
+  {
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, pTexture2->id, level);
+    drawCount = 2;
+  }
+
+  glDrawBuffers(drawCount, DrawBuffers);
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
   pFramebuffer->pAttachments[0] = pTexture;
+  pFramebuffer->pAttachments[1] = pTexture2;
   pFramebuffer->pDepth = pDepth;
 
   *ppFramebuffer = pFramebuffer;

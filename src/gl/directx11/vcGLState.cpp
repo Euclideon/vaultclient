@@ -50,7 +50,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   // Create Device
   // set 'createDeviceFlags = D3D11_CREATE_DEVICE_DEBUG' for debugging
-  UINT createDeviceFlags = 0;
+  UINT createDeviceFlags = D3D11_CREATE_DEVICE_DEBUG;
   D3D_FEATURE_LEVEL featureLevel;
   const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
   if (D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
@@ -58,10 +58,11 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   // Get Default Framebuffer
   memset(&g_defaultFramebuffer, 0, sizeof(g_defaultFramebuffer));
+  g_defaultFramebuffer.attachmentCount = 1;
 
   ID3D11Texture2D* pBackBuffer;
   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView[0]);
   pBackBuffer->Release();
 
   *ppDefaultFramebuffer = &g_defaultFramebuffer;
@@ -91,8 +92,8 @@ void vcGLState_Deinit()
 {
   if (g_defaultFramebuffer.pRenderTargetView != nullptr)
   {
-    g_defaultFramebuffer.pRenderTargetView->Release();
-    g_defaultFramebuffer.pRenderTargetView = nullptr;
+    g_defaultFramebuffer.pRenderTargetView[0]->Release();
+    g_defaultFramebuffer.pRenderTargetView[0] = nullptr;
   }
 
   if (g_pRasterizerState != nullptr)
@@ -367,12 +368,12 @@ bool vcGLState_Present(SDL_Window * /*pWindow*/)
 
 bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 {
-  g_defaultFramebuffer.pRenderTargetView->Release();
+  g_defaultFramebuffer.pRenderTargetView[0]->Release();
   g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
   ID3D11Texture2D* pBackBuffer;
   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView[0]);
   pBackBuffer->Release();
 
   return true;

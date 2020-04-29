@@ -17,7 +17,9 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-  float4 Color0 : SV_Target;
+  float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
+  float DepthCopy : SV_Target2;
   float Depth0 : SV_Depth;
 };
 
@@ -30,6 +32,7 @@ PS_OUTPUT main(PS_INPUT input)
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
 
-  output.Color0.a = output.Depth0; // depth packed here
+  output.Normal = float4(0, 0, 0, 0);
+  output.DepthCopy = output.Depth0;
   return output;
 }

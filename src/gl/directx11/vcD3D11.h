@@ -43,7 +43,8 @@ struct vcTexture
 
 struct vcFramebuffer
 {
-  ID3D11RenderTargetView *pRenderTargetView;
+  int attachmentCount;
+  ID3D11RenderTargetView *pRenderTargetView[3];
   ID3D11DepthStencilView *pDepthStencilView;
 };
 

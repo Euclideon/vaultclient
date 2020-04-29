@@ -92,9 +92,14 @@ struct vcRenderContext
 
   uint32_t activeRenderTarget;
 
-  vcFramebuffer *pFramebuffer[vcRender_RenderBufferCount];
-  vcTexture *pTexture[vcRender_RenderBufferCount]; // note: a copy of depth is packed into .w
-  vcTexture *pDepthTexture[vcRender_RenderBufferCount];
+  struct
+  {
+    vcFramebuffer *pFramebuffer;
+    vcTexture *pColour;
+    vcTexture *pNormal;
+    vcTexture *pDepthCopy;
+    vcTexture *pDepth;
+  } gBuffer[vcRender_RenderBufferCount];
 
   vcFramebuffer *pAuxiliaryFramebuffers[2];
   vcTexture *pAuxiliaryTextures[2];
@@ -215,7 +220,8 @@ struct vcRenderContext
     udUInt2 location;
 
     vcFramebuffer *pFramebuffer;
-    vcTexture *pTexture; // note: a copy of depth is packed into .w
+    vcTexture *pTexture;
+    vcTexture *pDepthCopy;
     vcTexture *pDepth;
   } picking;
 
@@ -264,7 +270,7 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
 
 vcFramebuffer *vcRender_GetSceneFramebuffer(vcRenderContext *pRenderContext)
 {
-  return pRenderContext->pFramebuffer[0];
+  return pRenderContext->gBuffer[0].pFramebuffer;
 }
 
 udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext, udWorkerPool *pWorkerPool, const udUInt2 &sceneResolution)
@@ -470,12 +476,15 @@ epilogue:
   vcFramebuffer_Destroy(&pRenderContext->udRenderContext.pFramebuffer);
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
-    vcTexture_Destroy(&pRenderContext->pTexture[i]);
-    vcTexture_Destroy(&pRenderContext->pDepthTexture[i]);
-    vcFramebuffer_Destroy(&pRenderContext->pFramebuffer[i]);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pColour);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pNormal);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pDepthCopy);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pDepth);
+    vcFramebuffer_Destroy(&pRenderContext->gBuffer[i].pFramebuffer);
   }
 
   vcTexture_Destroy(&pRenderContext->picking.pTexture);
+  vcTexture_Destroy(&pRenderContext->picking.pDepthCopy);
   vcTexture_Destroy(&pRenderContext->picking.pDepth);
   vcFramebuffer_Destroy(&pRenderContext->picking.pFramebuffer);
 
@@ -538,12 +547,15 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
 
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
-    vcTexture_Destroy(&pRenderContext->pTexture[i]);
-    vcTexture_Destroy(&pRenderContext->pDepthTexture[i]);
-    vcFramebuffer_Destroy(&pRenderContext->pFramebuffer[i]);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pColour);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pNormal);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pDepthCopy);
+    vcTexture_Destroy(&pRenderContext->gBuffer[i].pDepth);
+    vcFramebuffer_Destroy(&pRenderContext->gBuffer[i].pFramebuffer);
   }
 
   vcTexture_Destroy(&pRenderContext->picking.pTexture);
+  vcTexture_Destroy(&pRenderContext->picking.pDepthCopy);
   vcTexture_Destroy(&pRenderContext->picking.pDepth);
   vcFramebuffer_Destroy(&pRenderContext->picking.pFramebuffer);
 
@@ -555,9 +567,11 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
 
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pDepthTexture[i], widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
-    UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFramebuffer[i], pRenderContext->pTexture[i], pRenderContext->pDepthTexture[i]), udR_InternalError);
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pColour, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_RenderTarget));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pNormal, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_RenderTarget));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pDepthCopy, widthIncr, heightIncr, nullptr, vcTextureFormat_R32F, vcTFM_Nearest, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pDepth, widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
+    UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->gBuffer[i].pFramebuffer, pRenderContext->gBuffer[i].pColour, pRenderContext->gBuffer[i].pDepth, 0, pRenderContext->gBuffer[i].pNormal, pRenderContext->gBuffer[i].pDepthCopy), udR_InternalError);
   }
 
   pRenderContext->effectResolution.x = widthIncr >> vcRender_OutlineEffectDownscale;
@@ -571,9 +585,10 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i]), udR_InternalError);
   }
 
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA16F, vcTFM_Nearest, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pTexture, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_RGBA8, vcTFM_Nearest, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepthCopy, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_R32F, vcTFM_Nearest, vcTCF_RenderTarget));
   UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->picking.pDepth, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
-  UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth), udR_InternalError);
+  UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->picking.pFramebuffer, pRenderContext->picking.pTexture, pRenderContext->picking.pDepth, 0, pRenderContext->picking.pDepthCopy), udR_InternalError);
 
   if (pProgramState->pVDKContext)
     UD_ERROR_CHECK(vcRender_RecreateUDView(pProgramState, pRenderContext));
@@ -634,8 +649,8 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   udUInt2 pickLocation = { (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x), (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y) };
 
   int readBufferIndex = pRenderContext->activeRenderTarget;
-  UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pTexture[readBufferIndex], lastPickLocation.x, lastPickLocation.y, 1, 1, colourBytes), udR_InternalError); // read previous copy
-  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pTexture[readBufferIndex], pickLocation.x, pickLocation.y, 1, 1, colourBytes, pRenderContext->pFramebuffer[readBufferIndex]), udR_InternalError); // begin copy for next frame read
+  UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->gBuffer[readBufferIndex].pDepthCopy, lastPickLocation.x, lastPickLocation.y, 1, 1, colourBytes), udR_InternalError); // read previous copy
+  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->gBuffer[readBufferIndex].pDepthCopy, pickLocation.x, pickLocation.y, 1, 1, colourBytes, pRenderContext->gBuffer[readBufferIndex].pFramebuffer), udR_InternalError); // begin copy for next frame read
 
   lastPickLocation = pickLocation;
   pRenderContext->previousFrameDepth = Float16ToFloat32(uint16_t(((colourBytes[6] & 0xFF) << 0) | ((colourBytes[7] & 0xFF) << 8)));
@@ -729,9 +744,9 @@ void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderC
   vcAtmosphereRenderer_SetVisualParams(pProgramState, pRenderContext->pAtmosphereRenderer);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
+  vcFramebuffer_Bind(pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pFramebuffer, vcFramebufferClearOperation_All, 0xff000000);
 
-  vcAtmosphereRenderer_Render(pRenderContext->pAtmosphereRenderer, pProgramState, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget]);
+  vcAtmosphereRenderer_Render(pRenderContext->pAtmosphereRenderer, pProgramState, pRenderContext->gBuffer[1 - pRenderContext->activeRenderTarget].pColour, pRenderContext->gBuffer[1 - pRenderContext->activeRenderTarget].pDepth);
 }
 
 void vcRender_SplatUDWithId(vcState *pProgramState, vcRenderContext *pRenderContext, float id)
@@ -843,11 +858,11 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
+  vcFramebuffer_Bind(pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pFramebuffer, vcFramebufferClearOperation_All, 0xff000000);
 
   vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
-  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->postEffectsShader.uniform_texture);
-  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget], 1, pRenderContext->postEffectsShader.uniform_depth);
+  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[1 - pRenderContext->activeRenderTarget].pColour, 0, pRenderContext->postEffectsShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[1 - pRenderContext->activeRenderTarget].pDepth, 1, pRenderContext->postEffectsShader.uniform_depth);
 
   pRenderContext->postEffectsShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
   pRenderContext->postEffectsShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
@@ -864,12 +879,11 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   pRenderContext->activeRenderTarget = 1 - pRenderContext->activeRenderTarget;
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
+  vcFramebuffer_Bind(pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pFramebuffer, vcFramebufferClearOperation_All, 0xff000000);
 
   vcShader_Bind(pRenderContext->visualizationShader.pProgram);
-  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pTexture[1 - pRenderContext->activeRenderTarget], 0, pRenderContext->visualizationShader.uniform_texture);
-  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->pDepthTexture[1 - pRenderContext->activeRenderTarget], 1, pRenderContext->visualizationShader.uniform_depth);
-
+  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->gBuffer[1 - pRenderContext->activeRenderTarget].pColour, 0, pRenderContext->visualizationShader.uniform_texture);
+  vcShader_BindTexture(pRenderContext->visualizationShader.pProgram, pRenderContext->gBuffer[1 - pRenderContext->activeRenderTarget].pDepth, 1, pRenderContext->visualizationShader.uniform_depth);
   // edge outlines
   int outlineWidth = pProgramState->settings.postVisualization.edgeOutlines.width;
   float outlineEdgeThreshold = pProgramState->settings.postVisualization.edgeOutlines.threshold;
@@ -939,7 +953,7 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
 void vcRender_ApplyViewShed(vcRenderContext *pRenderContext)
 {
   vcShader_Bind(pRenderContext->shadowShader.pProgram);
-  vcShader_BindTexture(pRenderContext->shadowShader.pProgram, pRenderContext->pDepthTexture[0], 0, pRenderContext->shadowShader.uniform_depth);
+  vcShader_BindTexture(pRenderContext->shadowShader.pProgram, pRenderContext->gBuffer[0].pDepth, 0, pRenderContext->shadowShader.uniform_depth);
   vcShader_BindTexture(pRenderContext->shadowShader.pProgram, pRenderContext->viewShedRenderingContext.pDepthTex, 1, pRenderContext->shadowShader.uniform_shadowMapAtlas);
 
   vcShader_BindConstantBuffer(pRenderContext->udRenderContext.presentShader.pProgram, pRenderContext->shadowShader.uniform_params, &pRenderContext->shadowShader.params, sizeof(pRenderContext->shadowShader.params));
@@ -1045,7 +1059,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
     vcGLState_SetBlendMode(vcGLSBM_Additive);
 
-    vcFramebuffer_Bind(pRenderContext->pFramebuffer[1]); // assumed this is the working target
+    vcFramebuffer_Bind(pRenderContext->gBuffer[1].pFramebuffer); // assumed this is the working target
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
     vcRender_ApplyViewShed(pRenderContext);
   }
@@ -1055,8 +1069,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
 void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  // note: depth copy is packed into alpha, clear to 1.0
-  vcFramebuffer_Bind(pRenderContext->pFramebuffer[pRenderContext->activeRenderTarget], vcFramebufferClearOperation_All, 0xff000000);
+  vcFramebuffer_Bind(pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pFramebuffer, vcFramebufferClearOperation_All, 0xff000000);
 
   vcGLState_ResetState();
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
@@ -1183,7 +1196,7 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
 {
   udUnused(pProgramState);
 
-  renderData.pSceneTexture = pRenderContext->pTexture[pRenderContext->activeRenderTarget];
+  renderData.pSceneTexture = pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pColour;
   renderData.sceneScaling = udFloat2::one();
 
   pRenderContext->activeRenderTarget = 0;
@@ -1708,7 +1721,6 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
-    // note: depth copy is packed into alpha, clear to 1.0
     vcFramebuffer_Bind(pRenderContext->picking.pFramebuffer, vcFramebufferClearOperation_All, 0xff000000);
 
     vcGLState_SetViewport(0, 0, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y);
@@ -1738,7 +1750,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcRenderTerrain(pProgramState, pRenderContext, vcPMP_ColourOnly);
 
     udUInt2 readLocation = { pRenderContext->picking.location.x, pRenderContext->picking.location.y };
-    uint8_t colourBytes[8] = {};
+    uint8_t colourBytes[4] = {};
 
 #if GRAPHICS_API_OPENGL
     // read upside down
@@ -1747,20 +1759,20 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
     // Synchronously read back data
     vcTexture_BeginReadPixels(pRenderContext->picking.pTexture, readLocation.x, readLocation.y, 1, 1, colourBytes, pRenderContext->picking.pFramebuffer);
-
+    vcTexture_BeginReadPixels(pRenderContext->picking.pDepthCopy, readLocation.x, readLocation.y, 1, 1, &pickDepth, pRenderContext->picking.pFramebuffer);
+    
     vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
     //uint16_t r16 = uint16_t((colourBytes[0] & 0xFF) | ((colourBytes[1] & 0xFF) << 8));
-    uint16_t g16 = uint16_t((colourBytes[2] & 0xFF) | ((colourBytes[3] & 0xFF) << 8));
+    //uint16_t g16 = uint16_t((colourBytes[2] & 0xFF) | ((colourBytes[3] & 0xFF) << 8));
     //uint16_t b16 = uint16_t((colourBytes[4] & 0xFF) | ((colourBytes[5] & 0xFF) << 8));
-    uint16_t a16 = uint16_t((colourBytes[6] & 0xFF) | ((colourBytes[7] & 0xFF) << 8)); // depth packed into here
+    //uint16_t a16 = uint16_t((normalBytes[6] & 0xFF) | ((normalBytes[7] & 0xFF) << 8)); // depth packed into here
+    //pickDepth = Float16ToFloat32(a16);
 
-    pickDepth = Float16ToFloat32(a16);
-
-    // decode from F16 to an ID
     // note `-1`, and BGRA format
-    const float maxValue = (256 * 256) - 1.0f;
-    int pickedPolygonId = (int)((Float16ToFloat32(g16) * maxValue) + 0.5f) - 1;
+    int pickedPolygonId = (int)((colourBytes[1] << 0) | (colourBytes[0] << 8)) - 1;
+
+    printf("%d, %f\n", pickedPolygonId, pickDepth);
     if (pickedPolygonId != -1)
     {
       result.success = true;
