@@ -27,6 +27,9 @@ struct PS_OUTPUT
 sampler sceneColourSampler;
 Texture2D sceneColourTexture;
 
+sampler sceneNormalSampler;
+Texture2D sceneNormalTexture;
+
 sampler sceneDepthSampler;
 Texture2D sceneDepthTexture;
 
@@ -146,12 +149,22 @@ float3 colourizeByEyeDistance(float3 col, float3 fragEyePos)
   return lerp(col.xyz, u_colourizeDepthColour.xyz, depthColourStrength * u_colourizeDepthColour.w);
 }
 
+float3 unpackNormal(float4 normalPacked)
+{
+  return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+                         (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+		                 (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+}
+
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
 
   float4 col = sceneColourTexture.Sample(sceneColourSampler, input.uv);
+  float4 normalPacked = sceneNormalTexture.Sample(sceneNormalSampler, input.uv);
   float logDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
+	
+  float3 normal = unpackNormal(normalPacked);
   float depth = logToLinearDepth(logDepth);
   float clipZ = linearDepthToClipZ(depth);
 
@@ -177,10 +190,9 @@ PS_OUTPUT main(PS_INPUT input)
     logDepth = edgeResult.w; // to preserve outlines, depth written may be adjusted
   }
 
-  output.Color0 = float4(col.xyz, 1.0);// UD always opaque
+  output.Color0 = float4(col.xyz, 1.0);
   output.Depth0 = logDepth;
   
-  output.Normal = float4(0, 0, 0, 0);
-  output.Normal.w = output.Depth0; // depth packed here
+  output.Normal = normalPacked;
   return output;
 }
