@@ -82,6 +82,17 @@ bool vcGIS_SlippyToLocal(const vcGISSpace *pSpace, udDouble3 *pLocalCoords, cons
   return success;
 }
 
+void vcGIS_GetOrthonormalBasis(const vcGISSpace &space, udDouble3 localPosition, udDouble3 *pUp, udDouble3 *pNorth, udDouble3 *pEast)
+{
+  *pUp = vcGIS_GetWorldLocalUp(space, localPosition);
+  *pNorth = vcGIS_GetWorldLocalNorth(space, localPosition);
+  *pEast = udCross(*pNorth, *pUp);
+
+  *pEast = udNormalize3(*pEast);
+  *pNorth = udCross(*pUp, *pEast);
+  //Shouldn't need to normalise north
+}
+
 udDouble3 vcGIS_GetWorldLocalUp(const vcGISSpace &space, udDouble3 localCoords)
 {
   if (!space.isProjected || space.zone.projection >= udGZPT_TransverseMercator)
@@ -139,9 +150,8 @@ udDouble2 vcGIS_QuaternionToHeadingPitch(const vcGISSpace &space, udDouble3 loca
     return headingPitch;
   }
 
-  udDouble3 up = vcGIS_GetWorldLocalUp(space, localPosition);
-  udDouble3 north = vcGIS_GetWorldLocalNorth(space, localPosition);
-  udDouble3 east = udCross(north, up);
+  udDouble3 up, north, east;
+  vcGIS_GetOrthonormalBasis(space, localPosition, &up, &north, &east);
 
   udDouble4x4 rotation = udDouble4x4::rotationQuat(orientation);
   udDouble4x4 referenceFrame = udDouble4x4::create(udDouble4::create(east, 0), udDouble4::create(north, 0), udDouble4::create(up, 0), udDouble4::identity());
@@ -167,9 +177,8 @@ udDoubleQuat vcGIS_HeadingPitchToQuaternion(const vcGISSpace &space, udDouble3 l
   if (!space.isProjected || space.zone.projection >= udGZPT_TransverseMercator)
     return udDoubleQuat::create(-headingPitch.x, headingPitch.y, 0.0);
 
-  udDouble3 up = vcGIS_GetWorldLocalUp(space, localPosition);
-  udDouble3 north = vcGIS_GetWorldLocalNorth(space, localPosition);
-  udDouble3 east = udCross(north, up);
+  udDouble3 up, north, east;
+  vcGIS_GetOrthonormalBasis(space, localPosition, &up, &north, &east);
 
   udDoubleQuat rotationHeading = udDoubleQuat::create(up, -headingPitch.x);
   udDoubleQuat rotationPitch = udDoubleQuat::create(east, headingPitch.y);
