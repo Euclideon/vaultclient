@@ -76,11 +76,11 @@ PS_INPUT main(VS_INPUT input)
   // Reconstruct uint16 in float space and then convert back to int16 in float space
   float tileHeight = ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
   float3 heightOffset = u_tileNormal.xyz * tileHeight;
-  float4 h = mul(u_view, float4(heightOffset, 1.0));
-  float4 baseH = mul(u_view, float4(0, 0, 0, 1.0));
-  float4 diff = (h - baseH);
+  float4 eyeHeightOffset = mul(u_view, float4(heightOffset, 1.0));
+  float4 eyeBaseHeight = mul(u_view, float4(0, 0, 0, 1.0));
+  float4 eyeHeightDiff = (eyeHeightOffset - eyeBaseHeight);
 
-  float4 finalClipPos = mul(u_projection, (eyePos + diff));
+  float4 finalClipPos = mul(u_projection, (eyePos + eyeHeightDiff));
   
   // note: could have precision issues on some devices
   output.colour = u_colour;

@@ -149,13 +149,6 @@ float3 colourizeByEyeDistance(float3 col, float3 fragEyePos)
   return lerp(col.xyz, u_colourizeDepthColour.xyz, depthColourStrength * u_colourizeDepthColour.w);
 }
 
-float3 unpackNormal(float4 normalPacked)
-{
-  return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-                         (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-		                 (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
-}
-
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
@@ -164,7 +157,6 @@ PS_OUTPUT main(PS_INPUT input)
   float4 normalPacked = sceneNormalTexture.Sample(sceneNormalSampler, input.uv);
   float logDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
 	
-  float3 normal = unpackNormal(normalPacked);
   float depth = logToLinearDepth(logDepth);
   float clipZ = linearDepthToClipZ(depth);
 

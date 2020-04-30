@@ -634,15 +634,15 @@ float Float16ToFloat32(uint16_t float16)
   return sign * udPow(2.0f, float(exponent - exponentBias)) * (m + (fraction / 1024.0f));
 }
 
-float vcRender_EncodeId(uint32_t id)
+float vcRender_EncodeModelId(uint32_t id)
 {
   return float(id & 0xffff) / 0xffff;
 }
 
-void vcRender_DecodeNormal(uint8_t pixel[8], int *pId, float *pDepth)
+void vcRender_DecodeModelId(uint8_t pixelBytes[8], int *pId, float *pDepth)
 {
-  *pDepth = Float16ToFloat32(uint16_t((pixel[6] & 0xFF) | ((pixel[7] & 0xFF) << 8)));
-  *pId = ((int)((Float16ToFloat32(uint16_t((pixel[4] & 0xFF) | ((pixel[5] & 0xFF) << 8))) * 0xffff) + 0.5f) - 1);
+  *pDepth = Float16ToFloat32(uint16_t((pixelBytes[6] & 0xFF) | ((pixelBytes[7] & 0xFF) << 8)));
+  *pId = ((int)((Float16ToFloat32(uint16_t((pixelBytes[4] & 0xFF) | ((pixelBytes[5] & 0xFF) << 8))) * 0xffff) + 0.5f) - 1);
 }
 
 // Asychronously read a 1x1 region of last frames depth buffer 
@@ -662,11 +662,9 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->gBuffer[readBufferIndex].pNormal, lastPickLocation.x, lastPickLocation.y, 1, 1, normalBytes), udR_InternalError); // read previous copy
   UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->gBuffer[readBufferIndex].pNormal, pickLocation.x, pickLocation.y, 1, 1, normalBytes, pRenderContext->gBuffer[readBufferIndex].pFramebuffer), udR_InternalError); // begin copy for next frame read
 
-  vcRender_DecodeNormal(normalBytes, &pRenderContext->previousPickedId, &pRenderContext->previousFrameDepth);
+  vcRender_DecodeModelId(normalBytes, &pRenderContext->previousPickedId, &pRenderContext->previousFrameDepth);
 
   lastPickLocation = pickLocation;
-
-  printf("%d, %f\n", pRenderContext->previousPickedId, pRenderContext->previousFrameDepth);
 
   // fbo state may not be valid (e.g. first read back will be '0')
   if (pRenderContext->previousFrameDepth == 0.0f)
@@ -1105,7 +1103,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     for (size_t i = 0; i < renderData.polyModels.length; ++i)
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-      float objectId = vcRender_EncodeId(modelId++);
+      float objectId = vcRender_EncodeModelId(modelId++);
       if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
         continue;
 
@@ -1200,7 +1198,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   for (size_t i = 0; i < renderData.polyModels.length; ++i)
   {
     vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-    float objectId = vcRender_EncodeId(modelId++);
+    float objectId = vcRender_EncodeModelId(modelId++);
     if (!pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
       continue;
 
@@ -1751,7 +1749,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
       for (size_t i = 0; i < renderData.polyModels.length; ++i)
       {
         vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-        float encodedId = vcRender_EncodeId(modelId++);
+        float encodedId = vcRender_EncodeModelId(modelId++);
 
         vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
@@ -1779,10 +1777,9 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcTexture_BeginReadPixels(pRenderContext->picking.pNormal, readLocation.x, readLocation.y, 1, 1, normalBytes, pRenderContext->picking.pFramebuffer);
 
     int pickedId = 0;
-    vcRender_DecodeNormal(normalBytes, &pickedId, &pickDepth);
+    vcRender_DecodeModelId(normalBytes, &pickedId, &pickDepth);
 
     int pickedPolygonId = pickedId - renderData.models.length;
-    printf("PICK: %d, %f\n", pickedPolygonId, pickDepth);
     if (pickedPolygonId >= 0)
     {
       result.success = true;

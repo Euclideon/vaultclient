@@ -1358,6 +1358,13 @@ float linearizeDepth(float depth)
   return (2.0 * s_CameraNearPlane) / (s_CameraFarPlane + s_CameraNearPlane - depth * (s_CameraFarPlane - s_CameraNearPlane));
 }
 
+float3 unpackNormal(float4 normalPacked)
+{
+  return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+                (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+}
+
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
