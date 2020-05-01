@@ -531,11 +531,11 @@ static void vcGizmo_DrawScaleGizmo(int type)
       if (sGizmoContext.mbUsing)
       {
         drawList->AddLine(baseSSpace, worldDirSSpaceNoScale, 0xFF404040, 3.f);
-        drawList->AddCircleFilled(worldDirSSpaceNoScale, 6.f, 0xFF404040);
+        drawList->AddCircleFilled(worldDirSSpaceNoScale, 6.f, 0xFF4080FF); // orange
       }
 
       drawList->AddLine(baseSSpace, worldDirSSpace, colors[i + 1], 3.f);
-      drawList->AddCircleFilled(worldDirSSpace, 6.f, colors[i + 1]);
+      drawList->AddCircleFilled(worldDirSSpace, 6.f, 0xFF00F2FF); // yellow
 
       if (sGizmoContext.mAxisFactor[i] < 0.0)
         vcGizmo_DrawHatchedAxis(dirAxis * scaleDisplay[i]);
