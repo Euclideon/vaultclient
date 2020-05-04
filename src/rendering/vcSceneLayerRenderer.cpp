@@ -57,9 +57,10 @@ udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayerRendere
   return udR_Success;
 }
 
-bool vcSceneLayerRenderer_IsNodeVisible(vcSceneLayerNode *pNode, const udDouble4 frustumPlanes[6])
+bool vcSceneLayerRenderer_IsNodeVisible(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4 frustumPlanes[6])
 {
-  return -1 < udFrustumTest(frustumPlanes, pNode->minimumBoundingSphere.position, udDouble3::create(pNode->minimumBoundingSphere.radius));
+  udDouble4 worldPosition = pSceneLayerRenderer->worldMatrix * udDouble4::create(pNode->minimumBoundingSphere.position, 1.0);
+  return -1 < udFrustumTest(frustumPlanes, worldPosition.toVector3(), udDouble3::create(pNode->minimumBoundingSphere.radius));
 }
 
 double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenResolution)
@@ -110,7 +111,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
   if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode, pSceneLayerRenderer->cameraPosition))
     return false;
 
-  if (!vcSceneLayerRenderer_IsNodeVisible(pNode, pSceneLayerRenderer->frustumPlanes))
+  if (!vcSceneLayerRenderer_IsNodeVisible(pSceneLayerRenderer, pNode, pSceneLayerRenderer->frustumPlanes))
   {
     vcSceneLayer_CheckNodePruneCandidancy(pSceneLayerRenderer->pSceneLayer, pNode);
     return true; // consume, but do nothing
