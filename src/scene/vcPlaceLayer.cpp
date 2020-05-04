@@ -57,7 +57,7 @@ void vcPlaceLayer::OnNodeUpdate(vcState *pProgramState)
     m_places.PushBack(place);
   }
 
-  ChangeProjection(pProgramState->gis.zone);
+  ChangeProjection(pProgramState->geozone);
 }
 
 void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -82,7 +82,7 @@ void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         m_closeLines.PushBack(pLineInstance);
       }
 
-      udDouble3 normal = vcGIS_GetWorldLocalUp(pProgramState->gis, m_places[i].localSpace);
+      udDouble3 normal = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_places[i].localSpace);
 
       m_closeLabels[usedLabels].worldPosition = m_places[i].localSpace + normal * 200.0;
       m_closeLabels[usedLabels].pText = m_places[i].pName;

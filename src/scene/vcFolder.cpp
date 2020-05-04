@@ -278,7 +278,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
         if (pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0 && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
         {
-          if (vcGIS_ChangeSpace(&pProgramState->gis, *pSceneItem->m_pPreferredProjection, &pProgramState->camera.position))
+          if (vcGIS_ChangeSpace(&pProgramState->geozone, *pSceneItem->m_pPreferredProjection, &pProgramState->camera.position))
           {
             pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
           }
@@ -289,7 +289,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
           // Trigger a camera movement path
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
+          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
           pProgramState->cameraInput.progress = 0.0;
 
           pProgramState->isUsingAnchorPoint = true;

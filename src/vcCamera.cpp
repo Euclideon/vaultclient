@@ -12,7 +12,7 @@
 static const double sCameraTranslationSmoothingSpeed = 22.0;
 static const double sCameraRotationSmoothingSpeed = 40.0;
 
-udDouble4x4 vcCamera_GetMatrix(const vcGISSpace &zone, vcCamera *pCamera)
+udDouble4x4 vcCamera_GetMatrix(const udGeoZone &zone, vcCamera *pCamera)
 {
   udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(zone, pCamera->position, pCamera->headingPitch);
   udDouble3 lookPos = pCamera->position + orientation.apply(udDouble3::create(0.0, 1.0, 0.0));
@@ -99,7 +99,7 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   };
 }
 
-void vcCamera_UpdateMatrices(const vcGISSpace &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
+void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
   double fov = settings.fieldOfView;
@@ -142,10 +142,10 @@ void vcCamera_UpdateMatrices(const vcGISSpace &zone, vcCamera *pCamera, const vc
 
 void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime)
 {
-  udDouble3 worldAnchorNormal = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->worldAnchorPoint);
-  udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pCamera->position, pCamera->headingPitch);
+  udDouble3 worldAnchorNormal = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->worldAnchorPoint);
+  udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pCamera->position, pCamera->headingPitch);
 
-  udDouble3 cameraUp = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->camera.position);
+  udDouble3 cameraUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
 
   switch (pCamInput->inputState)
   {
@@ -196,13 +196,13 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
       // Orbit Left/Right
       if (pCamInput->mouseInput.x != 0)
       {
-        udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, pCamInput->mouseInput.x);
-        udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
+      udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, pCamInput->mouseInput.x);
+      udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
 
-        orientation = (rotation * orientation);
+      orientation = (rotation * orientation);
 
-        pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
-        pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
+      pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
+      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->camera.position, orientation);
       }
 
       //
@@ -219,7 +219,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
       // Save it back to the camera
       pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
-      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pProgramState->camera.position, orientation);
+      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->camera.position, orientation);
 
     }
   }
@@ -252,7 +252,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
     udDouble3 axis = udNormalize(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
     udDoubleQuat targetAngle = udDoubleQuat::create(axis, 0);
-    pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, udSlerp(pCamInput->startAngle, targetAngle, travelProgress));
+    pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pCamera->position, udSlerp(pCamInput->startAngle, targetAngle, travelProgress));
 
     if (pCamera->headingPitch.y > UD_PI)
       pCamera->headingPitch.y -= UD_2PI;
@@ -281,14 +281,14 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     pCamInput->progress += deltaTime;
     if (pCamInput->progress > 1.0)
     {
-      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, pCamInput->targetAngle);
+      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pCamera->position, pCamInput->targetAngle);
       pCamInput->targetAngle = udDoubleQuat::identity();
       pCamInput->inputState = vcCIS_None;
       pCamInput->progress = 1.0;
     }
     else
     {
-      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->gis, pCamera->position, udSlerp(pCamInput->startAngle, pCamInput->targetAngle, pCamInput->progress));
+      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pCamera->position, udSlerp(pCamInput->startAngle, pCamInput->targetAngle, pCamInput->progress));
     }
 
     if (pCamera->headingPitch.y > UD_PI)
@@ -513,7 +513,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   {
     pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
     pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-    pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
+    pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
     pProgramState->cameraInput.progress = 0.0;
 
     pProgramState->isUsingAnchorPoint = true;
@@ -574,5 +574,5 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->isUsingAnchorPoint = false;
 
-  vcCamera_UpdateMatrices(pProgramState->gis, &pProgramState->camera, pProgramState->settings.camera, windowSize, &mousePos);
+  vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->camera, pProgramState->settings.camera, windowSize, &mousePos);
 }

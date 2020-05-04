@@ -278,9 +278,9 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
     hourAngle = 0;
     yearNormalized = 0;
   }
-  else if (pProgramState->settings.presentation.skybox.keepSameTime && pProgramState->gis.isProjected)
+  else if (pProgramState->settings.presentation.skybox.keepSameTime && pProgramState->geozone.projection != udGZPT_Unknown)
   {
-    udDouble3 latLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+    udDouble3 latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
     hourAngleRadians -= (float)UD_DEG2RAD(latLong.y);
   }
 
@@ -314,18 +314,18 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
 
   pAtmosphereRenderer->sunDirection = udDoubleQuat::create({ 0, 0, 1 }, -yearNormalized * UD_2PI - hourAngleRadians).apply(pAtmosphereRenderer->sunDirection);
 
-  if (!pProgramState->gis.isProjected)
+  if (pProgramState->geozone.projection == udGZPT_Unknown)
   {
     pAtmosphereRenderer->sunDirection = { pAtmosphereRenderer->sunDirection.z, pAtmosphereRenderer->sunDirection.x, pAtmosphereRenderer->sunDirection.y };
   }
-  else if (pProgramState->gis.isProjected && pProgramState->gis.zone.projection >= udGZPT_TransverseMercator)
+  else if (pProgramState->geozone.projection >= udGZPT_TransverseMercator)
   {
     udGeoZone zone = {};
     udGeoZone_SetFromSRID(&zone, 4978);
 
-    udDouble3 camPos = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->gis.zone, zone);
+    udDouble3 camPos = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->geozone, zone);
 
-    pAtmosphereRenderer->sunDirection = udGeoZone_TransformPoint(camPos + pAtmosphereRenderer->sunDirection, zone, pProgramState->gis.zone) - pProgramState->camera.position;
+    pAtmosphereRenderer->sunDirection = udGeoZone_TransformPoint(camPos + pAtmosphereRenderer->sunDirection, zone, pProgramState->geozone) - pProgramState->camera.position;
   }
 
   pAtmosphereRenderer->sunDirection = udNormalize(pAtmosphereRenderer->sunDirection);
@@ -336,14 +336,14 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   bool result = true;
 
   udDouble3 earthCenter = pProgramState->camera.position;
-  if (!pProgramState->gis.isProjected || pProgramState->gis.zone.projection >= udGZPT_TransverseMercator)
+  if (pProgramState->geozone.projection == udGZPT_Unknown || pProgramState->geozone.projection >= udGZPT_TransverseMercator)
   {
-    if (pProgramState->gis.isProjected)
-      earthCenter.z = -pProgramState->gis.zone.semiMajorAxis;
-    else
+    if (pProgramState->geozone.projection == udGZPT_Unknown)
       earthCenter.z = -6378137;
+    else
+      earthCenter.z = -pProgramState->geozone.semiMajorAxis;
   }
-  else if (pProgramState->gis.zone.projection == udGZPT_ECEF)
+  else if (pProgramState->geozone.projection == udGZPT_ECEF)
   {
     earthCenter = udDouble3::zero();
   }
@@ -351,14 +351,14 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   {
     udGeoZone destZone = {};
     udGeoZone_SetFromSRID(&destZone, 4978);
-    earthCenter = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->gis.zone, destZone);
+    earthCenter = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->geozone, destZone);
   }
 
   // calculate the earth radius at in this zone
-  udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+  udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
   cameraPositionInLongLat.z = 0.0;
-  udDouble3 pointOnAltitudeZero = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraPositionInLongLat);
-  double earthRadius = udClamp(udMag3(pointOnAltitudeZero), pProgramState->gis.zone.semiMinorAxis, pProgramState->gis.zone.semiMajorAxis);
+  udDouble3 pointOnAltitudeZero = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
+  double earthRadius = udClamp(udMag3(pointOnAltitudeZero), pProgramState->geozone.semiMinorAxis, pProgramState->geozone.semiMajorAxis);
 
   earthCenter.z /= kLengthUnitInMeters;
 

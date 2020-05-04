@@ -14,7 +14,7 @@ void vcProject_InitBlankScene(vcState *pProgramState)
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
   udGeoZone zone = {};
-  vcGIS_ChangeSpace(&pProgramState->gis, zone);
+  vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
   pProgramState->camera.position = udDouble3::zero();
 
@@ -29,7 +29,7 @@ void vcProject_InitBlankScene(vcState *pProgramState)
   udGeoZone cameraZone = {};
   udGeoZone_SetFromSRID(&cameraZone, 4978); // ECEF
 
-  if (vcGIS_ChangeSpace(&pProgramState->gis, cameraZone))
+  if (vcGIS_ChangeSpace(&pProgramState->geozone, cameraZone))
     pProgramState->activeProject.pFolder->ChangeProjection(cameraZone);
 
   double locations[][5] = {
@@ -61,7 +61,7 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pP
       udDouble3 *pPoint = nullptr;
       int numPoints = 0;
 
-      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, pNode, pProgramState->gis.zone, &pPoint, &numPoints);
+      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, &pPoint, &numPoints);
       if (numPoints == 1)
         position = pPoint[0];
 
@@ -111,7 +111,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
       vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
       udGeoZone zone = {};
-      vcGIS_ChangeSpace(&pProgramState->gis, zone);
+      vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
       pProgramState->sceneExplorer.selectedItems.clear();
       pProgramState->sceneExplorer.clickedItem = {};
@@ -127,7 +127,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
 
       int32_t recommendedSRID = -1;
       if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, -1) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success)
-        vcGIS_ChangeSpace(&pProgramState->gis, zone);
+        vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
       vcProject_ExtractCamera(pProgramState);
     }
@@ -205,8 +205,7 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
 
   const char *pOutput = nullptr;
 
-  if (pProgramState->gis.isProjected)
-    vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->gis.SRID);
+  vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->geozone.srid);
 
   if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
   {
@@ -394,7 +393,7 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
   if (pProgramState == nullptr || pItem == nullptr || pProgramState->programComplete || pItem->m_pPreferredProjection == nullptr)
     return false;
 
-  if (vcGIS_ChangeSpace(&pProgramState->gis, *pItem->m_pPreferredProjection))
+  if (vcGIS_ChangeSpace(&pProgramState->geozone, *pItem->m_pPreferredProjection))
     pProgramState->activeProject.pFolder->ChangeProjection(*pItem->m_pPreferredProjection);
 
   // move camera to the new item's position

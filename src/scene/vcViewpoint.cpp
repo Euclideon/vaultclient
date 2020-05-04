@@ -29,7 +29,7 @@ void vcViewpoint::OnNodeUpdate(vcState *pProgramState)
     vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_CameraHeadingPitch.y, 0.0);
   }
 
-  ChangeProjection(pProgramState->gis.zone);
+  ChangeProjection(pProgramState->geozone);
 }
 
 void vcViewpoint::AddToScene(vcState * /*pProgramState*/, vcRenderData * /*pRenderData*/)
@@ -46,7 +46,7 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   // Clamped this to the same limitations as the camera
   m_CameraHeadingPitch = udDouble2::create(udMod(sumRotation.x, UD_2PI), udClampWrap(sumRotation.y, -UD_HALF_PI, UD_HALF_PI));
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
 }
 
 void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
@@ -65,7 +65,7 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (changed)
   {
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_CameraPosition, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
 
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);
