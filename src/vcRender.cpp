@@ -179,7 +179,6 @@ struct vcRenderContext
   } shadowShader;
 
   vcUDRenderContext udRenderContext;
-  vcFenceRenderer *pDiagnosticFences;
 
   vcTileRenderer *pTileRenderer;
 
@@ -291,7 +290,6 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   UD_ERROR_CHECK(vcAtmosphereRenderer_Create(&pRenderContext->pAtmosphereRenderer));
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, &pProgramState->settings));
-  UD_ERROR_CHECK(vcFenceRenderer_Create(&pRenderContext->pDiagnosticFences));
   UD_ERROR_CHECK(vcLineRenderer_Create(&pRenderContext->pLineRenderer));
 
   UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
@@ -406,7 +404,6 @@ udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext)
 
   UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pRenderContext->pAtmosphereRenderer));
   UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pRenderContext->pTileRenderer));
-  UD_ERROR_CHECK(vcFenceRenderer_ReloadShaders(pRenderContext->pDiagnosticFences));
   UD_ERROR_CHECK(vcLineRenderer_ReloadShaders(pRenderContext->pLineRenderer));
 
   UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
@@ -453,7 +450,6 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   udFree(pRenderContext->viewShedRenderingContext.pDepthBuffer);
 
   UD_ERROR_CHECK(vcTileRenderer_Destroy(&pRenderContext->pTileRenderer));
-  UD_ERROR_CHECK(vcFenceRenderer_Destroy(&pRenderContext->pDiagnosticFences));
   UD_ERROR_CHECK(vcLineRenderer_Destroy(&pRenderContext->pLineRenderer));
 
   UD_ERROR_CHECK(vcInternalModels_Deinit());
@@ -1153,8 +1149,6 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   // Fences
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
-    if (pProgramState->settings.presentation.showDiagnosticInfo)
-      vcFenceRenderer_Render(pRenderContext->pDiagnosticFences, pProgramState->camera.matrices.viewProjection, pProgramState->deltaTime);
 
     for (size_t i = 0; i < renderData.fences.length; ++i)
       vcFenceRenderer_Render(renderData.fences[i], pProgramState->camera.matrices.viewProjection, pProgramState->deltaTime);
@@ -1552,57 +1546,6 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     }
   }
 
-  if (pProgramState->settings.presentation.showDiagnosticInfo && pProgramState->gis.isProjected)
-  {
-    vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
-
-    float z = 0;
-    if (pProgramState->settings.maptiles.mapEnabled)
-      z = pProgramState->settings.maptiles.mapHeight;
-
-    udInt2 slippyCurrent;
-    udDouble3 localCurrent;
-
-    double xRange = pProgramState->gis.zone.latLongBoundMax.x - pProgramState->gis.zone.latLongBoundMin.x;
-    double yRange = pProgramState->gis.zone.latLongBoundMax.y - pProgramState->gis.zone.latLongBoundMin.y;
-
-    if (xRange > 0 || yRange > 0)
-    {
-      std::vector<udDouble3> corners;
-
-      for (int i = 0; i < yRange; ++i)
-      {
-        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(pProgramState->gis.zone.latLongBoundMin.x, pProgramState->gis.zone.latLongBoundMin.y + i, 0), 21);
-        vcGIS_SlippyToLocal(&pProgramState->gis, &localCurrent, slippyCurrent, 21);
-        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
-      }
-      for (int i = 0; i < xRange; ++i)
-      {
-        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(pProgramState->gis.zone.latLongBoundMin.x + i, pProgramState->gis.zone.latLongBoundMax.y, 0), 21);
-        vcGIS_SlippyToLocal(&pProgramState->gis, &localCurrent, slippyCurrent, 21);
-        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
-      }
-      for (int i = 0; i < yRange; ++i)
-      {
-        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(pProgramState->gis.zone.latLongBoundMax.x, pProgramState->gis.zone.latLongBoundMax.y - i, 0), 21);
-        vcGIS_SlippyToLocal(&pProgramState->gis, &localCurrent, slippyCurrent, 21);
-        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
-      }
-      for (int i = 0; i < xRange; ++i)
-      {
-        vcGIS_LatLongToSlippy(&slippyCurrent, udDouble3::create(pProgramState->gis.zone.latLongBoundMax.x - i, pProgramState->gis.zone.latLongBoundMin.y, 0), 21);
-        vcGIS_SlippyToLocal(&pProgramState->gis, &localCurrent, slippyCurrent, 21);
-        corners.push_back(udDouble3::create(localCurrent.x, localCurrent.y, z));
-      }
-      corners.push_back(udDouble3::create(corners[0]));
-
-      //TODO FRANK What local coordinate do we use? Origin is a placeholder
-      udDouble3 dworldUp = vcGIS_GetWorldLocalUp(pProgramState->gis, udDouble3::create(0.0, 0.0, 0.0));
-      udFloat3 worldUp = udFloat3::create(dworldUp);
-      vcFenceRenderer_AddPoints(pRenderContext->pDiagnosticFences, &corners[0], corners.size(), worldUp);
-    }
-  }
-
   vdkRenderPicking picking = {};
   picking.x = (uint32_t)((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
   picking.y = (uint32_t)((float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
@@ -1674,14 +1617,6 @@ void vcRender_ClearTiles(vcRenderContext *pRenderContext)
     return;
 
   vcTileRenderer_ClearTiles(pRenderContext->pTileRenderer);
-}
-
-void vcRender_ClearPoints(vcRenderContext *pRenderContext)
-{
-  if (pRenderContext == nullptr)
-    return;
-
-  vcFenceRenderer_ClearPoints(pRenderContext->pDiagnosticFences);
 }
 
 vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, bool doSelectRender)

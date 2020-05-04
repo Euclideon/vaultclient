@@ -116,7 +116,6 @@ void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
-void vcRender_ClearPoints(vcRenderContext *pRenderContext);
 
 struct vcRenderPickResult
 {

@@ -207,7 +207,6 @@ void vcSession_Logout(vcState *pProgramState)
     vcProject_InitBlankScene(pProgramState);
     pProgramState->projects.Destroy();
     pProgramState->profileInfo.Destroy();
-    vcRender_ClearPoints(pProgramState->pRenderContext);
 
     memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
     vdkContext_Disconnect(&pProgramState->pVDKContext, false);
