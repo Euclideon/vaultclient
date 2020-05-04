@@ -1026,83 +1026,78 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 
     // Projects (temp)
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (ImGui::BeginMenu(vcString::Get("menuProjects")))
+    if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
+      vcModals_OpenModal(pProgramState, vcMT_NewProject);
+
+    if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
+      vcModals_OpenModal(pProgramState, vcMT_ExportProject);
+
+    if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
+      vcModals_OpenModal(pProgramState, vcMT_ImportProject);
+
+    ImGui::Separator();
+
+    if (pProjectList != nullptr && pProjectList->length > 0)
     {
-      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_NewProject);
-
-      if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_ExportProject);
-
-      if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
-        vcModals_OpenModal(pProgramState, vcMT_ImportProject);
-
-      ImGui::Separator();
-
-      if (pProjectList != nullptr && pProjectList->length > 0)
+      for (size_t i = 0; i < pProjectList->length; ++i)
       {
-        for (size_t i = 0; i < pProjectList->length; ++i)
+        if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
         {
-          if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
+          vcProject_InitBlankScene(pProgramState, pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), vcPSZ_StandardGeoJSON);
+          bool moveTo = true;
+
+          for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
           {
-            vcProject_InitBlankScene(pProgramState, pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), vcPSZ_StandardGeoJSON);
-            bool moveTo = true;
-
-            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
+            vdkProjectNode *pNode = nullptr;
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
             {
-              vdkProjectNode *pNode = nullptr;
-              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pProjectList->GetElement(i)->Get("models[%zu]", j).AsString(), nullptr) != vE_Success)
-              {
-                vcState::ErrorItem projectError;
-                projectError.source = vcES_ProjectChange;
-                projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
-                projectError.resultCode = udR_Failure_;
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = udStrdup(pProjectList->GetElement(i)->Get("models[%zu]", j).AsString());
+              projectError.resultCode = udR_Failure_;
 
-                pProgramState->errorItems.PushBack(projectError);
+              pProgramState->errorItems.PushBack(projectError);
 
-                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-              }
-              else
-              {
-                if (moveTo)
-                  udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-                moveTo = false;
-              }
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
             }
-
-            for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
+            else
             {
-              const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
-
-              vdkProjectNode *pNode = nullptr;
-              if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
-              {
-                vcState::ErrorItem projectError;
-                projectError.source = vcES_ProjectChange;
-                projectError.pData = udStrdup(pFeedName);
-                projectError.resultCode = udR_Failure_;
-
-                pProgramState->errorItems.PushBack(projectError);
-
-                vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-              }
-
-              if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
-                vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
+              if (moveTo)
+                udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+              moveTo = false;
             }
-
-            // This is a hack to clear the 'unsaved changes' flag to get around the fact the server projects aren't actually loading as projects
-            const char *pTempMemory = nullptr;
-            vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pTempMemory);
           }
+
+          for (size_t j = 0; j < pProjectList->GetElement(i)->Get("feeds").ArrayLength(); ++j)
+          {
+            const char *pFeedName = pProjectList->GetElement(i)->Get("feeds[%zu].name", j).AsString();
+
+            vdkProjectNode *pNode = nullptr;
+            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", pFeedName, nullptr, nullptr) != vE_Success)
+            {
+              vcState::ErrorItem projectError;
+              projectError.source = vcES_ProjectChange;
+              projectError.pData = udStrdup(pFeedName);
+              projectError.resultCode = udR_Failure_;
+
+              pProgramState->errorItems.PushBack(projectError);
+
+              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+            }
+
+            if (udUUID_IsValid(pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString()))
+              vdkProjectNode_SetMetadataString(pNode, "groupid", pProjectList->GetElement(i)->Get("feeds[%zu].groupid", j).AsString());
+          }
+
+          // This is a hack to clear the 'unsaved changes' flag to get around the fact the server projects aren't actually loading as projects
+          const char *pTempMemory = nullptr;
+          vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pTempMemory);
         }
       }
-      else // No projects
-      {
-        ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
-      }
-
-      ImGui::EndMenu();
+    }
+    else // No projects
+    {
+      ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
     }
 
     ImGui::EndPopup();
