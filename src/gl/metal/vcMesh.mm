@@ -5,61 +5,20 @@
 
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void *pVerts, uint32_t currentVerts, const void *pIndices, uint32_t currentIndices, vcMeshFlags flags/* = vcMF_None*/)
 {
-  bool invalidIndexSetup = (flags & vcMF_NoIndexBuffer) || ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
-  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0)
+  bool invalidIndexSetup = ((flags & vcMF_NoIndexBuffer) == 0) && ((pIndices == nullptr && currentIndices > 0) || currentIndices == 0);
+  if (ppMesh == nullptr || pMeshLayout == nullptr || totalTypes == 0 || currentVerts == 0 || invalidIndexSetup)
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
-  vcMesh *pMesh = nullptr;
-  ptrdiff_t accumulatedOffset = 0;
-
-  pMesh = udAllocType(vcMesh, 1, udAF_Zero);
+  vcMesh *pMesh = udAllocType(vcMesh, 1, udAF_Zero);
   if (pMesh == nullptr)
     return udR_MemoryAllocationFailure;
 
-  for (int i = 0; i < totalTypes; ++i)
-  {
-    switch (pMeshLayout[i])
-    {
-      case vcVLT_Position2:
-        accumulatedOffset += 2 * sizeof(float);
-        break;
-      case vcVLT_Position3:
-        accumulatedOffset += 3 * sizeof(float);
-        break;
-      case vcVLT_Position4:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
-      case vcVLT_TextureCoords2:
-        accumulatedOffset += 2 * sizeof(float);
-        break;
-      case vcVLT_ColourBGRA:
-        accumulatedOffset += sizeof(uint32_t);
-        break;
-      case vcVLT_Normal3:
-        accumulatedOffset += 3 * sizeof(float);
-        break;
-      case vcVLT_QuadCorner:
-        accumulatedOffset += 2 * sizeof(float);
-        break;
-      case vcVLT_Color0:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
-      case vcVLT_Color1:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
-      case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
-        continue; // NOTE continue
-      case vcVLT_TotalTypes:
-        break;
-    }
-  }
-
   pMesh->indexCount = currentIndices;
   pMesh->vertexCount = currentVerts;
-  pMesh->vertexBytes = accumulatedOffset;
+  pMesh->vertexBytes = vcLayout_GetSize(pMeshLayout, totalTypes);
 
-  if (!invalidIndexSetup)
+  if (currentIndices > 0 && ((flags & vcMF_NoIndexBuffer) == 0))
   {
     if ((flags & vcMF_IndexShort))
     {
@@ -76,14 +35,14 @@ udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, 
   
   if (pVerts != nullptr)
   {
-    pMesh->vBuffer = [g_device newBufferWithBytes:pVerts length:accumulatedOffset * currentVerts options:MTLStorageModeShared];
+    pMesh->vBuffer = [g_device newBufferWithBytes:pVerts length:pMesh->vertexBytes * currentVerts options:MTLStorageModeShared];
   }
   else
   {
     if (currentVerts < 1)
       currentVerts = 20;
     
-    pMesh->vBuffer = [g_device newBufferWithLength:accumulatedOffset * currentVerts options:MTLStorageModeShared];
+    pMesh->vBuffer = [g_device newBufferWithLength:pMesh->vertexBytes * currentVerts options:MTLStorageModeShared];
   }
 
   *ppMesh = pMesh;
@@ -113,72 +72,22 @@ udResult vcMesh_UploadData(struct vcMesh *pMesh, const vcVertexLayoutTypes *pLay
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
-
-  ptrdiff_t accumulatedOffset = 0;
-  for (int i = 0; i < totalTypes; ++i)
-  {
-    switch (pLayout[i])
-    {
-      case vcVLT_Position2:
-        accumulatedOffset += 2 * sizeof(float);
-        break;
-      case vcVLT_Position3:
-        accumulatedOffset += 3 * sizeof(float);
-        break;
-      case vcVLT_Position4:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
-      case vcVLT_TextureCoords2:
-        accumulatedOffset += 2 * sizeof(float);
-        break;
-      case vcVLT_ColourBGRA:
-        accumulatedOffset += sizeof(uint32_t);
-        break;
-      case vcVLT_Normal3:
-        accumulatedOffset += 3 * sizeof(float);
-        break;
-      case vcVLT_QuadCorner:
-        accumulatedOffset += 2 * sizeof(float);
-        break;
-      case vcVLT_Color0:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
-      case vcVLT_Color1:
-        accumulatedOffset += 4 * sizeof(float);
-        break;
-      case vcVLT_Unsupported: // TODO: (EVC-641) Handle unsupported attributes interleaved with supported attributes
-        continue; // NOTE continue
-      case vcVLT_TotalTypes:
-        break;
-    }
-  }
-
-  uint32_t size = accumulatedOffset * totalVerts;
+  
+  pMesh->vertexBytes = vcLayout_GetSize(pLayout, totalTypes);
+  pMesh->vertexCount = totalVerts;
 
   @autoreleasepool
   {
-    // if (pMesh->vertexCount * pMesh->vertexBytes < size)
     pMesh->vBuffer = nil;
-    pMesh->vBuffer = [g_device newBufferWithBytes:pVerts length:size options:MTLStorageModeShared];
-    // else
-    //memcpy([pMesh->vBuffer contents], pVerts, size);
-    
-    pMesh->vertexCount = totalVerts;
-    pMesh->vertexBytes = accumulatedOffset;
-    
-    if (totalIndices > 0)
+    pMesh->vBuffer = [g_device newBufferWithBytes:pVerts length:pMesh->vertexBytes * pMesh->vertexCount options:MTLStorageModeShared];
+
+    if (pMesh->indexBytes != 0)
     {
-      uint32_t isize = totalIndices * pMesh->indexBytes;
-      
-      //if (pMesh->indexCount < (uint32_t)totalIndices)
       pMesh->iBuffer = nil;
-      pMesh->iBuffer = [g_device newBufferWithBytes:pIndices length:isize options:MTLStorageModeShared];
-      //else
-      //memcpy([pMesh->iBuffer contents], pIndices, isize);
+      pMesh->iBuffer = [g_device newBufferWithBytes:pIndices length:totalIndices * pMesh->indexBytes options:MTLStorageModeShared];
     }
   }
-  
-  
+
   pMesh->indexCount = totalIndices;
   vcGLState_ReportGPUWork(0, 0, (pMesh->vertexCount * pMesh->vertexBytes) + (pMesh->indexCount * pMesh->indexBytes));
 

@@ -375,13 +375,25 @@ udResult vcSceneLayer_LoadFeatureData(const vcSceneLayer *pSceneLayer, vcSceneLa
       size_t attributeSize = (attributeElementCount * attributeElementSize);
 
       if (udStrEqual(pAttributeName, "position"))
+      {
         pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Position3;
+      }
       else if (udStrEqual(pAttributeName, "normal"))
+      {
         pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Normal3;
+      }
       else if (udStrEqual(pAttributeName, "uv0"))
+      {
         pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_TextureCoords2;
+      }
       else if (udStrEqual(pAttributeName, "color"))
-        pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_ColourBGRA;
+      {
+        // Shader doesn't support colour, don't upload it unnecessarily
+        //pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_ColourBGRA;
+
+        pNode->pFeatureData[i].pGeometryLayout[a] = vcVLT_Unsupported;
+        attributeSize = 0;
+      }
       else
       {
         // attribute gets ignored
