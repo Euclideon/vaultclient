@@ -121,17 +121,27 @@ void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
   memset(pNode, 0, sizeof(vcQuadTreeNode));
 }
 
-void vcQuadTree_CalculateNodeAABB(vcQuadTreeNode *pNode)
+void vcQuadTree_UpdateNodesActiveDEM(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
 {
+  pNode->activeDemMinMax = pNode->demMinMax;
+
+  if (!pQuadTree->pSettings->maptiles.demEnabled)
+    pNode->activeDemMinMax = udInt2::zero();
+}
+
+void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
+{
+  vcQuadTree_UpdateNodesActiveDEM(pQuadTree, pNode);
+
   udDouble3 boundsMin = udDouble3::create(FLT_MAX, FLT_MAX, FLT_MAX);
   udDouble3 boundsMax = udDouble3::create(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-  udDouble3 normalMin = pNode->worldNormal * pNode->demMinMax[0];
-  udDouble3 normalMax = pNode->worldNormal * pNode->demMinMax[1];
+  udDouble3 offsetMin = pNode->worldNormal * pNode->activeDemMinMax[0];
+  udDouble3 offsetMax = pNode->worldNormal * pNode->activeDemMinMax[1];
   for (int edge = 0; edge < 9; ++edge)
   {
-    udDouble3 p0 = pNode->worldBounds[edge] + normalMin;
-    udDouble3 p1 = pNode->worldBounds[edge] + normalMax;
+    udDouble3 p0 = pNode->worldBounds[edge] + offsetMin;
+    udDouble3 p1 = pNode->worldBounds[edge] + offsetMax;
     boundsMin = udMin(p0, udMin(p1, boundsMin));
     boundsMax = udMax(p0, udMax(p1, boundsMax));
   }
@@ -155,7 +165,18 @@ void vcQuadTree_CalculateNodeBounds(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode
   udDouble3 n1 = udCross3(udNormalize3(pNode->worldBounds[8] - pNode->worldBounds[2]), udNormalize3(pNode->worldBounds[8] - pNode->worldBounds[6]));
   pNode->worldNormal = udNormalize3(n0 + n1);
 
-  vcQuadTree_CalculateNodeAABB(pNode);
+  vcQuadTree_CalculateNodeAABB(pQuadTree, pNode);
+}
+
+void vcQuadTree_RecursiveUpdateNodesAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
+{
+  vcQuadTree_CalculateNodeAABB(pQuadTree, pNode);
+
+  if (!vcQuadTree_IsLeafNode(pNode))
+  {
+    for (int c = 0; c < 4; ++c)
+      vcQuadTree_RecursiveUpdateNodesAABB(pQuadTree, &pQuadTree->nodes.pPool[pNode->childBlockIndex + c]);
+  }
 }
 
 void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3 &childSlippy, const udInt2 &parentDemMinMax)
@@ -177,7 +198,8 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
 {
-  return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, pNode->tileCenter, pNode->tileExtents);
+  udDouble3 mapHeightOffset = pNode->worldNormal * pQuadTree->pSettings->maptiles.mapHeight;
+  return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, pNode->tileCenter + mapHeightOffset, pNode->tileExtents);
 }
 
 inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
@@ -235,11 +257,11 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->morten.x = pCurrentNode->morten.x | (mortenIndices[childQuadrant].x << (31 - pChildNode->slippyPosition.z));
     pChildNode->morten.y = pCurrentNode->morten.y | (mortenIndices[childQuadrant].y << (31 - pChildNode->slippyPosition.z));
 
-    double distanceToQuadrant = udMax(0.0, pQuadTree->cameraDistanceZeroAltitude - pChildNode->demMinMax[1]);
+    double distanceToQuadrant = udMax(0.0, pQuadTree->cameraDistanceZeroAltitude - (pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.mapHeight));
 
     int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
     if (slippyManhattanDist != 0)
-      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormal * pChildNode->demMinMax[1]);
+      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormal * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.mapHeight));
 
     int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
     bool alwaysSubdivide = pChildNode->visible && totalDepth < vcQuadTree_MinimumDescendLayer;
@@ -450,6 +472,15 @@ void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPositio
   // Normalize the planes
   for (int j = 0; j < 6; ++j)
     pQuadTree->frustumPlanes[j] /= udMag3(pQuadTree->frustumPlanes[j]);
+
+  // Detect changes to DEM settings
+  bool demChangeOccurred = pQuadTree->demWasEnabled != pQuadTree->pSettings->maptiles.demEnabled;
+  demChangeOccurred = demChangeOccurred || (udAbs(pQuadTree->previousMapHeight - pQuadTree->pSettings->maptiles.mapHeight) > UD_EPSILON);
+  pQuadTree->demWasEnabled = pQuadTree->pSettings->maptiles.demEnabled;
+  pQuadTree->previousMapHeight = pQuadTree->pSettings->maptiles.mapHeight;
+
+  if (demChangeOccurred)
+    vcQuadTree_RecursiveUpdateNodesAABB(pQuadTree, &pQuadTree->nodes.pPool[pQuadTree->rootIndex]);
 }
 
 void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo)
@@ -472,7 +503,7 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
       vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
     }
   }
-
+  
   pQuadTree->metaData.nodeTouchedCount = 0;
   pQuadTree->metaData.leafNodeCount = 0;
 

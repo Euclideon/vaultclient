@@ -86,6 +86,7 @@ struct vcQuadTreeNode
     vcDemBoundsState_Absolute, // this node has downloaded its dem data
   } demBoundsState;
   udInt2 demMinMax;  // in DEM units. For calculating AABB of node
+  udInt2 activeDemMinMax; // DEM can turned off / on, so cache this state
 
   // node payloads
   vcNodeRenderInfo colourInfo;
@@ -107,6 +108,10 @@ struct vcQuadTreeMetaData
 struct vcQuadTree
 {
   vcSettings *pSettings;
+
+  // store map height state to detect changes
+  bool demWasEnabled;
+  float previousMapHeight;
 
   vcQuadTreeMetaData metaData;
   udDouble4 frustumPlanes[6];
@@ -166,6 +171,6 @@ inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQu
   return true;
 }
 
-void vcQuadTree_CalculateNodeAABB(vcQuadTreeNode *pNode);
+void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode);
 
 #endif//vcQuadTree_h__

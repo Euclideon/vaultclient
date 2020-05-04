@@ -706,7 +706,7 @@ epilogue:
   return result;
 }
 
-void vcTileRenderer_UpdateDemState(vcQuadTreeNode *pNode, const udInt2 &demMinMax)
+void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode, const udInt2 &demMinMax)
 {
   if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Absolute)
     return;
@@ -718,13 +718,13 @@ void vcTileRenderer_UpdateDemState(vcQuadTreeNode *pNode, const udInt2 &demMinMa
   pNode->demMinMax[0] = udMin(pNode->demMinMax[0], demMinMax[0]);
   pNode->demMinMax[1] = udMax(pNode->demMinMax[1], demMinMax[1]);
 
-  vcQuadTree_CalculateNodeAABB(pNode);
+  vcQuadTree_CalculateNodeAABB(pQuadTree, pNode);
 }
 
 void vcTileRenderer_RecursiveDownUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pParentNode, vcQuadTreeNode *pChildNode)
 {
   if (pParentNode != nullptr)
-    vcTileRenderer_UpdateDemState(pChildNode, pParentNode->demMinMax);
+    vcTileRenderer_UpdateDemState(pQuadTree, pChildNode, pParentNode->demMinMax);
 
   if (!vcQuadTree_IsLeafNode(pChildNode))
   {
@@ -739,7 +739,7 @@ void vcTileRenderer_RecursiveUpUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeN
     return;
 
   vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[pChildNode->parentIndex];
-  vcTileRenderer_UpdateDemState(pParentNode, pChildNode->demMinMax);
+  vcTileRenderer_UpdateDemState(pQuadTree, pParentNode, pChildNode->demMinMax);
   vcTileRenderer_RecursiveUpUpdateNodeAABB(pQuadTree, pParentNode);
 }
 
@@ -805,7 +805,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     udFree(pNode->demInfo.data.pData);
 
     pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Absolute;
-    vcQuadTree_CalculateNodeAABB(pNode);
+    vcQuadTree_CalculateNodeAABB(&pTileRenderer->quadTree, pNode);
 
     // conditonal update AABBs of tree (up and down)
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
@@ -954,9 +954,10 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pDemTexture = pTileRenderer->pEmptyDemTileTexture;
   }
 
+  udDouble3 mapHeightOffset = pNode->worldNormal * udDouble3::create(pTileRenderer->pSettings->maptiles.mapHeight);
   for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
   {
-    udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t], 1.0));
+    udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t] + mapHeightOffset, 1.0));
     pTileRenderer->presentShader.everyObject.eyePositions[t] = eyeSpaceVertexPosition;
   }
 
@@ -1130,8 +1131,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   else
     pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
-  udDouble4x4 viewWithMapTranslation = view * udDouble4x4::translation(0, 0, pTileRenderer->pSettings->maptiles.mapHeight);
-  vcTileRenderer_RecursiveRenderNodes(pTileRenderer, viewWithMapTranslation, pRootNode, nullptr, nullptr);
+  vcTileRenderer_RecursiveRenderNodes(pTileRenderer, view, pRootNode, nullptr, nullptr);
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true, nullptr);
