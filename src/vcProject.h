@@ -10,6 +10,7 @@ class vcFolder;
 
 struct vcProject
 {
+  udGeoZone baseZone;
   vdkProject *pProject;
 
   // These are the same item pFolder->m_pNode == pRoot && pRoot-pUserdata == pFolder
@@ -19,7 +20,13 @@ struct vcProject
   const char *pRelativeBase;
 };
 
-void vcProject_InitBlankScene(vcState *pProgramState);
+enum vcProjectStandardZones
+{
+  vcPSZ_NotGeolocated = 0,
+  vcPSZ_StandardGeoJSON = 84
+};
+
+void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int srid);
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename);
 
 void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);

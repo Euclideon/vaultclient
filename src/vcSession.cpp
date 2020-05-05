@@ -204,7 +204,7 @@ void vcSession_Logout(vcState *pProgramState)
 #endif //VC_HASCONVERT
 
     pProgramState->modelPath[0] = '\0';
-    vcProject_InitBlankScene(pProgramState);
+    vcProject_InitBlankScene(pProgramState, "Ending", 0);
     pProgramState->projects.Destroy();
     pProgramState->profileInfo.Destroy();
 

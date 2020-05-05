@@ -412,7 +412,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         }
         else if (udStrEquali(pExt, ".udp"))
         {
-          vcProject_InitBlankScene(pProgramState);
+          vcProject_InitBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
 
           vcUDP_Load(pProgramState, pNextLoad);
         }
@@ -837,7 +837,7 @@ int main(int argc, char **args)
 
   programState.showWatermark = true;
 
-  vcProject_InitBlankScene(&programState);
+  vcProject_InitBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -1028,8 +1028,8 @@ void vcMain_ProfileMenu(vcState *pProgramState)
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu(vcString::Get("menuProjects")))
     {
-      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
-        vcProject_InitBlankScene(pProgramState);
+      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
+        vcModals_OpenModal(pProgramState, vcMT_NewProject);
 
       if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
         vcModals_OpenModal(pProgramState, vcMT_ExportProject);
@@ -1045,7 +1045,7 @@ void vcMain_ProfileMenu(vcState *pProgramState)
         {
           if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
           {
-            vcProject_InitBlankScene(pProgramState);
+            vcProject_InitBlankScene(pProgramState, pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), vcPSZ_StandardGeoJSON);
             bool moveTo = true;
 
             for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
@@ -1985,10 +1985,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     vdkProjectNode *pNode = nullptr;
     if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
     {
-      udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position, true);
-
-      if (pProgramState->geozone.projection != udGZPT_Unknown)
-        vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &cameraPositionInLongLat.x);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->camera.position, 1);
 
       vdkProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
       vdkProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
