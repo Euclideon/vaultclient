@@ -501,10 +501,7 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
 
     udGeoZone zone;
     if (udGeoZone_SetFromSRID(&zone, item.polygon.epsgCode) != udR_Success)
-    {
-      if (pProgramState->gis.isProjected)
-        memcpy(&zone, &pProgramState->gis.zone, sizeof(udGeoZone));
-    }
+      pProgramState->geozone = zone;
 
     for (int i = 0; i < item.polygon.numPoints; ++i)
       item.polygon.pPoints[i] = udGeoZone_CartesianToLatLong(zone, item.polygon.pPoints[i], true);

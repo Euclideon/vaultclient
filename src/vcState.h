@@ -113,7 +113,7 @@ struct vcState
   double deltaTime;
   udUInt2 sceneResolution;
 
-  vcGISSpace gis;
+  udGeoZone geozone;
 
   bool showWatermark;
 

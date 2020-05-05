@@ -763,7 +763,7 @@ void vcRender_ConditionalSplatUD(vcState *pProgramState, vcRenderContext *pRende
 
 void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, const vcPolyModelPass &passType)
 {
-  if (pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapEnabled)
+  if (pProgramState->geozone.projection != udGZPT_Unknown && pProgramState->settings.maptiles.mapEnabled)
   {
     udDouble4x4 cameraMatrix = pProgramState->camera.matrices.camera;
     udDouble4x4 viewProjection = pProgramState->camera.matrices.viewProjection;
@@ -782,9 +782,9 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     int currentZoom = 21;
 
     // project camera position to base altitude
-    udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+    udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
     cameraPositionInLongLat.z = 0.0;
-    udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraPositionInLongLat);
+    udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
     udDouble3 earthNormal = localCamPos - cameraZeroAltitude;
     double cameraDistanceToAltitudeZero = udMag3(earthNormal);
 
@@ -812,7 +812,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     localCorners[3] = localCamPos + udDouble3::create(+visibleFarPlane, -visibleFarPlane, 0);
 
     for (int i = 0; i < 4; ++i)
-      vcGIS_LocalToSlippy(&pProgramState->gis, &slippyCorners[i], localCorners[i], currentZoom);
+      vcGIS_LocalToSlippy(pProgramState->geozone, &slippyCorners[i], localCorners[i], currentZoom);
 
     while (currentZoom > 0 && (slippyCorners[0] != slippyCorners[1] || slippyCorners[1] != slippyCorners[2] || slippyCorners[2] != slippyCorners[3]))
     {
@@ -823,9 +823,9 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     }
 
     for (int i = 0; i < 4; ++i)
-      vcGIS_SlippyToLocal(&pProgramState->gis, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
+      vcGIS_SlippyToLocal(pProgramState->geozone, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->gis, udInt3::create(slippyCorners[0], currentZoom), localCamPos, cameraZeroAltitude, viewProjection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, cameraZeroAltitude, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround, passType);
   }
 }
@@ -980,7 +980,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
       double rot = (UD_DEG2RAD(360.0) / ViewShedMapCount) * r;
       shadowRenderCameras[r].headingPitch = udDouble2::create(-rot, 0);
-      vcCamera_UpdateMatrices(pProgramState->gis, &shadowRenderCameras[r], cameraSettings, atlasSize, nullptr);
+      vcCamera_UpdateMatrices(pProgramState->geozone, &shadowRenderCameras[r], cameraSettings, atlasSize, nullptr);
 
       pRenderContext->shadowShader.params.shadowMapVP[r] = udFloat4x4::create(shadowRenderCameras[r].matrices.projectionUD * (shadowRenderCameras[r].matrices.view * udInverse(pProgramState->camera.matrices.view)));
     }
@@ -1505,7 +1505,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionY", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[1]);
         vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionZ", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[2]);
 
-        pVoxelShaderData[numVisibleModels].data.displacementDirection.cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
+        pVoxelShaderData[numVisibleModels].data.displacementDirection.cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
         pVoxelShaderData[numVisibleModels].data.displacementDirection.posColour = pVisSettings->displacement.max;
         pVoxelShaderData[numVisibleModels].data.displacementDirection.negColour = pVisSettings->displacement.min;
       }

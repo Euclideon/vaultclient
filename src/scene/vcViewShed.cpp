@@ -29,7 +29,7 @@ void vcViewShed::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataUint(m_pNode, "visibleColour", &m_visibleColour, 0x3F00FF00);
   vdkProjectNode_GetMetadataUint(m_pNode, "hiddenColour", &m_hiddenColour, 0x3FFF0000);
 
-  ChangeProjection(pProgramState->gis.zone);
+  ChangeProjection(pProgramState->geozone);
 }
 
 void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -62,7 +62,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 void vcViewShed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   m_position = (delta * udDouble4::create(m_position, 1.0)).toVector3();
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_position, 1);
 }
 
 void vcViewShed::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)

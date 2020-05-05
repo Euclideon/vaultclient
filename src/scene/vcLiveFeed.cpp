@@ -189,10 +189,7 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
           if (!hasOrientation)
           {
             //X and Y are latlong and Z is m so we need to fix it
-            if (pInfo->pProgramState->gis.isProjected)
-              dir = udNormalize3(udGeoZone_LatLongToCartesian(pInfo->pProgramState->gis.zone, newPositionLatLong, true) - udGeoZone_LatLongToCartesian(pInfo->pProgramState->gis.zone, pFeedItem->previousPositionLatLong, true));
-            else
-              dir = udNormalize3(dir);
+            dir = udNormalize3(udGeoZone_LatLongToCartesian(pInfo->pProgramState->geozone, newPositionLatLong, true) - udGeoZone_LatLongToCartesian(pInfo->pProgramState->geozone, pFeedItem->previousPositionLatLong, true));
 
             pFeedItem->ypr = udDirectionToYPR(dir);
           }
@@ -335,7 +332,7 @@ void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
 
   vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
 
-  ChangeProjection(pProgramState->gis.zone);
+  ChangeProjection(pProgramState->geozone);
 }
 
 void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -377,10 +374,8 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     udDouble3 cameraPosition = pProgramState->camera.position;
 
     pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pProgramState->deltaTime * 0.02) : 1.0;
-    pFeedItem->displayPosition = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
-
-    if (pProgramState->gis.isProjected)
-      pFeedItem->displayPosition = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, pFeedItem->displayPosition, true);
+    udDouble3 lerpedPos = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
+    pFeedItem->displayPosition = udGeoZone_LatLongToCartesian(pProgramState->geozone, lerpedPos, true);
 
     double distanceSq = udMagSq3(pFeedItem->displayPosition - cameraPosition);
 

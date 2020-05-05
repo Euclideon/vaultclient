@@ -115,7 +115,7 @@ struct vcQuadTree
 
   vcQuadTreeMetaData metaData;
   udDouble4 frustumPlanes[6];
-  vcGISSpace gisSpace;
+  udGeoZone geozone;
   udInt3 slippyCoords;
   udDouble3 cameraWorldPosition;
   double cameraDistanceZeroAltitude;
@@ -132,7 +132,7 @@ struct vcQuadTree
 
 struct vcQuadTreeViewInfo
 {
-  vcGISSpace *pSpace;
+  udGeoZone *pGeozone;
   udInt3 slippyCoords;
   udDouble3 cameraPosition;
   udDouble3 cameraPositionZeroAltitude;

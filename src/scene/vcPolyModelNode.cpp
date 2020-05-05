@@ -77,7 +77,7 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
     udDouble3 scale;
     udDouble3 euler;
 
-    vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, pProgramState->gis.zone, &pPosition, nullptr);
+    vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, pProgramState->geozone, &pPosition, nullptr);
 
     vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
     vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
@@ -119,7 +119,7 @@ void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delt
 
   udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
@@ -167,7 +167,7 @@ void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (repackMatrix)
     {
       m_matrix = udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleNonUniform(scale);
-      vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
       vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
       vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
       vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
