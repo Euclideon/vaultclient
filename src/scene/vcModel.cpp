@@ -171,11 +171,11 @@ void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (status != vE_Success)
   {
     if (status == vE_ParseError)
-      m_loadStatus = vcSLS_Corrupt;
+      m_pActiveWarningStatus = "sceneExplorerErrorCorrupt";
     else if (status == vE_OpenFailure)
-      m_loadStatus = vcSLS_OpenFailure;
+      m_pActiveWarningStatus = "sceneExplorerErrorOpen";
     else
-      m_loadStatus = vcSLS_Failed;
+      m_pActiveWarningStatus = "sceneExplorerErrorLoad";
   }
 
   if (m_changeZones)

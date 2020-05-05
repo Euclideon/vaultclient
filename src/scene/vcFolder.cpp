@@ -179,6 +179,9 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
 
+      if (pSceneItem->m_pActiveWarningStatus != nullptr)
+        vcIGSW_ShowLoadStatusIndicator(vcSLS_Pending, pSceneItem->m_pActiveWarningStatus);
+      
       // The actual model
       ImGui::SetNextItemOpen(pSceneItem->m_expanded, ImGuiCond_Always);
       ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
