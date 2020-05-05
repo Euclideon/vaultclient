@@ -269,23 +269,35 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
 
   //At solar noon the hour angle is 0.000 degree, with the time before solar noon expressed as negative degrees, and the local time after solar noon expressed as positive degrees.
   //For example, at 10:30 AM local apparent time the hour angle is -22.5° (15° per hour times 1.5 hours before noon).
-  float hourAngle = ((float)pProgramState->settings.presentation.skybox.timeOfDay - 12.f) * 15;
-  float hourAngleRadians = UD_DEG2RADf(hourAngle);
-  float yearNormalized = (float)(pProgramState->settings.presentation.skybox.month / 12.0);
+
+  const double DaysPerYear = 365.25;
+  const double BaseTime = 7305.0; // 2020-01-01:00:00:00UTC in MJD2000
+
+  double terrestrialDateJ2000 = 0.0;
+
+  double hourAngleRadians = UD_DEG2RAD((pProgramState->settings.presentation.skybox.timeOfDay) * 15.0);
+  double yearNormalized = (pProgramState->settings.presentation.skybox.month / 12.0);
 
   if (pProgramState->settings.presentation.skybox.useLiveTime)
   {
-    hourAngle = 0;
-    yearNormalized = 0;
+    terrestrialDateJ2000 = (udGetEpochSecsUTCf() / 86400.0) - 10957.0;
   }
   else if (pProgramState->settings.presentation.skybox.keepSameTime && pProgramState->geozone.projection != udGZPT_Unknown)
   {
     udDouble3 latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
-    hourAngleRadians -= (float)UD_DEG2RAD(latLong.y);
+    hourAngleRadians -= UD_DEG2RAD(latLong.y);
+
+    terrestrialDateJ2000 = BaseTime + hourAngleRadians / UD_2PI + yearNormalized * DaysPerYear;
+  }
+  else // Only use setting
+  {
+    terrestrialDateJ2000 = BaseTime + hourAngleRadians / UD_2PI + yearNormalized * DaysPerYear;
   }
 
-  double terrestrialDateJ2000 = (udGetEpochSecsUTCf() / 86400.0) - 10957.5 + hourAngleRadians / UD_2PI + yearNormalized * 365.25;
-  double terrestrialCenturiesJ2000 = terrestrialDateJ2000 / 365.25;
+  double terrestrialYearJ2000 = terrestrialDateJ2000 / DaysPerYear;
+
+  yearNormalized = terrestrialYearJ2000 - int(terrestrialYearJ2000);
+  hourAngleRadians = (terrestrialDateJ2000 - int(terrestrialDateJ2000) + yearNormalized) * UD_2PI;
 
   double meanSunLongitudeDegrees = 280.460 + 0.9856474 * terrestrialDateJ2000; // Already corrected for aberration
   double meanSunAnomalyRadians = UD_DEG2RAD(357.528 + 0.9856003 * terrestrialDateJ2000);
@@ -306,7 +318,7 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   double eclipticLongitudeRadians = UD_DEG2RAD(meanSunLongitudeDegrees + 1.915 * udSin(meanSunAnomalyRadians) + 0.02 * udSin(2 * meanSunAnomalyRadians));
   double sunDistAU = 1.00014 - 0.01671 * udCos(meanSunAnomalyRadians) - 0.00014 * udCos(2 * meanSunAnomalyRadians);
 
-  double eclipticObliquityRadians = UD_DEG2RAD(23.45229 - 0.0130125 * terrestrialCenturiesJ2000 - 0.000001638889 * terrestrialCenturiesJ2000 * terrestrialCenturiesJ2000 + 5.027778e-7 * terrestrialCenturiesJ2000 * terrestrialCenturiesJ2000 * terrestrialCenturiesJ2000);
+  double eclipticObliquityRadians = UD_DEG2RAD(23.45229 - 0.0130125 * terrestrialYearJ2000 - 0.000001638889 * terrestrialYearJ2000 * terrestrialYearJ2000 + 5.027778e-7 * terrestrialYearJ2000 * terrestrialYearJ2000 * terrestrialYearJ2000);
 
   pAtmosphereRenderer->sunDirection.x = sunDistAU * udCos(eclipticLongitudeRadians);
   pAtmosphereRenderer->sunDirection.y = sunDistAU * udCos(eclipticObliquityRadians) * udSin(eclipticLongitudeRadians);
