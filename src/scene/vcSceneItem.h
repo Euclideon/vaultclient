@@ -34,6 +34,7 @@ public:
   vdkProjectNode *m_pNode;
 
   volatile int32_t m_loadStatus;
+  const char *m_pActiveWarningStatus; // This is used to give temporary alerts that the node is not working as intended (load failures, wrong projection, etc)- gets passed to vcString:Get
   bool m_visible;
   bool m_selected;
   bool m_expanded;

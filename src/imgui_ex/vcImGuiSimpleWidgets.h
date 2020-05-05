@@ -24,6 +24,6 @@ uint32_t vcIGSW_BGRAToRGBAUInt32(uint32_t lineColour);
 
 bool vcIGSW_IsItemHovered(ImGuiHoveredFlags flags = 0, float timer = 0.5f); // Timer not currently working
 
-void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine = true);
+void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, const char *pToolTip = nullptr);
 
 #endif // vcImGuiSimpleWidgets_h__

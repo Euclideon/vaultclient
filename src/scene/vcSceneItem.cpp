@@ -20,6 +20,7 @@ vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char
 vcSceneItem::vcSceneItem(vcProject *pProject, vdkProjectNode *pNode, vcState * /*pProgramState*/) :
   m_pProject(pProject),
   m_loadStatus(0),
+  m_pActiveWarningStatus(nullptr),
   m_visible(true),
   m_selected(false),
   m_expanded(false),

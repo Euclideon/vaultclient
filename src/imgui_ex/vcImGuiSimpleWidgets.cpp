@@ -187,7 +187,7 @@ bool vcIGSW_IsItemHovered(ImGuiHoveredFlags flags, float /*timer*/ /*= 0.5f*/)
   return ImGui::IsItemHovered(flags);
 }
 
-void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine /*= true*/)
+void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, const char *pToolTip /*= nullptr*/)
 {
   const char *loadingChars[] = { "\xE2\x96\xB2", "\xE2\x96\xB6", "\xE2\x96\xBC", "\xE2\x97\x80" };
   int64_t currentLoadingChar = (int64_t)(10 * udGetEpochSecsUTCf());
@@ -197,13 +197,13 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine 
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "\xE2\x9A\xA0"); // Yellow Exclamation in Triangle
     if (vcIGSW_IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerPending"));
+      ImGui::SetTooltip("%s", vcString::Get(pToolTip == nullptr ? "sceneExplorerPending" : pToolTip));
   }
   else if (loadStatus == vcSLS_Loading)
   {
     ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "%s", loadingChars[currentLoadingChar % udLengthOf(loadingChars)]); // Yellow Spinning clock
     if (vcIGSW_IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("sceneExplorerLoading"));
+      ImGui::SetTooltip("%s", vcString::Get(pToolTip == nullptr ? "sceneExplorerLoading" : pToolTip));
   }
   else if (loadStatus == vcSLS_Failed || loadStatus == vcSLS_OpenFailure || loadStatus == vcSLS_Corrupt)
   {
@@ -211,20 +211,21 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, bool sameLine 
     if (vcIGSW_IsItemHovered())
     {
       if (loadStatus == vcSLS_OpenFailure)
-        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorOpen"));
+        ImGui::SetTooltip("%s", vcString::Get(pToolTip == nullptr ? "sceneExplorerErrorOpen" : pToolTip));
       else if (loadStatus == vcSLS_Corrupt)
-        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorCorrupt"));
+        ImGui::SetTooltip("%s", vcString::Get(pToolTip == nullptr ? "sceneExplorerErrorCorrupt" : pToolTip));
       else
-        ImGui::SetTooltip("%s", vcString::Get("sceneExplorerErrorLoad"));
+        ImGui::SetTooltip("%s", vcString::Get(pToolTip == nullptr ? "sceneExplorerErrorLoad" : pToolTip));
     }
   }
   else if (loadStatus == vcSLS_Success)
   {
     ImGui::TextColored(ImVec4(0.f, 1.f, 0.f, 1.f), "\xE2\x9C\x93"); // Green Checkmark
+    if (pToolTip != nullptr && vcIGSW_IsItemHovered())
+      ImGui::SetTooltip("%s", vcString::Get(pToolTip));
   }
 
-  if (sameLine)
-    ImGui::SameLine();
+  ImGui::SameLine();
 }
 
 bool vcIGSW_StickyIntSlider(const char* label, int* v, int v_min, int v_max, int sticky)
