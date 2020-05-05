@@ -151,7 +151,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
         udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, 84);
 
       int32_t recommendedSRID = -1;
-      if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success || recommendedSRID == 0)
+      if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
         vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
       vcProject_ExtractCamera(pProgramState);
