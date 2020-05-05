@@ -997,7 +997,7 @@ epilogue:
 
 void vcMain_ProfileMenu(vcState *pProgramState)
 {
-  if (ImGui::BeginPopupContextWindow("profileMenu", 0))
+  if (ImGui::BeginPopupContextItem("profileMenu", 0))
   {
     if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
       vcModals_OpenModal(pProgramState, vcMT_Profile);
