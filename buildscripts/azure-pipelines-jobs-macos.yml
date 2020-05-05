@@ -18,8 +18,8 @@ jobs:
   - checkout: self
     submodules: recursive
   - script: |
-      curl -O https://www.libsdl.org/release/SDL2-2.0.8.dmg
-      /usr/bin/hdiutil attach -noverify -noautoopen SDL2-2.0.8.dmg
+      curl -O https://www.libsdl.org/release/SDL2-2.0.10.dmg
+      /usr/bin/hdiutil attach -noverify -noautoopen SDL2-2.0.10.dmg
       sudo cp -af /Volumes/SDL2/SDL2.framework /Library/Frameworks/
       curl -sL "https://github.com/zellski/FBXSDK-Darwin/archive/2019.2.tar.gz" | tar xz --strip-components=1 --include */sdk/
       brew install zstd
