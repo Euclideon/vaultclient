@@ -135,7 +135,7 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
-  ChangeProjection(pProgramState->gis.zone);
+  ChangeProjection(pProgramState->geozone);
 }
 
 void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -260,7 +260,7 @@ void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_image.ypr = rotation.eulerAngles();
   m_image.scale = scale.x;
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_image.position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_image.position, 1);
 
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);

@@ -157,7 +157,7 @@ void vcQuadTree_CalculateNodeBounds(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode
     udInt2 slippySampleCoord = udInt2::create((pNode->slippyPosition.x * 2) + (edge % 3),
       (pNode->slippyPosition.y * 2) + (edge / 3));
 
-    vcGIS_SlippyToLocal(&pQuadTree->gisSpace, &pNode->worldBounds[edge], slippySampleCoord, pNode->slippyPosition.z + 1);
+    vcGIS_SlippyToLocal(pQuadTree->geozone, &pNode->worldBounds[edge], slippySampleCoord, pNode->slippyPosition.z + 1);
   }
 
   // one normal
@@ -234,7 +234,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
   }
 
   udInt2 pViewSlippyCoords;
-  vcGIS_LocalToSlippy(&pQuadTree->gisSpace, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->slippyCoords.z + currentDepth + 1);
+  vcGIS_LocalToSlippy(pQuadTree->geozone, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->slippyCoords.z + currentDepth + 1);
 
   udInt2 mortenIndices[] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
 
@@ -485,8 +485,8 @@ void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPositio
 
 void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo)
 {
-  bool zoneChangeOccurred = pQuadTree->gisSpace.SRID != viewInfo.pSpace->SRID;
-  pQuadTree->gisSpace = *viewInfo.pSpace;
+  bool zoneChangeOccurred = (pQuadTree->geozone.srid != viewInfo.pGeozone->srid);
+  pQuadTree->geozone = *viewInfo.pGeozone;
 
   // invalidate so we can detect nodes that need pruning
   for (uint32_t i = 0; i < pQuadTree->nodes.used; ++i)

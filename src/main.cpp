@@ -412,7 +412,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         }
         else if (udStrEquali(pExt, ".udp"))
         {
-          vcProject_InitBlankScene(pProgramState);
+          vcProject_InitBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
 
           vcUDP_Load(pProgramState, pNextLoad);
         }
@@ -525,10 +525,10 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == vE_Success)
               {
-                if (hasLocation && pProgramState->gis.isProjected)
+                if (hasLocation && pProgramState->geozone.projection != udGZPT_Unknown)
                   vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &geolocationLongLat.x);
                 else
-                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->gis.zone, vdkPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->camera.position, 1);
+                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->camera.position, 1);
 
                 if (imageType == vcIT_PhotoSphere)
                   vdkProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
@@ -837,7 +837,7 @@ int main(int argc, char **args)
 
   programState.showWatermark = true;
 
-  vcProject_InitBlankScene(&programState);
+  vcProject_InitBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -1028,8 +1028,8 @@ void vcMain_ProfileMenu(vcState *pProgramState)
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
     if (ImGui::BeginMenu(vcString::Get("menuProjects")))
     {
-      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
-        vcProject_InitBlankScene(pProgramState);
+      if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
+        vcModals_OpenModal(pProgramState, vcMT_NewProject);
 
       if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
         vcModals_OpenModal(pProgramState, vcMT_ExportProject);
@@ -1045,7 +1045,7 @@ void vcMain_ProfileMenu(vcState *pProgramState)
         {
           if (ImGui::MenuItem(pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
           {
-            vcProject_InitBlankScene(pProgramState);
+            vcProject_InitBlankScene(pProgramState, pProjectList->GetElement(i)->Get("name").AsString("<Unnamed>"), vcPSZ_StandardGeoJSON);
             bool moveTo = true;
 
             for (size_t j = 0; j < pProjectList->GetElement(i)->Get("models").ArrayLength(); ++j)
@@ -1300,11 +1300,11 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           pProgramState->camera.position.z = udClamp(pProgramState->camera.position.z, -vcSL_GlobalLimit, vcSL_GlobalLimit);
         }
 
-        if (pProgramState->gis.isProjected)
+        if (pProgramState->geozone.projection != udGZPT_Unknown)
         {
-          cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position);
+          cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
           if (ImGui::InputScalarN(vcString::Get("sceneCameraPositionGIS"), ImGuiDataType_Double, &cameraLatLong.x, 3))
-            pProgramState->camera.position = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, cameraLatLong);
+            pProgramState->camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraLatLong);
         }
 
         udDouble2 headingPitch = UD_RAD2DEG(pProgramState->camera.headingPitch);
@@ -1314,12 +1314,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
           pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
 
-        if (pProgramState->gis.isProjected && pProgramState->gis.zone.latLongBoundMin != pProgramState->gis.zone.latLongBoundMax)
+        if (pProgramState->geozone.latLongBoundMin != pProgramState->geozone.latLongBoundMax)
         {
           ImGui::Separator();
 
-          udDouble2 &minBound = pProgramState->gis.zone.latLongBoundMin;
-          udDouble2 &maxBound = pProgramState->gis.zone.latLongBoundMax;
+          udDouble2 &minBound = pProgramState->geozone.latLongBoundMin;
+          udDouble2 &maxBound = pProgramState->geozone.latLongBoundMax;
 
           if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("sceneCameraOutOfBounds"));
@@ -1330,12 +1330,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (pProgramState->settings.presentation.showProjectionInfo)
       {
-        if (pProgramState->gis.SRID != 0 && pProgramState->gis.isProjected)
-          ImGui::Text("%s (%s: %d)", pProgramState->gis.zone.zoneName, vcString::Get("sceneSRID"), pProgramState->gis.SRID);
-        else if (pProgramState->gis.SRID == 0)
-          ImGui::TextUnformatted(vcString::Get("sceneNotGeolocated"));
-        else
-          ImGui::Text("%s: %d", vcString::Get("sceneUnsupportedSRID"), pProgramState->gis.SRID);
+        ImGui::Text("%s (%s: %d)", pProgramState->geozone.displayName, vcString::Get("sceneSRID"), pProgramState->geozone.srid);
 
         ImGui::Separator();
         if (ImGui::IsMousePosValid())
@@ -1344,7 +1339,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           {
             ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePosCartesian.x, pProgramState->worldMousePosCartesian.y, pProgramState->worldMousePosCartesian.z);
 
-            if (pProgramState->gis.isProjected)
+            if (pProgramState->geozone.projection != udGZPT_Unknown)
               ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), pProgramState->worldMousePosLongLat.y, pProgramState->worldMousePosLongLat.x);
           }
         }
@@ -1352,12 +1347,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (pProgramState->settings.presentation.showAdvancedGIS)
       {
-        int newSRID = pProgramState->gis.SRID;
+        int newSRID = pProgramState->geozone.srid;
         udGeoZone zone;
 
         if (ImGui::InputInt(vcString::Get("sceneOverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
         {
-          if (vcGIS_ChangeSpace(&pProgramState->gis, zone, &pProgramState->camera.position))
+          if (vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position))
           {
             pProgramState->activeProject.pFolder->ChangeProjection(zone);
           }
@@ -1459,7 +1454,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     vdkProjectNode *pNode = pProgramState->activeProject.pRoot;
     const char *pBuffer = udStrdup("Euclideon");
 
-    if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected)
+    if (pProgramState->settings.maptiles.mapEnabled && pProgramState->geozone.projection != udGZPT_Unknown)
     {
       if (pProgramState->settings.maptiles.activeServer.attribution[0] != '\0')
         udSprintf(&pBuffer, "%s, %s", pBuffer, pProgramState->settings.maptiles.activeServer.attribution);
@@ -1628,10 +1623,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     {
       // Compass
       {
-        udDouble3 cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
+        udDouble3 cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
 
-        udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->gis, pProgramState->camera.position);
-        udDouble3 northDir = vcGIS_GetWorldLocalNorth(pProgramState->gis, pProgramState->camera.position);
+        udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
+        udDouble3 northDir = vcGIS_GetWorldLocalNorth(pProgramState->geozone, pProgramState->camera.position);
 
         udDouble3 camRight = udCross(cameraDirection, up);
         udDouble3 camFlat = udCross(up, camRight);
@@ -1643,8 +1638,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         ImGui::PushID("compassButton");
         if (ImGui::ButtonEx("", ImVec2(28, 28)))
         {
-          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
-          pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, udDouble2::create(0, pProgramState->camera.headingPitch.y));
+          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
+          pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, udDouble2::create(0, pProgramState->camera.headingPitch.y));
           pProgramState->cameraInput.inputState = vcCIS_Rotate;
           pProgramState->cameraInput.progress = 0.0;
         }
@@ -1670,9 +1665,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneLockAltitude"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_LockAltitude)), vcMBBI_LockAltitude, vcMBBG_FirstItem, pProgramState->settings.camera.lockAltitude))
         pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
 
-      // AMap Setin
+      // Map Settings
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem);
-      if (ImGui::BeginPopupContextWindow(nullptr, 0))
+      if (ImGui::BeginPopupContextItem(nullptr, 0))
       {
         vcSettingsUI_BasicMapSettings(pProgramState);
 
@@ -1990,10 +1985,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     vdkProjectNode *pNode = nullptr;
     if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == vE_Success)
     {
-      udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->camera.position, true);
-
-      if (pProgramState->gis.isProjected)
-        vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &cameraPositionInLongLat.x);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->camera.position, 1);
 
       vdkProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
       vdkProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
@@ -2321,20 +2313,11 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
           ImGui::EndMenu();
         }
 
-        if (pProgramState->settings.maptiles.mapEnabled && pProgramState->gis.isProjected && pProgramState->settings.maptiles.mapHeight != mousePosLongLat.z)
-        {
-          if (ImGui::MenuItem(vcString::Get("sceneSetMapHeight")))
-          {
-            pProgramState->settings.maptiles.mapHeight = (float)mousePosLongLat.z;
-            ImGui::CloseCurrentPopup();
-          }
-        }
-
         if (ImGui::MenuItem(vcString::Get("sceneMoveTo")))
         {
           pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->gis, pProgramState->camera.position, pProgramState->camera.headingPitch);
+          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
           pProgramState->cameraInput.progress = 0.0;
 
           pProgramState->isUsingAnchorPoint = true;
@@ -2442,8 +2425,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   renderData.pins.Deinit();
 
   // Can only assign longlat positions in projected space
-  if (pProgramState->gis.isProjected)
-    pProgramState->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->gis.zone, pProgramState->worldMousePosCartesian, true);
+  if (pProgramState->geozone.projection != udGZPT_Unknown)
+    pProgramState->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->worldMousePosCartesian, true);
   else
     pProgramState->worldMousePosLongLat = pProgramState->worldMousePosCartesian;
 

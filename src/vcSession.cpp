@@ -204,11 +204,11 @@ void vcSession_Logout(vcState *pProgramState)
 #endif //VC_HASCONVERT
 
     pProgramState->modelPath[0] = '\0';
-    vcProject_InitBlankScene(pProgramState);
+    vcProject_InitBlankScene(pProgramState, "Ending", 0);
     pProgramState->projects.Destroy();
     pProgramState->profileInfo.Destroy();
 
-    memset(&pProgramState->gis, 0, sizeof(pProgramState->gis));
+    memset(&pProgramState->geozone, 0, sizeof(pProgramState->geozone));
     vdkContext_Disconnect(&pProgramState->pVDKContext, false);
 
     vcModals_OpenModal(pProgramState, vcMT_LoggedOut);

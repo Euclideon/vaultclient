@@ -120,7 +120,7 @@ public:
   void SelectSubitem(uint64_t internalId);
   bool IsSubitemSelected(uint64_t internalId);
 
-  void SetWorldUp(const vcGISSpace &space);
+  void SetWorldUp(const udGeoZone &zone);
 
 private:
   void InsertPoint(const udDouble3 &position);

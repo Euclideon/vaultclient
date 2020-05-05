@@ -904,7 +904,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   }
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, vcGISSpace *pSpace, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
@@ -912,7 +912,7 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
 
   vcQuadTreeViewInfo viewInfo =
   {
-    pSpace,
+    pGeozone,
     slippyCoords,
     cameraWorldPos,
     cameraZeroAltitude,

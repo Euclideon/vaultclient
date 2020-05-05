@@ -25,7 +25,7 @@ vcWater::vcWater(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
 void vcWater::OnNodeUpdate(vcState *pProgramState)
 {
   vdkProjectNode_GetMetadataDouble(m_pNode, "altitude", &m_altitude, 0.0);
-  ChangeProjection(pProgramState->gis.zone);
+  ChangeProjection(pProgramState->geozone);
 }
 
 void vcWater::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)

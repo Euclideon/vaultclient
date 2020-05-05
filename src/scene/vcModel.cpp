@@ -40,7 +40,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
     pModel->m_meterScale = pModel->m_pointCloudHeader.unitMeterScale;
     pModel->m_pivot = udDouble3::create(pModel->m_pointCloudHeader.pivot[0], pModel->m_pointCloudHeader.pivot[1], pModel->m_pointCloudHeader.pivot[2]);
 
-    vcSRID srid = 0;
+    int32_t srid = 0;
     const char *pSRID = pModel->m_metadata.Get("ProjectionID").AsString();
     const char *pWKT = pModel->m_metadata.Get("ProjectionWKT").AsString();
 
@@ -179,7 +179,7 @@ void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   }
 
   if (m_changeZones)
-    ChangeProjection(pProgramState->gis.zone);
+    ChangeProjection(pProgramState->geozone);
 
   pRenderData->models.PushBack(this);
 }
@@ -203,10 +203,8 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
     }
     else
     {
-      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, pProgramState->gis.zone, &pPosition, nullptr);
-
-      if (pProgramState->gis.isProjected)
-        m_pCurrentZone = (udGeoZone*)udMemDup(&pProgramState->gis.zone, sizeof(udGeoZone), 0, udAF_None);
+      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, &pPosition, nullptr);
+      m_pCurrentZone = (udGeoZone*)udMemDup(&pProgramState->geozone, sizeof(udGeoZone), 0, udAF_None);
     }
 
     vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
@@ -267,7 +265,7 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_sceneMatrix = delta * m_sceneMatrix;
 
   // Save it to the node...
-  if (m_pCurrentZone != nullptr)
+  if (m_pCurrentZone != nullptr || m_pProject->baseZone.srid == 0)
   {
     udDouble3 position;
     udDouble3 scale;
@@ -456,7 +454,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
     m_sceneMatrix = m_defaultMatrix;
 
-    ChangeProjection(pProgramState->gis.zone);
+    ChangeProjection(pProgramState->geozone);
     ApplyDelta(pProgramState, udDouble4x4::identity());
   }
 
@@ -474,7 +472,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationCurrent, positionDefault) * udDouble4x4::scaleNonUniform(scaleCurrent) * udDouble4x4::translation(-m_pivot);;
 
-    ChangeProjection(pProgramState->gis.zone);
+    ChangeProjection(pProgramState->geozone);
     ApplyDelta(pProgramState, udDouble4x4::identity());
   }
 
@@ -492,7 +490,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationDefault, positionCurrent) * udDouble4x4::scaleNonUniform(scaleCurrent) * udDouble4x4::translation(-m_pivot);;
 
-    ChangeProjection(pProgramState->gis.zone);
+    ChangeProjection(pProgramState->geozone);
     ApplyDelta(pProgramState, udDouble4x4::identity());
   }
 
@@ -510,14 +508,14 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationCurrent, positionCurrent) * udDouble4x4::scaleNonUniform(scaleDefault) * udDouble4x4::translation(-m_pivot);;
 
-    ChangeProjection(pProgramState->gis.zone);
+    ChangeProjection(pProgramState->geozone);
     ApplyDelta(pProgramState, udDouble4x4::identity());
   }
 
   ImGui::Separator();
 
 #if VC_HASCONVERT
-  if ((m_pPreferredProjection == nullptr && pProgramState->gis.SRID == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->gis.SRID))
+  if ((m_pPreferredProjection == nullptr && pProgramState->geozone.srid == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->geozone.srid))
   {
     bool matrixEqual = udMatrixEqualApprox(m_defaultMatrix, m_sceneMatrix);
     if (matrixEqual && ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))

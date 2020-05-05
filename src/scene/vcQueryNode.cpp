@@ -56,7 +56,7 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_ypr.y, 0.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_ypr.z, 0.0);
 
-  ChangeProjection(pProgramState->gis.zone);
+  ChangeProjection(pProgramState->geozone);
 
   switch (m_shape)
   {
@@ -110,7 +110,7 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_center = matrix.axis.t.toVector3();
   m_extents = udDouble3::create(udMag3(matrix.axis.x), udMag3(matrix.axis.y), udMag3(matrix.axis.z));
   
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->gis.zone, vdkPGT_Point, &m_center, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_center, 1);
 
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
   vdkProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
