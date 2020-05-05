@@ -248,7 +248,7 @@ bool vcFileDialog_ListFolder(const char *pFolderPath, char *pLoadPath, size_t lo
       if (!showFiles)
       {
         ImGui::SameLine();
-        if (ImGui::SmallButton(udTempStr("%s##%s", vcString::Get("filepickerSelect"), pDir->pFilename)))
+        if (ImGui::SmallButton(udTempStr("%s##%s", vcString::Get("menuSelect"), pDir->pFilename)))
         {
           udSprintf(fullPath, "%s%s", pFolderPath, pDir->pFilename);
           udStrcpy(pLoadPath, loadPathLen, fullPath);
