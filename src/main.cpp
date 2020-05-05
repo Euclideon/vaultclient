@@ -479,7 +479,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else
             {
-              udDouble3 geolocationLongLat = udDouble3::zero();
+              udDouble3 geolocationLatLong = udDouble3::zero();
               bool hasLocation = false;
               vcImageType imageType = vcIT_StandardPhoto;
 
@@ -498,9 +498,9 @@ void vcMain_MainLoop(vcState *pProgramState)
                     if (exifResult.GeoLocation.Latitude != 0.0 || exifResult.GeoLocation.Longitude != 0.0)
                     {
                       hasLocation = true;
-                      geolocationLongLat.x = exifResult.GeoLocation.Longitude;
-                      geolocationLongLat.y = exifResult.GeoLocation.Latitude;
-                      geolocationLongLat.z = exifResult.GeoLocation.Altitude;
+                      geolocationLatLong.x = exifResult.GeoLocation.Latitude;
+                      geolocationLatLong.y = exifResult.GeoLocation.Longitude;
+                      geolocationLatLong.z = exifResult.GeoLocation.Altitude;
                     }
 
                     if (exifResult.XMPMetadata != "")
@@ -526,7 +526,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == vE_Success)
               {
                 if (hasLocation && pProgramState->geozone.projection != udGZPT_Unknown)
-                  vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &geolocationLongLat.x);
+                  vcProject_UpdateNodeGeometryFromLatLong(&pProgramState->activeProject, pNode, vdkPGT_Point, &geolocationLatLong, 1);
                 else
                   vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->camera.position, 1);
 
@@ -1764,7 +1764,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         {
           if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
           {
-            vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 1, &pProgramState->worldMousePosLongLat.x);
+            vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_LineString, &pProgramState->worldMousePosCartesian, 1);
             udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
           }
@@ -1773,7 +1773,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         {
           if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
           {
-            vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->worldMousePosLongLat.x);
+            vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
             udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             vdkProjectNode_SetMetadataBool(pNode, "showArea", true);
           }
@@ -1788,7 +1788,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
       if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("toolAnnotateDefaultText"), nullptr, nullptr) == vE_Success)
       {
-        vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &pProgramState->worldMousePosLongLat.x);
+        vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
       }
       break;
@@ -2175,7 +2175,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
           if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
           {
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
 
             ImGui::CloseCurrentPopup();
           }
@@ -2186,7 +2186,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             }
 
@@ -2199,7 +2199,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
               vdkProjectNode_SetMetadataBool(pNode, "showArea", true);
             }
@@ -2213,7 +2213,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 1, &mousePosLongLat.x);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_LineString, &pProgramState->worldMousePosCartesian, 1);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             }
 
@@ -2226,7 +2226,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_LineString, 1, &mousePosLongLat.x);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_LineString, &pProgramState->worldMousePosCartesian, 1);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
               vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
             }
@@ -2240,7 +2240,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == vE_Success)
             {
-              vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Polygon, 1, &mousePosLongLat.x);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
               udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             }
 
@@ -2257,7 +2257,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
               if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterBoxDefaultName"), nullptr, nullptr) == vE_Success)
               {
-                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
                 vdkProjectNode_SetMetadataString(pNode, "shape", "box");
                 vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
                 vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
@@ -2274,7 +2274,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
               if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterSphereDefaultName"), nullptr, nullptr) == vE_Success)
               {
-                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
                 vdkProjectNode_SetMetadataString(pNode, "shape", "sphere");
                 vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
                 vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);
@@ -2291,7 +2291,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
               if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterCylinderDefaultName"), nullptr, nullptr) == vE_Success)
               {
-                vdkProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, vdkPGT_Point, 1, &mousePosLongLat.x);
+                vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
                 vdkProjectNode_SetMetadataString(pNode, "shape", "cylinder");
                 vdkProjectNode_SetMetadataDouble(pNode, "size.x", scaleFactor);
                 vdkProjectNode_SetMetadataDouble(pNode, "size.y", scaleFactor);

@@ -458,6 +458,15 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, vdkProjectNo
   return (result == vE_Success);
 }
 
+bool vcProject_UpdateNodeGeometryFromLatLong(vcProject *pProject, vdkProjectNode *pNode, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
+{
+  //TODO: Optimise this
+  udGeoZone zone;
+  udGeoZone_SetFromSRID(&zone, 4326);
+
+  return vcProject_UpdateNodeGeometryFromCartesian(pProject, pNode, zone, newType, pPoints, numPoints);
+}
+
 bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)
 {
   if (pProject == nullptr || pNode == nullptr)

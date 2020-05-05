@@ -46,6 +46,8 @@ bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem);
 bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem);
 
 bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints);
+bool vcProject_UpdateNodeGeometryFromLatLong(vcProject *pProject, vdkProjectNode *pNode, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints);
+
 bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints);
 
 void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **ppCurrentText);
