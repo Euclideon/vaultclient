@@ -1006,7 +1006,7 @@ void vcPOI::CalculateCentroid()
   m_centroid = udDouble3::zero();
 
   udDouble3 aabbMin = udDouble3::create(DBL_MAX, DBL_MAX, DBL_MAX);
-  udDouble3 aabbMax = udDouble3::create(DBL_MIN, DBL_MIN, DBL_MIN);
+  udDouble3 aabbMax = udDouble3::create(-DBL_MAX, -DBL_MAX, -DBL_MAX);
 
   for (int p = 0; p < m_line.numPoints; p++)
   {
@@ -1079,20 +1079,21 @@ bool vcPOI::LoadAttachedModel(const char *pNewPath)
   return false;
 }
 
-double vcPOI::DistanceToPoint(udDouble3 const & point)
+double vcPOI::DistanceToPoint(udDouble3 const &point)
 {
   int nSegments = m_line.numPoints;
   if (!m_line.closed)
     --nSegments;
 
-  double distanceSq = DBL_MAX;
+  double distanceSq = udMagSq(m_line.pPoints[0] - point);
+
   for (int i = 0; i < nSegments; ++i)
   {
     udLineSegment<double> seg(m_line.pPoints[i], m_line.pPoints[(i + 1) % m_line.numPoints]);
     double segDistanceSq = udDistanceSqLineSegmentPoint(seg, point);
-    if (segDistanceSq < distanceSq)
-      distanceSq = segDistanceSq;
+    distanceSq = udMin(segDistanceSq, distanceSq);
   }
+
   return udSqrt(distanceSq);
 }
 
