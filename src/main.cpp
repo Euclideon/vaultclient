@@ -483,6 +483,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else if (firstLoad) // Was successful
             {
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->camera.position, 1);
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
             }
           }
