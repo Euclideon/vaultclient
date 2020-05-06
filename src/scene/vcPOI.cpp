@@ -649,7 +649,7 @@ void vcPOI::UpdatePoints()
       if (m_pLine == nullptr)
         vcLineRenderer_CreateLine(&m_pLine);
 
-      vcLineRenderer_UpdatePoints(m_pLine, m_line.pPoints, m_line.numPoints, vcIGSW_BGRAToImGui(m_line.colourPrimary), m_line.lineWidth);
+      vcLineRenderer_UpdatePoints(m_pLine, m_line.pPoints, m_line.numPoints, vcIGSW_BGRAToImGui(m_line.colourPrimary), m_line.lineWidth, m_line.closed);
     }
   }
 
