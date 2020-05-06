@@ -106,6 +106,9 @@ struct vcRenderContext
   vcPinRenderer *pPinRenderer;
   double pinUpdateRateTimer;
 
+  // cache some frame data
+  udDouble3 cameraZeroAltitude;
+
   struct
   {
     vcShader *pProgram;
@@ -119,6 +122,7 @@ struct vcRenderContext
       udFloat4 screenParams;  // sampleStepX, sampleStepSizeY, (unused), (unused)
       udFloat4x4 inverseViewProjection;
       udFloat4x4 inverseProjection;
+      udFloat4 eyeToEarthSurfaceEyeSpace;
 
       // outlining
       udFloat4 outlineColour;
@@ -779,14 +783,12 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
-    int currentZoom = 21;
+    double cameraHeightAboveEarthSurface = 0.0;
+    udDouble3 earthSurfaceToCamera = localCamPos - pRenderContext->cameraZeroAltitude;
+    if (udMagSq3(earthSurfaceToCamera))
+      cameraHeightAboveEarthSurface = udMag3(earthSurfaceToCamera);
 
-    // project camera position to base altitude
-    udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
-    cameraPositionInLongLat.z = 0.0;
-    udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
-    udDouble3 earthNormal = localCamPos - cameraZeroAltitude;
-    double cameraDistanceToAltitudeZero = udMag3(earthNormal);
+    int currentZoom = 21;
 
     // TODO: Fix this
     // determine if camera is 'inside' the ground
@@ -799,7 +801,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     // These values were trial and errored.
     const double BaseViewDistance = 10000.0;
     const double HeightViewDistanceScale = 35.0;
-    double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraDistanceToAltitudeZero * HeightViewDistanceScale);
+    double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraHeightAboveEarthSurface * HeightViewDistanceScale);
 
     // Corners [nw, ne, sw, se]
     udDouble3 localCorners[4];
@@ -825,7 +827,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     for (int i = 0; i < 4; ++i)
       vcGIS_SlippyToLocal(pProgramState->geozone, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, cameraZeroAltitude, viewProjection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->cameraZeroAltitude, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround, passType);
   }
 }
@@ -903,6 +905,9 @@ void vcRender_VisualizationPass(vcState *pProgramState, vcRenderContext *pRender
     contourRainboxIntensity = 0.f;
   }
 
+  udDouble4 eyeToEarthSurfaceEyeSpace = pProgramState->camera.matrices.view * udDouble4::create(pRenderContext->cameraZeroAltitude, 1.0);
+
+  pRenderContext->visualizationShader.fragParams.eyeToEarthSurfaceEyeSpace = udFloat4::create((float)eyeToEarthSurfaceEyeSpace.x, (float)eyeToEarthSurfaceEyeSpace.y, (float)eyeToEarthSurfaceEyeSpace.z, 1.0f);
   pRenderContext->visualizationShader.fragParams.inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
   pRenderContext->visualizationShader.fragParams.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
   pRenderContext->visualizationShader.fragParams.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
@@ -1329,6 +1334,11 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   udUnused(pDefaultFramebuffer);
+
+  // project camera position to base altitude
+  udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
+  cameraPositionInLongLat.z = 0.0;
+  pRenderContext->cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
 
   pRenderContext->pinUpdateRateTimer += pProgramState->deltaTime;
   if (pRenderContext->pinUpdateRateTimer >= PinRendererUpdateRateSec)
