@@ -34,7 +34,8 @@ cbuffer u_fragParams : register(b0)
   float4 u_screenParams;  // sampleStepSizeX, sampleStepSizeY, (unused), (unused)
   float4x4 u_inverseViewProjection;
   float4x4 u_inverseProjection;
-
+  float4 u_eyeToEarthSurfaceEyeSpace;
+  
   // outlining
   float4 u_outlineColour;
   float4 u_outlineParams;   // outlineWidth, threshold, (unused), (unused)
@@ -112,26 +113,39 @@ float3 hsv2rgb(float3 c)
   return c.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-float3 contourColour(float3 col, float3 fragWorldPosition)
+// project position onto earth surface (in eye space)
+float calculateHeightAboveEarth(float3 fragEyePosition)
+{
+  float3 eyeToEarthSurface = u_eyeToEarthSurfaceEyeSpace.xyz;
+  float3 projectedPosition = (dot(fragEyePosition, eyeToEarthSurface) / dot(eyeToEarthSurface, eyeToEarthSurface)) * eyeToEarthSurface;
+  
+  // clamp at altitude '0.0'
+  float isBelowSurface = float(dot(projectedPosition, projectedPosition) > dot(eyeToEarthSurface, eyeToEarthSurface));
+  return lerp(length(eyeToEarthSurface - projectedPosition), 0.0, isBelowSurface);
+}
+
+float3 contourColour(float3 col, float3 fragEyePosition)
 {
   float contourDistance = u_contourParams.x;
   float contourBandHeight = u_contourParams.y;
   float contourRainboxRepeat = u_contourParams.z;
   float contourRainboxIntensity = u_contourParams.w;
 
-  float3 rainbowColour = hsv2rgb(float3(fragWorldPosition.z * (1.0 / contourRainboxRepeat), 1.0, 1.0));
+  float projectedHeight = calculateHeightAboveEarth(fragEyePosition);
+  float3 rainbowColour = hsv2rgb(float3(projectedHeight * (1.0 / contourRainboxRepeat), 1.0, 1.0));
   float3 baseColour = lerp(col.xyz, rainbowColour, contourRainboxIntensity);
 
-  float isContour = 1.0 - step(contourBandHeight, fmod(abs(fragWorldPosition.z), contourDistance));
+  float isContour = 1.0 - step(contourBandHeight, fmod(abs(projectedHeight), contourDistance));
   return lerp(baseColour, u_contourColour.xyz, isContour * u_contourColour.w);
 }
 
-float3 colourizeByHeight(float3 col, float3 fragWorldPosition)
+float3 colourizeByHeight(float3 col, float3 fragEyePosition)
 {
   float2 worldColourMinMax = u_colourizeHeightParams.xy;
-
-  float minMaxColourStrength = getNormalizedPosition(fragWorldPosition.z, worldColourMinMax.x, worldColourMinMax.y);
-
+  
+  float projectedHeight = calculateHeightAboveEarth(fragEyePosition);
+  float minMaxColourStrength = getNormalizedPosition(projectedHeight, worldColourMinMax.x, worldColourMinMax.y);
+  
   float3 minColour = lerp(col.xyz, u_colourizeHeightColourMin.xyz, u_colourizeHeightColourMin.w);
   float3 maxColour = lerp(col.xyz, u_colourizeHeightColourMax.xyz, u_colourizeHeightColourMax.w);
   return lerp(minColour, maxColour, minMaxColourStrength);
@@ -154,18 +168,13 @@ PS_OUTPUT main(PS_INPUT input)
   float depth = logToLinearDepth(logDepth);
   float clipZ = linearDepthToClipZ(depth);
 
-  // TODO: I'm fairly certain this is actually wrong (world space calculations), and will have precision issues
-  float4 fragWorldPosition = mul(u_inverseViewProjection, float4(input.clip.xy, clipZ, 1.0));
-  fragWorldPosition /= fragWorldPosition.w;
-
   float4 fragEyePosition = mul(u_inverseProjection, float4(input.clip.xy, clipZ, 1.0));
   fragEyePosition /= fragEyePosition.w;
 
-  col.xyz = colourizeByHeight(col.xyz, fragWorldPosition.xyz);
+  col.xyz = colourizeByHeight(col.xyz, fragEyePosition.xyz);
   col.xyz = colourizeByEyeDistance(col.xyz, fragEyePosition.xyz);
-
-  col.xyz = contourColour(col.xyz, fragWorldPosition.xyz);
-
+  col.xyz = contourColour(col.xyz, fragEyePosition.xyz);
+  
   float edgeOutlineWidth = u_outlineParams.x;
   float edgeOutlineThreshold = u_outlineParams.y;
   float4 outlineColour = u_outlineColour;
