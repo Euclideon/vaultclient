@@ -1441,6 +1441,9 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
 
+  if (pRenderView == nullptr && pProgramState->pVDKContext)
+    vcRender_RecreateUDView(pProgramState, pRenderContext);
+
   vdkRenderInstance *pModels = nullptr;
   vcUDRSData *pVoxelShaderData = nullptr;
 
