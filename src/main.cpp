@@ -2175,7 +2175,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         if (pProgramState->sceneExplorer.selectedItems.size() == 1)
         {
           const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-          if (item.pItem->itemtype == vdkPNT_PointOfInterest && item.pItem->pUserData != nullptr)
+          if (item.pItem->itemtype == vdkPNT_PointOfInterest && item.pItem->pUserData != nullptr && item.pItem->geomtype != vdkPGT_Point)
           {
             vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
