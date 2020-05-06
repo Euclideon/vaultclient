@@ -172,11 +172,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (group == vcSC_All || group == vcSC_InputControls)
   {
     pSettings->window.touchscreenFriendly = data.Get("window.touchscreenFriendly").AsBool(false);
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    pSettings->onScreenControls = true;
-#else
-    pSettings->onScreenControls = false;
-#endif
+    pSettings->onScreenControls = data.Get("window.onScreenControls").AsBool(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID);
     pSettings->camera.invertMouseX = data.Get("camera.invertMouseX").AsBool(false);
     pSettings->camera.invertMouseY = data.Get("camera.invertMouseY").AsBool(false);
     pSettings->camera.invertControllerX = data.Get("camera.invertControllerX").AsBool(false);
@@ -520,6 +516,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.height = %d", pSettings->window.height);
   data.Set("window.maximized = %s", pSettings->window.maximized ? "true" : "false");
   data.Set("window.touchscreenFriendly = %s", pSettings->window.touchscreenFriendly ? "true" : "false");
+  data.Set("window.onScreenControls = %s", pSettings->onScreenControls ? "true" : "false");
   data.Set("window.language = '%s'", pSettings->window.languageCode);
   data.Set("window.showNativeUI = %s", pSettings->window.useNativeUI ? "true" : "false");
 
