@@ -11,7 +11,7 @@ trigger:
 variables:
 - group: SignToolKey
 - name: linkedVDK
-  value: Pipeline_2020041715
+  value: Euclideon_vdk0.6.0
 - name: VAULTSDK_HOME
   value: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
 
