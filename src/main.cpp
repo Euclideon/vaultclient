@@ -1123,7 +1123,6 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
   ImGuiIO &io = ImGui::GetIO();
-  float bottomLeftOffset = 0.f;
 
   float attachmentPanelSize = 0.f;
 
@@ -1481,17 +1480,16 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       ImGui::SetNextWindowPos(ImVec2(windowPos.x, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.f, 1.f));
       ImGui::SetNextWindowBgAlpha(0.5f);
 
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0, 0));
       ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
 
       bool open = ImGui::Begin("attributionText", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking);
 
-      ImGui::PopStyleVar(2);
+      ImGui::PopStyleVar(3);
 
       if (open)
-      {
         ImGui::TextUnformatted(pBuffer);
-      }
       ImGui::End();
       udFree(pBuffer);
     }
@@ -1510,12 +1508,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   // On Screen Controls Overlay
   if (pProgramState->settings.onScreenControls)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + bottomLeftOffset, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x - 40, windowPos.y + windowSize.y), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
     ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
 
     if (ImGui::Begin("OnScrnControls", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
     {
-      ImGui::SetWindowSize(ImVec2(175, 120));
+      ImGui::SetWindowSize(ImVec2(165, 120));
 
       ImGui::Columns(2, NULL, false);
 
@@ -1548,8 +1546,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       *pCameraMoveOffset += udDouble3::create(right, forward, (double)vertical);
 
       ImGui::Columns(1);
-
-      bottomLeftOffset += ImGui::GetWindowWidth();
     }
 
     ImGui::End();
