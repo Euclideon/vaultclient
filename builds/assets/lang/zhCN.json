@@ -6,7 +6,7 @@
     "englishname": "Simplified Chinese",
     "translationby": "深圳优立视觉科技有限公司",
     "contactemail": "support@euclideon.com.cn",
-    "targetVersion": "0.6.0"
+    "targetVersion": "0.6.1"
   },
   "popupClose": "关闭",
   "popupConfirmYes": "是",
@@ -317,7 +317,6 @@
   "sceneMousePointWGS": "鼠标所在点（WGS84）",
   "sceneSRID": "SRID",
   "sceneOverrideSRID": "重写SRID",
-  "sceneSetMapHeight": "设置为摄像机高度",
   "sceneAddPOI": "此处添加兴趣点",
   "sceneMoveTo": "移动至",
   "sceneAddMenu": "添加新项目",
@@ -634,5 +633,16 @@
   "Tools": "工具",
   "Small": "小",
   "Medium": "中",
-  "Large": "大"
+  "Large": "大",
+  "settingsAppearanceSkyboxTimeOfYear": "一年中的时间",
+  "settingsAppearanceSkyboxUseLiveTime": "使用时钟作为太阳位置",
+  "settingsAppearanceSkyboxLockSunPosition": "将太阳锁定到相机",
+  "menuSelect": "选择",
+  "modalProjectNewTitle": "新项目",
+  "modalProjectNewName": "项目名称",
+  "modalProjectNewGeolocated": "地理位置（GeoJSON格式）",
+  "modalProjectNewNonGeolocated": "未定位",
+  "modalProjectNewGeolocatedSpecificZone": "地理位置（特定区域）",
+  "modalProjectNewGeolocatedSpecificZoneID": "区域SRID",
+  "modalProjectNewCreate": "新建"
 }
