@@ -163,9 +163,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Colour);
     pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.66f, 1.f));
     pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
-    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(9);
-    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6);
-    pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSame").AsBool(true);
+    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(12.f);
+    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6.f);
+    pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSameTime").AsBool(true);
     pSettings->presentation.skybox.useLiveTime = data.Get("skybox.uselivetime").AsBool(false);
   }
 
@@ -505,7 +505,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("skybox.exposure = %f", pSettings->presentation.skybox.exposure);
   data.Set("skybox.timeOfDay = %f", pSettings->presentation.skybox.timeOfDay);
   data.Set("skybox.month = %f", pSettings->presentation.skybox.month);
-  data.Set("skybox.timeOfDay = %s", pSettings->presentation.skybox.keepSameTime ? "true" : "false");
+  data.Set("skybox.keepSameTime = %s", pSettings->presentation.skybox.keepSameTime ? "true" : "false");
   data.Set("skybox.uselivetime = %s", pSettings->presentation.skybox.useLiveTime ? "true" : "false");
 
   data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
