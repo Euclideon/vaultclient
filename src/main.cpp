@@ -443,9 +443,25 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               continue;
             }
-            else if (firstLoad) // Was successful
+            else
             {
-              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+              if (firstLoad) // Was successful
+                udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+
+              // Let is know about the mouse position- using bounding box currently
+              //TODO: Don't use the boundingBox
+              if (pProgramState->pickingSuccess)
+              {
+                pNode->boundingBox[0] = pProgramState->worldMousePosCartesian.x;
+                pNode->boundingBox[1] = pProgramState->worldMousePosCartesian.y;
+                pNode->boundingBox[2] = pProgramState->worldMousePosCartesian.z;
+              }
+              else
+              {
+                pNode->boundingBox[0] = pProgramState->camera.position.x;
+                pNode->boundingBox[1] = pProgramState->camera.position.y;
+                pNode->boundingBox[2] = pProgramState->camera.position.z;
+              }
             }
           }
           else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
