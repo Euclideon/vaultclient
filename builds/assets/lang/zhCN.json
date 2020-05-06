@@ -644,5 +644,5 @@
   "modalProjectNewNonGeolocated": "未定位",
   "modalProjectNewGeolocatedSpecificZone": "地理位置（特定区域）",
   "modalProjectNewGeolocatedSpecificZoneID": "区域SRID",
-  "modalProjectNewCreate": "建立新专案"
+  "modalProjectNewCreate": "新建"
 }
