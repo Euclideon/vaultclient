@@ -2,11 +2,11 @@
 #include "imgui_impl_gl.h"
 #include "imgui_impl_sdl.h"
 
-#include "gl/vcGLState.h"
-#include "gl/vcShader.h"
-#include "gl/vcFramebuffer.h"
-#include "gl/vcMesh.h"
-#include "gl/vcLayout.h"
+#include "vcGLState.h"
+#include "vcShader.h"
+#include "vcFramebuffer.h"
+#include "vcMesh.h"
+#include "vcLayout.h"
 
 //GL Data
 vcTexture *g_pFontTexture = nullptr;

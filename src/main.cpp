@@ -43,8 +43,8 @@
 #include "vcHotkey.h"
 #include "vcConstants.h"
 
-#include "gl/vcGLState.h"
-#include "gl/vcFramebuffer.h"
+#include "vcGLState.h"
+#include "vcFramebuffer.h"
 
 #include "parsers/vcUDP.h"
 

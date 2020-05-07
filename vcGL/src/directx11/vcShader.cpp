@@ -1,6 +1,6 @@
-#include "gl/vcShader.h"
+#include "vcShader.h"
 #include "vcD3D11.h"
-#include "vcConstants.h"
+#include "../../src/vcConstants.h" // TODO: Fix this
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
 #include "udFile.h"

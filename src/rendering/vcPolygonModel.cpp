@@ -5,8 +5,8 @@
 #include "udStringUtil.h"
 #include "udWorkerPool.h"
 
-#include "gl/vcMesh.h"
-#include "gl/vcTexture.h"
+#include "vcMesh.h"
+#include "vcTexture.h"
 
 #include "parsers/vcOBJ.h"
 

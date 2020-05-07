@@ -2,14 +2,14 @@
 #include "vcState.h"
 #include "vcInternalModels.h"
 
-#include "gl/vcShader.h"
+#include "vcShader.h"
 
 #include "udGeoZone.h"
 #include "udMath.h"
 #include "udPlatform.h"
 #include "udStringUtil.h"
 
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 
 #include "atmosphere/model.h"
 

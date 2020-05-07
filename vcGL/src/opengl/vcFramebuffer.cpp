@@ -1,4 +1,4 @@
-#include "gl/vcFramebuffer.h"
+#include "vcFramebuffer.h"
 #include "vcOpenGL.h"
 
 bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/, vcTexture *pAttachment2 /*= nullptr*/)

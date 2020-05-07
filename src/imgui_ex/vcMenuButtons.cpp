@@ -1,6 +1,6 @@
 #include "vcMenuButtons.h"
 #include "vcImGuiSimpleWidgets.h"
-#include "gl/vcTexture.h"
+#include "vcTexture.h"
 
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"

@@ -1,6 +1,6 @@
 #import "vcMetal.h"
-#import "vcConstants.h"
-#import "gl/vcShader.h"
+#import "../../src/vcConstants.h" // TODO: Fix this
+#import "vcShader.h"
 #import <Metal/Metal.h>
 
 #import "udPlatformUtil.h"

@@ -2,7 +2,7 @@
 
 #include "vcSettings.h"
 
-#include "gl/vcLayout.h"
+#include "vcLayout.h"
 
 #include "udGeoZone.h"
 #include "udJSON.h"

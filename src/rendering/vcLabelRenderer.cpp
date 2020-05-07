@@ -1,6 +1,6 @@
 #include "vcLabelRenderer.h"
 #include "udPlatformUtil.h"
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 #include "vcInternalModels.h"
 
 #include "imgui.h"

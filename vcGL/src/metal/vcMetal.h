@@ -3,10 +3,10 @@
 
 #import "udPlatform.h"
 
-#import "gl/vcGLState.h"
-#import "gl/vcTexture.h"
-#import "gl/vcMesh.h"
-#import "gl/vcFramebuffer.h"
+#import "vcGLState.h"
+#import "vcTexture.h"
+#import "vcMesh.h"
+#import "vcFramebuffer.h"
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>

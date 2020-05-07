@@ -1,7 +1,7 @@
 #include "vcLineRenderer.h"
-#include "gl/vcShader.h"
+#include "vcShader.h"
 #include "udChunkedArray.h"
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 
 struct vcLineInstance
 {

@@ -4,8 +4,8 @@
 #include "vcSceneLayer.h"
 #include "vcPolygonModel.h"
 
-#include "gl/vcTexture.h"
-#include "gl/vcGLState.h"
+#include "vcTexture.h"
+#include "vcGLState.h"
 
 udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, udWorkerPool *pWorkerThreadPool, const char *pSceneLayerURL)
 {

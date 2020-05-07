@@ -8,7 +8,7 @@
 #include "vdkRenderView.h"
 #include "vdkQuery.h"
 
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcWaterRenderer.h"

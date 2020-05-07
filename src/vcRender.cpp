@@ -1,8 +1,8 @@
 #include "vcRender.h"
 
-#include "gl/vcFramebuffer.h"
-#include "gl/vcShader.h"
-#include "gl/vcGLState.h"
+#include "vcFramebuffer.h"
+#include "vcShader.h"
+#include "vcGLState.h"
 #include "vcFenceRenderer.h"
 #include "vcWaterRenderer.h"
 #include "vcTileRenderer.h"
