@@ -1113,7 +1113,6 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
   if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
   {
-    vcGLState_SetViewportDepthRange(0.0f, 0.0f);
     vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
   }
   else if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
