@@ -100,7 +100,10 @@ epilogue:
 udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPoints, size_t pointCount, const udFloat4 &colour, float width, bool closed)
 {
   udResult result;
+
+  closed = closed && (pointCount > 2); // Less than 2 points can't really be 'closed'
   size_t realPointCount = (pointCount + (closed ? 1 : 0));
+
   size_t vertCount = realPointCount * 2;
   vcLineVertex *pVerts = nullptr;
   vcMesh *pMesh = nullptr;
