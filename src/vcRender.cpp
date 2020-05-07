@@ -1177,8 +1177,10 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
 
   // lines
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+  udDouble4 nearPlane = vcCamera_GetNearPlane(pProgramState->camera, pProgramState->settings.camera);
   for (size_t i = 0; i < renderData.lines.length; ++i)
-    vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
+    vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution, nearPlane);
   
   // Images
   {

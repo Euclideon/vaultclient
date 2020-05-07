@@ -99,6 +99,16 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   };
 }
 
+//The plane will be packed into a 4-vec: [normal[3], offset]
+udDouble4 vcCamera_GetNearPlane(const vcCamera &camera, const vcCameraSettings &settings)
+{
+  udDouble4 normal = camera.matrices.camera * udDouble4::create(0.0, 1.0, 0.0, 0.0);
+  udDouble4 point = udDouble4::create(camera.position, 1.0) + settings.nearPlane * normal;
+  double offset = udDot4(normal, point);
+  normal.w = offset;
+  return normal;
+}
+
 void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices

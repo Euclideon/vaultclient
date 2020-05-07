@@ -71,8 +71,8 @@ const vcVertexLayoutTypes vcP3UV2RI4VertexLayout[] = { vcVLT_Position3, vcVLT_Te
 struct vcLineVertex
 {
   udFloat4 position;
-  udFloat4 previous;
-  udFloat4 next;
+  udFloat4 partner;
+  udFloat4 neighbour;
 };
 const vcVertexLayoutTypes vcLineVertexLayout[] = { vcVLT_Position4, vcVLT_Color0, vcVLT_Color1 }; // lines
 
