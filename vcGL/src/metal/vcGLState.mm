@@ -13,8 +13,6 @@
 
 #import <Metal/Metal.h>
 
-#include "vcStrings.h"
-
 int32_t g_maxAnisotropy = 0;
 
 id<MTLDevice> g_device;

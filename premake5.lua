@@ -293,6 +293,7 @@ solution "vaultClient"
 	filter {}
 	removeflags { "FatalWarnings" }
 
+	dofile "vcGL/project.lua"
 	dofile "project.lua"
 
 	if os.target() == "android" then

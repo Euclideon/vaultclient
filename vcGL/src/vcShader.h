@@ -2,7 +2,7 @@
 #define vcShader_h__
 
 #include "udMath.h"
-#include "gl/vcLayout.h"
+#include "vcLayout.h"
 
 #include "vcGLState.h"
 

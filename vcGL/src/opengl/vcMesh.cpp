@@ -1,4 +1,4 @@
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 #include "vcOpenGL.h"
 
 udResult vcMesh_Create(vcMesh **ppMesh, const vcVertexLayoutTypes *pMeshLayout, int totalTypes, const void* pVerts, uint32_t currentVerts, const void *pIndices, uint32_t currentIndices, vcMeshFlags flags/* = vcMF_None*/)

@@ -154,8 +154,8 @@ parameter):
 #include <string>
 #include <vector>
 
-#include "gl/vcTexture.h"
-#include "gl/vcShader.h"
+#include "vcTexture.h"
+#include "vcShader.h"
 
 namespace atmosphere {
 

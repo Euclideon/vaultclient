@@ -2,7 +2,7 @@
 #define vcPolyModelNode_h__
 
 #include "vcSceneItem.h"
-#include "gl/vcGLState.h"
+#include "vcGLState.h"
 
 struct vcState;
 struct vcRenderData;

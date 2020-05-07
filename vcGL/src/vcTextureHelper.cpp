@@ -1,5 +1,4 @@
 #include "vcTexture.h"
-#include "vcSettings.h"
 
 #include "udWorkerPool.h"
 #include "udStringUtil.h"

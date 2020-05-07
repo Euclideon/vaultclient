@@ -1,4 +1,4 @@
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 #include "vcD3D11.h"
 
 udResult vcMeshInternal_RecreateBuffer(ID3D11Buffer **ppBuffer, D3D11_USAGE drawType, D3D11_BIND_FLAG bindFlag, uint32_t unitSize, int bufferSize, void *pBufferData = nullptr)

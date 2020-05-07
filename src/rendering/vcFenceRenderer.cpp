@@ -3,8 +3,8 @@
 
 #include "udChunkedArray.h"
 
-#include "gl/vcMesh.h"
-#include "gl/vcTexture.h"
+#include "vcMesh.h"
+#include "vcTexture.h"
 #include "vcSettings.h"
 
 struct vcFenceSegment

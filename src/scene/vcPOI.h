@@ -9,7 +9,7 @@
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
 #include "vcLineRenderer.h"
-#include "gl/vcGLState.h"
+#include "vcGLState.h"
 
 class vcPOIState_General;
 struct vcRenderPolyInstance;

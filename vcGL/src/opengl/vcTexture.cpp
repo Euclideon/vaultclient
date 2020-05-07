@@ -1,8 +1,7 @@
 #include "vcOpenGL.h"
 
-#include "vcSettings.h"
-#include "gl/vcTexture.h"
-#include "gl/vcFramebuffer.h"
+#include "vcTexture.h"
+#include "vcFramebuffer.h"
 
 #include "udFile.h"
 #include "udPlatformUtil.h"

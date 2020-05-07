@@ -1,9 +1,7 @@
 #include "vcD3D11.h"
 
-#include "gl/vcTexture.h"
-#include "gl/vcLayout.h"
-
-#include "vcSettings.h"
+#include "vcTexture.h"
+#include "vcLayout.h"
 
 #include "udFile.h"
 #include "udPlatformUtil.h"

@@ -16,8 +16,8 @@
 #endif
 #endif //VERIFY_GL
 
-#include "gl/vcGLState.h"
-#include "gl/vcTexture.h"
+#include "vcGLState.h"
+#include "vcTexture.h"
 
 struct vcTexture
 {
