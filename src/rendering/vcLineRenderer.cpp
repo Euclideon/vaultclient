@@ -97,10 +97,14 @@ epilogue:
   return result;
 }
 
-udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPoints, size_t pointCount, const udFloat4 &colour, float width)
+udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPoints, size_t pointCount, const udFloat4 &colour, float width, bool closed)
 {
   udResult result;
-  size_t vertCount = pointCount * 2;
+
+  closed = closed && (pointCount > 2); // Less than 2 points can't really be 'closed'
+  size_t realPointCount = (pointCount + (closed ? 1 : 0));
+
+  size_t vertCount = realPointCount * 2;
   vcLineVertex *pVerts = nullptr;
   vcMesh *pMesh = nullptr;
   udDouble3 origin = pPoints[0];
@@ -111,21 +115,21 @@ udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPo
   pVerts = udAllocType(vcLineVertex, vertCount, udAF_None);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
 
-  for (size_t i = 0; i < pointCount; ++i)
+  for (size_t i = 0; i < realPointCount; ++i)
   {
-    udDouble3 p = pPoints[i];
+    udDouble3 p = pPoints[i % pointCount];
 
     udDouble3 prev = udDouble3::zero();
     udDouble3 next = udDouble3::zero();
-    if (i == 0)
+    if (i == 0 && !closed)
       prev = p + udNormalize3(p - pPoints[i + 1]) * 0.1; // fake a vert
     else
-      prev = pPoints[i - 1];
+      prev = pPoints[(i - 1 + pointCount) % pointCount];
 
-    if (i == pointCount - 1)
+    if (i == pointCount - 1 && !closed)
       next = p + udNormalize3(p - pPoints[i - 1]) * 0.1; // fake a vert
     else
-      next = pPoints[i + 1];
+      next = pPoints[(i + 1) % pointCount];
 
     size_t curIndex = i * 2;
     udFloat3 p0 = udFloat3::create(p - origin);
@@ -145,7 +149,7 @@ udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPo
   pLine->originMatrix = udDouble4x4::translation(origin);
   pLine->colour = colour;
   pLine->width = width;
-  pLine->pointCount = pointCount;
+  pLine->pointCount = realPointCount;
 
   result = udR_Success;
 epilogue:

@@ -29,6 +29,8 @@ PS_OUTPUT main(PS_INPUT input)
 
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
   
-  output.Color0.a = input.depth.x / input.depth.y; // depth packed here
+  float scale = 1.0 / (u_clipZFar - u_clipZNear);
+  float bias = -(u_clipZNear * 0.5);
+  output.Color0.a = (input.depth.x / input.depth.y) * scale + bias; // depth packed here
   return output;
 }

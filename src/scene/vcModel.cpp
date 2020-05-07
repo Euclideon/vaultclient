@@ -26,9 +26,10 @@ struct vcModelLoadInfo
 {
   vcState *pProgramState;
   vcModel *pModel;
+  udDouble3 possibleLocation;
 };
 
-void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
+void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, udDouble3 possibleLocation)
 {
   const char *pMetadata;
 
@@ -69,6 +70,9 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel)
   pModel->m_defaultMatrix = pModel->m_sceneMatrix;
   pModel->m_baseMatrix = pModel->m_defaultMatrix;
 
+  if (pModel->m_pPreferredProjection == nullptr && possibleLocation != udDouble3::zero())
+    vcProject_UpdateNodeGeometryFromCartesian(pModel->m_pProject, pModel->m_pNode, pProgramState->geozone, vdkPGT_Point, &possibleLocation, 1);
+
   pModel->OnNodeUpdate(pProgramState);
 
   if (pModel->m_pPreferredProjection)
@@ -92,7 +96,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
     if (modelStatus == vE_Success)
     {
-      vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel);
+      vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel, pLoadInfo->possibleLocation);
       pLoadInfo->pModel->m_loadStatus = vcSLS_Loaded;
     }
     else if (modelStatus == vE_OpenFailure)
@@ -127,6 +131,11 @@ vcModel::vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
     pLoadInfo->pModel = this;
     pLoadInfo->pProgramState = pProgramState;
 
+    if (!pNode->hasBoundingBox)
+      pLoadInfo->possibleLocation = udDouble3::create(pNode->boundingBox[0], pNode->boundingBox[1], pNode->boundingBox[2]);
+    else
+      pLoadInfo->possibleLocation = udDouble3::zero();
+
     // Queue for load
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcModel_LoadModel, pLoadInfo, true);
   }
@@ -155,7 +164,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   m_pPointCloud = pCloud;
   m_loadStatus = vcSLS_Loaded;
 
-  vcModel_LoadMetadata(pProgramState, this);
+  vcModel_LoadMetadata(pProgramState, this, udDouble3::zero());
 
   m_pNode->pUserData = this;
 
@@ -312,7 +321,14 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   if (repackMatrix)
   {
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+
+    if (m_pCurrentZone != nullptr)
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+    else if (m_pPreferredProjection != nullptr)
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &position, 1);
+    else
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
+
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);

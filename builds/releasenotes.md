@@ -6,13 +6,28 @@ Known Issues In Current Release
     - Round trip for exporting pointclouds doesn't always give the same model
     - Export to UDS doesn't copy all metadata
   - Map mode is unavailable
-  - Lots of minor UI sizing/positioning issues
   - Displacement compare
     - Calculation doesn't always work correctly
     - Sits at 0% for a long time while during initial processing
-  - Lack of prompts for destructive actions
   - Some LAZ files fail to convert
   - Some SLPK files fail to render correctly and SLPK pointcloud is unsupported
+
+Version 0.6.1 (Minor Bug Fix Release)
+  - Added helper system for translations
+    - Updated Chinese translations
+    - Recieved Japanese translation from Kimoto Group <support-geoverse@kimoto.co.jp>
+  - Fixed lots of issues with the Emscripten build
+  - Improved sun positioning
+  - Fixes for entering and leaving full screen mode
+  - Camera input fixes, particularly when looking directly up or down
+  - Repositioned the icons so they are better centred on the buttons
+  - Fixed issue where minor network drops were causing models to disappear
+  - Fixed issues with UI elements opening the wrong pop up windows
+  - Non-geolocated UDS files will be dropped at the mouse position
+  - Project base SRID can now be specified per project
+  - Fixes for lines being transparent on some devices
+  - Fixed a number of issues for non-geolocated models
+  - Optimisations to map tile loading
 
 Version 0.6.0
   - Major overhaul to the entire UI

@@ -160,23 +160,19 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.convertLeftPanelPercentage = data.Get("convertLeftPanelPercentage").AsFloat(0.33f);
     pSettings->presentation.columnSizeCorrect = false;
 
-    pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Colour);
+    pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Atmosphere);
     pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.66f, 1.f));
     pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
-    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(9);
-    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6);
-    pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSame").AsBool(true);
+    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(12.f);
+    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6.f);
+    pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSameTime").AsBool(true);
     pSettings->presentation.skybox.useLiveTime = data.Get("skybox.uselivetime").AsBool(false);
   }
 
   if (group == vcSC_All || group == vcSC_InputControls)
   {
     pSettings->window.touchscreenFriendly = data.Get("window.touchscreenFriendly").AsBool(false);
-#if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
-    pSettings->onScreenControls = true;
-#else
-    pSettings->onScreenControls = false;
-#endif
+    pSettings->onScreenControls = data.Get("window.onScreenControls").AsBool(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID);
     pSettings->camera.invertMouseX = data.Get("camera.invertMouseX").AsBool(false);
     pSettings->camera.invertMouseY = data.Get("camera.invertMouseY").AsBool(false);
     pSettings->camera.invertControllerX = data.Get("camera.invertControllerX").AsBool(false);
@@ -505,7 +501,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("skybox.exposure = %f", pSettings->presentation.skybox.exposure);
   data.Set("skybox.timeOfDay = %f", pSettings->presentation.skybox.timeOfDay);
   data.Set("skybox.month = %f", pSettings->presentation.skybox.month);
-  data.Set("skybox.timeOfDay = %s", pSettings->presentation.skybox.keepSameTime ? "true" : "false");
+  data.Set("skybox.keepSameTime = %s", pSettings->presentation.skybox.keepSameTime ? "true" : "false");
   data.Set("skybox.uselivetime = %s", pSettings->presentation.skybox.useLiveTime ? "true" : "false");
 
   data.Set("objectHighlighting.enable = %s", pSettings->objectHighlighting.enable ? "true" : "false");
@@ -520,6 +516,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("window.height = %d", pSettings->window.height);
   data.Set("window.maximized = %s", pSettings->window.maximized ? "true" : "false");
   data.Set("window.touchscreenFriendly = %s", pSettings->window.touchscreenFriendly ? "true" : "false");
+  data.Set("window.onScreenControls = %s", pSettings->onScreenControls ? "true" : "false");
   data.Set("window.language = '%s'", pSettings->window.languageCode);
   data.Set("window.showNativeUI = %s", pSettings->window.useNativeUI ? "true" : "false");
 

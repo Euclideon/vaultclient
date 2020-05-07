@@ -650,7 +650,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
       if (m_pLine == nullptr)
         vcLineRenderer_CreateLine(&m_pLine);
 
-      vcLineRenderer_UpdatePoints(m_pLine, m_line.pPoints, m_line.numPoints, vcIGSW_BGRAToImGui(m_line.colourPrimary), m_line.lineWidth);
+      vcLineRenderer_UpdatePoints(m_pLine, m_line.pPoints, m_line.numPoints, vcIGSW_BGRAToImGui(m_line.colourPrimary), m_line.lineWidth, m_line.closed);
     }
   }
 
@@ -692,9 +692,12 @@ void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
     if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), itemID), (int *)&m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
       vdkProjectNode_SetMetadataString(m_pNode, "lineMode", vcFRVMStrings[m_line.fenceMode]);
 
-    const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
-    if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), itemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
-      vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
+    if (m_line.fenceMode != vcRRVM_ScreenLine)
+    {
+      const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
+      if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), itemID), (int *)&m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
+        vdkProjectNode_SetMetadataString(m_pNode, "lineStyle", vcFRIMStrings[m_line.lineStyle]);
+    }
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), itemID), &m_line.colourPrimary, ImGuiColorEditFlags_None))
       vdkProjectNode_SetMetadataUint(m_pNode, "lineColourPrimary", m_line.colourPrimary);
@@ -1076,20 +1079,21 @@ bool vcPOI::LoadAttachedModel(const char *pNewPath)
   return false;
 }
 
-double vcPOI::DistanceToPoint(udDouble3 const & point)
+double vcPOI::DistanceToPoint(udDouble3 const &point)
 {
   int nSegments = m_line.numPoints;
   if (!m_line.closed)
     --nSegments;
 
-  double distanceSq = DBL_MAX;
+  double distanceSq = udMagSq(m_line.pPoints[0] - point);
+
   for (int i = 0; i < nSegments; ++i)
   {
     udLineSegment<double> seg(m_line.pPoints[i], m_line.pPoints[(i + 1) % m_line.numPoints]);
     double segDistanceSq = udDistanceSqLineSegmentPoint(seg, point);
-    if (segDistanceSq < distanceSq)
-      distanceSq = segDistanceSq;
+    distanceSq = udMin(segDistanceSq, distanceSq);
   }
+
   return udSqrt(distanceSq);
 }
 
