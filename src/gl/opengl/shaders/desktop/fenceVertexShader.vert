@@ -10,13 +10,15 @@ layout(std140) uniform type_u_EveryFrame
 {
     vec4 u_bottomColour;
     vec4 u_topColour;
-    float u_orientation;
+    vec4 u_worldUp;
+    int u_options;
     float u_width;
     float u_textureRepeatScale;
     float u_textureScrollSpeed;
     float u_time;
     float _padding1;
-    vec2 _padding2;
+    float _padding2;
+    float _padding3;
 } u_EveryFrame;
 
 layout(std140) uniform type_u_EveryObject
@@ -31,16 +33,53 @@ layout(location = 0) out vec4 out_var_COLOR0;
 layout(location = 1) out vec2 out_var_TEXCOORD0;
 layout(location = 2) out vec2 out_var_TEXCOORD1;
 
-vec2 _41;
+vec2 _44;
 
 void main()
 {
-    vec4 _82 = vec4(in_var_POSITION + mix(vec3(0.0, 0.0, in_var_COLOR0.w) * u_EveryFrame.u_width, in_var_COLOR0.xyz, vec3(u_EveryFrame.u_orientation)), 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
-    vec2 _85 = _41;
-    _85.x = 1.0 + _82.w;
-    gl_Position = _82;
+    vec2 _60 = _44;
+    _60.y = in_var_COLOR0.w;
+    vec2 _92;
+    vec3 _93;
+    if (((u_EveryFrame.u_options >> 2) & 1) == 0)
+    {
+        vec2 _72 = _60;
+        _72.x = (in_var_TEXCOORD0.y * u_EveryFrame.u_textureRepeatScale) - u_EveryFrame.u_time;
+        _92 = _72;
+        _93 = vec3(u_EveryFrame.u_worldUp.x, u_EveryFrame.u_worldUp.y, u_EveryFrame.u_worldUp.z);
+    }
+    else
+    {
+        vec2 _87 = _60;
+        _87.x = (in_var_TEXCOORD0.x * u_EveryFrame.u_textureRepeatScale) - u_EveryFrame.u_time;
+        _92 = _87;
+        _93 = vec3(in_var_COLOR0.xyz);
+    }
+    int _94 = u_EveryFrame.u_options & 15;
+    vec3 _120;
+    if (_94 == 0)
+    {
+        _120 = in_var_POSITION + ((_93 * u_EveryFrame.u_width) * in_var_COLOR0.w);
+    }
+    else
+    {
+        vec3 _119;
+        if (_94 == 1)
+        {
+            _119 = in_var_POSITION - ((_93 * u_EveryFrame.u_width) * in_var_COLOR0.w);
+        }
+        else
+        {
+            _119 = in_var_POSITION + ((_93 * u_EveryFrame.u_width) * (in_var_COLOR0.w - 0.5));
+        }
+        _120 = _119;
+    }
+    vec4 _127 = vec4(_120, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    vec2 _130 = _44;
+    _130.x = 1.0 + _127.w;
+    gl_Position = _127;
     out_var_COLOR0 = mix(u_EveryFrame.u_bottomColour, u_EveryFrame.u_topColour, vec4(in_var_COLOR0.w));
-    out_var_TEXCOORD0 = vec2((mix(in_var_TEXCOORD0.y, in_var_TEXCOORD0.x, u_EveryFrame.u_orientation) * u_EveryFrame.u_textureRepeatScale) - (u_EveryFrame.u_time * u_EveryFrame.u_textureScrollSpeed), in_var_COLOR0.w);
-    out_var_TEXCOORD1 = _85;
+    out_var_TEXCOORD0 = _92;
+    out_var_TEXCOORD1 = _130;
 }
 

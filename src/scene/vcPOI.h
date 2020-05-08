@@ -46,8 +46,6 @@ private:
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
 
-  udFloat3 m_worldUp;
-
   bool m_showArea;
   bool m_showLength;
   bool m_showAllLengths;
@@ -112,15 +110,13 @@ public:
 
   void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview = false);
   void RemovePoint(vcState *pProgramState, int index);
-  void UpdatePoints();
+  void UpdatePoints(vcState *pProgramState);
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
 
   void SelectSubitem(uint64_t internalId);
   bool IsSubitemSelected(uint64_t internalId);
-
-  void SetWorldUp(const udGeoZone &zone);
 
 private:
   void InsertPoint(const udDouble3 &position);

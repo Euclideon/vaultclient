@@ -35,7 +35,8 @@ struct vcFenceRenderer
     {
       udFloat4 primaryColour;
       udFloat4 secondaryColour;
-      float orientation; // 0 == fence, 1 == flat
+      udFloat4 worldUp;
+      int options;
       float width;
       float textureRepeatScale;
       float textureScrollSpeed;
@@ -58,7 +59,7 @@ static vcTexture *gGlowTexture = nullptr;
 static vcTexture *gSolidTexture = nullptr;
 static vcTexture *gDiagonalTexture = nullptr;
 
-udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment, udFloat3 worldUp);
+udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment);
 udResult vcFenceRenderer_Init();
 udResult vcFenceRenderer_Destroy();
 
@@ -195,120 +196,86 @@ udResult vcFenceRenderer_SetConfig(vcFenceRenderer *pFenceRenderer, const vcFenc
   {
     for (size_t i = 0; i < pFenceRenderer->segments.length; ++i)
     {
-      //TODO FRANK fix
-      if (vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &pFenceRenderer->segments[i], udFloat3::create(0, 0, 1)) != udR_Success)
-      {
+      if (vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &pFenceRenderer->segments[i]) != udR_Success)
         result = udR_InternalError;
-      }
     }
   }
 
   return result;
 }
 
-
-udFloat3 vcFenceRenderer_CreateEndJointExpandVector(const udFloat3 &previous, const udFloat3 &center, float width, udFloat3 worldUp)
-{
-  udFloat3 Vpc = center - previous;
-  float magVpc = udMag3(Vpc);
-
-  if (magVpc < 0.00001f)
-    return worldUp;
-
-  Vpc /= magVpc;
-
-  udFloat3 Vleft = udCross(Vpc, worldUp);
-  float magVleft = udMag3(Vleft);
-
-  //Just choose perpendicular vector to the world up
-  if (magVleft <= 0.00001f)
-    return (udFloat3::create(-worldUp[1], worldUp[0], 0.f));
-
-  Vleft /= magVleft;
-
-  return udCross(Vleft, Vpc) * width * 0.5f;
-}
-
-udFloat3 vcFenceRenderer_CreateStartJointExpandVector(const udFloat3 &center, const udFloat3 &next, float width, udFloat3 worldUp)
+udFloat3 vcFenceRenderer_CreateLeftOrthogonalExpandVector(const udFloat3 &center, const udFloat3 &next, udFloat3 const & worldUp)
 {
   udFloat3 Vcn = next - center;
   float magVcn = udMag3(Vcn);
 
-  if (magVcn < 0.00001f)
-    return worldUp;
+  if (magVcn < UD_EPSILON)
+    return udPerpendicular3(worldUp);
 
   Vcn /= magVcn;
 
-  udFloat3 Vleft = udCross(Vcn, worldUp);
+  udFloat3 Vleft = udCross(worldUp, Vcn);
   float magVleft = udMag3(Vleft);
 
   //Just choose perpendicular vector to the world up
-  if (magVleft <= 0.00001f)
-    return (udFloat3::create(-worldUp[1], worldUp[0], 0.f));
+  if (magVleft <= UD_EPSILON)
+    return udPerpendicular3(worldUp);
 
-  Vleft /= magVleft;
-
-  return udCross(Vleft, Vcn) * width * 0.5f;
+  return Vleft /= magVleft;
 }
 
-//TODO FRANK these need tweaking
-udFloat3 vcFenceRenderer_CreateSegmentJointExpandVector(const udFloat3 &previous, const udFloat3 &center, const udFloat3 &next, float width, bool *pJointFlipped, udFloat3 worldUp)
+udFloat3 vcFenceRenderer_CreateLeftSegmentJointExpandVector(const udFloat3 &previous, const udFloat3 &center, const udFloat3 &next, udFloat3 const &worldUp)
 {
-  udFloat3 v1 = udMag3(center - previous) == 0 ? center - previous : udNormalize(center - previous);
-  udFloat3 v2 = udMag3(next - center) == 0 ? next - center : udNormalize(next - center);
-  float d = udMin(udDot(v1, v2), 1.f);
+  udFloat3 Vpc = center - previous;
+  udFloat3 Vcn = next - center;
+
+  Vpc = Vpc - udDot(Vpc, worldUp) * worldUp;
+  Vcn = Vcn - udDot(Vcn, worldUp) * worldUp;
+
+  float magVpc = udMag3(Vpc);
+  float magVcn = udMag3(Vcn);
+
+  Vpc = magVpc < UD_EPSILON ? udPerpendicular3(worldUp) : Vpc / magVpc;
+  Vcn = magVcn < UD_EPSILON ? udPerpendicular3(worldUp) : Vcn / magVcn;
+
+  float d = udDot(Vpc, Vcn);
+
+  if (d >= 0.99f) // straight edge case
+  {
+    udFloat3 left = udCross(worldUp, Vpc);
+    return left;
+  }
+
   float theta = udACos(d);
 
   // limit angle to something reasonable
   theta = udMin(2.85f, theta);
 
-  // determine sign of angle
-  udFloat3 cross = udCross(v1, v2);
-  *pJointFlipped = udDot(worldUp, cross) < 0;
-  if (*pJointFlipped)
-    theta *= -1;
+  udFloat3 cross = udCross(Vpc, Vcn);
+  float flip = udDot(worldUp, cross) > 0 ? 1.f : -1.f;
+  float mult = 1.f / udSin((UD_PIf - theta) * 0.5f);
 
-  if (d >= 0.99f) // straight edge case
-  {
-    udFloat3 up = udFloat3::create(0, 0, 1);
-    udFloat3 right = udCross(v1, up);
-    return right * 0.5f * width;
-  }
-
-  float u = width / (2.0f * udSin(theta));
-  float v = width / (2.0f * udSin(theta));
-
-  udFloat3 u0 = udMag3(previous - center) == 0 ? previous - center : udNormalize(previous - center) * u;
-  udFloat3 v0 = udMag3(next - center) == 0 ? next - center : udNormalize(next - center) * v;
-
-  return -(u0 + v0);
+  return udNormalize3((Vcn - Vpc) * 0.5f) * flip * mult;
 }
 
-udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment, udFloat3 worldUp)
+udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer, vcFenceSegment *pSegment)
 {
   udResult result = udR_Success;
 
   int layoutCount = (int)udLengthOf(vcP3UV2RI4VertexLayout);
-  float widthSquared = pFenceRenderer->config.ribbonWidth * pFenceRenderer->config.ribbonWidth;
   float uvFenceOffset = 0;
   int vertIndex = 0;
-  bool jointFlipped = false;
-  float currentUV = 0;
-  float previousDist0 = 0;
-  float previousDist1 = 0;
   udFloat3 expandVector = udFloat3::zero();
   udFloat3 prev = udFloat3::zero();
   udFloat3 current = udFloat3::zero();
   udFloat3 next = udFloat3::zero();
-  float uv0 = 0.0f;
-  float uv1 = 0.0f;
-  float maxUV = 0.0f;
-
+  
   int vertCount = int(pSegment->pointCount * 2 + udMax<size_t>(pSegment->pointCount - 2, 0) * 2);
   vcP3UV2RI4Vertex *pVerts = udAllocType(vcP3UV2RI4Vertex, vertCount, udAF_Zero);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
   pSegment->vertCount = vertCount;
 
+   
   for (size_t i = 0; i < pSegment->pointCount; ++i)
   {
     if (i > 0)
@@ -335,17 +302,18 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
       vertIndex += 2;
     }
   }
-
+  
   vertIndex = 0;
-
+  
   // start segment
   current = udFloat3::create(pSegment->pCachedPoints[0]);
   next = udFloat3::create(pSegment->pCachedPoints[1]);
-  expandVector = vcFenceRenderer_CreateStartJointExpandVector(current, next, pFenceRenderer->config.ribbonWidth, worldUp);
-  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
-  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
-  vertIndex += 2;
 
+  expandVector = vcFenceRenderer_CreateLeftOrthogonalExpandVector(current, next, pFenceRenderer->config.worldUp);
+  pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
+  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(expandVector, 1.0f);
+  vertIndex += 2;
+  
   // middle segments
   for (size_t i = 1; i < pSegment->pointCount - 1; ++i)
   {
@@ -353,61 +321,40 @@ udResult vcFenceRenderer_CreateSegmentVertexData(vcFenceRenderer *pFenceRenderer
     current = udFloat3::create(pSegment->pCachedPoints[i]);
     next = udFloat3::create(pSegment->pCachedPoints[i + 1]);
 
-    expandVector = vcFenceRenderer_CreateSegmentJointExpandVector(prev, current, next, pFenceRenderer->config.ribbonWidth, &jointFlipped, worldUp);
+    expandVector = vcFenceRenderer_CreateLeftSegmentJointExpandVector(prev, current, next, pFenceRenderer->config.worldUp);
 
-    udFloat3 pLeft = current + expandVector;
-    udFloat3 pRight = current - expandVector;
+    float adjustment = 0.f;
+    udFloat3 Vpc = current - prev;
+    float magVpc = udMag3(Vpc);
+    if (magVpc > UD_EPSILON)
+    {
+      Vpc = Vpc / magVpc;
+      adjustment = udDot(Vpc, expandVector * 0.5);
+    }
 
-    udFloat3 pPrevLeft = prev + pVerts[vertIndex - 2].ribbonInfo.toVector3();
-    udFloat3 pPrevRight = prev + pVerts[vertIndex - 1].ribbonInfo.toVector3();
-
-    // distance between (expanded) verts
-    uv0 = udMag3(pLeft - pPrevLeft);
-    uv1 = udMag3(pRight - pPrevRight);
+    pVerts[vertIndex + 0].uv.x = pVerts[vertIndex + 0].uv.y - adjustment;
+    pVerts[vertIndex + 1].uv.x = pVerts[vertIndex + 1].uv.y + adjustment;
+    pVerts[vertIndex + 2].uv.x = pVerts[vertIndex + 2].uv.y + adjustment;
+    pVerts[vertIndex + 3].uv.x = pVerts[vertIndex + 3].uv.y - adjustment;
 
     // duplicate positions
     pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
-    pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
+    pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(expandVector, 1.0f);
     pVerts[vertIndex + 2].ribbonInfo = udFloat4::create(expandVector, 0.0f);
-    pVerts[vertIndex + 3].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
-
-    // calculate UVs
-    float hyp = udMag3(pLeft - pRight);
-    float dist0 = udSqrt(udAbs(hyp * hyp - widthSquared));
-    float dist1 = 0;
-    if (jointFlipped)
-    {
-      float t = dist1;
-      dist1 = dist0;
-      dist0 = t;
-    }
-
-    pVerts[vertIndex + 0].uv.x = currentUV + uv0 + previousDist1;
-    pVerts[vertIndex + 1].uv.x = currentUV + uv1 + previousDist0;
-
-    currentUV += udMax(uv0 - dist0, uv1 - dist1); // take max of distances
-
-    pVerts[vertIndex + 2].uv.x = currentUV + dist1;
-    pVerts[vertIndex + 3].uv.x = currentUV + dist0;
-
-    previousDist0 = dist0;
-    previousDist1 = dist1;
+    pVerts[vertIndex + 3].ribbonInfo = udFloat4::create(expandVector, 1.0f);
+    
     vertIndex += 4;
   }
 
   // end segment
   prev = udFloat3::create(pSegment->pCachedPoints[pSegment->pointCount - 2]);
   current = udFloat3::create(pSegment->pCachedPoints[pSegment->pointCount - 1]);
-  expandVector = vcFenceRenderer_CreateEndJointExpandVector(prev, current, pFenceRenderer->config.ribbonWidth, worldUp);
+  expandVector = vcFenceRenderer_CreateLeftOrthogonalExpandVector(prev, current, pFenceRenderer->config.worldUp);
   pVerts[vertIndex + 0].ribbonInfo = udFloat4::create(expandVector, 0.0f);
-  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(-expandVector, 1.0f);
+  pVerts[vertIndex + 1].ribbonInfo = udFloat4::create(expandVector, 1.0f);
 
-  uv0 = udMag3((current + pVerts[vertIndex + 0].ribbonInfo.toVector3()) - (prev + pVerts[vertIndex - 2].ribbonInfo.toVector3()));
-  uv1 = udMag3((current + pVerts[vertIndex + 1].ribbonInfo.toVector3()) - (prev + pVerts[vertIndex - 1].ribbonInfo.toVector3()));
-
-  maxUV = udMax(uv0, uv1);
-  pVerts[vertIndex + 0].uv.x = currentUV + maxUV;
-  pVerts[vertIndex + 1].uv.x = currentUV + maxUV;
+  pVerts[vertIndex + 0].uv.x = pVerts[vertIndex + 0].uv.y;
+  pVerts[vertIndex + 1].uv.x = pVerts[vertIndex + 0].uv.y;
 
   if (pSegment->pMesh)
     vcMesh_Destroy(&pSegment->pMesh);
@@ -419,7 +366,7 @@ epilogue:
   return result;
 }
 
-udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, udFloat3 worldUp, bool closed)
+udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool closed)
 {
   udResult result = udR_Success;
   vcFenceSegment newSegment = {};
@@ -438,9 +385,9 @@ udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *p
   }
 
   if (closed)
-    newSegment.pCachedPoints[pointCount] = udDouble3::zero();
+    newSegment.pCachedPoints[newSegment.pointCount - 1] = udDouble3::zero();
 
-  vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &newSegment, worldUp);
+  vcFenceRenderer_CreateSegmentVertexData(pFenceRenderer, &newSegment);
   pFenceRenderer->segments.PushBack(newSegment);
 
 epilogue:
@@ -474,21 +421,22 @@ bool vcFenceRenderer_Render(vcFenceRenderer *pFenceRenderer, const udDouble4x4 &
   pFenceRenderer->renderShader.everyFrameParams.width = pFenceRenderer->config.ribbonWidth;
   pFenceRenderer->renderShader.everyFrameParams.textureScrollSpeed = pFenceRenderer->config.textureScrollSpeed;
   pFenceRenderer->renderShader.everyFrameParams.primaryColour = pFenceRenderer->config.primaryColour;
-
+  pFenceRenderer->renderShader.everyFrameParams.worldUp = udFloat4::create(pFenceRenderer->config.worldUp, 0.f);
+  pFenceRenderer->renderShader.everyFrameParams.options = 0;
+  pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
+   
   if (pFenceRenderer->config.isDualColour)
     pFenceRenderer->renderShader.everyFrameParams.secondaryColour = pFenceRenderer->config.secondaryColour;
   else
     pFenceRenderer->renderShader.everyFrameParams.secondaryColour = pFenceRenderer->config.primaryColour;
-
+   
   switch (pFenceRenderer->config.visualMode)
   {
   case vcRRVM_Fence:
-    pFenceRenderer->renderShader.everyFrameParams.orientation = 0.0f;
-    pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale;
+    pFenceRenderer->renderShader.everyFrameParams.options = 0;
     break;
   case vcRRVM_Flat:
-    pFenceRenderer->renderShader.everyFrameParams.orientation = 1.0f;
-    pFenceRenderer->renderShader.everyFrameParams.textureRepeatScale = pFenceRenderer->config.textureRepeatScale / pFenceRenderer->config.ribbonWidth;
+    pFenceRenderer->renderShader.everyFrameParams.options |= ((1 << 2) | (2));
     break;
   case vcRRVM_ScreenLine: // do nothing
     break;

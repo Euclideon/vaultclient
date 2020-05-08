@@ -263,6 +263,28 @@ T udSignedSimplePolygonArea3(udVector3<T> const * pPoints, size_t nPoints)
   return area / T(2);
 }
 
+//Obtain a normalised perpendicular vector to axis, in no particular direction.
+//Assumes axis is a non-zero vector.
+template<typename T>
+udVector3<T> udPerpendicular3(udVector3<T> const & axis)
+{
+  udVector3<T> result;
+
+  if (axis[0] != 0 || axis[1] != 0)
+  {
+    result[0] = -axis[1];
+    result[1] = axis[0];
+    result[2] = T(0);
+  }
+  else
+  {
+    result[0] = -axis[2];
+    result[1] = T(0);
+    result[2] = axis[0];
+  }
+  return udNormalize3(result);
+}
+
 template<typename T>
 class udLineSegment
 {
