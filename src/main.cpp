@@ -2374,8 +2374,16 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     // Camera update has to be here because it depends on previous ImGui state
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
+    bool couldOpen = true;
+    ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
+    if (pConvert != nullptr && (pConvert->Active || pConvert->WasActive))
+      couldOpen = false;
+    ImGuiWindow *pSetting = ImGui::FindWindowByName("###settingsDock");
+    if (pSetting != nullptr && (pSetting->Active || pSetting->WasActive))
+      couldOpen = false;
+
     pProgramState->gizmo.inUse = false;
-    if (pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
+    if (couldOpen && pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
     {
       vcGizmo_SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
       vcGizmo_SetDrawList();
