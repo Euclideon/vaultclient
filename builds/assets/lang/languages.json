@@ -8,6 +8,14 @@
     "filename": "jpJP"
   },
   {
+    "localname": "française (frFR)",
+    "filename": "frFR"
+  },
+  {
+    "localname": "Cymraeg (cyGB)",
+    "filename": "cyGB"
+  },
+  {
     "localname": "简体中文 (zhCN)",
     "filename": "zhCN"
   }
