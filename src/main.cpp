@@ -2375,8 +2375,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
     bool couldOpen = true;
-    ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
-    if (pConvert != nullptr && (pConvert->Active || pConvert->WasActive))
+    if (pProgramState->modalOpen)
       couldOpen = false;
     ImGuiWindow *pSetting = ImGui::FindWindowByName("###settingsDock");
     if (pSetting != nullptr && (pSetting->Active || pSetting->WasActive))
