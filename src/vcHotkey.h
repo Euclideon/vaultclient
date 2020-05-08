@@ -45,6 +45,8 @@ enum vcBind
   vcB_ToggleInspectionTool,
   vcB_ToggleAnnotateTool,
 
+  vcB_OpenSettingsMenu,
+
   vcB_Count
 };
 

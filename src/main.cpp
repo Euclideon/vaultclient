@@ -352,6 +352,11 @@ void vcMain_MainLoop(vcState *pProgramState)
   io.KeysDown[SDL_SCANCODE_BACKSPACE] = false;
   io.KeysDown[SDL_SCANCODE_PRINTSCREEN] = false;
 
+  if (vcHotkey::IsPressed(vcB_OpenSettingsMenu))
+  {
+    pProgramState->openSettings = true;
+  }
+
   if (vcHotkey::IsPressed(vcB_BindingsInterface))
   {
     pProgramState->activeSetting = vcSR_KeyBindings;
