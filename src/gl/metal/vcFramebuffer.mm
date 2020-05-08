@@ -1,9 +1,10 @@
 #import "gl/vcFramebuffer.h"
 #import "vcMetal.h"
 
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/)
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/, vcTexture *pAttachment2 /*= nullptr*/)
 {
   udUnused(level);
+  udUnused(pAttachment2);
 
   if (ppFramebuffer == nullptr || pTexture == nullptr)
     return false;
