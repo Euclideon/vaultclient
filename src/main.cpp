@@ -857,6 +857,8 @@ int main(int argc, char **args)
 
   programState.showWatermark = true;
 
+  programState.previousSRID = -1;
+
   vcProject_InitBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   for (int i = 1; i < argc; ++i)
