@@ -133,6 +133,7 @@
   "settingsMapTypeEucAzAerial": "Azure Aerial",
   "settingsMapTypeEucAzRoads": "Azure Roads",
   "settingsMapTypeCustom": "Custom",
+  "settingsMapECEFMode": "ECEF Mode",
   "settingsVis": "Visualisation",
   "settingsVisObjectHighlight": "Enable Selected Objects Highlighting",
   "settingsVisHighlightColour": "Highlight Colour",

@@ -940,6 +940,23 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
     vcSettings_ApplyMapChange(&pProgramState->settings);
     vcRender_ClearTiles(pProgramState->pRenderContext);
   }
+
+  if (ImGui::Button(vcString::Get("settingsMapECEFMode")))
+  {
+    static const int32_t s_ECEFModeID = 4978;
+    static int32_t s_previousSRID = -1;
+    
+    if (pProgramState->geozone.srid == s_ECEFModeID)
+    {
+      if (s_previousSRID != -1)
+        pProgramState->geozone.srid = s_previousSRID;
+    }
+    else
+    {
+      s_previousSRID = pProgramState->geozone.srid;
+      pProgramState->geozone.srid = s_ECEFModeID;
+    }
+  }
 }
 
 bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings)
