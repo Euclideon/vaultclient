@@ -58,10 +58,11 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   // Get Default Framebuffer
   memset(&g_defaultFramebuffer, 0, sizeof(g_defaultFramebuffer));
+  g_defaultFramebuffer.attachmentCount = 1;
 
   ID3D11Texture2D* pBackBuffer;
   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView[0]);
   pBackBuffer->Release();
 
   *ppDefaultFramebuffer = &g_defaultFramebuffer;
@@ -91,8 +92,8 @@ void vcGLState_Deinit()
 {
   if (g_defaultFramebuffer.pRenderTargetView != nullptr)
   {
-    g_defaultFramebuffer.pRenderTargetView->Release();
-    g_defaultFramebuffer.pRenderTargetView = nullptr;
+    g_defaultFramebuffer.pRenderTargetView[0]->Release();
+    g_defaultFramebuffer.pRenderTargetView[0] = nullptr;
   }
 
   if (g_pRasterizerState != nullptr)
@@ -193,6 +194,11 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
 
     D3D11_BLEND_DESC desc;
     ZeroMemory(&desc, sizeof(desc));
+
+    // Disable all blending for other attachments
+    desc.IndependentBlendEnable = true;
+    desc.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
     desc.AlphaToCoverageEnable = false;
     desc.RenderTarget[0].BlendEnable = true;
     desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
@@ -200,7 +206,7 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
     desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
     desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-    
+
     switch (blendMode)
     {
     case vcGLSBM_None:
@@ -209,7 +215,7 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
     case vcGLSBM_Interpolative:
       desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
       desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-       
+
       desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_DEST_ALPHA;
       break;
     case vcGLSBM_Additive:
@@ -367,12 +373,12 @@ bool vcGLState_Present(SDL_Window * /*pWindow*/)
 
 bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 {
-  g_defaultFramebuffer.pRenderTargetView->Release();
+  g_defaultFramebuffer.pRenderTargetView[0]->Release();
   g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
   ID3D11Texture2D* pBackBuffer;
   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView[0]);
   pBackBuffer->Release();
 
   return true;

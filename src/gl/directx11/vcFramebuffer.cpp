@@ -1,24 +1,30 @@
 #include "gl/vcFramebuffer.h"
 #include "vcD3D11.h"
 
-bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/)
+bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vcTexture *pDepth /*= nullptr*/, uint32_t level /*= 0*/, vcTexture *pAttachment2 /*= nullptr*/)
 {
   if (ppFramebuffer == nullptr || pTexture == nullptr)
     return false;
 
   udResult result = udR_Success;
-  D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-  memset(&renderTargetViewDesc, 0, sizeof(renderTargetViewDesc));
+  vcTexture *pAttachments[] = { pTexture, pAttachment2 };
 
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
   UD_ERROR_NULL(pFramebuffer, udR_MemoryAllocationFailure);
 
-  renderTargetViewDesc.Format = pTexture->d3dFormat;
-  renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-  renderTargetViewDesc.Texture2D.MipSlice = level;
+  pFramebuffer->attachmentCount = 1 + (pAttachment2 ? 1 : 0);
+  for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+  {
+    D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+    memset(&renderTargetViewDesc, 0, sizeof(renderTargetViewDesc));
 
-  // Create the render target view.
-  g_pd3dDevice->CreateRenderTargetView(pTexture->pTextureD3D, &renderTargetViewDesc, &pFramebuffer->pRenderTargetView);
+    renderTargetViewDesc.Format = pAttachments[i]->d3dFormat;
+    renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    renderTargetViewDesc.Texture2D.MipSlice = level;
+
+    // Create the render target view.
+    g_pd3dDevice->CreateRenderTargetView(pAttachments[i]->pTextureD3D, &renderTargetViewDesc, &pFramebuffer->pRenderTargetView[i]);
+  }
 
   if (pDepth != nullptr)
   {
@@ -47,7 +53,8 @@ void vcFramebuffer_Destroy(vcFramebuffer **ppFramebuffer)
     return;
 
   vcFramebuffer *pBuffer = *ppFramebuffer;
-  pBuffer->pRenderTargetView->Release();
+  for (int i = 0; i < pBuffer->attachmentCount; ++i)
+    pBuffer->pRenderTargetView[i]->Release();
   if (pBuffer->pDepthStencilView != nullptr)
     pBuffer->pDepthStencilView->Release();
 
@@ -61,7 +68,7 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   if (pFramebuffer == nullptr || pFramebuffer->pRenderTargetView == nullptr)
     return false;
 
-  g_pd3dDeviceContext->OMSetRenderTargets(1, &pFramebuffer->pRenderTargetView, pFramebuffer->pDepthStencilView);
+  g_pd3dDeviceContext->OMSetRenderTargets(pFramebuffer->attachmentCount, &pFramebuffer->pRenderTargetView[0], pFramebuffer->pDepthStencilView);
 
   float colours[4] = { ((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f };
 
@@ -86,7 +93,10 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   }
 
   if (clearRenderTargetView)
-    g_pd3dDeviceContext->ClearRenderTargetView(pFramebuffer->pRenderTargetView, colours);
+  {
+    for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+      g_pd3dDeviceContext->ClearRenderTargetView(pFramebuffer->pRenderTargetView[i], colours);
+  }
 
   if (clearDepthStencilView && pFramebuffer->pDepthStencilView)
     g_pd3dDeviceContext->ClearDepthStencilView(pFramebuffer->pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
