@@ -51,6 +51,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
   *ppDefaultFramebuffer = &g_defaultFramebuffer;
 
   glEnable(GL_SCISSOR_TEST);
+  glDisable(GL_BLEND);
 
   // match opengl stencil defaults
   s_internalState.stencil.compareFunc = vcGLSSF_Always;
@@ -151,10 +152,11 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
 {
   if (s_internalState.blendMode != blendMode || force)
   {
+    // Only enable blending for first attachment
     if (blendMode == vcGLSBM_None)
-      glDisable(GL_BLEND);
+      glDisablei(GL_BLEND, 0);
     else
-      glEnable(GL_BLEND);
+      glEnablei(GL_BLEND, 0);
 
     switch (blendMode)
     {
