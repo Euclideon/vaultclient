@@ -2,7 +2,7 @@
 #define vcImageRenderer_h__
 
 #include "udMath.h"
-#include "gl/vcTexture.h"
+#include "vcTexture.h"
 
 enum vcImageThumbnailSize
 {

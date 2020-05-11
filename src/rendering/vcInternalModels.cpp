@@ -1,7 +1,7 @@
 #include "vcInternalModels.h"
 #include "vcInternalModelsData.h"
 
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 #include "vcPolygonModel.h"
 
 static int gRefCount = 0;

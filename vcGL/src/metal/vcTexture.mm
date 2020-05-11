@@ -1,8 +1,7 @@
 #import "vcMetal.h"
 
-#import "gl/vcShader.h"
-#import "gl/vcTexture.h"
-#import "vcSettings.h"
+#import "vcShader.h"
+#import "vcTexture.h"
 #import "udFile.h"
 #import "udPlatformUtil.h"
 #import "udStringUtil.h"

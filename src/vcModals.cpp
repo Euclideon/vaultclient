@@ -2,7 +2,7 @@
 
 #include "vcState.h"
 #include "vcPOI.h"
-#include "gl/vcTexture.h"
+#include "vcTexture.h"
 #include "vcRender.h"
 #include "vcStrings.h"
 #include "vcConvert.h"

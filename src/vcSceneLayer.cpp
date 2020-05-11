@@ -6,8 +6,8 @@
 #include "vcPolygonModel.h"
 
 
-#include "gl/vcTexture.h"
-#include "gl/vcGLState.h"
+#include "vcTexture.h"
+#include "vcGLState.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"

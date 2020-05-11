@@ -1,7 +1,7 @@
 #ifndef vcPolygonModel_h__
 #define vcPolygonModel_h__
 
-#include "gl/vcLayout.h"
+#include "vcLayout.h"
 
 #include "udMath.h"
 

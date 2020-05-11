@@ -10,8 +10,8 @@
 #include "udUUID.h"
 
 #include "vcCamera.h"
-#include "gl/vcGLState.h"
-#include "gl/vcTexture.h"
+#include "vcGLState.h"
+#include "vcTexture.h"
 
 #include "imgui.h"
 

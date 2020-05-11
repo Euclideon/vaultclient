@@ -1,6 +1,6 @@
 #include "vcQuadTree.h"
 #include "vcGIS.h"
-#include "gl/vcTexture.h"
+#include "vcTexture.h"
 
 enum
 {

@@ -8,7 +8,7 @@
 #include "vcLineRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
-#include "gl/vcGLState.h"
+#include "vcGLState.h"
 
 struct udWorkerPool;
 struct vdkPointCloud;

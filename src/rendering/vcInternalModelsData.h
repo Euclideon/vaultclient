@@ -1,7 +1,7 @@
 #ifndef vcInternalModelsData_h__
 #define vcInternalModelsData_h__
 
-#include "gl/vcLayout.h"
+#include "vcLayout.h"
 
 // screen quad
 #if GRAPHICS_API_OPENGL

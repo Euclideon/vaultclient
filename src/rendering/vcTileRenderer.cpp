@@ -5,9 +5,9 @@
 #include "vcPolygonModel.h"
 #include "vcStringFormat.h"
 
-#include "gl/vcGLState.h"
-#include "gl/vcShader.h"
-#include "gl/vcMesh.h"
+#include "vcGLState.h"
+#include "vcShader.h"
+#include "vcMesh.h"
 
 #include "udThread.h"
 #include "udFile.h"

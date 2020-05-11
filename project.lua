@@ -28,8 +28,9 @@ project "vaultClient"
 	includedirs { "3rdParty/easyexif" }
 	includedirs { "3rdParty/poly2tri" }
 	includedirs { "3rdParty/atmosphere", "3rdParty/atmosphere/external/dimensional_types" }
-	
-	links { "udCore" .. (projectSuffix or "") }
+	includedirs { "vcGL/src" }
+
+	links { "udCore" .. (projectSuffix or ""), "vcGL" }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "ImDrawIdx=int" }
 
@@ -190,9 +191,6 @@ project "vaultClient"
 		}
 
 	filter { "options:gfxapi=opengl", "system:windows" }
-		defines { "GLEW_STATIC" }
-		sysincludedirs { "3rdParty/glew/include" }
-		files { "3rdParty/glew/glew.c" }
 		links { "opengl32.lib" }
 		prebuildcommands {
 			"rmdir builds\\assets\\shaders /S /Q",

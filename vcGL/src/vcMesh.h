@@ -2,7 +2,7 @@
 #define vcMesh_h__
 
 #include "udMath.h"
-#include "gl/vcShader.h"
+#include "vcShader.h"
 
 struct vcMesh;
 

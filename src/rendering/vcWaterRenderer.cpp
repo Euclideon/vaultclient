@@ -3,9 +3,9 @@
 
 #include "udChunkedArray.h"
 
-#include "gl/vcShader.h"
-#include "gl/vcMesh.h"
-#include "gl/vcTexture.h"
+#include "vcShader.h"
+#include "vcMesh.h"
+#include "vcTexture.h"
 
 #include "vcCamera.h"
 #include "vcCDT.h"

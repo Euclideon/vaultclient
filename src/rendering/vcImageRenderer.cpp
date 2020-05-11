@@ -1,6 +1,6 @@
 #include "vcImageRenderer.h"
 
-#include "gl/vcMesh.h"
+#include "vcMesh.h"
 #include "vcInternalModels.h"
 
 #include "udPlatformUtil.h"

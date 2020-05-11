@@ -9,7 +9,7 @@
 #include "vcSettingsUI.h"
 #include "vcClassificationColours.h"
 
-#include "gl/vcTexture.h"
+#include "vcTexture.h"
 
 #include "imgui.h"
 #include "imgui_internal.h" // Required for ButtonEx

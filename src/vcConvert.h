@@ -5,7 +5,7 @@
 
 #include "vcFeatures.h"
 #include "vcState.h"
-#include "gl/vcTexture.h"
+#include "vcTexture.h"
 
 #include "udSafeDeque.h"
 
