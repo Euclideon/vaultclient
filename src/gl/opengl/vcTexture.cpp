@@ -293,12 +293,26 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   GLint pixelFormat = GL_INVALID_ENUM;
   vcTexture_GetFormatAndPixelSize(pTexture->format, nullptr, nullptr, &pixelType, &pixelFormat);
 
+  int attachmentOffset = -1;
+  for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+  {
+    if (pFramebuffer->pAttachments[i] == pTexture)
+    {
+      attachmentOffset = i;
+      break;
+    }
+  }
+
   UD_ERROR_IF(!vcFramebuffer_Bind(pFramebuffer), udR_InternalError);
   VERIFY_GL();
 
   // Copy to PBO asychronously
   glBindBuffer(GL_PIXEL_PACK_BUFFER, pTexture->pbos[pTexture->pboIndex]);
   VERIFY_GL();
+
+  // will be depth attachment if attachmentOffset is -1
+  if (attachmentOffset != -1)
+    glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentOffset);
 
   glReadPixels(x, y, width, height, pixelFormat, pixelType, nullptr);
   VERIFY_GL();
