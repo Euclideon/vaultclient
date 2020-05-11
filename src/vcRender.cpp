@@ -804,28 +804,36 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     double visibleFarPlane = udMin((double)s_CameraFarPlane, BaseViewDistance + cameraHeightAboveEarthSurface * HeightViewDistanceScale);
 
     // Corners [nw, ne, sw, se]
-    udDouble3 localCorners[4];
-    udInt2 slippyCorners[4];
+    udDouble3 localCorners[8];
+    udInt2 slippyCorners[8];
 
     // Cardinal Limits
-    localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, 0);
-    localCorners[1] = localCamPos + udDouble3::create(+visibleFarPlane, +visibleFarPlane, 0);
-    localCorners[2] = localCamPos + udDouble3::create(-visibleFarPlane, -visibleFarPlane, 0);
-    localCorners[3] = localCamPos + udDouble3::create(+visibleFarPlane, -visibleFarPlane, 0);
+    localCorners[0] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, +visibleFarPlane);
+    localCorners[1] = localCamPos + udDouble3::create(+visibleFarPlane, +visibleFarPlane, +visibleFarPlane);
+    localCorners[2] = localCamPos + udDouble3::create(-visibleFarPlane, -visibleFarPlane, +visibleFarPlane);
+    localCorners[3] = localCamPos + udDouble3::create(+visibleFarPlane, -visibleFarPlane, +visibleFarPlane);
+    localCorners[4] = localCamPos + udDouble3::create(-visibleFarPlane, +visibleFarPlane, -visibleFarPlane);
+    localCorners[5] = localCamPos + udDouble3::create(+visibleFarPlane, +visibleFarPlane, -visibleFarPlane);
+    localCorners[6] = localCamPos + udDouble3::create(-visibleFarPlane, -visibleFarPlane, -visibleFarPlane);
+    localCorners[7] = localCamPos + udDouble3::create(+visibleFarPlane, -visibleFarPlane, -visibleFarPlane);
 
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < udLengthOf(localCorners); ++i)
       vcGIS_LocalToSlippy(pProgramState->geozone, &slippyCorners[i], localCorners[i], currentZoom);
 
-    while (currentZoom > 0 && (slippyCorners[0] != slippyCorners[1] || slippyCorners[1] != slippyCorners[2] || slippyCorners[2] != slippyCorners[3]))
+    while (currentZoom > 0)
     {
+      bool matching = true;
+      for (int i = 1; i < udLengthOf(localCorners) && matching; ++i)
+        matching = (slippyCorners[i] == slippyCorners[i - 1]);
+
+      if (matching)
+        break;
+
       --currentZoom;
 
-      for (int i = 0; i < 4; ++i)
+      for (int i = 0; i < udLengthOf(localCorners); ++i)
         slippyCorners[i] /= 2;
     }
-
-    for (int i = 0; i < 4; ++i)
-      vcGIS_SlippyToLocal(pProgramState->geozone, &localCorners[i], slippyCorners[0] + udInt2::create(i & 1, i / 2), currentZoom);
 
     vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->cameraZeroAltitude, viewProjection);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround, passType);
