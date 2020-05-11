@@ -229,8 +229,32 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
   int mode = 0;
   vdkProjectNode_GetMetadataInt(m_pNode, "visualization.mode", &mode, 0);
   m_visualization.mode = (vcVisualizatationMode)mode;
-  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.minIntensity", &m_visualization.minIntensity, 0);
-  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.maxIntensity", &m_visualization.maxIntensity, 0);
+
+  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.minIntensity", &m_visualization.minIntensity, -1);
+  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.maxIntensity", &m_visualization.maxIntensity, -1);
+  if (m_visualization.minIntensity == -1 && m_visualization.maxIntensity == -1)
+  {
+    const char *pIntensity = m_metadata.Get("AttrMinMax_udIntensity").AsString();
+    if (pIntensity != nullptr && udStrcmp(pIntensity, "") != 0)
+    {
+      char pStart[128] = "";
+      udStrcpy(pStart, pIntensity);
+      char *pIntensityArray[2];
+      udStrTokenSplit(pStart, ",", pIntensityArray, 2);
+
+      if (pIntensityArray[0] != nullptr && udStrcmp(pIntensityArray[0], "") != 0)
+        m_visualization.minIntensity = udStrAtoi(pIntensityArray[0]);
+
+      if (pIntensityArray[1] != nullptr && udStrcmp(pIntensityArray[1], "") != 0)
+        m_visualization.maxIntensity = udStrAtoi(pIntensityArray[1]);
+    }
+    else
+    {
+      m_visualization.minIntensity = 0;
+      m_visualization.maxIntensity = 0;
+    }
+  }
+
   vdkProjectNode_GetMetadataBool(m_pNode, "visualization.showColourTable", &m_visualization.useCustomClassificationColours, false);
   udDouble2 displacement;
   vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.x", &displacement.x, 0.0);
