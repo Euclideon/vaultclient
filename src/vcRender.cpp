@@ -817,13 +817,13 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
     localCorners[6] = localCamPos + udDouble3::create(-visibleFarPlane, -visibleFarPlane, -visibleFarPlane);
     localCorners[7] = localCamPos + udDouble3::create(+visibleFarPlane, -visibleFarPlane, -visibleFarPlane);
 
-    for (int i = 0; i < udLengthOf(localCorners); ++i)
+    for (size_t i = 0; i < udLengthOf(localCorners); ++i)
       vcGIS_LocalToSlippy(pProgramState->geozone, &slippyCorners[i], localCorners[i], currentZoom);
 
     while (currentZoom > 0)
     {
       bool matching = true;
-      for (int i = 1; i < udLengthOf(localCorners) && matching; ++i)
+      for (size_t i = 1; i < udLengthOf(localCorners) && matching; ++i)
         matching = (slippyCorners[i] == slippyCorners[i - 1]);
 
       if (matching)
@@ -831,7 +831,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext, co
 
       --currentZoom;
 
-      for (int i = 0; i < udLengthOf(localCorners); ++i)
+      for (size_t i = 0; i < udLengthOf(localCorners); ++i)
         slippyCorners[i] /= 2;
     }
 
