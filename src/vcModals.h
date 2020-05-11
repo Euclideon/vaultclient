@@ -15,6 +15,7 @@ enum vcModalTypes
   vcMT_UnsupportedFile,
   vcMT_Profile,
   vcMT_Convert,
+  vcMT_ChangePassword,
 
   vcMT_Count
 };

@@ -619,6 +619,60 @@ void vcModals_DrawProfile(vcState* pProgramState)
   }
 }
 
+void vcModals_DrawChangePassword(vcState *pProgramState)
+{
+  const char *profile = vcString::Get("modalChangePasswordTitle");
+
+  if (pProgramState->openModals & (1 << vcMT_ChangePassword))
+    ImGui::OpenPopup(profile);
+
+  float width = 390.f;
+  float height = 150.f;
+  float buttonWidth = 80.f;
+  ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
+
+  if (ImGui::BeginPopupModal(profile, nullptr, ImGuiWindowFlags_NoResize))
+  {
+    pProgramState->modalOpen = true;
+
+    if (pProgramState->sessionInfo.isOffline)
+    {
+      ImGui::TextUnformatted(vcString::Get("modalProfileOffline"));
+
+      // ImGui::InputText(vcString::Get("modalProfileDongle"), pProgramState->sessionInfo.displayName, udLengthOf(pProgramState->sessionInfo.displayName), ImGuiInputTextFlags_ReadOnly);
+    }
+    else
+    {
+      ImGui::InputText(vcString::Get("modalProfileCurrentPassword"), &pProgramState->changePassword.currentPassword[0], vcMaxPathLength, ImGuiInputTextFlags_Password);
+      ImGui::Separator();
+      ImGui::InputText(vcString::Get("modalProfileNewPassword"), &pProgramState->changePassword.newPassword[0], vcMaxPathLength, ImGuiInputTextFlags_Password);
+      ImGui::InputText(vcString::Get("modalProfileReEnterNewPassword"), &pProgramState->changePassword.newPasswordConfirm[0], vcMaxPathLength, ImGuiInputTextFlags_Password);
+
+      //const char *pUsername = pProgramState->profileInfo.Get("user.username").AsString("");
+      //ImGui::InputText(vcString::Get("modalProfileUsername"), (char *)pUsername, udStrlen(pUsername), ImGuiInputTextFlags_ReadOnly);
+      //
+      //ImGui::InputText(vcString::Get("modalProfileRealName"), pProgramState->sessionInfo.displayName, udLengthOf(pProgramState->sessionInfo.displayName), ImGuiInputTextFlags_ReadOnly);
+      //
+      //const char *pEmail = pProgramState->profileInfo.Get("user.email").AsString("");
+      //ImGui::InputText(vcString::Get("modalProfileEmail"), (char *)pEmail, udStrlen(pEmail), ImGuiInputTextFlags_ReadOnly);
+    }
+
+    ImGui::Separator();
+    
+    if (ImGui::Button(vcString::Get("modalProfileConfirmNewPassword"), ImVec2(130.0f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_DrawConvert(vcState* pProgramState)
 {
 #if VC_HASCONVERT
@@ -675,6 +729,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
   vcModals_DrawProfile(pProgramState);
+  vcModals_DrawChangePassword(pProgramState);
   vcModals_DrawConvert(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut));

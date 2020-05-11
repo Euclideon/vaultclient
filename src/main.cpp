@@ -1022,6 +1022,9 @@ void vcMain_ProfileMenu(vcState *pProgramState)
     if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
       vcModals_OpenModal(pProgramState, vcMT_Profile);
 
+    if (ImGui::MenuItem(vcString::Get("modalChangePasswordTitle")))
+      vcModals_OpenModal(pProgramState, vcMT_ChangePassword);
+
     //if (ImGui::MenuItem(vcString::Get("modalProfileChangePassword"), nullptr, nullptr, false))
     //{
     //  // Does nothing yet
