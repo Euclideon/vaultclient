@@ -565,6 +565,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
+  if (pProgramState->cameraInput.smoothTranslation != udDouble3::zero())
+    pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+
   // Apply movement and rotation
   pProgramState->cameraInput.keyboardInput = keyboardInput;
   pProgramState->cameraInput.mouseInput = mouseInput;
