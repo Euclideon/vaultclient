@@ -138,7 +138,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 void vcGLState_Deinit()
 {
   @autoreleasepool {
-    vcTexture_Destroy(&g_pDefaultFramebuffer->pColor);
+    vcTexture_Destroy(&g_pDefaultFramebuffer->attachments[0]);
     vcTexture_Destroy(&g_pDefaultFramebuffer->pDepth);
     vcFramebuffer_Destroy(&g_pDefaultFramebuffer);
     g_device = nil;
@@ -357,8 +357,8 @@ bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
   if (((int)width != (int)g_pDefaultFramebuffer->pRenderPass.colorAttachments[0].texture.width || (int)height != (int)g_pDefaultFramebuffer->pRenderPass.colorAttachments[0].texture.height))
   {
     g_pMetalLayer.drawableSize = CGSizeMake(width, height);
-    g_pDefaultFramebuffer->pColor->width = width;
-    g_pDefaultFramebuffer->pColor->height = height;
+    g_pDefaultFramebuffer->attachments[0]->width = width;
+    g_pDefaultFramebuffer->attachments[0]->height = height;
     g_pDefaultFramebuffer->actions |= vcRFA_Resize;
 
     if (g_pDefaultFramebuffer->pDepth)

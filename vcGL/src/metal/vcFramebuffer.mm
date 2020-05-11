@@ -14,7 +14,9 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   vcFramebuffer *pFramebuffer = udAllocType(vcFramebuffer, 1, udAF_Zero);
   UD_ERROR_NULL(pFramebuffer, udR_MemoryAllocationFailure);
 
-  pFramebuffer->pColor = pTexture;
+  pFramebuffer->attachmentCount = 1 + (pAttachment2 ? 1 : 0);
+  pFramebuffer->attachments[0] = pTexture;
+  pFramebuffer->attachments[1] = pAttachment2;
   pFramebuffer->pDepth = pDepth;
   pFramebuffer->clear = 0;
   pFramebuffer->actions = 0;
@@ -23,10 +25,13 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
   {
     MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
 
-    pass.colorAttachments[0].loadAction = MTLLoadActionClear;
-    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
-    pass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
-    pass.colorAttachments[0].texture = pFramebuffer->pColor->texture;
+    for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+    {
+      pass.colorAttachments[i].loadAction = MTLLoadActionClear;
+      pass.colorAttachments[i].storeAction = MTLStoreActionStore;
+      pass.colorAttachments[i].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
+      pass.colorAttachments[i].texture = pFramebuffer->attachments[i]->texture;
+    }
     
     pass.depthAttachment.texture = nil;
     pass.stencilAttachment.texture = nil;
@@ -102,22 +107,30 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   switch (clearOperation)
   {
     case vcFramebufferClearOperation_None:
-      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+      for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+        pFramebuffer->pRenderPass.colorAttachments[i].loadAction = MTLLoadActionLoad;
+
       pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionLoad;
       pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
       break;
     case vcFramebufferClearOperation_Colour:
-      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
+      for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+        pFramebuffer->pRenderPass.colorAttachments[i].loadAction = MTLLoadActionClear;
+
       pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionLoad;
       pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionLoad;
       break;
     case vcFramebufferClearOperation_DepthStencil:
-      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+      for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+        pFramebuffer->pRenderPass.colorAttachments[i].loadAction = MTLLoadActionLoad;
+
       pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionClear;
       pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionClear;
       break;
     case vcFramebufferClearOperation_All:
-      pFramebuffer->pRenderPass.colorAttachments[0].loadAction = MTLLoadActionClear;
+      for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+        pFramebuffer->pRenderPass.colorAttachments[i].loadAction = MTLLoadActionClear;
+
       pFramebuffer->pRenderPass.depthAttachment.loadAction = MTLLoadActionClear;
       pFramebuffer->pRenderPass.stencilAttachment.loadAction = MTLLoadActionClear;
       break;
@@ -126,7 +139,9 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   if (pFramebuffer->clear != clearColour)
   {
     udFloat4 col = udFloat4::create(((clearColour >> 16) & 0xFF) / 255.f, ((clearColour >> 8) & 0xFF) / 255.f, (clearColour & 0xFF) / 255.f, ((clearColour >> 24) & 0xFF) / 255.f);
-    pFramebuffer->pRenderPass.colorAttachments[0].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
+    for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
+      pFramebuffer->pRenderPass.colorAttachments[i].clearColor = MTLClearColorMake(col.x,col.y,col.z,col.w);
+
     pFramebuffer->pRenderPass.depthAttachment.clearDepth = 1.0;
   }
 

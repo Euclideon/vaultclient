@@ -62,7 +62,7 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
   ID3D11Texture2D* pBackBuffer;
   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView[0]);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.renderTargetViews[0]);
   pBackBuffer->Release();
 
   *ppDefaultFramebuffer = &g_defaultFramebuffer;
@@ -90,10 +90,10 @@ bool vcGLState_Init(SDL_Window *pWindow, vcFramebuffer **ppDefaultFramebuffer)
 
 void vcGLState_Deinit()
 {
-  if (g_defaultFramebuffer.pRenderTargetView != nullptr)
+  if (g_defaultFramebuffer.renderTargetViews[0] != nullptr)
   {
-    g_defaultFramebuffer.pRenderTargetView[0]->Release();
-    g_defaultFramebuffer.pRenderTargetView[0] = nullptr;
+    g_defaultFramebuffer.renderTargetViews[0]->Release();
+    g_defaultFramebuffer.renderTargetViews[0] = nullptr;
   }
 
   if (g_pRasterizerState != nullptr)
@@ -373,12 +373,12 @@ bool vcGLState_Present(SDL_Window * /*pWindow*/)
 
 bool vcGLState_ResizeBackBuffer(const uint32_t width, const uint32_t height)
 {
-  g_defaultFramebuffer.pRenderTargetView[0]->Release();
+  g_defaultFramebuffer.renderTargetViews[0]->Release();
   g_pSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
   ID3D11Texture2D* pBackBuffer;
   g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.pRenderTargetView[0]);
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_defaultFramebuffer.renderTargetViews[0]);
   pBackBuffer->Release();
 
   return true;

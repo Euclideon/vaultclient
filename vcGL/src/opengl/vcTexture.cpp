@@ -295,7 +295,7 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
   int attachmentOffset = -1;
   for (int i = 0; i < pFramebuffer->attachmentCount; ++i)
   {
-    if (pFramebuffer->pAttachments[i] == pTexture)
+    if (pFramebuffer->attachments[i] == pTexture)
     {
       attachmentOffset = i;
       break;

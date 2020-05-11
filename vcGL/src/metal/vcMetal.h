@@ -42,7 +42,8 @@ struct vcTexture
 
 struct vcFramebuffer
 {
-  vcTexture *pColor;
+  int attachmentCount;
+  vcTexture *attachments[2];
   vcTexture *pDepth;
   uint32_t clear;
   int actions;
