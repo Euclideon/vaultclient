@@ -13,14 +13,12 @@ layout(location = 0) in vec2 in_var_TEXCOORD0;
 layout(location = 1) in vec3 in_var_NORMAL;
 layout(location = 2) in vec4 in_var_COLOR0;
 layout(location = 3) in vec2 in_var_TEXCOORD1;
-layout(location = 0) out vec4 out_var_SV_Target;
+layout(location = 4) in vec2 in_var_TEXCOORD2;
+layout(location = 0) out vec4 out_var_SV_Target0;
 
 void main()
 {
-    float _39 = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
-    vec4 _40 = vec4(0.0);
-    _40.w = _39;
-    out_var_SV_Target = _40;
-    gl_FragDepth = _39;
+    out_var_SV_Target0 = vec4(0.0);
+    gl_FragDepth = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
 }
 

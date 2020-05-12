@@ -14,14 +14,12 @@ in highp vec2 varying_TEXCOORD0;
 in highp vec3 varying_NORMAL;
 in highp vec4 varying_COLOR0;
 in highp vec2 varying_TEXCOORD1;
-layout(location = 0) out highp vec4 out_var_SV_Target;
+in highp vec2 varying_TEXCOORD2;
+layout(location = 0) out highp vec4 out_var_SV_Target0;
 
 void main()
 {
-    highp float _39 = log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
-    highp vec4 _40 = vec4(0.0);
-    _40.w = _39;
-    out_var_SV_Target = _40;
-    gl_FragDepth = _39;
+    out_var_SV_Target0 = vec4(0.0);
+    gl_FragDepth = log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
 }
 

@@ -14,14 +14,13 @@ uniform sampler2D SPIRV_Cross_CombinedcolourTexturecolourSampler;
 layout(location = 0) in vec4 in_var_COLOR0;
 layout(location = 1) in vec2 in_var_TEXCOORD0;
 layout(location = 2) in vec2 in_var_TEXCOORD1;
-layout(location = 0) out vec4 out_var_SV_Target;
-
-float _32;
+layout(location = 3) in vec2 in_var_TEXCOORD2;
+layout(location = 0) out vec4 out_var_SV_Target0;
+layout(location = 1) out vec4 out_var_SV_Target1;
 
 void main()
 {
-    vec4 _60 = vec4(texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, in_var_TEXCOORD0).xyz * in_var_COLOR0.xyz, _32);
-    _60.w = ((in_var_TEXCOORD1.x / in_var_TEXCOORD1.y) * (1.0 / (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear))) + (u_cameraPlaneParams.u_clipZNear * (-0.5));
-    out_var_SV_Target = _60;
+    out_var_SV_Target0 = vec4(texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, in_var_TEXCOORD0).xyz * in_var_COLOR0.xyz, in_var_COLOR0.w);
+    out_var_SV_Target1 = vec4(0.0, 0.0, in_var_TEXCOORD2.x, ((in_var_TEXCOORD1.x / in_var_TEXCOORD1.y) * (1.0 / (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear))) + (u_cameraPlaneParams.u_clipZNear * (-0.5)));
 }
 

@@ -33,14 +33,24 @@ float2 directionToLatLong(float3 dir)
 
 sampler normalMapSampler;
 Texture2D normalMapTexture;
+
 sampler skyboxSampler;
 Texture2D skyboxTexture;
 
 struct PS_OUTPUT
 {
-  float4 Color0 : SV_Target;
+  float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
   float Depth0 : SV_Depth;
 };
+
+
+float4 packNormal(float3 normal, float objectId, float depth)
+{
+  return float4(normal.x / (1.0 - normal.z), normal.y / (1.0 - normal.z),
+                objectId,
+	            depth);
+}
 
 PS_OUTPUT main(PS_INPUT input)
 {
@@ -83,6 +93,6 @@ PS_OUTPUT main(PS_INPUT input)
   // dull colour until sort out ECEF water
   output.Color0 = output.Color0 * 0.3 + float4(0.2, 0.4, 0.7, 1.0);
   
-  output.Color0.a = output.Depth0; // depth packed here
+  output.Normal = packNormal(float3(0.0, 0.0, 0.0), 0.0, output.Depth0);
   return output;
 }

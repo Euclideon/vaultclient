@@ -17,6 +17,7 @@ struct PS_INPUT
   float4 colour : COLOR0;
   float2 uv : TEXCOORD0;
   float2 depth : TEXCOORD1;
+  float2 objectInfo : TEXCOORD2;
 };
 
 // This should match CPU struct size
@@ -28,6 +29,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_view;
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
+  float4 u_objectInfo; // objectId.x
   float4 u_uvOffsetScale;
   float4 u_demUVOffsetScale;
   float4 u_tileNormal;
@@ -75,11 +77,11 @@ PS_INPUT main(VS_INPUT input)
   // Reconstruct uint16 in float space and then convert back to int16 in float space
   float tileHeight = ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
   float3 heightOffset = u_tileNormal.xyz * tileHeight;
-  float4 h = mul(u_view, float4(heightOffset, 1.0));
-  float4 baseH = mul(u_view, float4(0, 0, 0, 1.0));
-  float4 diff = (h - baseH);
+  float4 eyeHeightOffset = mul(u_view, float4(heightOffset, 1.0));
+  float4 eyeBaseHeight = mul(u_view, float4(0, 0, 0, 1.0));
+  float4 eyeHeightDiff = (eyeHeightOffset - eyeBaseHeight);
 
-  float4 finalClipPos = mul(u_projection, (eyePos + diff));
+  float4 finalClipPos = mul(u_projection, (eyePos + eyeHeightDiff));
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
@@ -87,6 +89,7 @@ PS_INPUT main(VS_INPUT input)
   output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);
+  output.objectInfo.x = u_objectInfo.x;
   
   return output;
 }

@@ -22,7 +22,7 @@ struct type_u_params
 
 struct main0_out
 {
-    float4 out_var_SV_Target [[color(0)]];
+    float4 out_var_SV_Target0 [[color(0)]];
 };
 
 struct main0_in
@@ -67,7 +67,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
     {
         _225 = float4(0.0);
     }
-    out.out_var_SV_Target = float4(_225.xyz * _225.w, 1.0);
+    out.out_var_SV_Target0 = float4(_225.xyz * _225.w, 1.0);
     return out;
 }
 

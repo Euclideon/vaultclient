@@ -1719,7 +1719,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     pProgramState->worldMousePosCartesian = pickResult.position;
   }
 
-  if(!pickResult.success && !selectPolygons && !selectUD)
+  if (!pickResult.success && !selectPolygons && !selectUD)
     pProgramState->pickingSuccess = false;
 
   if (useTool)
@@ -2372,6 +2372,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
     pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
 
+    // Render scene to texture
+    vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+
     vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
 
     // Camera update has to be here because it depends on previous ImGui state
@@ -2427,9 +2430,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       vcGizmo_ResetState();
     }
   }
-
-  // Render scene to texture
-  vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
   // Clean up
   renderData.models.Deinit();

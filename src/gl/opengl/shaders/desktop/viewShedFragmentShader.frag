@@ -23,7 +23,7 @@ uniform sampler2D SPIRV_Cross_CombinedshadowMapAtlasTextureshadowMapAtlasSampler
 
 layout(location = 0) in vec4 in_var_TEXCOORD0;
 layout(location = 1) in vec2 in_var_TEXCOORD1;
-layout(location = 0) out vec4 out_var_SV_Target;
+layout(location = 0) out vec4 out_var_SV_Target0;
 
 void main()
 {
@@ -60,6 +60,6 @@ void main()
     {
         _225 = vec4(0.0);
     }
-    out_var_SV_Target = vec4(_225.xyz * _225.w, 1.0);
+    out_var_SV_Target0 = vec4(_225.xyz * _225.w, 1.0);
 }
 

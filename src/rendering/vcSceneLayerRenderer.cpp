@@ -96,7 +96,7 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
   return 2.0 * udMax(screenSize.x, screenSize.y);
 }
 
-void vcSceneLayerRenderer_RenderNode(vcSceneLayerRendererInternal *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udFloat4 *pColourOverride, bool shadowsPass)
+void vcSceneLayerRenderer_RenderNode(vcSceneLayerRendererInternal *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udFloat4 *pColourOverride)
 {
   udUnused(pSceneLayerRenderer);
 
@@ -109,19 +109,13 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRendererInternal *pSceneLayerRe
     if (pNode->textureDataCount > 0 && pNode->pTextureData[0].loaded)
       pDrawTexture = pNode->pTextureData[0].pTexture; // TODO: (EVC-542) read the actual material data
 
-    vcPolyModelPass passType = vcPMP_Standard;
-    if (shadowsPass)
-      passType = vcPMP_Shadows;
-    else if (pColourOverride != nullptr)
-      passType = vcPMP_ColourOnly;
-
-    vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pSceneLayerRenderer->worldMatrix * pNode->pGeometryData[geometry].originMatrix, pSceneLayerRenderer->viewProjectionMatrix, passType, pDrawTexture, pColourOverride);
+    vcPolygonModel_Render(pNode->pGeometryData[geometry].pModel, pSceneLayerRenderer->encodedObjectId, pSceneLayerRenderer->worldMatrix * pNode->pGeometryData[geometry].originMatrix, pSceneLayerRenderer->viewProjectionMatrix, pSceneLayerRenderer->passType, pDrawTexture, pColourOverride);
 
     // TODO: (EVC-542) other geometry types
   }
 }
 
-bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererInternal *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udUInt2 &screenResolution, const udFloat4 *pColourOverride, bool shadowsPass)
+bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererInternal *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udUInt2 &screenResolution, const udFloat4 *pColourOverride)
 {
   if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode, pSceneLayerRenderer->cameraPosition))
     return false;
@@ -140,7 +134,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererInternal *pSceneLa
   {
     if (vcSceneLayer_ExpandNodeForRendering(pSceneLayerRenderer->pSceneLayer, pNode))
     {
-      vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, pColourOverride, shadowsPass);
+      vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, pColourOverride);
       return true;
     }
 
@@ -151,7 +145,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererInternal *pSceneLa
   for (size_t i = 0; i < pNode->childrenCount; ++i)
   {
     vcSceneLayerNode *pChildNode = &pNode->pChildren[i];
-    allChildrenWereRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, screenResolution, pColourOverride, shadowsPass) && allChildrenWereRendered;
+    allChildrenWereRendered = vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, pChildNode, screenResolution, pColourOverride) && allChildrenWereRendered;
   }
 
   // If any children can't render, draw this node
@@ -161,7 +155,7 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererInternal *pSceneLa
   {
     if (vcSceneLayer_ExpandNodeForRendering(pSceneLayerRenderer->pSceneLayer, pNode))
     {
-      vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, pColourOverride, shadowsPass);
+      vcSceneLayerRenderer_RenderNode(pSceneLayerRenderer, pNode, pColourOverride);
       return true;
     }
   }
@@ -169,12 +163,14 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererInternal *pSceneLa
   return allChildrenWereRendered && !shouldRender;
 }
 
-bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneRenderer, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udDouble3 &cameraPosition, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/, bool shadowsPass /*= false*/)
+bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneRenderer, const float encodedObjectId, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udDouble3 &cameraPosition, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/, vcPolyModelPass passType /*= vcPMP_Standard*/)
 {
   vcSceneLayerRendererInternal *pSceneLayerRenderer = (vcSceneLayerRendererInternal*)pSceneRenderer;
   if (pSceneLayerRenderer == nullptr)
     return false;
 
+  pSceneLayerRenderer->passType = passType;
+  pSceneLayerRenderer->encodedObjectId = encodedObjectId;
   pSceneLayerRenderer->cameraPosition = cameraPosition;
   pSceneLayerRenderer->worldMatrix = worldMatrix;
   pSceneLayerRenderer->viewProjectionMatrix = viewProjectionMatrix;
@@ -193,5 +189,5 @@ bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneRenderer, const udD
   for (int j = 0; j < 6; ++j)
     pSceneLayerRenderer->frustumPlanes[j] /= udMag3(pSceneLayerRenderer->frustumPlanes[j]);
 
-  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, screenResolution, pColourOverride, shadowsPass);
+  return vcSceneLayerRenderer_RecursiveRender(pSceneLayerRenderer, &pSceneLayerRenderer->pSceneLayer->root, screenResolution, pColourOverride);
 }

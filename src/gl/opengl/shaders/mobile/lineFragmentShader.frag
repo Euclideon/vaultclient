@@ -12,11 +12,14 @@ layout(std140) uniform type_u_cameraPlaneParams
 
 in highp vec4 varying_COLOR0;
 in highp vec2 varying_TEXCOORD0;
-layout(location = 0) out highp vec4 out_var_SV_Target;
+layout(location = 0) out highp vec4 out_var_SV_Target0;
+layout(location = 1) out highp vec4 out_var_SV_Target1;
 
 void main()
 {
-    out_var_SV_Target = varying_COLOR0;
-    gl_FragDepth = log2(varying_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    highp float _36 = log2(varying_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    out_var_SV_Target0 = varying_COLOR0;
+    out_var_SV_Target1 = vec4(0.0, 0.0, 0.0, _36);
+    gl_FragDepth = _36;
 }
 

@@ -15,7 +15,7 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-  float4 Color0 : SV_Target;
+  float4 Color0 : SV_Target0;
 };
 
 sampler sceneDepthSampler;
@@ -103,6 +103,5 @@ PS_OUTPUT main(PS_INPUT input)
   }
 
   output.Color0 = float4(col.xyz * col.w, 1.0); //additive
-
   return output;
 }
