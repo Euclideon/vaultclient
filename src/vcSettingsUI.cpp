@@ -839,7 +839,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         if (pProgramState->activeSetting == vcSR_DiagnosticTranslation)
         {
           ImGui::BeginChild("Translation");
-          vcString::ShowTranslationHelperUI();
+          vcString::ShowTranslationHelperUI(pProgramState);
           ImGui::EndChild();
         }
       }

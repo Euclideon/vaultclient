@@ -592,7 +592,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 
       if (ImGui::Button(vcString::Get("sceneExplorerExportBegin")))
       {
-        if (udFileExists(pProgramState->modelPath) != udR_Success || vcModals_OverwriteExistingFile(pProgramState->modelPath))
+        if (udFileExists(pProgramState->modelPath) != udR_Success || vcModals_OverwriteExistingFile(pProgramState, pProgramState->modelPath))
         {
           if (!udStrchr(pProgramState->modelPath, "."))
             udStrcat(pProgramState->modelPath, SupportedTileTypes_QueryExport[0]);
