@@ -152,6 +152,8 @@ struct vcState
     char currentPassword[vcMaxPathLength];
     char newPassword[vcMaxPathLength];
     char newPasswordConfirm[vcMaxPathLength];
+
+    bool confirming = false;
   } changePassword;
 
   vcLoginStatus loginStatus;
