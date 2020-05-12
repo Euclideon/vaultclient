@@ -7,7 +7,8 @@
 #include "vcImGuiSimpleWidgets.h"
 
 #if UDPLATFORM_WINDOWS
-# include <shobjidl.h> 
+# include <shobjidl.h>
+# include <SDL2/SDL_syswm.h>
 #endif
 
 bool vcFileDialog_DrawImGui(char *pPath, size_t pathLength, vcFileDialogType dialogType = vcFDT_OpenFile, const char **ppExtensions = nullptr, size_t extensionCount = 0);
@@ -81,7 +82,10 @@ void vcFileDialog_ShowModal(vcState *pProgramState)
         if (SUCCEEDED(hr))
         {
           // Show the Open dialog box.
-          hr = pFileOpen->Show(NULL);
+          SDL_SysWMinfo info = {};
+          SDL_GetWindowWMInfo(pProgramState->pWindow, &info);
+
+          hr = pFileOpen->Show(info.info.win.window);
 
           if (SUCCEEDED(hr))
           {

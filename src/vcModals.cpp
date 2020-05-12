@@ -47,7 +47,7 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 }
 
 // Presents user with a message if the specified file exists, then returns false if user declines to overwrite the file
-bool vcModals_OverwriteExistingFile(const char *pFilename)
+bool vcModals_OverwriteExistingFile(vcState *pProgramState, const char *pFilename)
 {
   bool result = true;
   const char *pFileExistsMsg = nullptr;
@@ -69,7 +69,7 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
     pFileExistsMsg = vcStringFormat(vcString::Get("convertFileExistsMessage"), pFilename);
     SDL_MessageBoxData messageboxdata = {
       SDL_MESSAGEBOX_INFORMATION,
-      NULL,
+      pProgramState->pWindow,
       vcString::Get("convertFileExistsTitle"),
       pFileExistsMsg,
       SDL_arraysize(buttons),
@@ -85,7 +85,7 @@ bool vcModals_OverwriteExistingFile(const char *pFilename)
 }
 
 // Presents user with a message if the specified file exists, then returns false if user declines to overwrite the file
-bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage)
+bool vcModals_AllowDestructiveAction(vcState *pProgramState, const char *pTitle, const char *pMessage)
 {
 #if UDPLATFORM_EMSCRIPTEN
   udUnused(pTitle);
@@ -111,7 +111,7 @@ bool vcModals_AllowDestructiveAction(const char *pTitle, const char *pMessage)
 
   SDL_MessageBoxData messageboxdata = {
     SDL_MESSAGEBOX_WARNING,
-    NULL,
+    pProgramState->pWindow,
     pTitle,
     pMessage,
     SDL_arraysize(buttons),
@@ -148,7 +148,7 @@ bool vcModals_ConfirmEndSession(vcState *pProgramState, bool isQuit)
       udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmExportsRunning"));
   }
 
-  bool retVal = vcModals_AllowDestructiveAction(isQuit ? vcString::Get("endSessionExitTitle") : vcString::Get("endSessionLogoutTitle"), pMessage);
+  bool retVal = vcModals_AllowDestructiveAction(pProgramState, isQuit ? vcString::Get("endSessionExitTitle") : vcString::Get("endSessionLogoutTitle"), pMessage);
 
   udFree(pMessage);
 

@@ -248,7 +248,7 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
       exportFilename.SetFilenameWithExt("untitled_project.json");
 
     // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
-    if (allowOverride || vcModals_OverwriteExistingFile(exportFilename.GetPath()))
+    if (allowOverride || vcModals_OverwriteExistingFile(pProgramState, exportFilename.GetPath()))
     {
       vcState::ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
@@ -276,7 +276,7 @@ bool vcProject_AbleToChange(vcState *pProgramState)
   if (vdkProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == vE_NotFound)
     return true;
 
-  return vcModals_AllowDestructiveAction(vcString::Get("menuChangeScene"), vcString::Get("menuChangeSceneConfirm"));
+  return vcModals_AllowDestructiveAction(pProgramState, vcString::Get("menuChangeScene"), vcString::Get("menuChangeSceneConfirm"));
 }
 
 void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)

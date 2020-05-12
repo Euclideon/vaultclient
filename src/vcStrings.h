@@ -2,6 +2,7 @@
 #define vcStrings_h__
 
 #include "udResult.h"
+struct vcState;
 
 struct vcTranslationInfo
 {
@@ -21,7 +22,7 @@ namespace vcString
   void FreeTable(vcTranslationInfo *pInfo);
 
   void ShowMissingStringUI();
-  void ShowTranslationHelperUI();
+  void ShowTranslationHelperUI(vcState *pProgramState);
 }
 
 #endif //vcStrings_h__

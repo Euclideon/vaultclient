@@ -150,7 +150,7 @@ namespace vcString
     }
   }
 
-  void ShowTranslationHelperUI()
+  void ShowTranslationHelperUI(vcState *pProgramState)
   {
     static char loadedLanguage[8] = "zhCN";
     static bool hideUnchanged = true;
@@ -178,7 +178,7 @@ namespace vcString
 
     if (modified)
     {
-      if (ImGui::Button(vcString::Get("translationSave")) && vcModals_AllowDestructiveAction(vcString::Get("translationOverride"), vcString::Get("translationOverride")))
+      if (ImGui::Button(vcString::Get("translationSave")) && vcModals_AllowDestructiveAction(pProgramState, vcString::Get("translationOverride"), vcString::Get("translationOverride")))
       {
         g_targetVersion.Export(&pData, udJEO_FormatWhiteSpace);
         udFile_Save(udTempStr("asset://assets/lang/%s.json", loadedLanguage), pData, udStrlen(pData));
