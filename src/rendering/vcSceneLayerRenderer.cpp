@@ -7,17 +7,33 @@
 #include "gl/vcTexture.h"
 #include "gl/vcGLState.h"
 
+struct vcSceneLayerRendererInternal :
+  public vcSceneLayerRenderer
+{
+  udDouble4 frustumPlanes[6];
+
+  vcTexture *pEmptyTexture;
+
+  // transient data
+  vcPolyModelPass passType;
+  float encodedObjectId;
+  udDouble3 cameraPosition;
+  udDouble4x4 worldMatrix;
+  udDouble4x4 viewProjectionMatrix;
+  udDouble4x4 worldViewProjectionMatrix;
+};
+
 udResult vcSceneLayerRenderer_Create(vcSceneLayerRenderer **ppSceneLayerRenderer, udWorkerPool *pWorkerThreadPool, const char *pSceneLayerURL)
 {
   udResult result;
-  vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
+  vcSceneLayerRendererInternal *pSceneLayerRenderer = nullptr;
   uint8_t grayPixel[4] = { 0x7f, 0x7f, 0x7f, 0xff };
 
   UD_ERROR_NULL(ppSceneLayerRenderer, udR_InvalidParameter_);
   UD_ERROR_NULL(pWorkerThreadPool, udR_InvalidParameter_);
   UD_ERROR_NULL(pSceneLayerURL, udR_InvalidParameter_);
 
-  pSceneLayerRenderer = udAllocType(vcSceneLayerRenderer, 1, udAF_Zero);
+  pSceneLayerRenderer = udAllocType(vcSceneLayerRendererInternal, 1, udAF_Zero);
   UD_ERROR_NULL(pSceneLayerRenderer, udR_MemoryAllocationFailure);
 
   UD_ERROR_CHECK(vcSceneLayer_Create(&pSceneLayerRenderer->pSceneLayer, pWorkerThreadPool, pSceneLayerURL));
@@ -44,9 +60,9 @@ udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayerRendere
   if (ppSceneLayerRenderer == nullptr || *ppSceneLayerRenderer == nullptr)
     return udR_Success;
 
-  vcSceneLayerRenderer *pSceneLayerRenderer = nullptr;
+  vcSceneLayerRendererInternal *pSceneLayerRenderer = nullptr;
 
-  pSceneLayerRenderer = *ppSceneLayerRenderer;
+  pSceneLayerRenderer = (vcSceneLayerRendererInternal*)*ppSceneLayerRenderer;
   *ppSceneLayerRenderer = nullptr;
 
   vcTexture_Destroy(&pSceneLayerRenderer->pEmptyTexture);
@@ -57,7 +73,7 @@ udResult vcSceneLayerRenderer_Destroy(vcSceneLayerRenderer **ppSceneLayerRendere
   return udR_Success;
 }
 
-bool vcSceneLayerRenderer_IsNodeVisible(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4 frustumPlanes[6])
+bool vcSceneLayerRenderer_IsNodeVisible(vcSceneLayerRendererInternal *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udDouble4 frustumPlanes[6])
 {
   udDouble4 worldPosition = pSceneLayerRenderer->worldMatrix * udDouble4::create(pNode->minimumBoundingSphere.position, 1.0);
   return -1 < udFrustumTest(frustumPlanes, worldPosition.toVector3(), udDouble3::create(pNode->minimumBoundingSphere.radius));
@@ -81,7 +97,7 @@ double vcSceneLayerRenderer_CalculateNodeScreenSize(vcSceneLayerNode *pNode, con
   return 2.0 * udMax(screenSize.x, screenSize.y);
 }
 
-void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udFloat4 *pColourOverride, bool shadowsPass)
+void vcSceneLayerRenderer_RenderNode(vcSceneLayerRendererInternal *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udFloat4 *pColourOverride, bool shadowsPass)
 {
   udUnused(pSceneLayerRenderer);
 
@@ -106,7 +122,7 @@ void vcSceneLayerRenderer_RenderNode(vcSceneLayerRenderer *pSceneLayerRenderer, 
   }
 }
 
-bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udUInt2 &screenResolution, const udFloat4 *pColourOverride, bool shadowsPass)
+bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRendererInternal *pSceneLayerRenderer, vcSceneLayerNode *pNode, const udUInt2 &screenResolution, const udFloat4 *pColourOverride, bool shadowsPass)
 {
   if (!vcSceneLayer_TouchNode(pSceneLayerRenderer->pSceneLayer, pNode, pSceneLayerRenderer->cameraPosition))
     return false;
@@ -154,8 +170,9 @@ bool vcSceneLayerRenderer_RecursiveRender(vcSceneLayerRenderer *pSceneLayerRende
   return allChildrenWereRendered && !shouldRender;
 }
 
-bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneLayerRenderer, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udDouble3 &cameraPosition, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/, bool shadowsPass /*= false*/)
+bool vcSceneLayerRenderer_Render(vcSceneLayerRenderer *pSceneRenderer, const udDouble4x4 &worldMatrix, const udDouble4x4 &viewProjectionMatrix, const udDouble3 &cameraPosition, const udUInt2 &screenResolution, const udFloat4 *pColourOverride /*= nullptr*/, bool shadowsPass /*= false*/)
 {
+  vcSceneLayerRendererInternal *pSceneLayerRenderer = (vcSceneLayerRendererInternal*)pSceneRenderer;
   if (pSceneLayerRenderer == nullptr)
     return false;
 
