@@ -565,7 +565,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     pProgramState->cameraInput.inputState = vcCIS_None;
   }
 
-  if (pProgramState->cameraInput.smoothTranslation != udDouble3::zero())
+  if (pProgramState->cameraInput.inputState == vcCIS_ZoomTo && pProgramState->cameraInput.smoothTranslation != udDouble3::zero())
     pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
 
   // Apply movement and rotation
