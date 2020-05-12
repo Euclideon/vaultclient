@@ -7,8 +7,7 @@
 #include "gl/vcTexture.h"
 #include "gl/vcGLState.h"
 
-struct vcSceneLayerRendererInternal :
-  public vcSceneLayerRenderer
+struct vcSceneLayerRendererInternal : vcSceneLayerRenderer
 {
   udDouble4 frustumPlanes[6];
 

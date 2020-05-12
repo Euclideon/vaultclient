@@ -380,7 +380,7 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
         pVerts[index].position = udFloat3::create(pOBJReader->positions[pVertex->pos] - pPolygonModel->origin);
 
         // TODO: Better handle meshes with different vertex layouts
-        if (pVertex->nrm >= 0 && pVertex->nrm < pOBJReader->normals.length)
+        if (pVertex->nrm >= 0 && pVertex->nrm < (int)pOBJReader->normals.length)
           pVerts[index].normal = udFloat3::create(pOBJReader->normals[pVertex->nrm]);
         else
           pVerts[index].normal = udFloat3::create(0.0f, 0.0f, 1.0f);
