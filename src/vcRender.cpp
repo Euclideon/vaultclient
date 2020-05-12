@@ -32,6 +32,15 @@ enum
   vcRender_RenderBufferCount = 2,
 };
 
+enum vcObjectId
+{
+  vcObjectId_Null = 0,
+  //vcObjectId_Terrain = 1,
+
+  // These are offsets
+  vcObjectId_PolygonModels = 2,
+};
+
 // Temp hard-coded view shed properties
 static const int ViewShedMapCount = 3;
 static const udUInt2 ViewShedMapRes = udUInt2::create(640 * ViewShedMapCount, 1920);
@@ -723,8 +732,15 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 
 void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
-  if (pProgramState->settings.presentation.skybox.type != vcSkyboxType_Atmosphere)
+  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_None)
     return;
+
+  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour || pProgramState->settings.presentation.skybox.type == vcSkyboxType_Simple)
+  {
+    // Render simple skybox instead
+    vcRenderSkybox(pProgramState, pRenderContext);
+    return;
+  }
 
   vcAtmosphereRenderer_SetVisualParams(pProgramState, pRenderContext->pAtmosphereRenderer);
 
@@ -1368,9 +1384,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
-  // Drawing skybox after opaque geometry saves a bit on fill rate.
-  vcRenderSkybox(pProgramState, pRenderContext);
-
   vcRender_RenderAtmosphere(pProgramState, pRenderContext);
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
@@ -1663,7 +1676,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcGLState_Scissor(pRenderContext->picking.location.x, pRenderContext->picking.location.y, pRenderContext->picking.location.x + 1, pRenderContext->picking.location.y + 1);
 
     {
-      uint32_t modelId = 1; // note: start at 1, because 0 is 'null'
+      uint32_t modelId = vcObjectId_PolygonModels;
 
       // Polygon Models
       for (size_t i = 0; i < renderData.polyModels.length; ++i)
@@ -1706,13 +1719,12 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     pickDepth = Float16ToFloat32(a16);
 
     // decode from F16 to an ID
-    // note `-1`, and BGRA format
     const float maxValue = (256 * 256) - 1.0f;
-    int pickedPolygonId = (int)((Float16ToFloat32(g16) * maxValue) + 0.5f) - 1;
-    if (pickedPolygonId != -1)
+    int pickedId = (int)((Float16ToFloat32(g16) * maxValue) + 0.5f);
+    if (pickedId >= vcObjectId_PolygonModels)
     {
       result.success = true;
-      result.pPolygon = &renderData.polyModels[pickedPolygonId];
+      result.pPolygon = &renderData.polyModels[pickedId - vcObjectId_PolygonModels];
     }
     else if (pickDepth > 0 && pickDepth < 1.0)
     {
