@@ -32,10 +32,13 @@ void vcShader_UpdatePipeline(vcShader *pShader)
   bool modified = false;
 
   // Update render target colour format
-  if (pShader->pDesc.colorAttachments[0].pixelFormat != g_pCurrFramebuffer->pColor->texture.pixelFormat)
+  for (int i = 0; i < g_pCurrFramebuffer->attachmentCount; ++i)
   {
-    pShader->pDesc.colorAttachments[0].pixelFormat = g_pCurrFramebuffer->pColor->texture.pixelFormat;
-    modified = true;
+    if (pShader->pDesc.colorAttachments[i].pixelFormat != g_pCurrFramebuffer->attachments[i]->texture.pixelFormat)
+    {
+      pShader->pDesc.colorAttachments[i].pixelFormat = g_pCurrFramebuffer->attachments[i]->texture.pixelFormat;
+      modified = true;
+    }
   }
 
   // Update render target depth format

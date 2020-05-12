@@ -54,7 +54,7 @@ struct vcFramebuffer
   GLuint id;
 
   int attachmentCount;
-  vcTexture *pAttachments[2];
+  vcTexture *attachments[2];
   vcTexture *pDepth; // optional
 };
 

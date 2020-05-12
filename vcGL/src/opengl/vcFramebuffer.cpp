@@ -31,8 +31,8 @@ bool vcFramebuffer_Create(vcFramebuffer **ppFramebuffer, vcTexture *pTexture, vc
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-  pFramebuffer->pAttachments[0] = pTexture;
-  pFramebuffer->pAttachments[1] = pAttachment2;
+  pFramebuffer->attachments[0] = pTexture;
+  pFramebuffer->attachments[1] = pAttachment2;
   pFramebuffer->pDepth = pDepth;
 
   *ppFramebuffer = pFramebuffer;
