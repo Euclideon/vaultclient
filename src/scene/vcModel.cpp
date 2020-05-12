@@ -259,7 +259,35 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
   udDouble2 displacement;
   vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.x", &displacement.x, 0.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.y", &displacement.y, 0.0);
+  if (displacement.x == 0.0 && displacement.y == 0.0)
+  {
+    const char *pDisplacement = m_metadata.Get("AttrMinMax_udDisplacement").AsString();
+    if (pDisplacement != nullptr && udStrcmp(pDisplacement, "") != 0)
+    {
+      char pStart[128] = "";
+      udStrcpy(pStart, pDisplacement);
+      char *pDisplacementArray[2];
+      udStrTokenSplit(pStart, ",", pDisplacementArray, 2);
+
+      if (pDisplacementArray[0] != nullptr && udStrcmp(pDisplacementArray[0], "") != 0)
+        displacement.x = udStrAtof64(pDisplacementArray[0]);
+
+      if (pDisplacementArray[1] != nullptr && udStrcmp(pDisplacementArray[1], "") != 0)
+        displacement.y = udStrAtof64(pDisplacementArray[1]);
+    }
+    else
+    {
+      displacement.x = 0.0;
+      displacement.y = 1.0;
+    }
+  }
+
   m_visualization.displacement.bounds = udFloat2::create((float)displacement.x, (float)displacement.y);
+
+  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.minColour", &m_visualization.displacement.min, pProgramState->settings.visualization.displacement.min);
+  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.maxColour", &m_visualization.displacement.max, pProgramState->settings.visualization.displacement.max);
+  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.errorColour", &m_visualization.displacement.error, pProgramState->settings.visualization.displacement.error);
+  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.midColour", &m_visualization.displacement.mid, pProgramState->settings.visualization.displacement.mid);
 
   // TODO: Handle this better (EVC-535)
   pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, m_visualization.minIntensity);
@@ -369,6 +397,10 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     vdkProjectNode_SetMetadataBool(m_pNode, "visualization.showColourTable", m_visualization.useCustomClassificationColours);
     vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.x", m_visualization.displacement.bounds.x);
     vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.y", m_visualization.displacement.bounds.y);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.minColour", m_visualization.displacement.min);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.maxColour", m_visualization.displacement.max);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.errorColour", m_visualization.displacement.error);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.midColour", m_visualization.displacement.mid);
   }
 
   // Show MetaData Info
