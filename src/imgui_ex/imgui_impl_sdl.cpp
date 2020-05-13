@@ -84,6 +84,10 @@ static HIMC         g_InputContext = NULL;
 static void ImGui_ImplSDL2_InitPlatformInterface(SDL_Window* window);
 static void ImGui_ImplSDL2_ShutdownPlatformInterface();
 
+#if UDPLATFORM_OSX || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+float ImGui_ImplSDL2_GetBackingScaleFactor(SDL_Window *pWindow); // From imgui_impl_sdl.mm
+#endif
+
 #ifdef _WIN32
 static HWND ImGui_ImplSDL2_GetHWND(SDL_Window* window)
 {
@@ -505,7 +509,9 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
     {
 #if UDPLATFORM_ANDROID
       g_Scaling = dpi / 160.0f;
-#elif UDPLATFORM_OSX || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
+#elif UDPLATFORM_OSX
+      g_Scaling = ImGui_ImplSDL2_GetBackingScaleFactor(window);
+#elif UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
       g_Scaling = dpi / 72.0f;
 #else
       g_Scaling = dpi / 96.0f;
