@@ -118,14 +118,14 @@ float3 hsv2rgb(float3 c)
 }
 
 // project position onto earth surface (in eye space)
-float calculateHeightAboveEarth(float3 fragEyePosition)
+// if result is negative, it is below earth surface
+float calculateHeightAboveEarthSurface(float3 fragEyePosition)
 {
   float3 eyeToEarthSurface = u_eyeToEarthSurfaceEyeSpace.xyz;
   float3 projectedPosition = (dot(fragEyePosition, eyeToEarthSurface) / dot(eyeToEarthSurface, eyeToEarthSurface)) * eyeToEarthSurface;
   
-  // clamp at altitude '0.0'
-  float isBelowSurface = float(dot(projectedPosition, projectedPosition) > dot(eyeToEarthSurface, eyeToEarthSurface));
-  return lerp(length(eyeToEarthSurface - projectedPosition), 0.0, isBelowSurface);
+  float isBelowSurface = float(dot(projectedPosition, projectedPosition) < dot(eyeToEarthSurface, eyeToEarthSurface)) * 2.0 - 1.0;
+  return length(eyeToEarthSurface - projectedPosition) * isBelowSurface;
 }
 
 float3 contourColour(float3 col, float3 fragEyePosition)
@@ -135,7 +135,7 @@ float3 contourColour(float3 col, float3 fragEyePosition)
   float contourRainboxRepeat = u_contourParams.z;
   float contourRainboxIntensity = u_contourParams.w;
 
-  float projectedHeight = calculateHeightAboveEarth(fragEyePosition);
+  float projectedHeight = abs(calculateHeightAboveEarthSurface(fragEyePosition));
   float3 rainbowColour = hsv2rgb(float3(projectedHeight * (1.0 / contourRainboxRepeat), 1.0, 1.0));
   float3 baseColour = lerp(col.xyz, rainbowColour, contourRainboxIntensity);
 
@@ -147,7 +147,7 @@ float3 colourizeByHeight(float3 col, float3 fragEyePosition)
 {
   float2 worldColourMinMax = u_colourizeHeightParams.xy;
   
-  float projectedHeight = calculateHeightAboveEarth(fragEyePosition);
+  float projectedHeight = calculateHeightAboveEarthSurface(fragEyePosition);
   float minMaxColourStrength = getNormalizedPosition(projectedHeight, worldColourMinMax.x, worldColourMinMax.y);
   
   float3 minColour = lerp(col.xyz, u_colourizeHeightColourMin.xyz, u_colourizeHeightColourMin.w);
