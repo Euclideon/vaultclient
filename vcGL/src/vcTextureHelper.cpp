@@ -263,10 +263,6 @@ udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, c
 
   vcTexture_BeginReadPixels(pTexture, 0, 0, currSize.x, currSize.y, pPixels, pFramebuffer);
 
-#if (GRAPHICS_API_OPENGL)
-  stbi_flip_vertically_on_write(1);
-#endif
-
   pWriteData = stbi_write_png_to_mem(pPixels, 0, currSize.x, currSize.y, 4, &outLen);
   UD_ERROR_NULL(pWriteData, udR_InternalError);
 
