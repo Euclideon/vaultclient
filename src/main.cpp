@@ -1614,7 +1614,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
 
       // Activate Measure Height
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureHeight"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureHeightTool)), vcMBBI_MeasureHeight, vcMBBG_FirstItem, (pProgramState->activeTool == vcB_ToggleMeasureHeightTool)) || (vcHotkey::IsPressed(vcB_ToggleMeasureHeightTool) && !ImGui::IsAnyItemActive()))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureHeight"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureHeightTool)), vcMBBI_MeasureHeight, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureHeight)) || (vcHotkey::IsPressed(vcB_ToggleMeasureHeightTool) && !ImGui::IsAnyItemActive()))
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_MeasureHeight;
