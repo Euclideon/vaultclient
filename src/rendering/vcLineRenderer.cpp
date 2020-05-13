@@ -134,11 +134,11 @@ udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPo
     udDouble4 p0_neighbour = udDouble4::create(pPoints[(i + pointCount - 1) % pointCount] - origin, 1.0);
     udDouble4 p1_neighbour = udDouble4::create(pPoints[(i + 2) % pointCount] - origin, 1.0);
 
-    if (i == 0 && closed)
-      p0_neighbour.w = 0.0; //Flag endpoint with w == 0
+    if (i == 0 && !closed)
+      p0_neighbour.w = 0.0; //Flag endpoint as open with w == 0
 
-    if (i == pointCount - 2 && closed)
-        p0_neighbour.w = 0.0; //Flag endpoint with w == 0
+    if (i == pointCount - 2 && !closed)
+        p0_neighbour.w = 0.0; //Flag endpoint as open with w == 0
 
     //p0
     pVerts[vertIndex + 0].position = udFloat4::create(udFloat3::create(p0), -1.0f);
