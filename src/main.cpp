@@ -1228,7 +1228,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (!pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
           pProgramState->activeTool = vcActiveTool_Select;
 
-        if (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea)
+        if (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea || pProgramState->activeTool == vcActiveTool_MeasureHeight)
         {
           if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
           {
@@ -1612,6 +1612,13 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_MeasureArea;
       }
+
+      // Activate Measure Height
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureHeight"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureHeightTool)), vcMBBI_MeasureHeight, vcMBBG_FirstItem, (pProgramState->activeTool == vcB_ToggleMeasureHeightTool)) || (vcHotkey::IsPressed(vcB_ToggleMeasureHeightTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_MeasureHeight;
+      }
     }
 
     ImGui::End();
@@ -1813,6 +1820,31 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       // Does nothing during operation
       break;
 
+    case vcActiveTool_MeasureHeight:
+    {
+      if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
+      {
+        vcPOI *pPOI = (vcPOI *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+        pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian);
+      }
+      else
+      {
+        vcProject_ClearSelection(pProgramState, false);
+        vdkProjectNode *pNode = nullptr;
+        if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIHeightDefaultName"), nullptr, nullptr) == vE_Success)
+        {
+          vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_LineString, &pProgramState->worldMousePosCartesian, 1);
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+          vdkProjectNode_SetMetadataBool(pNode, "showAllLengths", true);
+          vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", 0xffffff00);
+          vdkProjectNode_SetMetadataInt(pNode, "lineMode", vcRRVM_ScreenLine);
+          vdkProjectNode_SetMetadataString(pNode, "lineMode", "Screen Line");
+          vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 2.0f);
+        }
+      }
+    }
+    break;
+
     case vcActiveTool_Count:
       // Does nothing
       break;
@@ -1825,6 +1857,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     {
     case vcActiveTool_MeasureLine:
     case vcActiveTool_MeasureArea:
+    case vcActiveTool_MeasureHeight:
       if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
       {
         vcSceneItem *pSceneItem = (vcSceneItem*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;

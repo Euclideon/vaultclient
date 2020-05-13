@@ -45,6 +45,7 @@ namespace vcHotkey
     "ToggleSelectTool",
     "ToggleMeasureLineTool",
     "ToggleMeasureAreaTool",
+    "ToggleMeasureHeightTool",
     "ToggleInspectionTool",
     "ToggleAnnotateTool",
     "OpenSettingsMenu",

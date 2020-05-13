@@ -24,6 +24,7 @@ enum vcMenuBarButtonIcon
   vcMBBI_SaveViewport = 17,
   vcMBBI_Settings = 18,
   vcMBBI_Inspect = 19,
+  vcMBBI_MeasureHeight = 20,
 
   // Reserved 20-29
 
