@@ -88,6 +88,7 @@ bool vcModals_OverwriteExistingFile(vcState *pProgramState, const char *pFilenam
 bool vcModals_AllowDestructiveAction(vcState *pProgramState, const char *pTitle, const char *pMessage)
 {
 #if UDPLATFORM_EMSCRIPTEN
+  udUnused(pProgramState);
   udUnused(pTitle);
   udUnused(pMessage);
   return true;
