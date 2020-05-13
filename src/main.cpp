@@ -2138,6 +2138,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
     vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+    // Immediately update camera
+    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->sceneResolution));
   }
 
   if (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released))
