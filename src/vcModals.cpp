@@ -693,9 +693,17 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
         }
         else
         {
-          udStrcpy(pProgramState->changePassword.message, resultData.Get("message").AsString());
+          const char *pMessage = resultData.Get("message").AsString();
+
+          if (udStrcmp(pMessage, "Current password incorrect.") == 0)
+            udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordIncorrect"));
+          else if (udStrcmp(pMessage, "Passwords don't match.") == 0)
+            udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordNoMatch"));
         }
       }
+
+      udFree(pUpdatePasswordString);
+      udFree(pResult);
     }
     
     ImGui::SameLine();
