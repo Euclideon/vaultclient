@@ -88,6 +88,9 @@ struct vcQuadTreeNode
   udInt2 demMinMax;  // in DEM units. For calculating AABB of node
   udInt2 activeDemMinMax; // DEM can turned off / on, so cache this state
 
+  vcQuadTreeNode *pDEMDrapeNode;
+  int16_t *pDemHeights;
+
   // node payloads
   vcNodeRenderInfo colourInfo;
   vcNodeRenderInfo demInfo;
@@ -172,5 +175,7 @@ inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQu
 }
 
 void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode);
+
+const vcQuadTreeNode* vcQuadTree_GetNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point);
 
 #endif//vcQuadTree_h__

@@ -777,6 +777,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     pNode->demMinMax[0] = 32767;
     pNode->demMinMax[1] = -32768;
 
+    pNode->pDemHeights = udAllocType(int16_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
+
     uint8_t *pShortPixels = udAllocType(uint8_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 2, udAF_Zero);
     for (int h = 0; h < pNode->demInfo.data.height; ++h)
     {
@@ -798,6 +800,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
         pShortPixels[index * 2 + 0] = r;
         // Convert from [-32k, 32k] to [0, 65k]
         pShortPixels[index * 2 + 1] = (g ^ 0x80);
+
+        pNode->pDemHeights[index] = height;
       }
     }
 
@@ -1015,8 +1019,11 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
 {
   pChild->demInfo.drawInfo.uvStart = udFloat2::zero();
   pChild->demInfo.drawInfo.uvEnd = udFloat2::one();
+  pChild->pDEMDrapeNode = nullptr;
   if (pAncestor != nullptr && pAncestor != pChild)
   {
+    pChild->pDEMDrapeNode = pAncestor;
+
     // calculate what portion of ancestors DEM to display at this tile
     pChild->demInfo.drawInfo.pTexture = pAncestor->demInfo.drawInfo.pTexture;
     int depthDiff = pChild->slippyPosition.z - pAncestor->slippyPosition.z;
@@ -1150,4 +1157,42 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
   vcQuadTree_Reset(&pTileRenderer->quadTree);
 
   udReleaseMutex(pTileRenderer->cache.pMutex);
+}
+
+udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point)
+{
+  const vcQuadTreeNode *pNode = vcQuadTree_GetNodeFromCartesian(&pTileRenderer->quadTree, point);
+  const vcQuadTreeNode *pDemNode = pNode;
+
+  // TODO: inherited
+  if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_None)
+  {
+    return udDouble3::create(0, 0, 0);
+  }
+  else if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Inherited)
+  {
+    // TODO: DANGEROUS!!! the state, and the `pDEMDrapeNode` variable are set in 2 different parts
+    pDemNode = pNode->pDEMDrapeNode;
+  }
+
+  if (pDemNode == nullptr || pDemNode->pDemHeights == nullptr)
+  {
+    return udDouble3::zero();
+  }
+
+  udDouble3 range = pDemNode->worldBounds[8] - pDemNode->worldBounds[0];
+  udDouble3 localPoint = point - pDemNode->worldBounds[0];
+  udDouble3 demUV = localPoint / range;
+  printf("%f, %f\n", demUV.x, demUV.y);
+
+  if (demUV.x < 0 || demUV.x > 1 || demUV.y < 0 || demUV.y > 1)
+  {
+    // TODO: TEMP while i fix
+    return udDouble3::zero();
+  }
+
+  udInt2 samplePos = udInt2::create((uint32_t)(demUV.x * pDemNode->demInfo.data.width), (uint32_t)(demUV.y * pDemNode->demInfo.data.height));
+  float height = pDemNode->pDemHeights[samplePos.y * pDemNode->demInfo.data.width + samplePos.x];
+  return udDouble3::create(0, 0, height);
+  //return pNode->tileCenter + pNode->worldNormal * pNode->activeDemMinMax.y;
 }

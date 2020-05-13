@@ -1724,3 +1724,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
   return result;
 }
+
+udDouble3 vcRender_QueryMapHeightAtCartesian(vcState *pProgramState, vcRenderContext *pRenderContext, const udDouble3 &point)
+{
+  return vcTileRenderer_QueryMapHeightAtCartesian(pRenderContext->pTileRenderer, point);
+}

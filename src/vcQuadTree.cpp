@@ -630,3 +630,20 @@ void vcQuadTree_Prune(vcQuadTree *pQuadTree)
   while (pQuadTree->nodes.used > 0 && !vcQuadTree_IsBlockUsed(pQuadTree, pQuadTree->nodes.used - NodeChildCount))
     pQuadTree->nodes.used -= NodeChildCount;
 }
+
+const vcQuadTreeNode* vcQuadTree_GetNodeFromCartesian(vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode, const udDouble3 &point)
+{
+  if (vcQuadTree_IsLeafNode(pNode))
+    return pNode;
+
+  udInt2 pViewInChildSlippyCoords = {};
+  vcGIS_LocalToSlippy(pQuadTree->geozone, &pViewInChildSlippyCoords, point, pNode->slippyPosition.z + 1);
+
+  udInt2 childOffset = pViewInChildSlippyCoords - (pNode->slippyPosition.toVector2() * 2);
+  return vcQuadTree_GetNodeFromCartesian(pQuadTree, &pQuadTree->nodes.pPool[pNode->childBlockIndex + (childOffset.y * 2 + childOffset.x)], point);
+}
+
+const vcQuadTreeNode* vcQuadTree_GetNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point)
+{
+  return vcQuadTree_GetNodeFromCartesian(pQuadTree, &pQuadTree->nodes.pPool[pQuadTree->rootIndex], point);
+}
