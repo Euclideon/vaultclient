@@ -653,23 +653,23 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
     
     if (ImGui::Button(vcString::Get("modalProfileConfirmNewPassword"), ImVec2(130.0f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
-      udJSON v;
-      v.Set("username = \"%s\"", pProgramState->settings.loginInfo.username);
-      v.Set("oldpassword = \"%s\"", pProgramState->changePassword.currentPassword);
-      v.Set("password = \"%s\"", pProgramState->changePassword.newPassword);
-      v.Set("passwordConfirm = \"%s\"", pProgramState->changePassword.newPasswordConfirm);
+      udJSON changePasswordData;
+      changePasswordData.Set("username = \"%s\"", pProgramState->settings.loginInfo.username);
+      changePasswordData.Set("oldpassword = \"%s\"", pProgramState->changePassword.currentPassword);
+      changePasswordData.Set("password = \"%s\"", pProgramState->changePassword.newPassword);
+      changePasswordData.Set("passwordConfirm = \"%s\"", pProgramState->changePassword.newPasswordConfirm);
 
       const char *pUpdatePasswordString = nullptr;
-      v.Export(&pUpdatePasswordString, udJEO_JSON);
+      changePasswordData.Export(&pUpdatePasswordString, udJEO_JSON);
 
       const char *pResult = nullptr;
       vdkError result = vdkServerAPI_Query(pProgramState->pVDKContext, "v1/user/updatepassword", pUpdatePasswordString, &pResult);
       if (result == vE_Success)
       {
-        udJSON r;
-        r.Parse(pResult);
+        udJSON resultData;
+        resultData.Parse(pResult);
 
-        if (r.Get("success").AsBool())
+        if (resultData.Get("success").AsBool())
         {
           ImGui::CloseCurrentPopup();
           memset(pProgramState->changePassword.currentPassword, 0, sizeof(pProgramState->changePassword.currentPassword));
@@ -679,11 +679,11 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
         }
         else
         {
-          udStrcpy(pProgramState->changePassword.message, r.Get("message").AsString());
+          udStrcpy(pProgramState->changePassword.message, resultData.Get("message").AsString());
         }
       }
     }
-    // vdkserver
+    
     ImGui::SameLine();
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
