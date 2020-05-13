@@ -638,41 +638,21 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
     if (pProgramState->sessionInfo.isOffline)
     {
       ImGui::TextUnformatted(vcString::Get("modalProfileOffline"));
-
-      // ImGui::InputText(vcString::Get("modalProfileDongle"), pProgramState->sessionInfo.displayName, udLengthOf(pProgramState->sessionInfo.displayName), ImGuiInputTextFlags_ReadOnly);
     }
     else
     {
       ImGuiInputTextFlags passwordFieldFlags = ImGuiInputTextFlags_Password;
-      if (pProgramState->changePassword.confirming)
-        passwordFieldFlags |= ImGuiInputTextFlags_ReadOnly;
 
       ImGui::InputText(vcString::Get("modalProfileCurrentPassword"), &pProgramState->changePassword.currentPassword[0], vcMaxPathLength, passwordFieldFlags);
       ImGui::Separator();
       ImGui::InputText(vcString::Get("modalProfileNewPassword"), &pProgramState->changePassword.newPassword[0], vcMaxPathLength, passwordFieldFlags);
       ImGui::InputText(vcString::Get("modalProfileReEnterNewPassword"), &pProgramState->changePassword.newPasswordConfirm[0], vcMaxPathLength, passwordFieldFlags);
-
-
-
-      //const char *pUsername = pProgramState->profileInfo.Get("user.username").AsString("");
-      //ImGui::InputText(vcString::Get("modalProfileUsername"), (char *)pUsername, udStrlen(pUsername), ImGuiInputTextFlags_ReadOnly);
-      //
-      //ImGui::InputText(vcString::Get("modalProfileRealName"), pProgramState->sessionInfo.displayName, udLengthOf(pProgramState->sessionInfo.displayName), ImGuiInputTextFlags_ReadOnly);
-      //
-      //const char *pEmail = pProgramState->profileInfo.Get("user.email").AsString("");
-      //ImGui::InputText(vcString::Get("modalProfileEmail"), (char *)pEmail, udStrlen(pEmail), ImGuiInputTextFlags_ReadOnly);
     }
 
     ImGui::Separator();
     
     if (ImGui::Button(vcString::Get("modalProfileConfirmNewPassword"), ImVec2(130.0f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
-      // const char *pUpdatePasswordString = nullptr;
-      // udSprintf(&pUpdatePasswordString, "{ \"username\": \"%s\", \"oldpassword\": \"%s\", \"password\": \"%s\" }",
-      //   pProgramState->settings.loginInfo.username,
-      //   pProgramState->changePassword.currentPassword,
-      //   pProgramState->changePassword.newPassword);
-
       udJSON v;
       v.Set("username = \"%s\"", pProgramState->settings.loginInfo.username);
       v.Set("oldpassword = \"%s\"", pProgramState->changePassword.currentPassword);
@@ -692,26 +672,25 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
         if (r.Get("success").AsBool())
         {
           ImGui::CloseCurrentPopup();
-          pProgramState->changePassword.currentPassword = "";
-          pProgramState->changePassword.newPassword = "";
-          pProgramState->changePassword.newPasswordConfirm = "";
+          memset(pProgramState->changePassword.currentPassword, 0, sizeof(pProgramState->changePassword.currentPassword));
+          memset(pProgramState->changePassword.newPassword, 0, sizeof(pProgramState->changePassword.newPassword));
+          memset(pProgramState->changePassword.newPasswordConfirm, 0, sizeof(pProgramState->changePassword.newPasswordConfirm));
+          memset(pProgramState->changePassword.message, 0, sizeof(pProgramState->changePassword.message));
         }
         else
         {
-          const char *pThinglol = r.Get("success").AsString();
-          pThinglol = pThinglol;
-
+          udStrcpy(pProgramState->changePassword.message, r.Get("message").AsString());
         }
       }
-
-
-      //pProgramState->changePassword.confirming = true;
     }
     // vdkserver
     ImGui::SameLine();
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(buttonWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
+
+    ImGui::SameLine();
+    ImGui::TextColored(ImVec4(1, 0, 0, 1), pProgramState->changePassword.message);
 
     ImGui::EndPopup();
   }
