@@ -66,9 +66,9 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, udDouble3 pos
 
   }
 
-  pModel->m_sceneMatrix = udDouble4x4::create(pModel->m_pointCloudHeader.storedMatrix);
-  pModel->m_defaultMatrix = pModel->m_sceneMatrix;
-  pModel->m_baseMatrix = pModel->m_defaultMatrix;
+  pModel->m_defaultMatrix = udDouble4x4::create(pModel->m_pointCloudHeader.storedMatrix);
+  udDouble4x4 matrix = udDouble4x4::translation(possibleLocation) * pModel->m_defaultMatrix;
+  pModel->SetTransforms(matrix);
 
   if (pModel->m_pPreferredProjection == nullptr && possibleLocation != udDouble3::zero())
     vcProject_UpdateNodeGeometryFromCartesian(pModel->m_pProject, pModel->m_pNode, pProgramState->geozone, vdkPGT_Point, &possibleLocation, 1);
@@ -116,8 +116,9 @@ vcModel::vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
   m_pCurrentZone(nullptr),
-  m_sceneMatrix(udDouble4x4::identity()),
-  m_baseMatrix(udDouble4x4::identity()),
+  m_positionCurrent(udDouble3::zero()),
+  m_scaleCurrent(udDouble3::create(1.0, 1.0, 1.0)),
+  m_orientationCurrent(udDoubleQuat::create(0.0, 0.0, 0.0)),
   m_changeZones(false),
   m_meterScale(0.0),
   m_hasWatermark(false),
@@ -153,8 +154,9 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   m_pivot(udDouble3::zero()),
   m_defaultMatrix(udDouble4x4::identity()),
   m_pCurrentZone(nullptr),
-  m_sceneMatrix(udDouble4x4::identity()),
-  m_baseMatrix(udDouble4x4::identity()),
+  m_positionCurrent(udDouble3::zero()),
+  m_scaleCurrent(udDouble3::create(1.0, 1.0, 1.0)),
+  m_orientationCurrent(udDoubleQuat::create(0.0, 0.0, 0.0)),
   m_changeZones(false),
   m_meterScale(0.0),
   m_hasWatermark(false),
@@ -195,37 +197,6 @@ void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
 void vcModel::OnNodeUpdate(vcState *pProgramState)
 {
-  udDouble3 *pPosition = nullptr;
-  double scale;
-  udDouble3 euler;
-
-  if (m_pNode->geomCount != 0)
-  {
-    if (m_pCurrentZone != nullptr)
-    {
-      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, &pPosition, nullptr);
-    }
-    else if (m_pPreferredProjection != nullptr)
-    {
-      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, &pPosition, nullptr);
-      m_pCurrentZone = (udGeoZone*)udMemDup(m_pPreferredProjection, sizeof(udGeoZone), 0, udAF_None);
-    }
-    else
-    {
-      vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, &pPosition, nullptr);
-      m_pCurrentZone = (udGeoZone*)udMemDup(&pProgramState->geozone, sizeof(udGeoZone), 0, udAF_None);
-    }
-
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &euler.z, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale", &scale, udMag3(m_baseMatrix.axis.x));
-
-    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationYPR(UD_DEG2RAD(euler), *pPosition) * udDouble4x4::scaleUniform(scale) * udDouble4x4::translation(-m_pivot);
-  }
-
-  udFree(pPosition);
-
   int mode = 0;
   vdkProjectNode_GetMetadataInt(m_pNode, "visualization.mode", &mode, 0);
   m_visualization.mode = (vcVisualizatationMode)mode;
@@ -310,9 +281,16 @@ void vcModel::ChangeProjection(const udGeoZone &newZone)
     return;
 
   if (m_pCurrentZone != nullptr)
-    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pCurrentZone, newZone);
+  {
+    udDouble4x4 matrix = udGeoZone_TransformMatrix(GetWorldSpaceMatrix(), *m_pCurrentZone, newZone);
+    SetTransforms(matrix);
+  }
   else if (m_pPreferredProjection != nullptr)
-    m_sceneMatrix = udGeoZone_TransformMatrix(m_baseMatrix, *m_pPreferredProjection, newZone);
+  {
+    udDouble4x4 matrix = udGeoZone_TransformMatrix(m_defaultMatrix, *m_pPreferredProjection, newZone);
+    SetTransforms(matrix);
+  }
+
 
   if (m_pCurrentZone == nullptr)
     m_pCurrentZone = udAllocType(udGeoZone, 1, udAF_None);
@@ -323,25 +301,8 @@ void vcModel::ChangeProjection(const udGeoZone &newZone)
 
 void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  m_sceneMatrix = delta * m_sceneMatrix;
-
-  // Save it to the node...
-  if (m_pCurrentZone != nullptr || m_pProject->baseZone.srid == 0)
-  {
-    udDouble3 position;
-    udDouble3 scale;
-    udDoubleQuat orientation;
-
-    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
-
-    udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
-
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
-  }
+  SetTransforms(delta * GetWorldSpaceMatrix());
+  SaveTransformsToNode(&pProgramState->activeProject, pProgramState->geozone);
 }
 
 void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
@@ -351,41 +312,23 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   if (m_pPointCloud == nullptr)
     return; // Nothing else we can do yet
 
-  udDouble3 position;
-  udDouble3 scale;
-  udDoubleQuat orientation;
-  (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
+  bool newTransforms = false;
+  if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &m_positionCurrent.x, 3))
+    newTransforms = true;
 
-  bool repackMatrix = false;
-  if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3))
-    repackMatrix = true;
-
-  udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
+  udDouble3 eulerRotation = m_orientationCurrent.eulerAngles();
+  eulerRotation = UD_RAD2DEG(eulerRotation);
   if (ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3))
   {
-    repackMatrix = true;
-    orientation = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
+    newTransforms = true;
+    m_orientationCurrent = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
   }
 
-  if (ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 1))
-    repackMatrix = true;
+  if (ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &m_scaleCurrent.x, 1))
+    newTransforms = true;
 
-  if (repackMatrix)
-  {
-    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
-
-    if (m_pCurrentZone != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
-    else if (m_pPreferredProjection != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &position, 1);
-    else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
-
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
-  }
+  if (newTransforms)
+    SaveTransformsToNode(&pProgramState->activeProject, pProgramState->geozone);
 
   // Show visualization info
   if (vcSettingsUI_VisualizationSettings(&m_visualization))
@@ -524,10 +467,10 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     if (m_pPreferredProjection)
       ChangeProjection(*m_pPreferredProjection);
 
-    m_sceneMatrix = m_defaultMatrix;
+    SetTransforms(m_defaultMatrix);
 
     ChangeProjection(pProgramState->geozone);
-    ApplyDelta(pProgramState, udDouble4x4::identity());
+    SaveTransformsToNode(&pProgramState->activeProject, pProgramState->geozone);
   }
 
   if (ImGui::Selectable(vcString::Get("sceneExplorerResetPosition"), false))
@@ -535,17 +478,13 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     if (m_pPreferredProjection)
       ChangeProjection(*m_pPreferredProjection);
 
-    udDouble3 positionCurrent, positionDefault;
-    udDouble3 scaleCurrent, scaleDefault;
-    udDoubleQuat orientationCurrent, orientationDefault;
+    udDouble3 scaleDefault;
+    udDoubleQuat orientationDefault;
 
-    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionCurrent, scaleCurrent, orientationCurrent);
-    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, scaleDefault, orientationDefault);
-
-    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationCurrent, positionDefault) * udDouble4x4::scaleNonUniform(scaleCurrent) * udDouble4x4::translation(-m_pivot);;
+    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(m_positionCurrent, scaleDefault, orientationDefault);
 
     ChangeProjection(pProgramState->geozone);
-    ApplyDelta(pProgramState, udDouble4x4::identity());
+    SaveTransformsToNode(&pProgramState->activeProject, pProgramState->geozone);
   }
 
   if (ImGui::Selectable(vcString::Get("sceneExplorerResetOrientation"), false))
@@ -553,17 +492,13 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     if (m_pPreferredProjection)
       ChangeProjection(*m_pPreferredProjection);
 
-    udDouble3 positionCurrent, positionDefault;
-    udDouble3 scaleCurrent, scaleDefault;
-    udDoubleQuat orientationCurrent, orientationDefault;
+    udDouble3 positionDefault;
+    udDouble3 scaleDefault;
 
-    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionCurrent, scaleCurrent, orientationCurrent);
-    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, scaleDefault, orientationDefault);
-
-    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationDefault, positionCurrent) * udDouble4x4::scaleNonUniform(scaleCurrent) * udDouble4x4::translation(-m_pivot);;
+    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, scaleDefault, m_orientationCurrent);
 
     ChangeProjection(pProgramState->geozone);
-    ApplyDelta(pProgramState, udDouble4x4::identity());
+    SaveTransformsToNode(&pProgramState->activeProject, pProgramState->geozone);
   }
 
   if (ImGui::Selectable(vcString::Get("sceneExplorerResetScale"), false))
@@ -571,17 +506,13 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     if (m_pPreferredProjection)
       ChangeProjection(*m_pPreferredProjection);
 
-    udDouble3 positionCurrent, positionDefault;
-    udDouble3 scaleCurrent, scaleDefault;
-    udDoubleQuat orientationCurrent, orientationDefault;
+    udDouble3 positionDefault;
+    udDoubleQuat orientationDefault;
 
-    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionCurrent, scaleCurrent, orientationCurrent);
-    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, scaleDefault, orientationDefault);
-
-    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientationCurrent, positionCurrent) * udDouble4x4::scaleNonUniform(scaleDefault) * udDouble4x4::translation(-m_pivot);;
+    (udDouble4x4::translation(-m_pivot) * m_defaultMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(positionDefault, m_scaleCurrent, orientationDefault);
 
     ChangeProjection(pProgramState->geozone);
-    ApplyDelta(pProgramState, udDouble4x4::identity());
+    SaveTransformsToNode(&pProgramState->activeProject, pProgramState->geozone);
   }
 
   ImGui::Separator();
@@ -589,7 +520,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 #if VC_HASCONVERT
   if ((m_pPreferredProjection == nullptr && pProgramState->geozone.srid == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->geozone.srid))
   {
-    bool matrixEqual = udMatrixEqualApprox(m_defaultMatrix, m_sceneMatrix);
+    bool matrixEqual = udMatrixEqualApprox(m_defaultMatrix, GetWorldSpaceMatrix());
     if (matrixEqual && ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))
     {
       static vcQueryNode *s_pQuery = nullptr;
@@ -758,10 +689,33 @@ udDouble3 vcModel::GetLocalSpacePivot()
 
 udDouble4x4 vcModel::GetWorldSpaceMatrix()
 {
-  return m_sceneMatrix;
+  return udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(m_orientationCurrent, m_positionCurrent) * udDouble4x4::scaleUniform(m_scaleCurrent.x) * udDouble4x4::translation(-m_pivot);
 }
 
 vcGizmoAllowedControls vcModel::GetAllowedControls()
 {
   return vcGAC_AllUniform;
+}
+
+void vcModel::SetTransforms(const udDouble4x4 &matrix)
+{
+  (udDouble4x4::translation(-m_pivot) * matrix * udDouble4x4::translation(m_pivot)).extractTransforms(m_positionCurrent, m_scaleCurrent, m_orientationCurrent);
+}
+
+void vcModel::SaveTransformsToNode(vcProject * pProject, const udGeoZone &defaultZone)
+{
+  if (m_pCurrentZone != nullptr)
+    vcProject_UpdateNodeGeometryFromCartesian(pProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &m_positionCurrent, 1);
+  else if (m_pPreferredProjection != nullptr)
+    vcProject_UpdateNodeGeometryFromCartesian(pProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &m_positionCurrent, 1);
+  else
+    vcProject_UpdateNodeGeometryFromCartesian(pProject, m_pNode, defaultZone, vdkPGT_Point, &m_positionCurrent, 1);
+
+  udDouble3 eulerRotation = m_orientationCurrent.eulerAngles();
+  eulerRotation = UD_RAD2DEG(eulerRotation);
+
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_scaleCurrent.x);
 }

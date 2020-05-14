@@ -1520,7 +1520,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     {
       // Copy to the contiguous array
       pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
-      memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
+      memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->GetWorldSpaceMatrix().a, sizeof(pModels[numVisibleModels].matrix));
       pModels[numVisibleModels].modelFlags = vdkRMF_None;
 
       pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Black;

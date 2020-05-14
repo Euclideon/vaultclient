@@ -21,8 +21,9 @@ public:
 
   udGeoZone *m_pCurrentZone; // The current zone that this model is in (used to fast transform)
 
-  udDouble4x4 m_sceneMatrix; // This is the matrix used to render in m_pCurrentZone (if specified) space
-  udDouble4x4 m_baseMatrix; // This is the scene matrix in m_pPreferredZone space
+  udDouble3 m_positionCurrent;
+  udDouble3 m_scaleCurrent;
+  udDoubleQuat m_orientationCurrent;
 
   bool m_changeZones; // If true, this model needs to have its zone recalculated
   double m_meterScale;
@@ -53,6 +54,9 @@ public:
   vcGizmoAllowedControls GetAllowedControls();
 
   void ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty);
+  void SetTransforms(const udDouble4x4 &matrix);
+private:
+  void SaveTransformsToNode(vcProject * pProject, const udGeoZone &defaultZone);
 };
 
 #endif //vcModel_h__
