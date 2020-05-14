@@ -199,6 +199,8 @@ struct vcState
   vcTranslationInfo languageInfo;
 
   int currentKey;
+
+  int previousSRID;
 };
 
 #endif // !vcState_h__

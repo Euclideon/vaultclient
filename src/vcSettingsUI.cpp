@@ -940,6 +940,29 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
     vcSettings_ApplyMapChange(&pProgramState->settings);
     vcRender_ClearTiles(pProgramState->pRenderContext);
   }
+
+  if (ImGui::Button(vcString::Get("settingsMapECEFMode")))
+  {
+    int32_t newSRID = -1;
+
+    if (pProgramState->geozone.srid == vcPSZ_WGS84ECEF)
+    {
+      newSRID = pProgramState->previousSRID;
+    }
+    else
+    {
+      pProgramState->previousSRID = pProgramState->geozone.srid;
+      newSRID = vcPSZ_WGS84ECEF;
+    }
+
+    if (newSRID != -1)
+    {
+      udGeoZone zone = {};
+      udGeoZone_SetFromSRID(&zone, newSRID);
+      vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
+      pProgramState->activeProject.pFolder->ChangeProjection(zone);
+    }
+  }
 }
 
 bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings)

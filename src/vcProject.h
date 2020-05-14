@@ -23,7 +23,8 @@ struct vcProject
 enum vcProjectStandardZones
 {
   vcPSZ_NotGeolocated = 0,
-  vcPSZ_StandardGeoJSON = 84
+  vcPSZ_StandardGeoJSON = 84,
+  vcPSZ_WGS84ECEF = 4978
 };
 
 void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int srid);
