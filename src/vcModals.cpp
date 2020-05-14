@@ -649,7 +649,7 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
 
     ImGui::Separator();
     
-    if (ImGui::Button(vcString::Get("modalProfileConfirmNewPassword"), ImVec2(130.0f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    if (ImGui::Button(vcString::Get("modalProfileConfirmNewPassword"), ImVec2(130.0f, 0)))
     {
       udJSON changePasswordData;
       
@@ -689,13 +689,16 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
         {
           const char *pMessage = resultData.Get("message").AsString();
 
-          if (udStrcmp(pMessage, "Current password incorrect.") == 0)
+          if (udStrEqual(pMessage, "Current password incorrect."))
             udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordIncorrect"));
-          else if (udStrcmp(pMessage, "Passwords don't match.") == 0)
+          else if (udStrEqual(pMessage, "Passwords don't match."))
             udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordNoMatch"));
+          else
+            udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordUnknownError"));
         }
       }
 
+      vdkServerAPI_ReleaseResult(&pResult);
       udFree(pUpdatePasswordString);
     }
     
