@@ -45,10 +45,10 @@ namespace vcHotkey
     "ToggleSelectTool",
     "ToggleMeasureLineTool",
     "ToggleMeasureAreaTool",
-    "ToggleMeasureHeightTool",
     "ToggleInspectionTool",
     "ToggleAnnotateTool",
     "OpenSettingsMenu",
+    "ToggleMeasureHeightTool",
   };
   UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 
