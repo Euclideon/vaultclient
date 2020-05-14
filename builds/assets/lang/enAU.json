@@ -604,6 +604,7 @@
   "bindingsToggleMeasureAreaTool": "Key to toggle the area measurement tool",
   "bindingsToggleAnnotateTool": "Key to toggle the annotation tool",
   "bindingsToggleInspectionTool": "Key to toggle the inspection tool",
+  "bindingsToggleMeasureHeightTool": "Key to toggle the vertical measurement tool",
   "errorUnknown": "An unexpected error occurred.",
   "errorCorruptData": "Corrupt data.",
   "errorUnsupported": "Unsupported file formats.",
