@@ -697,7 +697,6 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
       }
 
       udFree(pUpdatePasswordString);
-      udFree(pResult);
     }
     
     ImGui::SameLine();
