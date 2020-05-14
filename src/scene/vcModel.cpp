@@ -114,6 +114,7 @@ vcModel::vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
   vcSceneItem(pProject, pNode, pProgramState),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
+  m_positionRequest(udDouble3::create(nan(""), nan(""), nan(""))),
   m_defaultMatrix(udDouble4x4::identity()),
   m_pCurrentZone(nullptr),
   m_sceneMatrix(udDouble4x4::identity()),
@@ -151,6 +152,7 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   vcSceneItem(pProgramState, "UDS", pName),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
+  m_positionRequest(udDouble3::create(nan(""), nan(""), nan(""))),
   m_defaultMatrix(udDouble4x4::identity()),
   m_pCurrentZone(nullptr),
   m_sceneMatrix(udDouble4x4::identity()),
@@ -356,8 +358,11 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   udDoubleQuat orientation;
   (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
 
+  if (isnan(m_positionRequest[0]))
+    m_positionRequest = position;
+
   bool repackMatrix = false;
-  if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3))
+  if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &m_positionRequest.x, 3))
     repackMatrix = true;
 
   udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
@@ -372,14 +377,14 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
 
   if (repackMatrix)
   {
-    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
+    m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, m_positionRequest) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
 
     if (m_pCurrentZone != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &m_positionRequest, 1);
     else if (m_pPreferredProjection != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &m_positionRequest, 1);
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_positionRequest, 1);
 
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);

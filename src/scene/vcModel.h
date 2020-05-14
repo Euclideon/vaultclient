@@ -24,6 +24,8 @@ public:
   udDouble4x4 m_sceneMatrix; // This is the matrix used to render in m_pCurrentZone (if specified) space
   udDouble4x4 m_baseMatrix; // This is the scene matrix in m_pPreferredZone space
 
+  udDouble3 m_positionRequest;
+
   bool m_changeZones; // If true, this model needs to have its zone recalculated
   double m_meterScale;
 
