@@ -1226,7 +1226,9 @@ bool vcPOI::IsVisible(vcState *pProgramState)
 
 void vcPOI::AddFenceToScene(vcRenderData *pRenderData)
 {
-  // TODO: 1452
+  if (m_line.numPoints < 2)
+    return;
+
   if (m_line.fenceMode != vcRRVM_ScreenLine && m_pFence != nullptr)
     pRenderData->fences.PushBack(m_pFence);
   else if (m_line.fenceMode == vcRRVM_ScreenLine && m_pLine != nullptr)
