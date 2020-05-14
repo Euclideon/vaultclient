@@ -667,12 +667,6 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
       temp.SetString(pProgramState->changePassword.newPasswordConfirm);
       changePasswordData.Set(&temp, "passwordConfirm");
 
-      //changePasswordData.Set()
-      changePasswordData.Set("username = \"%s\"", pProgramState->settings.loginInfo.username);
-      changePasswordData.Set("oldpassword = \"%s\"", pProgramState->changePassword.currentPassword);
-      changePasswordData.Set("password = \"%s\"", pProgramState->changePassword.newPassword);
-      changePasswordData.Set("passwordConfirm = \"%s\"", pProgramState->changePassword.newPasswordConfirm);
-
       const char *pUpdatePasswordString = nullptr;
       changePasswordData.Export(&pUpdatePasswordString);
 
