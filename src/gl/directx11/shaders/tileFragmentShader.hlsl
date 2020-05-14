@@ -19,6 +19,7 @@ struct PS_OUTPUT
 {
   float4 Color0 : SV_Target0;
   float4 Normal : SV_Target1;
+  float Depth0 : SV_Depth;
 };
 
 sampler colourSampler;
@@ -38,10 +39,13 @@ PS_OUTPUT main(PS_INPUT input)
 
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
   
-  float scale = 1.0 / (u_clipZFar - u_clipZNear);
-  float bias = -(u_clipZNear * 0.5);
-  float depth = (input.depth.x / input.depth.y) * scale + bias; // depth packed here
+  float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+  output.Depth0 = log2(input.depth.x) * halfFcoef;
   
-  output.Normal = packNormal(float3(0, 0, 0), input.objectInfo.x, depth); 
+  //float scale = 1.0 / (u_clipZFar - u_clipZNear);
+  //float bias = -(u_clipZNear * 0.5);
+  //float depth = (input.depth.x / input.depth.y) * scale + bias; // depth packed here
+  
+  output.Normal = packNormal(float3(0, 0, 0), input.objectInfo.x, output.Depth0);//depth); 
   return output;
 }

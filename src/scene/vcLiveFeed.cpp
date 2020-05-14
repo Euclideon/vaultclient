@@ -448,7 +448,20 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, this, (uint64_t)(i+1) });
+        {
+          udDouble3 normal;
+          udDouble3 terrainHeightPos = vcRender_QueryMapHeightAtCartesian(pProgramState, pProgramState->pRenderContext, pFeedItem->displayPosition, &normal);
+
+          udDouble3 normalYPR = udDirectionToYPR(normal);
+          udDouble3 ypr = udDouble3::create(pFeedItem->ypr.x, -normalYPR.y + UD_PI * 0.5, pFeedItem->ypr.z);
+          //udDoubleQuat q = udDoubleQuat::create(normalYPR);
+          //udDoubleQuat q2 = udDoubleQuat::create(pFeedItem->ypr) * q;
+          //
+          //udDouble4x4 mat = udDouble4x4::rotationQuat(q2, terrainHeightPos);// 
+          
+         // terrainHeightPos.z += 20.0f;
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, udDouble4x4::rotationYPR(ypr, terrainHeightPos), nullptr, vcGLSCM_Back, this, (uint64_t)(i + 1) });
+        }
       }
 
       break; // We got to the end so we should stop

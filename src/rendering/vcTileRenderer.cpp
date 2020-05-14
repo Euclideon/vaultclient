@@ -1165,9 +1165,10 @@ float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, flo
   //udFloat2 uv = { udMod(udMod((sampleUV[0] - 0.5f / width) * width, width) + width, width),
   //                udMod(udMod((sampleUV[1] - 0.5f / height) * height, height) + height, height) };
 
+  static float offset = 0.5f;
   // clamp
-  udFloat2 uv = { (sampleUV[0] - 0.5f / width) * width,
-                  (sampleUV[1] - 0.5f / height) * height };
+  udFloat2 uv = { (sampleUV[0] - offset / width) * width,
+                  (sampleUV[1] - offset / height) * height };
 
   //udFloat2 uv = { udMod(udMod((float(samplePos.x) + 0.0f), width) + width, width),
   //                udMod(udMod((float(samplePos.y) + 0.0f), height) + height, height) };
@@ -1243,6 +1244,26 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
   udFloat2 sampleUV = udFloat2::create(demUV.toVector2());//float(samplePos.x) / pDemNode->demInfo.data.width, float(samplePos.y) / pDemNode->demInfo.data.height);
   float height = pDemNode->pDemHeights[samplePos.y * pDemNode->demInfo.data.width + samplePos.x];
   float sampleHeight = vcTileRenderer_BilinearSample(pDemNode->pDemHeights, sampleUV, pDemNode->demInfo.data.width, pDemNode->demInfo.data.height);
-  return udDouble3::create(0, 0, (float)sampleHeight);
+  return udDouble3::create(point.x, point.y, (float)sampleHeight);
+}
+
+udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal)
+{
+  udDouble3 p0 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point);
+  if (pNormal != nullptr)
+  {
+    double offsetAmount = 2.0f;
+    udDouble3 p1 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(offsetAmount, 0, 0));
+    udDouble3 p2 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(offsetAmount, offsetAmount, 0));
+
+    udDouble3 p3 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(-offsetAmount, 0, 0));
+    udDouble3 p4 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(-offsetAmount, -offsetAmount, 0));
+
+    udDouble3 n0 = udCross3(udNormalize3(p1 - p0), udNormalize3(p2 - p0));
+    udDouble3 n1 = udCross3(udNormalize3(p3 - p0), udNormalize3(p4 - p0));
+    *pNormal = udNormalize3(n0 + n1);
+  }
+
+  return p0;
   //return pNode->tileCenter + pNode->worldNormal * pNode->activeDemMinMax.y;
 }
