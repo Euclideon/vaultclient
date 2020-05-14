@@ -1161,18 +1161,26 @@ template <typename T>
 float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, float width, float height)
 {
   // TODO: Not sure about the sample center... (the `+0.5` bit)
-  udFloat2 uv = { udMod(udMod((sampleUV[0] - 0.5f / width) * width, width) + width, width),
-                  udMod(udMod((sampleUV[1] - 0.5f / height) * height, height) + height, height) };
+  // wrap
+  //udFloat2 uv = { udMod(udMod((sampleUV[0] - 0.5f / width) * width, width) + width, width),
+  //                udMod(udMod((sampleUV[1] - 0.5f / height) * height, height) + height, height) };
+
+  // clamp
+  udFloat2 uv = { (sampleUV[0] - 0.5f / width) * width,
+                  (sampleUV[1] - 0.5f / height) * height };
 
   //udFloat2 uv = { udMod(udMod((float(samplePos.x) + 0.0f), width) + width, width),
   //                udMod(udMod((float(samplePos.y) + 0.0f), height) + height, height) };
   udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
   udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
 
-  udFloat2 uvBL = udFloat2::create(whole.x + 0.0f, whole.y + 0.0f);
-  udFloat2 uvBR = udFloat2::create(udMin(whole.x + 1, width - 1), udMin(whole.y + 0, height - 1));
-  udFloat2 uvTL = udFloat2::create(udMin(whole.x + 0, width - 1), udMin(whole.y + 1, height - 1));
-  udFloat2 uvTR = udFloat2::create(udMin(whole.x + 1, width - 1), udMin(whole.y + 1, height - 1));
+  float maxWidth = width - 1;
+  float maxHeight = height - 1;
+
+  udFloat2 uvBL = udFloat2::create(udClamp(whole.x + 0.0f, 0.0f, maxWidth), udClamp(whole.y + 0.0f, 0.0f, maxHeight));
+  udFloat2 uvBR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 0, 0.0f, maxHeight));
+  udFloat2 uvTL = udFloat2::create(udClamp(whole.x + 0, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
+  udFloat2 uvTR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
 
   float pColourBL = (float)pPixelData[(int)(uvBL.x + uvBL.y * width)];
   float pColourBR = (float)pPixelData[(int)(uvBR.x + uvBR.y * width)];
@@ -1181,7 +1189,7 @@ float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, flo
 
   float colourT = udLerp(pColourTL, pColourTR, rem.x);
   float colourB = udLerp(pColourBL, pColourBR, rem.x);
-  return udLerp(colourT, colourB, rem.y);;
+  return udLerp(colourB, colourT, rem.y);;
 
   //T res = 0;
   //const size_t byteCount = sizeof(T);
