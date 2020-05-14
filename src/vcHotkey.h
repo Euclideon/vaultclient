@@ -44,6 +44,7 @@ enum vcBind
   vcB_ToggleMeasureAreaTool,
   vcB_ToggleInspectionTool,
   vcB_ToggleAnnotateTool,
+  vcB_ToggleMeasureHeightTool,
 
   vcB_OpenSettingsMenu,
 

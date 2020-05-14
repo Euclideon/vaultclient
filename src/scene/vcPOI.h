@@ -40,6 +40,7 @@ class vcPOI : public vcSceneItem
   friend class vcPOIState_Annotate;
   friend class vcPOIState_MeasureLine;
   friend class vcPOIState_MeasureArea;
+  friend class vcPOIState_MeasureHeight;
 private:
   vcLineInfo m_line; // TODO: 1452
   uint32_t m_nameColour;

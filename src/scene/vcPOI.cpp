@@ -296,6 +296,90 @@ public:
 };
 
 //----------------------------------------------------------------------------------------------------
+// vcPOIState_MeasureHeight
+//----------------------------------------------------------------------------------------------------
+
+class vcPOIState_MeasureHeight : public vcPOIState_General
+{
+private:
+  bool m_done;
+
+public:
+  vcPOIState_MeasureHeight(vcPOI *pParent)
+    : vcPOIState_General(pParent)
+    , m_done(false)
+  {
+  }
+
+  ~vcPOIState_MeasureHeight()
+  {
+
+  }
+
+  void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview) override
+  {
+    //Allow 2 points
+    if (m_done && !isPreview)
+      return;
+
+    if (m_pParent->m_line.numPoints == 0)
+    {
+      m_pParent->InsertPoint(position);
+    }
+    else
+    {
+      const udDouble3 &startPoint = m_pParent->m_line.pPoints[0];
+      if (m_pParent->m_line.numPoints == 1)
+      {
+        m_pParent->InsertPoint(udDouble3::zero());
+        m_pParent->InsertPoint(udDouble3::zero());
+      }
+
+      if (startPoint.z > position.z)
+        m_pParent->m_line.pPoints[1] = udDouble3::create(position.x, position.y, startPoint.z);
+      else
+        m_pParent->m_line.pPoints[1] = udDouble3::create(startPoint.x, startPoint.y, position.z);
+
+      m_pParent->m_line.pPoints[2] = position;
+
+      if (!isPreview)
+      {
+        m_done = true;
+        pProgramState->activeTool = vcActiveTool_Select;
+      }
+    }
+
+    m_pParent->UpdatePoints(pProgramState);
+
+    if (m_pParent->m_line.numPoints >= 1)
+    {
+      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, vdkPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+      m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
+    }
+  }
+
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override
+  {
+    if (!m_pParent->IsVisible(pProgramState))
+      return;
+
+    if (m_pParent->m_selected)
+    {
+      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+      {
+        vcRenderPolyInstance *pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+      }
+    }
+
+    m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData);
+  }
+
+  vcPOIState_General *ChangeState(vcState *pProgramState) override;
+};
+
+//----------------------------------------------------------------------------------------------------
 // State changes
 //----------------------------------------------------------------------------------------------------
 
@@ -381,6 +465,30 @@ vcPOIState_General *vcPOIState_MeasureArea::ChangeState(vcState *pProgramState)
   return this;
 }
 
+vcPOIState_General *vcPOIState_MeasureHeight::ChangeState(vcState *pProgramState)
+{
+  bool shouldChange = pProgramState->activeTool != vcActiveTool_MeasureHeight;
+
+  if (shouldChange)
+  {
+    if (pProgramState->activeTool == vcActiveTool_MeasureHeight)
+      pProgramState->activeTool = vcActiveTool_Select;
+
+    //We need to remove the preview point
+    if (!m_done && m_pParent->m_line.numPoints == 3)
+    {
+      m_pParent->RemovePoint(pProgramState, 2);
+      m_pParent->RemovePoint(pProgramState, 1);
+
+      m_pParent->UpdatePoints(pProgramState);
+    }
+
+    return new vcPOIState_General(m_pParent);
+  }
+
+  return this;
+}
+
 //----------------------------------------------------------------------------------------------------
 // vcPOI
 //----------------------------------------------------------------------------------------------------
@@ -452,6 +560,11 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
     case vcActiveTool_Annotate:
     {
       m_pState = new vcPOIState_Annotate(this);
+      break;
+    }
+    case vcActiveTool_MeasureHeight:
+    {
+      m_pState = new vcPOIState_MeasureHeight(this);
       break;
     }
     default:
@@ -900,6 +1013,11 @@ void vcPOI::RemovePoint(vcState *pProgramState, int index)
 
   UpdatePoints(pProgramState);
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
+
+  if (m_line.numPoints <= 1)
+  {
+    vcLineRenderer_DestroyLine(&m_pLine);
+  }
 }
 
 void vcPOI::ChangeProjection(const udGeoZone &newZone)
