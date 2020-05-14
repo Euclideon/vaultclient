@@ -576,8 +576,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime);
 
   udDouble3 cameraMinimumHeight = vcRender_QueryMapHeightAtCartesian(pProgramState, pProgramState->pRenderContext, pProgramState->camera.position);
-  pProgramState->camera.position.z = udMax(pProgramState->camera.position.z, cameraMinimumHeight.z + 5.0f);
-  printf("%f, %f, %f\n", cameraMinimumHeight.x, cameraMinimumHeight.y, cameraMinimumHeight.z);
+  pProgramState->camera.position.z = udMax(pProgramState->camera.position.z, cameraMinimumHeight.z + 0.0f);
+  //printf("%f, %f, %f\n", cameraMinimumHeight.x, cameraMinimumHeight.y, cameraMinimumHeight.z);
 
   //udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
   //if (cameraPositionInLongLat.z < 0)

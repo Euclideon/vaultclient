@@ -707,7 +707,7 @@ epilogue:
   return result;
 }
 
-void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode, const udInt2 &demMinMax)
+void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode, const vcQuadTreeNode *pInheritNode)
 {
   if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Absolute)
     return;
@@ -716,8 +716,8 @@ void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode,
     pNode->demMinMax = { 32767, -32768 };
 
   pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Inherited;
-  pNode->demMinMax[0] = udMin(pNode->demMinMax[0], demMinMax[0]);
-  pNode->demMinMax[1] = udMax(pNode->demMinMax[1], demMinMax[1]);
+  pNode->demMinMax[0] = udMin(pNode->demMinMax[0], pInheritNode->demMinMax[0]);
+  pNode->demMinMax[1] = udMax(pNode->demMinMax[1], pInheritNode->demMinMax[1]);
 
   vcQuadTree_CalculateNodeAABB(pQuadTree, pNode);
 }
@@ -725,7 +725,7 @@ void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode,
 void vcTileRenderer_RecursiveDownUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pParentNode, vcQuadTreeNode *pChildNode)
 {
   if (pParentNode != nullptr)
-    vcTileRenderer_UpdateDemState(pQuadTree, pChildNode, pParentNode->demMinMax);
+    vcTileRenderer_UpdateDemState(pQuadTree, pChildNode, pParentNode);
 
   if (!vcQuadTree_IsLeafNode(pChildNode))
   {
@@ -740,7 +740,7 @@ void vcTileRenderer_RecursiveUpUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeN
     return;
 
   vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[pChildNode->parentIndex];
-  vcTileRenderer_UpdateDemState(pQuadTree, pParentNode, pChildNode->demMinMax);
+  vcTileRenderer_UpdateDemState(pQuadTree, pParentNode, pChildNode);
   vcTileRenderer_RecursiveUpUpdateNodeAABB(pQuadTree, pParentNode);
 }
 
@@ -796,12 +796,12 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
         pNode->demMinMax[0] = udMin(pNode->demMinMax.x, (int32_t)height);
         pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
+        pNode->pDemHeights[index] = height;
 
         pShortPixels[index * 2 + 0] = r;
         // Convert from [-32k, 32k] to [0, 65k]
         pShortPixels[index * 2 + 1] = (g ^ 0x80);
 
-        pNode->pDemHeights[index] = height;
       }
     }
 
@@ -1019,11 +1019,8 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
 {
   pChild->demInfo.drawInfo.uvStart = udFloat2::zero();
   pChild->demInfo.drawInfo.uvEnd = udFloat2::one();
-  pChild->pDEMDrapeNode = nullptr;
   if (pAncestor != nullptr && pAncestor != pChild)
   {
-    pChild->pDEMDrapeNode = pAncestor;
-
     // calculate what portion of ancestors DEM to display at this tile
     pChild->demInfo.drawInfo.pTexture = pAncestor->demInfo.drawInfo.pTexture;
     int depthDiff = pChild->slippyPosition.z - pAncestor->slippyPosition.z;
@@ -1159,40 +1156,85 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
   udReleaseMutex(pTileRenderer->cache.pMutex);
 }
 
+// This should be in a utility class somewhere
+template <typename T>
+float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, float width, float height)
+{
+  // TODO: Not sure about the sample center... (the `+0.5` bit)
+  udFloat2 uv = { udMod(udMod((sampleUV[0] - 0.5f / width) * width, width) + width, width),
+                  udMod(udMod((sampleUV[1] - 0.5f / height) * height, height) + height, height) };
+
+  //udFloat2 uv = { udMod(udMod((float(samplePos.x) + 0.0f), width) + width, width),
+  //                udMod(udMod((float(samplePos.y) + 0.0f), height) + height, height) };
+  udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
+  udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
+
+  udFloat2 uvBL = udFloat2::create(whole.x + 0.0f, whole.y + 0.0f);
+  udFloat2 uvBR = udFloat2::create(udMin(whole.x + 1, width - 1), udMin(whole.y + 0, height - 1));
+  udFloat2 uvTL = udFloat2::create(udMin(whole.x + 0, width - 1), udMin(whole.y + 1, height - 1));
+  udFloat2 uvTR = udFloat2::create(udMin(whole.x + 1, width - 1), udMin(whole.y + 1, height - 1));
+
+  float pColourBL = (float)pPixelData[(int)(uvBL.x + uvBL.y * width)];
+  float pColourBR = (float)pPixelData[(int)(uvBR.x + uvBR.y * width)];
+  float pColourTL = (float)pPixelData[(int)(uvTL.x + uvTL.y * width)];
+  float pColourTR = (float)pPixelData[(int)(uvTR.x + uvTR.y * width)];
+
+  float colourT = udLerp(pColourTL, pColourTR, rem.x);
+  float colourB = udLerp(pColourBL, pColourBR, rem.x);
+  return udLerp(colourT, colourB, rem.y);;
+
+  //T res = 0;
+  //const size_t byteCount = sizeof(T);
+  //T colour[byteCount] = {};
+  //for (int c = 0; c < byteCount; ++c)
+  //{
+  //  T colourT = udLerp(pColourTL[c], pColourTR[c], rem.x);
+  //  T colourB = udLerp(pColourBL[c], pColourBR[c], rem.x);
+  //  colour[c] = udLerp(colourT, colourB, rem.y);
+  //  res |= (colour[c] << (c * 8));
+  //}
+
+  //return res;//(colour[2] << 16) | (colour[1] << 8) | colour[0];
+}
+
 udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point)
 {
   const vcQuadTreeNode *pNode = vcQuadTree_GetNodeFromCartesian(&pTileRenderer->quadTree, point);
   const vcQuadTreeNode *pDemNode = pNode;
 
-  // TODO: inherited
-  if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_None)
-  {
+  if (pNode == nullptr || pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_None)
     return udDouble3::create(0, 0, 0);
-  }
-  else if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Inherited)
-  {
-    // TODO: DANGEROUS!!! the state, and the `pDEMDrapeNode` variable are set in 2 different parts
-    pDemNode = pNode->pDEMDrapeNode;
-  }
 
-  if (pDemNode == nullptr || pDemNode->pDemHeights == nullptr)
+  if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Inherited)
   {
-    return udDouble3::zero();
+    // search for fine DEM data
+    while (pDemNode->parentIndex != INVALID_NODE_INDEX)
+    {
+      if (pDemNode->pDemHeights != nullptr)
+        break;
+
+      pDemNode = &pTileRenderer->quadTree.nodes.pPool[pDemNode->parentIndex];
+    }
   }
 
   udDouble3 range = pDemNode->worldBounds[8] - pDemNode->worldBounds[0];
   udDouble3 localPoint = point - pDemNode->worldBounds[0];
   udDouble3 demUV = localPoint / range;
-  printf("%f, %f\n", demUV.x, demUV.y);
+  //printf("%f, %f\n", demUV.x, demUV.y);
 
   if (demUV.x < 0 || demUV.x > 1 || demUV.y < 0 || demUV.y > 1)
   {
+    printf("NOPE?: %f, %f\n", demUV.x, demUV.y);
     // TODO: TEMP while i fix
     return udDouble3::zero();
   }
 
-  udInt2 samplePos = udInt2::create((uint32_t)(demUV.x * pDemNode->demInfo.data.width), (uint32_t)(demUV.y * pDemNode->demInfo.data.height));
+  printf("%f, %f\n", demUV.x, demUV.y);
+
+  udUInt2 samplePos = udUInt2::create((uint32_t)(demUV.x * pDemNode->demInfo.data.width), (uint32_t)(demUV.y * pDemNode->demInfo.data.height));
+  udFloat2 sampleUV = udFloat2::create(demUV.toVector2());//float(samplePos.x) / pDemNode->demInfo.data.width, float(samplePos.y) / pDemNode->demInfo.data.height);
   float height = pDemNode->pDemHeights[samplePos.y * pDemNode->demInfo.data.width + samplePos.x];
-  return udDouble3::create(0, 0, height);
+  float sampleHeight = vcTileRenderer_BilinearSample(pDemNode->pDemHeights, sampleUV, pDemNode->demInfo.data.width, pDemNode->demInfo.data.height);
+  return udDouble3::create(0, 0, (float)sampleHeight);
   //return pNode->tileCenter + pNode->worldNormal * pNode->activeDemMinMax.y;
 }

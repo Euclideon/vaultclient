@@ -88,8 +88,7 @@ struct vcQuadTreeNode
   udInt2 demMinMax;  // in DEM units. For calculating AABB of node
   udInt2 activeDemMinMax; // DEM can turned off / on, so cache this state
 
-  vcQuadTreeNode *pDEMDrapeNode;
-  int16_t *pDemHeights;
+  int16_t *pDemHeights; // fine DEM data
 
   // node payloads
   vcNodeRenderInfo colourInfo;

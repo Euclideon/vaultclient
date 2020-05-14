@@ -115,6 +115,8 @@ void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
   vcTexture_Destroy(&pNode->demInfo.data.pTexture);
   udFree(pNode->demInfo.data.pData);
 
+  udFree(pNode->pDemHeights);
+
   pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
   pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
 
@@ -640,6 +642,9 @@ const vcQuadTreeNode* vcQuadTree_GetNodeFromCartesian(vcQuadTree *pQuadTree, con
   vcGIS_LocalToSlippy(pQuadTree->geozone, &pViewInChildSlippyCoords, point, pNode->slippyPosition.z + 1);
 
   udInt2 childOffset = pViewInChildSlippyCoords - (pNode->slippyPosition.toVector2() * 2);
+  if (childOffset.x < 0 || childOffset.x > 1 || childOffset.y < 0 || childOffset.y > 1)
+    return nullptr;
+
   return vcQuadTree_GetNodeFromCartesian(pQuadTree, &pQuadTree->nodes.pPool[pNode->childBlockIndex + (childOffset.y * 2 + childOffset.x)], point);
 }
 
