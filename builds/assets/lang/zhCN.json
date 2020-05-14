@@ -644,5 +644,8 @@
   "modalProjectNewNonGeolocated": "未定位",
   "modalProjectNewGeolocatedSpecificZone": "地理位置（特定区域）",
   "modalProjectNewGeolocatedSpecificZoneID": "区域SRID",
-  "modalProjectNewCreate": "新建"
+  "modalProjectNewCreate": "新建",
+  "scenePOIHeightDefaultName": "高度測量",
+  "toolMeasureHeight": "高度測量工具",
+  "bindingsToggleMeasureHeightTool": "切換到高度測量工具"
 }
