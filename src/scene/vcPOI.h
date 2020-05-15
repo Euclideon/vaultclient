@@ -47,7 +47,8 @@ private:
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
   char m_hyperlink[vcMaxPathLength];
-  
+  char m_description[vcMaxPathLength];  
+
   bool m_showArea;
   bool m_showLength;
   bool m_showAllLengths;
