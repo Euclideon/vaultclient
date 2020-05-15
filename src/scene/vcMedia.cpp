@@ -25,7 +25,7 @@ struct vcMediaLoadInfo
   vcMedia *pMedia;
 };
 
-const char *s_imageTypes[] = { "standard", "oriented", "panorama", "photosphere" };
+const char *s_imageTypes[] = { "standard", "oriented", "panorama", "photosphere", "screen" };
 UDCOMPILEASSERT(udLengthOf(s_imageTypes) == vcIT_Count, "Update Image Types");
 
 const char *s_imageThumbnailSizes[] = { "native", "small", "large" };
@@ -181,7 +181,7 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     if (m_image.pTexture != nullptr)
     {
-      if (m_image.type == vcIT_StandardPhoto)
+      if (m_image.type == vcIT_StandardPhoto || m_image.type == vcIT_ScreenPhoto)
       {
         // For now brute force sorting (n^2)
         double distToCameraSqr = udMagSq3(m_image.position - pProgramState->camera.position);
@@ -276,7 +276,7 @@ void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (pProgramState->settings.presentation.showDiagnosticInfo)
       ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelImageURL"), m_pNode->pURI);
 
-    const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypeOriented"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere") };
+    const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypeOriented"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere"), vcString::Get("scenePOILabelImageTypeScreen") };
     UDCOMPILEASSERT(udLengthOf(imageTypeNames) == vcIT_Count, "Update image names");
     if (ImGui::Combo(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOILabelImageType"), *pItemID), (int *)&m_image.type, imageTypeNames, (int)udLengthOf(imageTypeNames)))
       vdkProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
