@@ -880,7 +880,12 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     vdkProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
 
   if (m_hyperlink[0] != '\0' && ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
-    vcWebFile_OpenBrowser(m_hyperlink);
+  {
+    if (udStrEndsWithi(m_hyperlink, ".png") || udStrEndsWithi(m_hyperlink, ".jpg"))
+      pProgramState->pLoadImage = udStrdup(m_hyperlink);
+    else
+      vcWebFile_OpenBrowser(m_hyperlink);
+  }
 
   // Handle hyperlinks
   const char *pHyperlink = m_metadata.Get("hyperlink").AsString();
