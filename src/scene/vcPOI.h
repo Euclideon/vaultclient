@@ -10,6 +10,7 @@
 #include "vcImageRenderer.h"
 #include "vcLineRenderer.h"
 #include "vcGLState.h"
+#include "vcSettings.h"
 
 class vcPOIState_General;
 struct vcRenderPolyInstance;
@@ -46,7 +47,7 @@ private:
   uint32_t m_nameColour;
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
-  char m_hyperlink[512]; // 512 needs to be eventually put into its own variable
+  char m_hyperlink[vcMaxPathLength];
   
   bool m_showArea;
   bool m_showLength;

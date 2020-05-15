@@ -876,12 +876,25 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     vdkProjectNode_SetMetadataString(m_pNode, "textSize", pTemp);
   }
 
-  if (vcIGSW_InputText(vcString::Get("scenePOILabelHyperlink"), m_hyperlink, 512, ImGuiInputTextFlags_EnterReturnsTrue))
+  if (vcIGSW_InputText(vcString::Get("scenePOILabelHyperlink"), m_hyperlink, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
     vdkProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
 
   if (m_hyperlink[0] != '\0' && ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
     vcWebFile_OpenBrowser(m_hyperlink);
-  
+
+  // Handle hyperlinks
+  const char *pHyperlink = m_metadata.Get("hyperlink").AsString();
+  if (pHyperlink != nullptr)
+  {
+    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelHyperlink"), pHyperlink);
+    if (udStrEndsWithi(pHyperlink, ".png") || udStrEndsWithi(pHyperlink, ".jpg"))
+    {
+      ImGui::SameLine();
+      if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
+        pProgramState->pLoadImage = udStrdup(pHyperlink);
+    }
+  }
+
   if (m_attachment.pModel != nullptr)
   {
     const double minSpeed = 0.0;
