@@ -525,7 +525,7 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
 
   m_pWorkerPool = pProgramState->pWorkerPool;
-  
+
   memset(&m_attachment, 0, sizeof(m_attachment));
   m_attachment.segmentIndex = -1;
   m_attachment.moveSpeed = 16.667; //60km/hr
@@ -853,7 +853,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
     vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_backColour);
   }
-  
+
   const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
   if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int *)&m_namePt, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
   {
