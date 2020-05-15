@@ -879,8 +879,8 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
   if (vcIGSW_InputText(vcString::Get("scenePOILabelHyperlink"), m_hyperlink, 512, ImGuiInputTextFlags_EnterReturnsTrue))
     vdkProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
 
-  if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
-    vcWebFile_OpenBrowser((const char *)m_hyperlink);
+  if (m_hyperlink[0] != '\0' && ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
+    vcWebFile_OpenBrowser(m_hyperlink);
   
   if (m_attachment.pModel != nullptr)
   {
