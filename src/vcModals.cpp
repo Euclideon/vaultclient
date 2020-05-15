@@ -228,7 +228,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::Unindent();
     }
 
-    if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(100.f, 0)) && vcProject_AbleToChange(pProgramState))
+    if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
     {
       vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
       pProgramState->modelPath[0] = '\0';
