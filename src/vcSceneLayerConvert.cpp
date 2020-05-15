@@ -131,7 +131,7 @@ uint32_t vcSceneLayerConvert_BilinearSample(uint8_t *pPixelData, const udFloat2 
   {
     uint8_t colourT = udLerp(pColourTL[c], pColourTR[c], rem.x);
     uint8_t colourB = udLerp(pColourBL[c], pColourBR[c], rem.x);
-    colour[c] = udLerp(colourT, colourB, rem.y);
+    colour[c] = udLerp(colourB, colourT, rem.y);
   }
 
   return 0xff000000 | (colour[2] << 16) | (colour[1] << 8) | colour[0];

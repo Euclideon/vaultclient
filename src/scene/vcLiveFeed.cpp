@@ -450,7 +450,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         if (pModel != nullptr)
         {
           udDouble3 normal;
-          udDouble3 terrainHeightPos = vcRender_QueryMapHeightAtCartesian(pProgramState, pProgramState->pRenderContext, pFeedItem->displayPosition, &normal);
+          udDouble3 terrainHeightPos = pFeedItem->displayPosition;//vcRender_QueryMapPositionAtCartesian(pProgramState, pProgramState->pRenderContext, pFeedItem->displayPosition, &normal);
 
           udDouble3 normalYPR = udDirectionToYPR(normal);
           udDouble3 ypr = udDouble3::create(pFeedItem->ypr.x, -normalYPR.y + UD_PI * 0.5, pFeedItem->ypr.z);

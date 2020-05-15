@@ -1534,9 +1534,9 @@ the scene:
   output.Color0.a = 1.0;
 
   // if viewing underneath earth surface, cancel atmo
-  //float3 earthCamera = camera - earth_center;
-  //if (length(earthCamera) < u_earthCenter.w && dot(earthCamera, view_direction) <= 0.0)//earthCamera.z <= 0.0 && view_direction.z < 0.0)
-  //  output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
+  float3 earthCamera = camera - earth_center;
+  if (length(earthCamera) < u_earthCenter.w && dot(earthCamera, view_direction) <= 0.0)//earthCamera.z <= 0.0 && view_direction.z < 0.0)
+    output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
   // debugging
   //output.Color0.xyz = lerp(float3(view_direction.z + camera.z, 0, 0), output.Color0.xyz, 0.00000000001);

@@ -819,7 +819,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
     double cameraHeightAboveEarthSurface = 0.0;
     udDouble3 earthSurfaceToCamera = localCamPos - pRenderContext->cameraZeroAltitude;
-    if (udMagSq3(earthSurfaceToCamera))
+    if (udMagSq3(earthSurfaceToCamera) > 0)
       cameraHeightAboveEarthSurface = udMag3(earthSurfaceToCamera);
 
     int currentZoom = 21;
@@ -1725,7 +1725,7 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   return result;
 }
 
-udDouble3 vcRender_QueryMapHeightAtCartesian(vcState *pProgramState, vcRenderContext *pRenderContext, const udDouble3 &point, udDouble3 *pNormal)
+udDouble3 vcRender_QueryMapPositionAtCartesian(vcState *pProgramState, vcRenderContext *pRenderContext, const udDouble3 &point, udDouble3 *pNormal)
 {
-  return vcTileRenderer_QueryMapHeightAtCartesian(pRenderContext->pTileRenderer, point, pNormal);
+  return vcTileRenderer_QueryMapPositionAtCartesian(pRenderContext->pTileRenderer, point, pNormal);
 }

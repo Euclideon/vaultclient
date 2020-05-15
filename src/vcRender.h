@@ -117,7 +117,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
 void vcRender_ClearTiles(vcRenderContext *pRenderContext);
 
-udDouble3 vcRender_QueryMapHeightAtCartesian(vcState *pProgramState, vcRenderContext *pRenderContext, const udDouble3 &point, udDouble3 *pNormal);
+udDouble3 vcRender_QueryMapPositionAtCartesian(vcState *pProgramState, vcRenderContext *pRenderContext, const udDouble3 &point, udDouble3 *pNormal);
 
 struct vcRenderPickResult
 {
