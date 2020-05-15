@@ -46,7 +46,8 @@ private:
   uint32_t m_nameColour;
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
-
+  char m_hyperlink[512]; // 512 needs to be eventually put into its own variable
+  
   bool m_showArea;
   bool m_showLength;
   bool m_showAllLengths;

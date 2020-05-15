@@ -10,6 +10,7 @@
 #include "udMath.h"
 #include "udFile.h"
 #include "udStringUtil.h"
+#include "vcWebFile.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -524,7 +525,7 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
 
   m_pWorkerPool = pProgramState->pWorkerPool;
-
+  
   memset(&m_attachment, 0, sizeof(m_attachment));
   m_attachment.segmentIndex = -1;
   m_attachment.moveSpeed = 16.667; //60km/hr
@@ -587,7 +588,9 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
-
+  vdkProjectNode_GetMetadataString(m_pNode, "hyperlink", &pTemp, "");
+  udStrcpy(m_hyperlink, pTemp);
+  
   if (vdkProjectNode_GetMetadataBool(m_pNode, "lineDualColour", &m_line.isDualColour, false) != vE_Success)
   {
     m_line.isDualColour = (m_line.colourPrimary != m_line.colourSecondary);
@@ -850,7 +853,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
     vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_backColour);
   }
-
+  
   const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
   if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int *)&m_namePt, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
   {
@@ -873,19 +876,12 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     vdkProjectNode_SetMetadataString(m_pNode, "textSize", pTemp);
   }
 
-  // Handle hyperlinks
-  const char *pHyperlink = m_metadata.Get("hyperlink").AsString();
-  if (pHyperlink != nullptr)
-  {
-    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelHyperlink"), pHyperlink);
-    if (udStrEndsWithi(pHyperlink, ".png") || udStrEndsWithi(pHyperlink, ".jpg"))
-    {
-      ImGui::SameLine();
-      if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
-        pProgramState->pLoadImage = udStrdup(pHyperlink);
-    }
-  }
+  if (vcIGSW_InputText(vcString::Get("scenePOILabelHyperlink"), m_hyperlink, 512, ImGuiInputTextFlags_EnterReturnsTrue))
+    vdkProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
 
+  if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
+    vcWebFile_OpenBrowser((const char *)m_hyperlink);
+  
   if (m_attachment.pModel != nullptr)
   {
     const double minSpeed = 0.0;
