@@ -227,6 +227,7 @@ void vcPinRenderer_Render(vcPinRenderer *pPinRenderer, const udDouble4x4 &viewPr
     info.size = vcImageThumbnailSize::vcIS_Native;
     info.position = pBin->position;
     info.scale = 1.0;
+    info.type = vcIT_ScreenPhoto;
     vcImageRenderer_Render(&info, viewProjectionMatrix, screenSize, 1.0f);
 
     if (pBin->count > 1)

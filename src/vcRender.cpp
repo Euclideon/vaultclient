@@ -1156,6 +1156,16 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
+  // screen images
+  for (size_t i = 0; i < renderData.images.length; ++i)
+  {
+    vcImageRenderInfo *pImage = renderData.images[i];
+    if (pImage->type != vcIT_ScreenPhoto) // too far
+      continue;
+
+    vcImageRenderer_Render(pImage, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, 1.0f);
+  }
+
   // Pins
   vcPinRenderer_Render(pRenderContext->pPinRenderer, pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution, renderData.labels);
 
@@ -1190,7 +1200,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
       double distToCamera = udMag3(pProgramState->camera.position - renderData.images[i]->position);
       double zScale = 1.0 - distToCamera / pProgramState->settings.presentation.imageRescaleDistance;
 
-      if (zScale < 0) // too far
+      if (pImage->type == vcIT_ScreenPhoto ||  zScale < 0) // too far
         continue;
 
       vcImageRenderer_Render(pImage, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, zScale);

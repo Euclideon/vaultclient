@@ -11,8 +11,11 @@
 static const float vcISToPixelSize[] = { -1.f, 100.f, 250.f };
 UDCOMPILEASSERT(udLengthOf(vcISToPixelSize) == vcIS_Count, "ImagePixelSize not equal size");
 
-static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_WorldQuad, vcInternalMeshType_Tube, vcInternalMeshType_Sphere };
+static vcInternalMeshType vcITToMeshType[] = { vcInternalMeshType_Billboard, vcInternalMeshType_WorldQuad, vcInternalMeshType_Tube, vcInternalMeshType_Sphere, vcInternalMeshType_Billboard };
 UDCOMPILEASSERT(udLengthOf(vcITToMeshType) == vcIT_Count, "ImageMesh does not equal size");
+
+static int vcITToShaderIndex[] = { 0, 1, 1, 1, 2 };
+UDCOMPILEASSERT(udLengthOf(vcITToMeshType) == vcIT_Count, "ImageMesh does not equal index size");
 
 static struct vcImageShader
 {
@@ -27,7 +30,7 @@ static struct vcImageShader
     udFloat4 u_colour;
     udFloat4 u_screenSize;
   } everyObject;
-} gShaders[2]; // 0 for billboards, 1 for everything else
+} gShaders[3];
 
 static int gRefCount = 0;
 udResult vcImageRenderer_Init()
@@ -39,6 +42,7 @@ udResult vcImageRenderer_Init()
 
   UD_ERROR_IF(!vcShader_CreateFromFile(&gShaders[0].pShader, "asset://assets/shaders/imageRendererBillboardVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
   UD_ERROR_IF(!vcShader_CreateFromFile(&gShaders[1].pShader, "asset://assets/shaders/imageRendererMeshVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3N3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFile(&gShaders[2].pShader, "asset://assets/shaders/imageRendererScreenVertexShader", "asset://assets/shaders/imageRendererScreenFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
 
   for (size_t i = 0; i < udLengthOf(gShaders); ++i)
   {
@@ -95,7 +99,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &vi
     mvp = mvp * udDouble4x4::scaleUniform(pImageInfo->scale); 
   }
 
-  vcImageShader *pShader = &gShaders[pImageInfo->type == vcIT_StandardPhoto ? 0 : 1];
+  vcImageShader *pShader = &gShaders[vcITToShaderIndex[pImageInfo->type]];
   vcShader_Bind(pShader->pShader);
 
   pShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(mvp);

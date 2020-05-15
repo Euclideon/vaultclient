@@ -478,6 +478,7 @@
   "scenePOILabelImageTypeOriented": "Oriented Image",
   "scenePOILabelImageTypePanorama": "Panorama",
   "scenePOILabelImageTypePhotosphere": "Photo Sphere",
+  "scenePOILabelImageTypeScreen": "Screen Image",
   "scenePOILabelImageYPR": "Rotation",
   "scenePOIReloadTime": "Reload Time (secs)",
   "scenePOIAttachModel": "Attach Model",

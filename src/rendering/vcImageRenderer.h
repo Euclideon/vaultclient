@@ -16,10 +16,16 @@ enum vcImageThumbnailSize
 
 enum vcImageType
 {
+  // billboard
   vcIT_StandardPhoto,
+
+  // world geometry
   vcIT_OrientedPhoto,
   vcIT_Panorama,
   vcIT_PhotoSphere,
+
+  // screen
+  vcIT_ScreenPhoto,
 
   vcIT_Count
 };
