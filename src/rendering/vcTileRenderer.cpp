@@ -111,11 +111,11 @@ struct vcTileRenderer
       udFloat4x4 projectionMatrix;
       udFloat4x4 viewMatrix;
       udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
+      udFloat4 eyeNormals[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
       udFloat4 objectInfo; // objectId.x
       udFloat4 uvOffsetScale;
       udFloat4 demUVOffsetScale;
-      udFloat4 tileNormal;
     } everyObject;
   } presentShader;
 };
@@ -955,11 +955,13 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pDemTexture = pTileRenderer->pEmptyDemTileTexture;
   }
 
-  udDouble3 mapHeightOffset = pNode->worldNormal * udDouble3::create(pTileRenderer->pSettings->maptiles.mapHeight);
   for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
   {
-    udFloat4 eyeSpaceVertexPosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t] + mapHeightOffset, 1.0));
-    pTileRenderer->presentShader.everyObject.eyePositions[t] = eyeSpaceVertexPosition;
+    udDouble3 mapHeightOffset = pNode->worldNormals[t] * udDouble3::create(pTileRenderer->pSettings->maptiles.mapHeight);
+    udFloat4 eyeSpacePosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t] + mapHeightOffset, 1.0));
+    udFloat4 eyeSpaceNormal = udFloat4::create(view * udDouble4::create(pNode->worldNormals[t], 0.0));
+    pTileRenderer->presentShader.everyObject.eyePositions[t] = eyeSpacePosition;
+    pTileRenderer->presentShader.everyObject.eyeNormals[t] = eyeSpaceNormal;
   }
 
   udFloat2 size = pNode->colourInfo.drawInfo.uvEnd - pNode->colourInfo.drawInfo.uvStart;
@@ -967,8 +969,6 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
 
   udFloat2 demSize = pNode->demInfo.drawInfo.uvEnd - pNode->demInfo.drawInfo.uvStart;
   pTileRenderer->presentShader.everyObject.demUVOffsetScale = udFloat4::create(pNode->demInfo.drawInfo.uvStart, demSize.x, demSize.y);
-
-  pTileRenderer->presentShader.everyObject.tileNormal = udFloat4::create(udFloat3::create(pNode->worldNormal), 0.0f);
 
   vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTexture, 0, pTileRenderer->presentShader.uniform_texture);
 
