@@ -351,9 +351,16 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   for (uint16_t i = 0; i < pFBX->totalMeshes; ++i)
   {
     pFBX->pNode = pFBX->pScene->GetGeometry(i)->GetNode();
+
+    if (pFBX->pNode == nullptr)
+      continue;
+
     pFBX->pMesh = pFBX->pNode->GetMesh();
 
-    pFBX->totalPolygons += pFBX->pScene->GetGeometry(i)->GetNode()->GetMesh()->GetPolygonCount();
+    if (pFBX->pMesh == nullptr)
+      continue;
+
+    pFBX->totalPolygons += pFBX->pMesh->GetPolygonCount();
   }
 
   pFBX->lastTouchedPoly = 1; // Forces handling 0, then gets set to 0
