@@ -9,8 +9,8 @@ cbuffer u_cameraPlaneParams
 struct VS_INPUT
 {
   float4 pos : POSITION;
-  float4 previous : COLOR0;
-  float4 next : COLOR1;
+  float4 partner : COLOR0;
+  float4 neighbour : COLOR1;
 };
 
 struct PS_INPUT
@@ -24,48 +24,138 @@ cbuffer u_EveryObject : register(b0)
 {
   float4 u_colour;
   float4 u_thickness;
+  float4 u_nearPlane;
   float4x4 u_worldViewProjectionMatrix;
 };
+
+static const int g_clipNone = 0;
+static const int g_clipCurrent = 1;
+static const int g_clipPartner = 2;
+static const int g_clipBoth = 3;
+
+//Return code specifies which point has been clipped.
+int ClipSegment(float3 planeNormal, float planeOffset, inout float3 current, inout float3 partner)
+{
+  float dc = dot(current, planeNormal) - planeOffset;
+  float dp = dot(partner, planeNormal) - planeOffset;
+
+  int result = 0;
+
+  if (dc > 0.0)
+  {
+    if (dp >= 0.0)
+      result = g_clipNone;
+    else
+      result = g_clipPartner;
+  }
+  else if (dc < 0.0)
+  {
+    if (dp <= 0.0)
+      result = g_clipBoth;
+    else
+      result = g_clipCurrent;
+  }
+  else //dc == 0.0
+  {
+    if (dp > 0.0)
+      result = g_clipNone;
+    else
+      result = g_clipBoth;
+  }
+
+  if (result == g_clipCurrent)
+  {
+    float frac = -dc / (dp - dc);   
+    current = current + frac * (partner - current);
+  }
+  else if (result == g_clipPartner)
+  {
+    float frac = -dp / (dc - dp);   
+    partner = partner + frac * (current - partner);
+  }
+
+  return result;
+}
+
+float2 FindDirectionVector(in float2 to, in float2 from)
+{
+  float2 v = to - from;
+  float vLen = length(v);
+  if (vLen == 0.0)
+    return float2(1.0, 0.0);
+  return v / vLen;
+}
 
 PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
 
-  float aspect = u_thickness.y;
-  
-  float4 clipPos = mul(u_worldViewProjectionMatrix, float4(input.pos.xyz, 1.0));
-  float2 currentScreen = (clipPos.xy / clipPos.w) * float2(0.5, 0.5) + float2(0.5, 0.5);
-  
-  float4 previousScreen = mul(u_worldViewProjectionMatrix, float4(input.previous.xyz, 1.0));
-  previousScreen.xy = (previousScreen.xy / previousScreen.w)* float2(0.5, 0.5) + float2(0.5, 0.5);
-  float4 nextScreen = mul(u_worldViewProjectionMatrix, float4(input.next.xyz, 1.0));
-  nextScreen.xy = (nextScreen.xy / nextScreen.w)* float2(0.5, 0.5) + float2(0.5, 0.5);
+  float3 current = input.pos.xyz;
+  float3 partner = input.partner.xyz;
 
-  // handle clipping
-  if (sign(previousScreen.w) != sign(nextScreen.w))
+  int result = ClipSegment(u_nearPlane.xyz, u_nearPlane.w, current, partner);
+
+  if (result == g_clipBoth)
   {
-    // TODO: Handle me
+    output.pos = float4(0.0, 0.0, 0.0, 0.0);
+    output.fLogDepth.x = 0.0;
+    return output;
   }
-  
-  // correct aspect ratio
-  currentScreen.x *= aspect;
-  nextScreen.x *= aspect;
-  previousScreen.x *= aspect;
 
-  float2 dirPrev = normalize(currentScreen.xy - previousScreen.xy);
-  float2 dirNext = normalize(nextScreen.xy - currentScreen.xy);
-  float2 dir = normalize(dirPrev + dirNext);
-  float2 normal = float2(-dir.y, dir.x);
-  
-  // artificially make corners thicker to try keep line width consistent
-  float cornerThicken = (1.0 - (dot(dirPrev, dirNext) * 0.5 + 0.5));
-  // extrude from center
-  normal *= u_thickness.x / 2.0 * (1.0 + pow(cornerThicken, 7.0) * 7.0);
-  normal.x /= aspect;
+  float4 current4 = float4(current, 1.0);
+  float4 partner4 = float4(partner, 1.0);
+  current4 = mul(u_worldViewProjectionMatrix, current4);
+  partner4 = mul(u_worldViewProjectionMatrix, partner4);
+  float2 screenCurrent = (current4.xy / current4.w);
+  float2 screenPartner = (partner4.xy / partner4.w);
 
-  output.pos = clipPos + float4(normal * input.pos.w * clipPos.w, 0.0, 0.0);
-  output.fLogDepth.x = 1.0 + clipPos.w;
-  
+  float2 Vpc = FindDirectionVector(screenCurrent, screenPartner);
+
+  float2 expand = float2(-Vpc.y, Vpc.x) * input.pos.w;
+
+  //------------------------------------------------------------------------------------
+  //Uncomment below for mitre joins...
+
+  //if (result == g_clipCurrent)
+  //{
+  //  //We don't need the neighbour to find the extend vector
+  //  expand = float2(-Vpc.y, Vpc.x) * input.pos.w;
+  //}
+  //else if (input.neighbour.w == 0.0) //endpoint
+  //{
+  //  expand = float2(-Vpc.y, Vpc.x) * input.pos.w;
+  //}
+  //else
+  //{
+  //  //We need the neighbour to find the extend vector
+  //  float3 neighbour = input.neighbour.xyz;
+
+  //  ClipSegment(u_nearPlane.xyz, u_nearPlane.w, current, neighbour);
+
+  //  float4 neighbour4 = float4(neighbour, 1.0);
+  //  neighbour4 = mul(u_worldViewProjectionMatrix, neighbour4);
+  //  float2 screenNeighbour = (neighbour4.xy / neighbour4.w);
+
+  //  float2 Vcn = FindDirectionVector(screenNeighbour, screenCurrent);
+
+  //  float2 t = normalize(Vcn + Vpc);
+  //  expand = float2(-t.y, t.x);
+
+  //  float denom = dot(expand, float2(-Vcn.y, Vcn.x));
+  //  denom = max(denom, 0.10);
+
+  //  expand = expand * input.pos.w / denom;
+  //}
+  //------------------------------------------------------------------------------------
+
+  float aspect = u_thickness.y;
+  expand.x /= aspect;
+  expand *= u_thickness.x;
+  float2 outputPos = screenCurrent + expand;
+
+  output.pos = float4(outputPos.x * current4.w, outputPos.y * current4.w, current4.z, current4.w);
   output.colour = u_colour;
+  output.fLogDepth.x = 1.0 + current4.w;
+
   return output;
 }

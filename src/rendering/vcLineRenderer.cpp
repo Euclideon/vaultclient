@@ -7,7 +7,7 @@ struct vcLineInstance
 {
   udFloat4 colour;
   float width;
-  size_t pointCount;
+  size_t segmentCount;
   vcMesh *pMesh;
   udDouble4x4 originMatrix;
 };
@@ -24,6 +24,7 @@ struct vcLineRenderer
     {
       udFloat4 colour;
       udFloat4 thickness;
+      udFloat4 nearPlane;
       udFloat4x4 worldViewProjection;
     } everyObjectParams;
 
@@ -99,62 +100,87 @@ epilogue:
 
 udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPoints, size_t pointCount, const udFloat4 &colour, float width, bool closed)
 {
-  udResult result;
-
-  closed = closed && (pointCount > 2); // Less than 2 points can't really be 'closed'
-  size_t realPointCount = (pointCount + (closed ? 1 : 0));
-
-  size_t vertCount = realPointCount * 2;
-  vcLineVertex *pVerts = nullptr;
-  vcMesh *pMesh = nullptr;
-  udDouble3 origin = pPoints[0];
-
   // Cleanup previous state
   vcMesh_Destroy(&pLine->pMesh);
 
+  if (pointCount < 2)
+    return udR_Success;
+
+  udResult result;
+
+  size_t segmentCount = (pointCount - (closed ? 0 : 1));
+
+  //The basic idea is to break the line up into segments.
+  size_t vertCount = segmentCount * 4;
+  vcLineVertex *pVerts = nullptr;
+  vcMesh *pMesh = nullptr;
+  udDouble3 origin = pPoints[0];
+  size_t indexCount = segmentCount * 6;
+  int *pIndices = nullptr;
+  size_t vertIndex = 0;
+  size_t indIndex = 0;
+  
   pVerts = udAllocType(vcLineVertex, vertCount, udAF_None);
   UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
+  
+  pIndices = udAllocType(int, indexCount, udAF_None);
+  UD_ERROR_NULL(pIndices, udR_MemoryAllocationFailure);
 
-  for (size_t i = 0; i < realPointCount; ++i)
+  for (size_t i = 0; i < segmentCount; i++)
   {
-    udDouble3 p = pPoints[i % pointCount];
+    //Verts
+    udDouble3 p0 = pPoints[i] - origin;
+    udDouble3 p1 = pPoints[(i + 1) % pointCount] - origin;
+    udDouble4 p0_neighbour = udDouble4::create(pPoints[(i + pointCount - 1) % pointCount] - origin, 1.0);
+    udDouble4 p1_neighbour = udDouble4::create(pPoints[(i + 2) % pointCount] - origin, 1.0);
 
-    udDouble3 prev = udDouble3::zero();
-    udDouble3 next = udDouble3::zero();
     if (i == 0 && !closed)
-      prev = p + udNormalize3(p - pPoints[i + 1]) * 0.1; // fake a vert
-    else
-      prev = pPoints[(i - 1 + pointCount) % pointCount];
+      p0_neighbour.w = 0.0; //Flag endpoint as open with w == 0
 
-    if (i == pointCount - 1 && !closed)
-      next = p + udNormalize3(p - pPoints[i - 1]) * 0.1; // fake a vert
-    else
-      next = pPoints[(i + 1) % pointCount];
+    if (i == pointCount - 2 && !closed)
+        p0_neighbour.w = 0.0; //Flag endpoint as open with w == 0
 
-    size_t curIndex = i * 2;
-    udFloat3 p0 = udFloat3::create(p - origin);
-    udFloat3 prev0 = udFloat3::create(prev - origin);
-    udFloat3 next0 = udFloat3::create(next - origin);
-    pVerts[curIndex + 0].position = udFloat4::create(p0, -1.0f);
-    pVerts[curIndex + 1].position = udFloat4::create(p0, 1.0f);
-    pVerts[curIndex + 0].previous = udFloat4::create(prev0, -1.0f);
-    pVerts[curIndex + 1].previous = udFloat4::create(prev0, 1.0f);
-    pVerts[curIndex + 0].next = udFloat4::create(next0, -1.0f);
-    pVerts[curIndex + 1].next = udFloat4::create(next0, 1.0f);
+    //p0
+    pVerts[vertIndex + 0].position = udFloat4::create(udFloat3::create(p0), -1.0f);
+    pVerts[vertIndex + 1].position = udFloat4::create(udFloat3::create(p0), 1.0f);
+    pVerts[vertIndex + 0].partner = udFloat4::create(udFloat3::create(p1), -1.0f);
+    pVerts[vertIndex + 1].partner = udFloat4::create(udFloat3::create(p1), 1.0f);
+    pVerts[vertIndex + 0].neighbour = udFloat4::create(p0_neighbour);
+    pVerts[vertIndex + 1].neighbour = udFloat4::create(p0_neighbour);
+
+    //p1
+    pVerts[vertIndex + 2].position = udFloat4::create(udFloat3::create(p1), 1.0f);
+    pVerts[vertIndex + 3].position = udFloat4::create(udFloat3::create(p1), -1.0f);
+    pVerts[vertIndex + 2].partner = udFloat4::create(udFloat3::create(p0), 1.0f);
+    pVerts[vertIndex + 3].partner = udFloat4::create(udFloat3::create(p0), -1.0f);
+    pVerts[vertIndex + 2].neighbour = udFloat4::create(p1_neighbour);
+    pVerts[vertIndex + 3].neighbour = udFloat4::create(p1_neighbour);
+    
+    //Indics
+    pIndices[indIndex + 0] = (int)vertIndex + 0;
+    pIndices[indIndex + 1] = (int)vertIndex + 1;
+    pIndices[indIndex + 2] = (int)vertIndex + 3;
+    pIndices[indIndex + 3] = (int)vertIndex + 0;
+    pIndices[indIndex + 4] = (int)vertIndex + 3;
+    pIndices[indIndex + 5] = (int)vertIndex + 2;
+
+    vertIndex += 4;
+    indIndex += 6;
   }
 
-  UD_ERROR_CHECK(vcMesh_Create(&pMesh, vcLineVertexLayout, (int)udLengthOf(vcLineVertexLayout), pVerts, (uint32_t)vertCount, nullptr, 0, vcMF_NoIndexBuffer));
+  UD_ERROR_CHECK(vcMesh_Create(&pMesh, vcLineVertexLayout, (int)udLengthOf(vcLineVertexLayout), pVerts, (uint32_t)vertCount, pIndices, (uint32_t)indexCount, vcMF_None));
 
   pLine->pMesh = pMesh;
   pLine->originMatrix = udDouble4x4::translation(origin);
   pLine->colour = colour;
   pLine->width = width;
-  pLine->pointCount = realPointCount;
+  pLine->segmentCount = segmentCount;
 
   result = udR_Success;
 epilogue:
 
   udFree(pVerts);
+  udFree(pIndices);
   return result;
 }
 
@@ -171,18 +197,30 @@ udResult vcLineRenderer_DestroyLine(vcLineInstance **ppLine)
   return udR_Success;
 }
 
-bool vcLineRenderer_Render(vcLineRenderer *pLineRenderer, const vcLineInstance *pLine, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
+bool vcLineRenderer_Render(vcLineRenderer *pLineRenderer, const vcLineInstance *pLine, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, const udDouble4 &nearPlane)
 {
+  //Original camera near plane
+  udDouble4 planeNormal = udDouble4::create(nearPlane.x, nearPlane.y, nearPlane.z, 0.0);
+  double planeOffset = nearPlane.w;
+  udDouble4 pointOnNearPlane = planeNormal * planeOffset;
+  
+  //Translated near plane
+  pointOnNearPlane = pointOnNearPlane - pLine->originMatrix.axis.t;
+  planeOffset = udDot4(pointOnNearPlane, planeNormal);
+  udFloat4 newNearPlane = udFloat4::create(planeNormal);
+  newNearPlane.w = float(planeOffset);
+
   vcShader_Bind(pLineRenderer->renderShader.pProgram);
 
   pLineRenderer->renderShader.everyObjectParams.colour = pLine->colour;
-  pLineRenderer->renderShader.everyObjectParams.worldViewProjection = udFloat4x4::create(viewProjectionMatrix * pLine->originMatrix);
   pLineRenderer->renderShader.everyObjectParams.thickness.y = float(screenSize.x) / screenSize.y;
   pLineRenderer->renderShader.everyObjectParams.thickness.x = pLine->width / udMax(screenSize.x, screenSize.y);
+  pLineRenderer->renderShader.everyObjectParams.nearPlane = newNearPlane;
+  pLineRenderer->renderShader.everyObjectParams.worldViewProjection = udFloat4x4::create(viewProjectionMatrix * pLine->originMatrix);
 
   vcShader_BindConstantBuffer(pLineRenderer->renderShader.pProgram, pLineRenderer->renderShader.uniform_everyObject, &pLineRenderer->renderShader.everyObjectParams, sizeof(pLineRenderer->renderShader.everyObjectParams));
 
-  vcMesh_Render(pLine->pMesh, (int)pLine->pointCount * 2, 0, vcMRM_TriangleStrip);
+  vcMesh_Render(pLine->pMesh);
 
   return true;
 }
