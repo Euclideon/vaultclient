@@ -892,7 +892,7 @@ void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob)
       UD_ERROR_SET(udR_CorruptData);
     }
 #ifdef FBXSDK_ON
-    else if (udStrEquali(pExt, ".fbx"))
+    else if (udStrEquali(pExt, ".fbx") || udStrEquali(pExt, ".dxf") || udStrEquali(pExt, ".dae"))
     {
       if (vcFBX_AddItem(pJob->pConvertContext, pFilename) == vE_Success)
         UD_ERROR_SET(udR_Success);
