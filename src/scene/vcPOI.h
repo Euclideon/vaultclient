@@ -50,6 +50,7 @@ private:
   bool m_showArea;
   bool m_showLength;
   bool m_showAllLengths;
+  bool m_hideArea;
 
   double m_totalLength;
   double m_area;

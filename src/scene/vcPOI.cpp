@@ -309,6 +309,7 @@ public:
     : vcPOIState_General(pParent)
     , m_done(false)
   {
+    pParent->m_hideArea = true;
   }
 
   ~vcPOIState_MeasureHeight()
@@ -504,6 +505,7 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
   m_showArea = false;
   m_showLength = false;
   m_lengthLabels.Init(32);
+  m_hideArea = false;
 
   memset(&m_line, 0, sizeof(m_line));
 
@@ -716,7 +718,9 @@ void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcPOI::UpdatePoints(vcState *pProgramState)
 {
-  CalculateArea();
+  if(!m_hideArea)
+    CalculateArea();
+
   CalculateTotalLength();
   CalculateCentroid();
 
@@ -792,7 +796,7 @@ void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
     if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_showAllLengths))
       vdkProjectNode_SetMetadataBool(m_pNode, "showAllLengths", m_showAllLengths);
 
-    if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_showArea))
+    if (!m_hideArea && ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_showArea))
       vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
 
     if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), itemID), &m_line.closed))
