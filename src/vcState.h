@@ -169,6 +169,7 @@ struct vcState
     bool inUse;
     vcGizmoOperation operation;
     vcGizmoCoordinateSystem coordinateSystem;
+    udDouble3 direction[3]; // 0-x-east; 1-y-north; 2-z-up
   } gizmo;
 
   vcActiveTool activeTool;

@@ -375,7 +375,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool forceClearMouseState = !isFocused;
 
   // Was the gizmo just clicked on?
-  gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered() && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
+  vcGIS_GetOrthonormalBasis(pProgramState->geozone, pProgramState->camera.position, &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+  gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered(pProgramState->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
   if (gizmoCapturedMouse)
   {
     // was the gizmo just released?

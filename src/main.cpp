@@ -2454,7 +2454,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
           allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
 
-        vcGizmo_Manipulate(&pProgramState->camera, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
+        //read direction axes again.
+        vcGIS_GetOrthonormalBasis(pProgramState->geozone, pProgramState->camera.position, &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+        vcGizmo_Manipulate(&pProgramState->camera, pProgramState->gizmo.direction, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
 
         if (!(delta == udDouble4x4::identity()))
         {
