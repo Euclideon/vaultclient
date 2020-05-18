@@ -1157,14 +1157,9 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
 }
 
 // This should be in a utility class somewhere
-template <typename T, typename U>
-U vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int32_t width, int32_t height)
+template <typename U, typename V>
+U vcTileRenderer_BilinearSample(V *pPixelData, const udFloat2 &sampleUV, int32_t width, int32_t height)
 {
-  // TODO: Not sure about the sample center... (the `+0.5` bit)
-  // wrap
-  //udFloat2 uv = { udMod(udMod((sampleUV[0] - 0.5f / width) * width, width) + width, width),
-  //                udMod(udMod((sampleUV[1] - 0.5f / height) * height, height) + height, height) };
-
   static float offset = 0.5f;
   udFloat2 uv = { (sampleUV[0] - offset / width) * width,
                   (sampleUV[1] - offset / height) * height };
@@ -1194,52 +1189,44 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
 {
   const vcQuadTreeNode *pNode = vcQuadTree_GetNodeFromCartesian(&pTileRenderer->quadTree, point);
 
-  if (pNode == nullptr || pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_None)
-    return udDouble3::create(0, 0, 0);
+  udDouble3 latLonAltZero = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, point);
+  latLonAltZero.z = 0;
+  udDouble3 surfacePosition = udGeoZone_LatLongToCartesian(pTileRenderer->quadTree.geozone, latLonAltZero);
 
-  if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Inherited)
+  float resultHeight = pTileRenderer->pSettings->maptiles.mapHeight;
+
+  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode != nullptr && pNode->demBoundsState != vcQuadTreeNode::vcDemBoundsState_None)
   {
-    // search for fine DEM data
-    while (pNode->parentIndex != INVALID_NODE_INDEX)
+    if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Inherited)
     {
-      if (pNode->pDemHeights != nullptr)
-        break;
+      // search for fine DEM data up the tree
+      while (pNode->parentIndex != INVALID_NODE_INDEX)
+      {
+        if (pNode->pDemHeights != nullptr)
+          break;
 
-      pNode = &pTileRenderer->quadTree.nodes.pPool[pNode->parentIndex];
+        pNode = &pTileRenderer->quadTree.nodes.pPool[pNode->parentIndex];
+      }
+    }
+
+    // `pDemHeights` can be null if inherited tile was ancestor, and has since been pruned
+    if (pNode->pDemHeights != nullptr)
+    {
+      udDouble3 p0 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[0]);
+      udDouble3 p3 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[8]);
+
+      udDouble3 range = p3 - p0;
+      udDouble3 localPoint = latLonAltZero - p0;
+      udDouble3 demUV = localPoint / range;
+
+      udFloat2 sampleUV = udFloat2::create(udClamp(demUV.y, 0.0, 1.0), udClamp(demUV.x, 0.0, 1.0));
+      resultHeight += vcTileRenderer_BilinearSample<float, int16_t>(pNode->pDemHeights, sampleUV, pNode->demInfo.data.width, pNode->demInfo.data.height);
     }
   }
 
-  if (pNode->pDemHeights == nullptr)
-  {
-    printf("SOMETHING WENT WRONG - ABANDOON!!!\n");
-    return udDouble3::create(0, 0, 0);
-  }
-
-  udDouble3 p0 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[0]);
-  udDouble3 p3 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[8]);
-
-  udDouble3 latLon = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, point);
-
-  udDouble3 range = p3 - p0;
-  udDouble3 localPoint = latLon - p0;
-  udDouble3 demUV = localPoint / range;
-
-  if (demUV.x < 0 || demUV.x > 1 || demUV.y < 0 || demUV.y > 1)
-  {
-    printf("NOPE?: %f, %f\n", demUV.x, demUV.y);
-    // TODO: TEMP while i fix
-    return udDouble3::zero();
-  }
-
-  latLon.z = 0;
-  udDouble3 surfacePos = udGeoZone_LatLongToCartesian(pTileRenderer->quadTree.geozone, latLon);
-
-  udFloat2 sampleUV = udFloat2::create(demUV.y, demUV.x);
-  float sampleHeight = vcTileRenderer_BilinearSample<int16_t, float>(pNode->pDemHeights, sampleUV, pNode->demInfo.data.width, pNode->demInfo.data.height);
-
-  udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, surfacePos);
-
-  return surfacePos + worldNormal * (sampleHeight + pTileRenderer->pSettings->maptiles.mapHeight);
+  // TODO: This *should* use `vcTileRenderer_BilinearSample(pNode->worldNormals[])` for 'worldNormal', but the result are slightly wrong
+  udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, surfacePosition);
+  return surfacePosition + worldNormal * resultHeight;
 }
 
 udDouble3 vcTileRenderer_QueryMapPositionAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal)
@@ -1247,18 +1234,13 @@ udDouble3 vcTileRenderer_QueryMapPositionAtCartesian(vcTileRenderer *pTileRender
   udDouble3 p0 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point);
   if (pNormal != nullptr)
   {
-    double offsetAmount = 2.0f;
-    udDouble3 p1 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(offsetAmount, 0, 0));
-    udDouble3 p2 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(offsetAmount, offsetAmount, 0));
-
-    //udDouble3 p3 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(-offsetAmount, 0, 0));
-    //udDouble3 p4 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(-offsetAmount, -offsetAmount, 0));
+    static const double OffsetAmountMeters = 2.0f;
+    udDouble3 p1 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(OffsetAmountMeters, 0, 0));
+    udDouble3 p2 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(OffsetAmountMeters, OffsetAmountMeters, 0));
 
     udDouble3 n0 = udCross3(udNormalize3(p1 - p0), udNormalize3(p2 - p0));
-    //udDouble3 n1 = udCross3(udNormalize3(p3 - p0), udNormalize3(p4 - p0));
-    *pNormal = udNormalize3(n0);// +n1);
+    *pNormal = udNormalize3(n0);
   }
 
   return p0;
-  //return pNode->tileCenter + pNode->worldNormal * pNode->activeDemMinMax.y;
 }
