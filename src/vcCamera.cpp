@@ -575,13 +575,36 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime);
 
-  udDouble3 cameraMinimumHeight = vcRender_QueryMapPositionAtCartesian(pProgramState, pProgramState->pRenderContext, pProgramState->camera.position, nullptr);
+  // project camera position to base altitude
+  //udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
+  //cameraPositionInLongLat.z = 0.0;
+  //udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
 
-TODO: apply this to ECEF
+  //udDouble3 zoneRoot = udGeoZone_LatLongToCartesian(pProgramState->geozone, udDouble3::zero());
+  //udDouble3 surfaceNormal = udNormalize3(cameraZeroAltitude - zoneRoot);
 
-  udDouble3 earthSurfaceToCamera = pProgramState->camera.position - cameraMinimumHeight;
-  if (udMagSq3(earthSurfaceToCamera) > 0)
-    cameraHeightAboveEarthSurface = udMag3(earthSurfaceToCamera);
+  udDouble3 normal = {};
+  udDouble3 normal2 = {};
+  udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
+  udDouble3 cameraSurfacePosition = vcRender_QueryMapPositionAtCartesian(pProgramState, pProgramState->pRenderContext, pProgramState->camera.position, &normal, &normal2);
+  cameraSurfacePosition += worldNormal * 5.0f;
+ // cameraSurfacePosition += udNormalize3(pProgramState->camera.position - cameraZeroAltitude);
+
+  udDouble3 earthSurfaceToCamera = pProgramState->camera.position - cameraSurfacePosition;
+  //udDouble3 projectedPosition = (udDot3(pProgramState->camera.position, earthSurfaceToCamera) / udDot3(earthSurfaceToCamera, earthSurfaceToCamera)) * earthSurfaceToCamera;
+
+  float d = udDot3(worldNormal, udNormalize3(earthSurfaceToCamera));
+  printf("%f, %f, %f...%f, %f, %f : %f\n", worldNormal.x, worldNormal.y, worldNormal.z, earthSurfaceToCamera.x, earthSurfaceToCamera.y, earthSurfaceToCamera.z, d);
+  if (d < 0)
+  {
+    udDouble3 offsetAmount = (cameraSurfacePosition - pProgramState->camera.position);
+    printf("OFFSET: %f, %f, %f\n", offsetAmount.x, offsetAmount.y, offsetAmount.z);
+    pProgramState->camera.position += offsetAmount;
+    //pProgramState->worldAnchorPoint += offsetAmount;
+  }
+
+  //if (udMagSq3(earthSurfaceToCamera) > 0)
+  //  cameraHeightAboveEarthSurface = udMag3(earthSurfaceToCamera);
 
   //pProgramState->camera.position.z = udMax(pProgramState->camera.position.z, cameraMinimumHeight.z + 5.0f);
   //printf("%f, %f, %f\n", cameraMinimumHeight.x, cameraMinimumHeight.y, cameraMinimumHeight.z);
