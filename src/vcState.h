@@ -148,6 +148,14 @@ struct vcState
 
   char password[vcMaxPathLength];
 
+  struct
+  {
+    char currentPassword[vcMaxPathLength];
+    char newPassword[vcMaxPathLength];
+    char newPasswordConfirm[vcMaxPathLength];
+    char message[vcMaxPathLength];
+  } changePassword;
+
   vcLoginStatus loginStatus;
   vdkError logoutReason;
 
