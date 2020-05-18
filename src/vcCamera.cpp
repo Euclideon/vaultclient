@@ -575,17 +575,21 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
 
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime);
 
+  static const float KeepCameraAboveGroundDistanceMeters = 5.0f;
   udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
   udDouble3 cameraSurfacePosition = vcRender_QueryMapPositionAtCartesian(pProgramState, pProgramState->pRenderContext, pProgramState->camera.position);
-  cameraSurfacePosition += worldNormal * 5.0f;
-
+  cameraSurfacePosition += worldNormal * KeepCameraAboveGroundDistanceMeters;
   if (udDot3(worldNormal, udNormalize3(pProgramState->camera.position - cameraSurfacePosition)) < 0)
   {
-    udDouble3 offsetAmount = (cameraSurfacePosition - pProgramState->camera.position);
-    printf("OFFSET: %f, %f, %f\n", offsetAmount.x, offsetAmount.y, offsetAmount.z);
-    pProgramState->camera.position += offsetAmount;
+    pProgramState->camera.position = cameraSurfacePosition;
 
-    // TODO: Apply offset to orbit?
+    // re-orient camera during orbit control to correctly focus on worldAnchorPoint
+    if (pProgramState->cameraInput.inputState == vcCIS_Orbiting)
+    {
+      udDouble4x4 newLookAt = udDouble4x4::lookAt(pProgramState->camera.position, pProgramState->worldAnchorPoint);
+      udDouble2 hp = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->camera.position, newLookAt.extractQuaternion());
+      pProgramState->camera.headingPitch.y = hp.y;
+    }
   }
 
   if (pProgramState->cameraInput.inputState == vcCIS_None)
