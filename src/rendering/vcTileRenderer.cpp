@@ -1259,7 +1259,9 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
 
   udFloat2 sampleUV = udFloat2::create(demUV.y, demUV.x);
   float sampleHeight = vcTileRenderer_BilinearSample(pNode->pDemHeights, sampleUV, pNode->demInfo.data.width, pNode->demInfo.data.height);
-  return surfacePos + pNode->worldNormal * sampleHeight;// udDouble3::create(point.x, point.y, (float)sampleHeight);
+
+  udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, surfacePos);
+  return surfacePos + worldNormal * sampleHeight;// udDouble3::create(point.x, point.y, (float)sampleHeight);
 }
 
 udDouble3 vcTileRenderer_QueryMapPositionAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal, udDouble3 *pNormal2)
