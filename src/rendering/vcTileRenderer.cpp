@@ -1157,8 +1157,8 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
 }
 
 // This should be in a utility class somewhere
-template <typename T>
-float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, float width, float height)
+template <typename T, typename U>
+U vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int32_t width, int32_t height)
 {
   // TODO: Not sure about the sample center... (the `+0.5` bit)
   // wrap
@@ -1172,25 +1172,25 @@ float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, flo
   udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
   udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
 
-  float maxWidth = width - 1;
-  float maxHeight = height - 1;
+  float maxWidth = width - 1.0f;
+  float maxHeight = height - 1.0f;
 
   udFloat2 uvBL = udFloat2::create(udClamp(whole.x + 0.0f, 0.0f, maxWidth), udClamp(whole.y + 0.0f, 0.0f, maxHeight));
   udFloat2 uvBR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 0, 0.0f, maxHeight));
   udFloat2 uvTL = udFloat2::create(udClamp(whole.x + 0, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
   udFloat2 uvTR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
 
-  float pColourBL = (float)pPixelData[(int)(uvBL.x + uvBL.y * width)];
-  float pColourBR = (float)pPixelData[(int)(uvBR.x + uvBR.y * width)];
-  float pColourTL = (float)pPixelData[(int)(uvTL.x + uvTL.y * width)];
-  float pColourTR = (float)pPixelData[(int)(uvTR.x + uvTR.y * width)];
+  U pColourBL = (U)pPixelData[(int)(uvBL.x + uvBL.y * width)];
+  U pColourBR = (U)pPixelData[(int)(uvBR.x + uvBR.y * width)];
+  U pColourTL = (U)pPixelData[(int)(uvTL.x + uvTL.y * width)];
+  U pColourTR = (U)pPixelData[(int)(uvTR.x + uvTR.y * width)];
 
-  float colourT = udLerp(pColourTL, pColourTR, rem.x);
-  float colourB = udLerp(pColourBL, pColourBR, rem.x);
-  return udLerp(colourB, colourT, rem.y);;
+  U colourT = udLerp(pColourTL, pColourTR, rem.x);
+  U colourB = udLerp(pColourBL, pColourBR, rem.x);
+  return udLerp(colourB, colourT, rem.y);
 }
 
-udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal2 = nullptr)
+udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point)
 {
   const vcQuadTreeNode *pNode = vcQuadTree_GetNodeFromCartesian(&pTileRenderer->quadTree, point);
 
@@ -1215,19 +1215,7 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
     return udDouble3::create(0, 0, 0);
   }
 
-  //udDouble3 intersectPoint = {};
-  //double intersectDistance = 0;
-  //udRay<double> ray = { udDouble3::create(point), udDouble3::create(-pNode->worldNormal) };
-  //udPlane<double> plane = { udDouble3::create(pNode->tileCenter - pNode->worldNormal * pNode->tileExtents), udDouble3::create(pNode->worldNormal) };
-  //if (!plane.intersects(ray, &intersectPoint, &intersectDistance))
-  //{
-  //  printf("No intersection...\n");
-  //  return udDouble3::zero();
-  //}
-
   udDouble3 p0 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[0]);
-  //udDouble3 p1 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[2]);
-  //udDouble3 p2 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[6]);
   udDouble3 p3 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[8]);
 
   udDouble3 latLon = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, point);
@@ -1235,11 +1223,6 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
   udDouble3 range = p3 - p0;
   udDouble3 localPoint = latLon - p0;
   udDouble3 demUV = localPoint / range;
-
-  //udDouble3 range2 = pNode->worldBounds[8] - pNode->worldBounds[0];
-  //udDouble3 localPoint2 = point - pNode->worldBounds[0];
-  //udDouble3 demUV2 = localPoint2 / range2;
-  //printf("%f, %f\n", demUV.x, demUV.y);
 
   if (demUV.x < 0 || demUV.x > 1 || demUV.y < 0 || demUV.y > 1)
   {
@@ -1251,22 +1234,17 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
   latLon.z = 0;
   udDouble3 surfacePos = udGeoZone_LatLongToCartesian(pTileRenderer->quadTree.geozone, latLon);
 
-  //printf("%f, %f : %f, %f\n", demUV.x, demUV.y, demUV2.x, demUV2.y);
-
-  if (pNormal2 != nullptr)
-    *pNormal2 = pNode->worldNormal;
-  // TODO: when DEM is not active, project onto flat tile
-
   udFloat2 sampleUV = udFloat2::create(demUV.y, demUV.x);
-  float sampleHeight = vcTileRenderer_BilinearSample(pNode->pDemHeights, sampleUV, pNode->demInfo.data.width, pNode->demInfo.data.height);
+  float sampleHeight = vcTileRenderer_BilinearSample<int16_t, float>(pNode->pDemHeights, sampleUV, pNode->demInfo.data.width, pNode->demInfo.data.height);
 
   udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, surfacePos);
-  return surfacePos + worldNormal * sampleHeight;// udDouble3::create(point.x, point.y, (float)sampleHeight);
+
+  return surfacePos + worldNormal * (sampleHeight + pTileRenderer->pSettings->maptiles.mapHeight);
 }
 
-udDouble3 vcTileRenderer_QueryMapPositionAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal, udDouble3 *pNormal2)
+udDouble3 vcTileRenderer_QueryMapPositionAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal)
 {
-  udDouble3 p0 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point, pNormal2);
+  udDouble3 p0 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point);
   if (pNormal != nullptr)
   {
     double offsetAmount = 2.0f;
