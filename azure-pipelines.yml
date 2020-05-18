@@ -29,11 +29,11 @@ stages:
       name: ubuntu1804
       displayName: 'Ubuntu 18.04'
       container: euclideon/vault:dev-bionic-v1
-  - template: buildscripts/azure-pipelines-jobs-macos.yml
-    parameters:
-      name: macosMetal
-      displayName: 'macOS Metal'
-      gfxapi: 'metal'
+  #- template: buildscripts/azure-pipelines-jobs-macos.yml
+  #  parameters:
+  #    name: macosMetal
+  #    displayName: 'macOS Metal'
+  #    gfxapi: 'metal'
   - template: buildscripts/azure-pipelines-jobs-windows.yml
     parameters:
       name: windowsOpenGL
