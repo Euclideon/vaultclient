@@ -817,10 +817,10 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
-    double cameraHeightAboveEarthSurface = 0.0;
+    double cameraHeightAboveEarthSurface = -pProgramState->settings.maptiles.mapHeight;
     udDouble3 earthSurfaceToCamera = localCamPos - pRenderContext->cameraZeroAltitude;
-    if (udMagSq3(earthSurfaceToCamera))
-      cameraHeightAboveEarthSurface = udMag3(earthSurfaceToCamera);
+    if (udMagSq3(earthSurfaceToCamera) > 0)
+      cameraHeightAboveEarthSurface += udMag3(earthSurfaceToCamera);
 
     int currentZoom = 21;
 

@@ -24,6 +24,7 @@ struct vcCamera
   udDouble3 position;
   //udDouble3 eulerRotation;
   udDouble2 headingPitch;
+  udDouble3 cameraUp;
 
   udRay<double> worldMouseRay;
 
