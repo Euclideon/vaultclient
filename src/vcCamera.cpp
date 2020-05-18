@@ -587,14 +587,15 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   udDouble3 normal2 = {};
   udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
   udDouble3 cameraSurfacePosition = vcRender_QueryMapPositionAtCartesian(pProgramState, pProgramState->pRenderContext, pProgramState->camera.position, &normal, &normal2);
-  cameraSurfacePosition += worldNormal * 5.0f;
+  //udDouble3 cameraSurfacePosition2 = cameraSurfacePosition + worldNormal * 5.0f;
  // cameraSurfacePosition += udNormalize3(pProgramState->camera.position - cameraZeroAltitude);
 
+  the dot should be 1, or -1...not approaching 0
   udDouble3 earthSurfaceToCamera = pProgramState->camera.position - cameraSurfacePosition;
   //udDouble3 projectedPosition = (udDot3(pProgramState->camera.position, earthSurfaceToCamera) / udDot3(earthSurfaceToCamera, earthSurfaceToCamera)) * earthSurfaceToCamera;
 
   float d = udDot3(worldNormal, udNormalize3(earthSurfaceToCamera));
-  printf("%f, %f, %f...%f, %f, %f : %f\n", worldNormal.x, worldNormal.y, worldNormal.z, earthSurfaceToCamera.x, earthSurfaceToCamera.y, earthSurfaceToCamera.z, d);
+  printf("%f, %f, %f...%f, %f, %f : %f\n", pProgramState->camera.position.x, pProgramState->camera.position.y, pProgramState->camera.position.z, earthSurfaceToCamera.x, earthSurfaceToCamera.y, earthSurfaceToCamera.z, d);
   if (d < 0)
   {
     udDouble3 offsetAmount = (cameraSurfacePosition - pProgramState->camera.position);
