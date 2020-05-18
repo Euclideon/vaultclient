@@ -644,6 +644,9 @@ void vcModals_DrawConvert(vcState* pProgramState)
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
+    if (ImGui::IsItemHovered())
+      ImGui::SetTooltip("%s", vcString::Get("convertSafeToCloseTooltip"));
+
     ImGui::Columns(1);
     ImGui::Separator();
 
