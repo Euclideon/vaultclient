@@ -368,6 +368,8 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
     earthCenter = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->geozone, destZone);
   }
 
+  earthCenter += pProgramState->camera.cameraUp * pProgramState->settings.maptiles.mapHeight;
+
   // calculate the earth radius at in this zone
   udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
   cameraPositionInLongLat.z = 0.0;

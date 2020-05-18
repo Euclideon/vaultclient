@@ -145,7 +145,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
   udDouble3 worldAnchorNormal = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->worldAnchorPoint);
   udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pCamera->position, pCamera->headingPitch);
 
-  udDouble3 cameraUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
+  pCamera->cameraUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
 
   switch (pCamInput->inputState)
   {
@@ -163,12 +163,12 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
     // Translation
     if (pCamSettings->lockAltitude && addPos != udDouble3::zero())
-      addPos -= udDot(cameraUp, addPos) * cameraUp;
+      addPos -= udDot(pCamera->cameraUp, addPos) * pCamera->cameraUp;
 
     if (addPos != udDouble3::zero())
       addPos = udNormalize3(addPos);
 
-    addPos += vertPos * cameraUp;
+    addPos += vertPos * pCamera->cameraUp;
     addPos *= pCamSettings->moveSpeed * deltaTime;
 
     pCamInput->smoothTranslation += addPos;
