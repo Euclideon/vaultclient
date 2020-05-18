@@ -45,7 +45,7 @@ float CalcuteLogDepth(float4 clipPos)
   return (log2(max(1e-6, 1.0 + clipPos.w)) * Fcoef + u_clipZNear) * clipPos.w;
 }
 
-float4 BiliearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], float2 uv)
+float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], float2 uv)
 {
   // whole
   float ui = floor(uv.x);
@@ -73,8 +73,8 @@ PS_INPUT main(VS_INPUT input)
 
   // interpolate between control points to generate a final position for this vertex
   float2 indexUV = input.pos.xy * (CONTROL_POINT_RES - 1.0);
-  float4 eyePos = BiliearSample(u_eyePositions, indexUV);
-  float4 eyeNormal = BiliearSample(u_eyeNormals, indexUV);
+  float4 eyePos = BilinearSample(u_eyePositions, indexUV);
+  float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
   float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
