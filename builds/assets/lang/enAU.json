@@ -275,6 +275,7 @@
   "convertSetOutput": "Set Output Name",
   "convertWatermark": "Watermark",
   "convertNoJobSelected": "No job is selected. Please select one on the left or create a new job.",
+  "convertSafeToCloseTooltip": "Your conversions will continue in the background.",
   "menuSystem": "System",
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
