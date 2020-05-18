@@ -136,12 +136,10 @@ void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
   udDouble3 boundsMin = udDouble3::create(FLT_MAX, FLT_MAX, FLT_MAX);
   udDouble3 boundsMax = udDouble3::create(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-  udDouble3 offsetMin = pNode->worldNormal * pNode->activeDemMinMax[0];
-  udDouble3 offsetMax = pNode->worldNormal * pNode->activeDemMinMax[1];
   for (int edge = 0; edge < 9; ++edge)
   {
-    udDouble3 p0 = pNode->worldBounds[edge] + offsetMin;
-    udDouble3 p1 = pNode->worldBounds[edge] + offsetMax;
+    udDouble3 p0 = pNode->worldBounds[edge] + pNode->worldNormals[edge] * pNode->activeDemMinMax[0];
+    udDouble3 p1 = pNode->worldBounds[edge] + pNode->worldNormals[edge] * pNode->activeDemMinMax[1];
     boundsMin = udMin(p0, udMin(p1, boundsMin));
     boundsMax = udMax(p0, udMax(p1, boundsMax));
   }
@@ -158,12 +156,9 @@ void vcQuadTree_CalculateNodeBounds(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode
       (pNode->slippyPosition.y * 2) + (edge / 3));
 
     vcGIS_SlippyToLocal(pQuadTree->geozone, &pNode->worldBounds[edge], slippySampleCoord, pNode->slippyPosition.z + 1);
-  }
 
-  // one normal
-  udDouble3 n0 = udCross3(udNormalize3(pNode->worldBounds[0] - pNode->worldBounds[6]), udNormalize3(pNode->worldBounds[0] - pNode->worldBounds[2]));
-  udDouble3 n1 = udCross3(udNormalize3(pNode->worldBounds[8] - pNode->worldBounds[2]), udNormalize3(pNode->worldBounds[8] - pNode->worldBounds[6]));
-  pNode->worldNormal = udNormalize3(n0 + n1);
+    pNode->worldNormals[edge] = vcGIS_GetWorldLocalUp(pQuadTree->geozone, pNode->worldBounds[edge]);
+  }
 
   vcQuadTree_CalculateNodeAABB(pQuadTree, pNode);
 }
@@ -198,7 +193,7 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
 {
-  udDouble3 mapHeightOffset = pNode->worldNormal * pQuadTree->pSettings->maptiles.mapHeight;
+  udDouble3 mapHeightOffset = pNode->worldNormals[4] * pQuadTree->pSettings->maptiles.mapHeight;
   return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, pNode->tileCenter + mapHeightOffset, pNode->tileExtents);
 }
 
@@ -261,7 +256,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
 
     int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
     if (slippyManhattanDist != 0)
-      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormal * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.mapHeight));
+      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormals[4] * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.mapHeight));
 
     int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
     bool alwaysSubdivide = pChildNode->visible && totalDepth < vcQuadTree_MinimumDescendLayer;

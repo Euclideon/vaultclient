@@ -77,7 +77,7 @@ struct vcQuadTreeNode
                             //  3, 4, 5,
                             //  6, 7, 8]
 
-  udDouble3 worldNormal;
+  udDouble3 worldNormals[9];
 
   enum vcDemBoundsState
   {
