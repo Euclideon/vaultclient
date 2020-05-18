@@ -173,9 +173,6 @@ void vcSession_Login(void *pProgramStatePtr)
 
 void vcSession_Logout(vcState *pProgramState)
 {
-  pProgramState->hasContext = false;
-  pProgramState->forceLogout = false;
-
   if (pProgramState->pVDKContext != nullptr)
   {
 #if VC_HASCONVERT
@@ -202,17 +199,21 @@ void vcSession_Logout(vcState *pProgramState)
       }
     }
 #endif //VC_HASCONVERT
+    memset(&pProgramState->geozone, 0, sizeof(pProgramState->geozone));
 
     pProgramState->modelPath[0] = '\0';
-    vcProject_InitBlankScene(pProgramState, "Ending", 0);
+    vcProject_InitBlankScene(pProgramState, "Empty Project", vcPSZ_StandardGeoJSON);
     pProgramState->projects.Destroy();
     pProgramState->profileInfo.Destroy();
 
-    memset(&pProgramState->geozone, 0, sizeof(pProgramState->geozone));
-    vdkContext_Disconnect(&pProgramState->pVDKContext, false);
+    vcRender_RemoveVaultContext(pProgramState->pRenderContext);
+    vdkContext_Disconnect(&pProgramState->pVDKContext, pProgramState->forceLogout);
 
     vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
   }
+
+  pProgramState->hasContext = false;
+  pProgramState->forceLogout = false;
 }
 
 void vcSession_Resume(vcState *pProgramState)
