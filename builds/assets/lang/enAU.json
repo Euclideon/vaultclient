@@ -11,6 +11,8 @@
   "popupClose": "Close",
   "popupConfirmYes": "Yes",
   "popupConfirmNo": "No",
+  "popupSave": "Save",
+  "popupLoad": "Load",
   "loginButton": "Login",
   "loginAbout": "About",
   "loginServerURL": "ServerURL",

@@ -131,7 +131,13 @@ void vcFileDialog_ShowModal(vcState *pProgramState)
 
       ImGui::SameLine();
 
-      if (ImGui::Button(vcString::Get("convertLoadButton"), ImVec2(100.f, 0)))
+      const char *pLabel = "";
+      if (pProgramState->fileDialog.dialogType == vcFDT_OpenFile || pProgramState->fileDialog.dialogType == vcFDT_SelectDirectory)
+        pLabel = vcString::Get("popupLoad");
+      else // if (pProgramState->fileDialog.dialogType == vcFDT_SaveFile)
+        pLabel = vcString::Get("popupSave");
+
+      if (ImGui::Button(pLabel, ImVec2(100.f, 0)))
         loadFile = true;
       ImGui::SameLine();
 
