@@ -10,6 +10,7 @@
 #include "udMath.h"
 #include "udFile.h"
 #include "udStringUtil.h"
+#include "vcWebFile.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -589,7 +590,9 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
-
+  vdkProjectNode_GetMetadataString(m_pNode, "hyperlink", &pTemp, "");
+  udStrcpy(m_hyperlink, pTemp);
+  
   if (vdkProjectNode_GetMetadataBool(m_pNode, "lineDualColour", &m_line.isDualColour, false) != vE_Success)
   {
     m_line.isDualColour = (m_line.colourPrimary != m_line.colourSecondary);
@@ -877,17 +880,15 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     vdkProjectNode_SetMetadataString(m_pNode, "textSize", pTemp);
   }
 
-  // Handle hyperlinks
-  const char *pHyperlink = m_metadata.Get("hyperlink").AsString();
-  if (pHyperlink != nullptr)
+  if (vcIGSW_InputText(vcString::Get("scenePOILabelHyperlink"), m_hyperlink, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
+    vdkProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
+
+  if (m_hyperlink[0] != '\0' && ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
   {
-    ImGui::TextWrapped("%s: %s", vcString::Get("scenePOILabelHyperlink"), pHyperlink);
-    if (udStrEndsWithi(pHyperlink, ".png") || udStrEndsWithi(pHyperlink, ".jpg"))
-    {
-      ImGui::SameLine();
-      if (ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
-        pProgramState->pLoadImage = udStrdup(pHyperlink);
-    }
+    if (udStrEndsWithi(m_hyperlink, ".png") || udStrEndsWithi(m_hyperlink, ".jpg"))
+      pProgramState->pLoadImage = udStrdup(m_hyperlink);
+    else
+      vcWebFile_OpenBrowser(m_hyperlink);
   }
 
   if (m_attachment.pModel != nullptr)
