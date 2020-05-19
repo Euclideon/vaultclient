@@ -115,6 +115,8 @@ void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
   vcTexture_Destroy(&pNode->demInfo.data.pTexture);
   udFree(pNode->demInfo.data.pData);
 
+  udFree(pNode->pDemHeightsCopy);
+
   pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
   pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
 

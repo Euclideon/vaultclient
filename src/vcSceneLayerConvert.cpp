@@ -106,38 +106,6 @@ udResult vcSceneLayerConvert_GenerateLeafNodeList(vcSceneLayerConvert *pSceneLay
   return vcSceneLayerConvert_RecursiveGenerateLeafNodeList(pSceneLayerConvert , &pSceneLayerConvert->pSceneLayer->root, pSceneLayerConvert->leafNodes);
 }
 
-/*
-// TODO: this is broken, because I'm not sure about the sample center
-uint32_t vcSceneLayerConvert_BilinearSample(uint8_t *pPixelData, const udFloat2 &sampleUV, float width, float height)
-{
-  // TODO: Not sure about the sample center... (the `+0.5` bit)
-  udFloat2 uv = { udMod(udMod((sampleUV[0] + 0.5f / width) * width, width) + width, width),
-                  udMod(udMod((sampleUV[1] + 0.5f / height) * height, height) + height, height) };
-  udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
-  udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
-
-  udFloat2 uvBL = udFloat2::create(whole.x + 0.0f, whole.y + 0.0f);
-  udFloat2 uvBR = udFloat2::create(udMin(whole.x + 1, width - 1), udMin(whole.y + 0, height - 1));
-  udFloat2 uvTL = udFloat2::create(udMin(whole.x + 0, width - 1), udMin(whole.y + 1, height - 1));
-  udFloat2 uvTR = udFloat2::create(udMin(whole.x + 1, width - 1), udMin(whole.y + 1, height - 1));
-
-  uint8_t *pColourBL = &pPixelData[(int)(uvBL.x + uvBL.y * width) * 4];
-  uint8_t *pColourBR = &pPixelData[(int)(uvBR.x + uvBR.y * width) * 4];
-  uint8_t *pColourTL = &pPixelData[(int)(uvTL.x + uvTL.y * width) * 4];
-  uint8_t *pColourTR = &pPixelData[(int)(uvTR.x + uvTR.y * width) * 4];
-
-  uint8_t colour[3] = {};
-  for (int c = 0; c < 3; ++c)
-  {
-    uint8_t colourT = udLerp(pColourTL[c], pColourTR[c], rem.x);
-    uint8_t colourB = udLerp(pColourBL[c], pColourBR[c], rem.x);
-    colour[c] = udLerp(colourT, colourB, rem.y);
-  }
-
-  return 0xff000000 | (colour[2] << 16) | (colour[1] << 8) | colour[0];
-}
-*/
-
 udResult vcSceneLayerConvert_GatherEstimates(vcSceneLayerConvert *pSceneLayerConvert, double gridResolution)
 {
   udResult result;

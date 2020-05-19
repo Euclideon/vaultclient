@@ -707,7 +707,7 @@ epilogue:
   return result;
 }
 
-void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode, const udInt2 &demMinMax)
+void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode, const vcQuadTreeNode *pInheritNode)
 {
   if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Absolute)
     return;
@@ -716,8 +716,8 @@ void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode,
     pNode->demMinMax = { 32767, -32768 };
 
   pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Inherited;
-  pNode->demMinMax[0] = udMin(pNode->demMinMax[0], demMinMax[0]);
-  pNode->demMinMax[1] = udMax(pNode->demMinMax[1], demMinMax[1]);
+  pNode->demMinMax[0] = udMin(pNode->demMinMax[0], pInheritNode->demMinMax[0]);
+  pNode->demMinMax[1] = udMax(pNode->demMinMax[1], pInheritNode->demMinMax[1]);
 
   vcQuadTree_CalculateNodeAABB(pQuadTree, pNode);
 }
@@ -725,7 +725,7 @@ void vcTileRenderer_UpdateDemState(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode,
 void vcTileRenderer_RecursiveDownUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pParentNode, vcQuadTreeNode *pChildNode)
 {
   if (pParentNode != nullptr)
-    vcTileRenderer_UpdateDemState(pQuadTree, pChildNode, pParentNode->demMinMax);
+    vcTileRenderer_UpdateDemState(pQuadTree, pChildNode, pParentNode);
 
   if (!vcQuadTree_IsLeafNode(pChildNode))
   {
@@ -740,7 +740,7 @@ void vcTileRenderer_RecursiveUpUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeN
     return;
 
   vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[pChildNode->parentIndex];
-  vcTileRenderer_UpdateDemState(pQuadTree, pParentNode, pChildNode->demMinMax);
+  vcTileRenderer_UpdateDemState(pQuadTree, pParentNode, pChildNode);
   vcTileRenderer_RecursiveUpUpdateNodeAABB(pQuadTree, pParentNode);
 }
 
@@ -777,6 +777,10 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     pNode->demMinMax[0] = 32767;
     pNode->demMinMax[1] = -32768;
 
+    pNode->demHeightsCopySize.x = pNode->demInfo.data.width;
+    pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
+    pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demHeightsCopySize.x * pNode->demHeightsCopySize.y, udAF_Zero);
+
     uint8_t *pShortPixels = udAllocType(uint8_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 2, udAF_Zero);
     for (int h = 0; h < pNode->demInfo.data.height; ++h)
     {
@@ -794,6 +798,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
         pNode->demMinMax[0] = udMin(pNode->demMinMax.x, (int32_t)height);
         pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
+        pNode->pDemHeightsCopy[index] = height;
 
         pShortPixels[index * 2 + 0] = r;
         // Convert from [-32k, 32k] to [0, 65k]
@@ -1150,4 +1155,91 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
   vcQuadTree_Reset(&pTileRenderer->quadTree);
 
   udReleaseMutex(pTileRenderer->cache.pMutex);
+}
+
+template <typename T>
+float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int32_t width, int32_t height)
+{
+  static float HalfPixelOffset = -0.5f;
+  udFloat2 uv = { (sampleUV[0] + HalfPixelOffset / width) * width,
+                  (sampleUV[1] + HalfPixelOffset / height) * height };
+
+  udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
+  udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
+
+  float maxWidth = width - 1.0f;
+  float maxHeight = height - 1.0f;
+
+  udFloat2 uvBL = udFloat2::create(udClamp(whole.x + 0.0f, 0.0f, maxWidth), udClamp(whole.y + 0.0f, 0.0f, maxHeight));
+  udFloat2 uvBR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 0, 0.0f, maxHeight));
+  udFloat2 uvTL = udFloat2::create(udClamp(whole.x + 0, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
+  udFloat2 uvTR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
+
+  float pColourBL = (float)pPixelData[(int)(uvBL.x + uvBL.y * width)];
+  float pColourBR = (float)pPixelData[(int)(uvBR.x + uvBR.y * width)];
+  float pColourTL = (float)pPixelData[(int)(uvTL.x + uvTL.y * width)];
+  float pColourTR = (float)pPixelData[(int)(uvTR.x + uvTR.y * width)];
+
+  float colourT = udLerp(pColourTL, pColourTR, rem.x);
+  float colourB = udLerp(pColourBL, pColourBR, rem.x);
+  return udLerp(colourB, colourT, rem.y);
+}
+
+udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point)
+{
+  const vcQuadTreeNode *pNode = vcQuadTree_GetLeafNodeFromCartesian(&pTileRenderer->quadTree, point);
+
+  udDouble3 latLonAltZero = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, point);
+  latLonAltZero.z = 0;
+  udDouble3 surfacePosition = udGeoZone_LatLongToCartesian(pTileRenderer->quadTree.geozone, latLonAltZero);
+
+  float resultMapHeight = pTileRenderer->pSettings->maptiles.mapHeight;
+
+  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode != nullptr && pNode->demBoundsState != vcQuadTreeNode::vcDemBoundsState_None)
+  {
+    if (pNode->demBoundsState == vcQuadTreeNode::vcDemBoundsState_Inherited)
+    {
+      // search for fine DEM data up the tree
+      while (pNode->parentIndex != INVALID_NODE_INDEX)
+      {
+        if (pNode->pDemHeightsCopy != nullptr)
+          break;
+
+        pNode = &pTileRenderer->quadTree.nodes.pPool[pNode->parentIndex];
+      }
+    }
+
+    // `pDemHeights` can be null if inherited tile was ancestor, which has since been pruned
+    if (pNode->pDemHeightsCopy != nullptr)
+    {
+      udDouble3 p0 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[0]);
+      udDouble3 p3 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[8]);
+
+      udDouble3 localPoint = latLonAltZero - p0;
+      udDouble3 demUV = localPoint / (p3 - p0);
+
+      udFloat2 sampleUV = udFloat2::create((float)udClamp(demUV.y, 0.0, 1.0), (float)udClamp(demUV.x, 0.0, 1.0));
+      resultMapHeight += vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, sampleUV, pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
+    }
+  }
+
+  // TODO: This *should* use `vcTileRenderer_BilinearSample(pNode->worldNormals[])` for 'worldNormal', but the result are very-slightly wrong
+  udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, surfacePosition);
+  return surfacePosition + worldNormal * resultMapHeight;
+}
+
+udDouble3 vcTileRenderer_QueryMapAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal)
+{
+  udDouble3 p0 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point);
+  if (pNormal != nullptr)
+  {
+    static const double SampleOffsetAmountMeters = 2.0f;
+    udDouble3 p1 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(SampleOffsetAmountMeters, 0, 0));
+    udDouble3 p2 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(SampleOffsetAmountMeters, SampleOffsetAmountMeters, 0));
+
+    udDouble3 n0 = udCross3(udNormalize3(p1 - p0), udNormalize3(p2 - p0));
+    *pNormal = udNormalize3(n0);
+  }
+
+  return p0;
 }

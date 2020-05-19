@@ -1747,3 +1747,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
 
   return result;
 }
+
+udDouble3 vcRender_QueryMapAtCartesian(vcRenderContext *pRenderContext, const udDouble3 &point, udDouble3 *pNormal /*= nullptr*/)
+{
+  return vcTileRenderer_QueryMapAtCartesian(pRenderContext->pTileRenderer, point, pNormal);
+}
