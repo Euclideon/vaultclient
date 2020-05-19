@@ -86,24 +86,24 @@ double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point
     udInt2::create(6, 8), // bottom
     udInt2::create(2, 8), // right
   };
-  
+
   double closestEdgeDistance = 0.0;
-  
+
   // test each edge to find minimum distance to quadrant shape (3d)
   for (int e = 0; e < 4; ++e)
   {
     udDouble3 p1 = edges[edgePairs[e].x] + demMax;
     udDouble3 p2 = edges[edgePairs[e].y] + demMax;
-  
+
     udDouble3 edge = p2 - p1;
     double r = udDot3(edge, (point - p1)) / udMagSq3(edge);
-  
+
     udDouble3 closestPointOnEdge = (p1 + udClamp(r, 0.0, 1.0) * edge);
-  
+
     double distToEdge = udMag3(closestPointOnEdge - point);
     closestEdgeDistance = (e == 0) ? distToEdge : udMin(closestEdgeDistance, distToEdge);
   }
-  
+
   return closestEdgeDistance;
 }
 
@@ -498,7 +498,7 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
       vcQuadTree_CalculateNodeBounds(pQuadTree, pNode);
     }
   }
-  
+
   pQuadTree->metaData.nodeTouchedCount = 0;
   pQuadTree->metaData.leafNodeCount = 0;
 
@@ -629,4 +629,24 @@ void vcQuadTree_Prune(vcQuadTree *pQuadTree)
   // trim
   while (pQuadTree->nodes.used > 0 && !vcQuadTree_IsBlockUsed(pQuadTree, pQuadTree->nodes.used - NodeChildCount))
     pQuadTree->nodes.used -= NodeChildCount;
+}
+
+const vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode, const udDouble3 &point)
+{
+  if (vcQuadTree_IsLeafNode(pNode))
+    return pNode;
+
+  udInt2 pointSlippy = {};
+  vcGIS_LocalToSlippy(pQuadTree->geozone, &pointSlippy, point, pNode->slippyPosition.z + 1);
+
+  udInt2 childOffset = pointSlippy - (pNode->slippyPosition.toVector2() * 2);
+  if (childOffset.x < 0 || childOffset.x > 1 || childOffset.y < 0 || childOffset.y > 1)
+    return nullptr;
+
+  return vcQuadTree_GetLeafNodeFromCartesian(pQuadTree, &pQuadTree->nodes.pPool[pNode->childBlockIndex + (childOffset.y * 2 + childOffset.x)], point);
+}
+
+const vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point)
+{
+  return vcQuadTree_GetLeafNodeFromCartesian(pQuadTree, &pQuadTree->nodes.pPool[pQuadTree->rootIndex], point);
 }
