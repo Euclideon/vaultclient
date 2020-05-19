@@ -25,10 +25,23 @@ bool vcGIS_LatLongToSlippy(udInt2 *pSlippyCoords, udDouble3 latLong, int zoomLev
   if (pSlippyCoords == nullptr)
     return false;
 
-  pSlippyCoords->x = int((latLong.y + 180.0) / 360.0 * udPow(2.0, zoomLevel)); // Long
-  pSlippyCoords->y = int((1.0 - udLogN(udTan(latLong.x * UD_PI / 180.0) + 1.0 / udCos(latLong.x * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel)); //Lat
+  udDouble2 slippyCoords = {};
+  vcGIS_LatLongToSlippy(&slippyCoords, latLong, zoomLevel);
 
-  int maxx = (int)udPow(2.0, zoomLevel);
+  pSlippyCoords->x = (int)slippyCoords.x;
+  pSlippyCoords->y = (int)slippyCoords.y;
+  return true;
+}
+
+bool vcGIS_LatLongToSlippy(udDouble2 *pSlippyCoords, udDouble3 latLong, int zoomLevel)
+{
+  if (pSlippyCoords == nullptr)
+    return false;
+
+  pSlippyCoords->x = (latLong.y + 180.0) / 360.0 * udPow(2.0, zoomLevel); // Long
+  pSlippyCoords->y = (1.0 - udLogN(udTan(latLong.x * UD_PI / 180.0) + 1.0 / udCos(latLong.x * UD_PI / 180.0)) / UD_PI) / 2.0 * udPow(2.0, zoomLevel); //Lat
+
+  double maxx = udPow(2.0, zoomLevel);
 
   while (pSlippyCoords->x < 0)
     pSlippyCoords->x += maxx;
@@ -172,7 +185,7 @@ udDoubleQuat vcGIS_HeadingPitchToQuaternion(const udGeoZone &zone, udDouble3 loc
 
   udDoubleQuat rotationHeading = udDoubleQuat::create(up, -headingPitch.x);
   udDoubleQuat rotationPitch = udDoubleQuat::create(east, headingPitch.y);
-  
+
   udDouble4x4 mat = udDouble4x4::lookAt(localPosition, localPosition + north, up);
 
   return rotationHeading * rotationPitch * mat.extractQuaternion();
