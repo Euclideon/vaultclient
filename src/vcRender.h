@@ -108,6 +108,7 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **pRenderConte
 udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext);
 
 udResult vcRender_SetVaultContext(vcState *pProgramState, vcRenderContext *pRenderContext);
+udResult vcRender_RemoveVaultContext(vcRenderContext *pRenderContext);
 
 udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 

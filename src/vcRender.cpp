@@ -515,6 +515,27 @@ udResult vcRender_SetVaultContext(vcState *pProgramState, vcRenderContext *pRend
   if (vdkRenderContext_Create(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
+  UD_ERROR_CHECK(vcRender_RecreateUDView(pProgramState, pRenderContext));
+
+epilogue:
+  return result;
+}
+
+udResult vcRender_RemoveVaultContext(vcRenderContext *pRenderContext)
+{
+  udResult result = udR_Success;
+
+  UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
+  
+  if (vdkRenderView_Destroy(&pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
+    UD_ERROR_SET(udR_InternalError);
+
+  if (vdkRenderView_Destroy(&pRenderContext->udRenderContext.pRenderView) != vE_Success)
+    UD_ERROR_SET(udR_InternalError);
+
+  if (vdkRenderContext_Destroy(&pRenderContext->udRenderContext.pRenderer) != vE_Success)
+    UD_ERROR_SET(udR_InternalError);
+
 epilogue:
   return result;
 }
