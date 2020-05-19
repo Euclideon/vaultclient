@@ -1152,18 +1152,6 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
       m_pLabelInfo->pText = m_pNode->pName;
 
     pRenderData->labels.PushBack(m_pLabelInfo);
-    
-    // Add Description
-    if (m_description[0] != '\0')
-    {
-      m_descriptionLabel.pText = m_description;
-      m_descriptionLabel.textSize = m_pLabelInfo->textSize;
-      m_descriptionLabel.textColourRGBA = m_pLabelInfo->textColourRGBA;
-      m_descriptionLabel.backColourRGBA = m_pLabelInfo->backColourRGBA;
-      m_descriptionLabel.worldPosition = m_pLabelInfo->worldPosition;
-
-      pRenderData->labels.PushBack(&m_descriptionLabel);
-    }
   }
 }
 
