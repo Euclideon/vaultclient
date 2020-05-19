@@ -152,21 +152,20 @@ void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     bool repackMatrix = false;
     ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3);
-
     if (ImGui::IsItemDeactivatedAfterEdit())
       repackMatrix = true;
 
     udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
     ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3);
-
     if (ImGui::IsItemDeactivatedAfterEdit())
     {
       repackMatrix = true;
       orientation = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
     }
 
-    ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 1);
-
+    ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 3);
+    if (ImGui::IsItemDeactivatedAfterEdit())
+      repackMatrix = true;
 
     if (repackMatrix)
     {
