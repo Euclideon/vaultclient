@@ -325,7 +325,7 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_sceneMatrix = delta * m_sceneMatrix;
 
   // Save it to the node...
-  if (m_pCurrentZone != nullptr || m_pProject->baseZone.srid == 0)
+  if (m_pCurrentZone != nullptr)
   {
     udDouble3 position;
     udDouble3 scale;
