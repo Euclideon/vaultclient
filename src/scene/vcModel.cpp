@@ -356,17 +356,23 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
 
   bool repackMatrix = false;
-  if (ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3))
+  ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3);
+
+  if (ImGui::IsItemDeactivatedAfterEdit())
     repackMatrix = true;
 
   udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
-  if (ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3))
+  ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3);
+
+  if (ImGui::IsItemDeactivatedAfterEdit())
   {
     repackMatrix = true;
     orientation = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
   }
 
-  if (ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 1))
+  ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 1);
+
+  if (ImGui::IsItemDeactivatedAfterEdit())
     repackMatrix = true;
 
   if (repackMatrix)
