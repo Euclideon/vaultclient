@@ -53,8 +53,11 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 {
   bool changed = false;
 
-  changed |= ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3);
-  changed |= ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraHeadingPitch.x, 2);
+  ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3);
+  changed |= ImGui::IsItemDeactivatedAfterEdit();
+
+  ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraHeadingPitch.x, 2);
+  changed |= ImGui::IsItemDeactivatedAfterEdit();
 
   if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
   {

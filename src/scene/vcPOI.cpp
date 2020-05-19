@@ -838,8 +838,10 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (m_line.selectedPoint != -1)
     {
-      if (ImGui::InputScalarN(udTempStr("%s##POIPointPos%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_line.pPoints[m_line.selectedPoint].x, 3))
-        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
+      ImGui::InputScalarN(udTempStr("%s##POIPointPos%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_line.pPoints[m_line.selectedPoint].x, 3);
+
+        if (ImGui::IsItemDeactivatedAfterEdit())
+          vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString, m_line.pPoints, m_line.numPoints);
 
       if (ImGui::Button(vcString::Get("scenePOIRemovePoint")))
         RemovePoint(pProgramState, m_line.selectedPoint);
