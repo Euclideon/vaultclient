@@ -117,8 +117,6 @@ struct vcGizmoContext
 
 static vcGizmoContext sGizmoContext = {};
 
-static const udDouble3 sDirectionUnary[3] = { udDouble3::create(1.0, 0.0, 0.0), udDouble3::create(0.0, 1.0, 0.0), udDouble3::create(0.0, 0.0, 1.0) };
-
 static const ImU32 DirectionColor[3] = { 0xFF0000AA, 0xFF00AA00, 0xFFAA0000 };
 static const ImU32 PlaneColors[3] = { 0x610000AA, 0x6100AA00, 0x61AA0000 };
 static const ImU32 SelectionColor = 0x8A1080FF;
@@ -138,9 +136,9 @@ static const float sSnapTension = 0.5f;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-static int vcGizmo_GetMoveType();
+static int vcGizmo_GetMoveType(const udDouble3 direction[]);
 static int vcGizmo_GetRotateType();
-static int vcGizmo_GetScaleType();
+static int vcGizmo_GetScaleType(const udDouble3 direction[]);
 
 static ImVec2 vcGizmo_WorldToScreen(const udDouble3& worldPos, const udDouble4x4& mat)
 {
@@ -254,9 +252,9 @@ bool vcGizmo_IsActive()
   return sGizmoContext.mbUsing;
 }
 
-bool vcGizmo_IsHovered()
+bool vcGizmo_IsHovered(const udDouble3 direction[])
 {
-  return (vcGizmo_GetMoveType() != vcGMT_None || vcGizmo_GetRotateType() != vcGMT_None || vcGizmo_GetScaleType() != vcGMT_None || vcGizmo_IsActive());
+  return (vcGizmo_GetMoveType(direction) != vcGMT_None || vcGizmo_GetRotateType() != vcGMT_None || vcGizmo_GetScaleType(direction) != vcGMT_None || vcGizmo_IsActive());
 }
 
 static void vcGizmo_ComputeContext(const vcCamera *pCamera, const udDouble4x4 &matrix, vcGizmoCoordinateSystem mode, vcGizmoAllowedControls allowedControls)
@@ -347,11 +345,11 @@ static void vcGizmo_ComputeColors(ImU32 *colors, size_t numColors, int type, vcG
   }
 }
 
-static void vcGizmo_ComputeTripodAxisAndVisibility(int axisIndex, udDouble3& dirAxis, udDouble3& dirPlaneX, udDouble3& dirPlaneY, bool& belowAxisLimit, bool& belowPlaneLimit)
+static void vcGizmo_ComputeTripodAxisAndVisibility(const udDouble3 direction[], int axisIndex, udDouble3& dirAxis, udDouble3& dirPlaneX, udDouble3& dirPlaneY, bool& belowAxisLimit, bool& belowPlaneLimit)
 {
-  dirAxis = sDirectionUnary[axisIndex];
-  dirPlaneX = sDirectionUnary[(axisIndex + 1) % 3];
-  dirPlaneY = sDirectionUnary[(axisIndex + 2) % 3];
+  dirAxis = direction[axisIndex];
+  dirPlaneX = direction[(axisIndex + 1) % 3];
+  dirPlaneY = direction[(axisIndex + 2) % 3];
 
   if (sGizmoContext.mbUsing)
   {
@@ -501,7 +499,7 @@ static void vcGizmo_DrawHatchedAxis(const udDouble3& axis)
   }
 }
 
-static void vcGizmo_DrawScaleGizmo(int type)
+static void vcGizmo_DrawScaleGizmo(const udDouble3 direction[], int type)
 {
   ImDrawList* drawList = sGizmoContext.ImGuiDrawList;
 
@@ -519,7 +517,7 @@ static void vcGizmo_DrawScaleGizmo(int type)
   {
     udDouble3 dirPlaneX, dirPlaneY, dirAxis;
     bool belowAxisLimit, belowPlaneLimit;
-    vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
+    vcGizmo_ComputeTripodAxisAndVisibility(direction, i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
 
     // draw axis
     if (belowAxisLimit)
@@ -558,7 +556,7 @@ static void vcGizmo_DrawScaleGizmo(int type)
 }
 
 
-static void vcGizmo_DrawTranslationGizmo(int type)
+static void vcGizmo_DrawTranslationGizmo(const udDouble3 direction[], int type)
 {
   ImDrawList* drawList = sGizmoContext.ImGuiDrawList;
   if (!drawList)
@@ -576,7 +574,7 @@ static void vcGizmo_DrawTranslationGizmo(int type)
   for (unsigned int i = 0; i < 3; ++i)
   {
     udDouble3 dirPlaneX, dirPlaneY, dirAxis;
-    vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
+    vcGizmo_ComputeTripodAxisAndVisibility(direction, i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
 
     // draw axis
     if (belowAxisLimit)
@@ -648,7 +646,7 @@ static bool vcGizmo_CanActivate()
   return false;
 }
 
-static int vcGizmo_GetScaleType()
+static int vcGizmo_GetScaleType(const udDouble3 direction[])
 {
   int type = vcGMT_None;
 
@@ -665,7 +663,7 @@ static int vcGizmo_GetScaleType()
     {
       udDouble3 dirPlaneX, dirPlaneY, dirAxis;
       bool belowAxisLimit, belowPlaneLimit;
-      vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
+      vcGizmo_ComputeTripodAxisAndVisibility(direction, i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
       dirAxis = (sGizmoContext.mModel * udDouble4::create(dirAxis, 0)).toVector3();
 
       udDouble3 posOnPlane;
@@ -729,7 +727,7 @@ static int vcGizmo_GetRotateType()
   return type;
 }
 
-static int vcGizmo_GetMoveType()
+static int vcGizmo_GetMoveType(const udDouble3 direction[])
 {
   int type = vcGMT_None;
 
@@ -744,7 +742,7 @@ static int vcGizmo_GetMoveType()
     {
       udDouble3 dirPlaneX, dirPlaneY, dirAxis;
       bool belowAxisLimit, belowPlaneLimit;
-      vcGizmo_ComputeTripodAxisAndVisibility(i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
+      vcGizmo_ComputeTripodAxisAndVisibility(direction, i, dirAxis, dirPlaneX, dirPlaneY, belowAxisLimit, belowPlaneLimit);
       dirAxis = (sGizmoContext.mModel * udDouble4::create(dirAxis, 0)).toVector3();
       dirPlaneX = (sGizmoContext.mModel * udDouble4::create(dirPlaneX, 0)).toVector3();
       dirPlaneY = (sGizmoContext.mModel * udDouble4::create(dirPlaneY, 0)).toVector3();
@@ -775,7 +773,7 @@ static int vcGizmo_GetMoveType()
   return type;
 }
 
-static void vcGizmo_HandleTranslation(udDouble4x4 *deltaMatrix, int& type, double snap)
+static void vcGizmo_HandleTranslation(const udDouble3 direction[], udDouble4x4 *deltaMatrix, int& type, double snap)
 {
   ImGuiIO& io = ImGui::GetIO();
   bool applyRotationLocaly = sGizmoContext.mMode == vcGCS_Local || type == vcGMT_MoveScreen;
@@ -840,7 +838,7 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *deltaMatrix, int& type, doubl
   else
   {
     // find new possible way to move
-    type = vcGizmo_GetMoveType();
+    type = vcGizmo_GetMoveType(direction);
     if (type != vcGMT_None)
     {
       ImGui::CaptureMouseFromApp();
@@ -869,14 +867,14 @@ static void vcGizmo_HandleTranslation(udDouble4x4 *deltaMatrix, int& type, doubl
   }
 }
 
-static void vcGizmo_HandleScale(udDouble4x4 *pDeltaMatrix, int& type, double snap)
+static void vcGizmo_HandleScale(const udDouble3 direction[], udDouble4x4 *pDeltaMatrix, int& type, double snap)
 {
   ImGuiIO& io = ImGui::GetIO();
 
   if (!sGizmoContext.mbUsing)
   {
     // find new possible way to scale
-    type = vcGizmo_GetScaleType();
+    type = vcGizmo_GetScaleType(direction);
     if (type != vcGMT_None)
       ImGui::CaptureMouseFromApp();
 
@@ -966,7 +964,7 @@ static void vcGizmo_HandleScale(udDouble4x4 *pDeltaMatrix, int& type, double sna
   }
 }
 
-static void vcGizmo_HandleRotation(udDouble4x4 *deltaMatrix, int& type, double snap)
+static void vcGizmo_HandleRotation(const udDouble3 direction[], udDouble4x4 *deltaMatrix, int& type, double snap)
 {
   ImGuiIO& io = ImGui::GetIO();
   bool applyRotationLocally = sGizmoContext.mMode == vcGCS_Local;
@@ -990,7 +988,7 @@ static void vcGizmo_HandleRotation(udDouble4x4 *deltaMatrix, int& type, double s
       if (applyRotationLocally)
         sGizmoContext.mTranslationPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), rotatePlaneNormal[type - vcGMT_RotateX]);
       else
-        sGizmoContext.mTranslationPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), sDirectionUnary[type - vcGMT_RotateX]);
+        sGizmoContext.mTranslationPlane = udPlane<double>::create(sGizmoContext.mModel.axis.t.toVector3(), direction[type - vcGMT_RotateX]);
 
       if (sGizmoContext.mTranslationPlane.intersects(sGizmoContext.camera.worldMouseRay, &sGizmoContext.mRotationVectorSource, nullptr))
       {
@@ -1022,7 +1020,7 @@ static void vcGizmo_HandleRotation(udDouble4x4 *deltaMatrix, int& type, double s
   }
 }
 
-void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcGizmoCoordinateSystem mode, const udDouble4x4 &matrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap /*= 0.0*/)
+void vcGizmo_Manipulate(const vcCamera *pCamera, const udDouble3 direction[], vcGizmoOperation operation, vcGizmoCoordinateSystem mode, const udDouble4x4 &matrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap /*= 0.0*/)
 {
   if (operation == vcGO_Scale)
     mode = vcGCS_Local;
@@ -1044,16 +1042,16 @@ void vcGizmo_Manipulate(const vcCamera *pCamera, vcGizmoOperation operation, vcG
   switch (operation)
   {
   case vcGO_Rotate:
-    vcGizmo_HandleRotation(pDeltaMatrix, type, snap);
+    vcGizmo_HandleRotation(direction, pDeltaMatrix, type, snap);
     vcGizmo_DrawRotationGizmo(type);
     break;
   case vcGO_Translate:
-    vcGizmo_HandleTranslation(pDeltaMatrix, type, snap);
-    vcGizmo_DrawTranslationGizmo(type);
+    vcGizmo_HandleTranslation(direction, pDeltaMatrix, type, snap);
+    vcGizmo_DrawTranslationGizmo(direction, type);
     break;
   case vcGO_Scale:
-    vcGizmo_HandleScale(pDeltaMatrix, type, snap);
-    vcGizmo_DrawScaleGizmo(type);
+    vcGizmo_HandleScale(direction, pDeltaMatrix, type, snap);
+    vcGizmo_DrawScaleGizmo(direction, type);
     break;
   case vcGO_NoGizmo:
     break;
