@@ -886,7 +886,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     else
       vcWebFile_OpenBrowser(m_hyperlink);
   }
-  
+
   if (m_attachment.pModel != nullptr)
   {
     const double minSpeed = 0.0;
