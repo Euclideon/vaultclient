@@ -845,14 +845,6 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
     int currentZoom = 21;
 
-    // TODO: Fix this
-    // determine if camera is 'inside' the ground
-    //udDouble3 zoneRoot = udGeoZone_LatLongToCartesian(pProgramState->gis.zone, udDouble3::zero());
-    //udDouble3 surfaceNormal = udNormalize3(cameraZeroAltitude - zoneRoot);
-    //if (udAbs(surfaceNormal.z) <= UD_EPSILON) // can this be assumed?
-    //  surfaceNormal = udDouble3::create(0.0, 0.0, 1.0);
-    bool cameraInsideGround = false;//udDot3(cameraToZeroAltitude, surfaceNormal) < 0;
-
     // These values were trial and errored.
     const double BaseViewDistance = 10000.0;
     const double HeightViewDistanceScale = 35.0;
@@ -893,7 +885,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pRenderContext->cameraZeroAltitude, viewProjection);
 
     float terrainId = vcRender_EncodeModelId(vcObjectId_Terrain);
-    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, cameraInsideGround, terrainId);
+    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, pProgramState->camera.cameraIsUnderSurface, terrainId);
   }
 }
 
