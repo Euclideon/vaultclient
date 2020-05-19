@@ -396,6 +396,7 @@
   "sceneCameraOutOfBounds": "Camera is outside recommended limits of this GeoZone",
   "sceneCameraOSCMove": "Move Camera",
   "sceneCameraOSCUpDown": "U/D",
+  "sceneCameraKeepAboveSurface": "Keep Camera Above Ground",
   "sceneExplorerTitle": "Scene Explorer",
   "sceneExplorerRemove": "Remove Selected",
   "sceneExplorerRemoveItem": "Remove Item",

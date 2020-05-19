@@ -26,6 +26,8 @@ struct vcCamera
   udDouble2 headingPitch;
   udDouble3 cameraUp;
 
+  bool cameraIsUnderSurface; 
+
   udRay<double> worldMouseRay;
 
   struct
@@ -96,6 +98,8 @@ struct vcCameraSettings
   bool lockAltitude;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
+
+  bool keepAboveSurface;
 };
 
 // Lens Sizes

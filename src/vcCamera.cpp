@@ -2,6 +2,7 @@
 #include "vcState.h"
 #include "vcPOI.h"
 #include "vcHotkey.h"
+#include "vcRender.h"
 
 #include "imgui.h"
 #include "imgui_ex/ImGuizmo.h"
@@ -588,6 +589,21 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   pProgramState->cameraInput.mouseInput = mouseInput;
 
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime);
+
+  // Calculate camera surface position
+  static const float CameraGroundBufferDistanceMeters = 5.0f;
+  udDouble3 cameraSurfacePosition = vcRender_QueryMapAtCartesian(pProgramState->pRenderContext, pProgramState->camera.position);
+  cameraSurfacePosition += pProgramState->camera.cameraUp * CameraGroundBufferDistanceMeters;
+
+  // Calculate if camera is underneath earth surface
+  pProgramState->camera.cameraIsUnderSurface = udDot3(pProgramState->camera.cameraUp, udNormalize3(pProgramState->camera.position - cameraSurfacePosition)) < 0;
+  if (pProgramState->settings.camera.keepAboveSurface && pProgramState->camera.cameraIsUnderSurface)
+  {
+    pProgramState->camera.cameraIsUnderSurface = false;
+    pProgramState->camera.position = cameraSurfacePosition;
+
+    // TODO: re-orient camera during orbit control to correctly focus on worldAnchorPoint
+  }
 
   if (pProgramState->cameraInput.inputState == vcCIS_None)
     pProgramState->isUsingAnchorPoint = false;
