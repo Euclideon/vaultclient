@@ -10,6 +10,7 @@ bool vcGIS_AcceptableSRID(int32_t sridCode);
 bool vcGIS_ChangeSpace(udGeoZone *pGeozone, const udGeoZone &newZone, udDouble3 *pCameraPosition = nullptr);
 
 bool vcGIS_LatLongToSlippy(udInt2 *pSlippyCoords, udDouble3 latLong, int zoomLevel);
+bool vcGIS_LatLongToSlippy(udDouble2 *pSlippyCoords, udDouble3 latLong, int zoomLevel);
 bool vcGIS_SlippyToLatLong(udDouble3 *pLatLong, udInt2 slippyCoords, int zoomLevel);
 
 bool vcGIS_LocalToSlippy(const udGeoZone &zone, udInt2 *pSlippyCoords, const udDouble3 &localCoords, const int zoomLevel);
