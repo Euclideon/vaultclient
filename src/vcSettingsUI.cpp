@@ -348,7 +348,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsVis"), vcSC_Visualization);
 
-          vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization);
+          vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization, true);
           vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
 
           const char *lensNameArray[] = {
@@ -965,7 +965,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
   }
 }
 
-bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings)
+bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings, bool isGlobal /*= false*/)
 {
   bool retVal = false;
 
@@ -982,7 +982,9 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   }
   break;
   case vcVM_Classification:
-    retVal |= ImGui::Checkbox(vcString::Get("settingsVisClassShowColourTable"), &pVisualizationSettings->useCustomClassificationColours);
+    if (isGlobal)
+      retVal |= ImGui::Checkbox(vcString::Get("settingsVisClassShowColourTable"), &pVisualizationSettings->useCustomClassificationColours);
+
     break;
   case vcVM_DisplacementDistance: // Fall Through
   case vcVM_DisplacementDirection:
