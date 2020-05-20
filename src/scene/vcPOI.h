@@ -48,7 +48,6 @@ private:
   vcLabelFontSize m_namePt;
   char m_hyperlink[vcMaxPathLength];
   char m_description[vcMaxPathLength];
-  vcLabelInfo m_descriptionLabel;
 
   bool m_showArea;
   bool m_showLength;
