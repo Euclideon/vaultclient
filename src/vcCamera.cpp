@@ -386,7 +386,18 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   bool forceClearMouseState = !isFocused;
 
   // Was the gizmo just clicked on?
-  vcGIS_GetOrthonormalBasis(pProgramState->geozone, pProgramState->camera.position, &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+  vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
+  if (clickedItemRef.pItem != nullptr)
+  {
+    vcSceneItem *pItem = (vcSceneItem *)clickedItemRef.pItem->pUserData;
+    if (pItem != nullptr)
+    {
+      if (pProgramState->gizmo.operation == vcGO_Scale || pProgramState->gizmo.coordinateSystem == vcGCS_Local)
+        vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetLocalSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+      else
+        vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+    }
+  }
   gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered(pProgramState->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
   if (gizmoCapturedMouse)
   {
