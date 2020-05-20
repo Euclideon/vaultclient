@@ -2453,8 +2453,12 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
           allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
 
         //read direction axes again.
-        if(pProgramState->gizmo.operation == vcGO_Scale || pProgramState->gizmo.coordinateSystem == vcGCS_Local)
-          vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetLocalSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+        if (pProgramState->gizmo.operation == vcGO_Scale || pProgramState->gizmo.coordinateSystem == vcGCS_Local)
+        {
+          pProgramState->gizmo.direction[0] = udDouble3::create(1, 0, 0);
+          pProgramState->gizmo.direction[1] = udDouble3::create(0, 1, 0);
+          pProgramState->gizmo.direction[2] = udDouble3::create(0, 0, 1);
+        }
         else
           vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
 
