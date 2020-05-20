@@ -140,16 +140,20 @@ void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vdkProjectNode_SetMetadataString(m_pNode, "shape", "cylinder");
   }
 
-  changed |= ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
+  ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
+  changed |= ImGui::IsItemDeactivatedAfterEdit();
 
   if (m_shape != vcQNFS_Sphere)
   {
-    changed |= ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_ypr.x, 3);
-    changed |= ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 3);
+    ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_ypr.x, 3);
+    changed |= ImGui::IsItemDeactivatedAfterEdit();
+    ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 3);
+    changed |= ImGui::IsItemDeactivatedAfterEdit();
   }
   else // Is a sphere
   {
-    changed |= ImGui::InputDouble(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), &m_extents.x);
+    ImGui::InputDouble(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), &m_extents.x);
+    changed |= ImGui::IsItemDeactivatedAfterEdit();
   }
 
   if (ImGui::Checkbox(udTempStr("%s##FilterInverted%zu", vcString::Get("sceneFilterInverted"), *pItemID), &m_inverted))
