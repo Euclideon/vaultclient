@@ -2460,7 +2460,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
           pProgramState->gizmo.direction[2] = udDouble3::create(0, 0, 1);
         }
         else
+        {
           vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+        }
 
         vcGizmo_Manipulate(&pProgramState->camera, pProgramState->gizmo.direction, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
 
