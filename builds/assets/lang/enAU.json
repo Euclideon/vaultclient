@@ -317,6 +317,7 @@
   "modalChangePasswordIncorrect": "Current password incorrect",
   "modalChangePasswordNoMatch": "Passwords don't match",
   "modalChangePasswordUnknownError": "Unknown Error",
+  "modalChangePasswordRequirements": "New password less than 8 characters",
   "modalProfileCurrentPassword": "Current Password",
   "modalProfileNewPassword": "New Password",
   "modalProfileReEnterNewPassword": "Re-enter New Password",

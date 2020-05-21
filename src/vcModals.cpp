@@ -630,6 +630,9 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
   float width = 390.f;
   float height = 150.f;
   float buttonWidth = 80.f;
+  if (pProgramState->changePassword.message[0] != '\0')
+    height += ImGui::GetFontSize();
+
   ImGui::SetNextWindowSize(ImVec2(width, height), ImGuiCond_Always);
 
   if (ImGui::BeginPopupModal(pProfile, nullptr, ImGuiWindowFlags_NoResize))
@@ -642,15 +645,40 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
     }
     else
     {
-      ImGui::InputText(vcString::Get("modalProfileCurrentPassword"), pProgramState->changePassword.currentPassword, vcMaxPathLength, ImGuiInputTextFlags_Password);
+      if (ImGui::InputText(vcString::Get("modalProfileCurrentPassword"), pProgramState->changePassword.currentPassword, vcMaxPathLength, ImGuiInputTextFlags_Password))
+        memset(pProgramState->changePassword.message, 0, sizeof(pProgramState->changePassword.message));
+
       ImGui::Separator();
-      ImGui::InputText(vcString::Get("modalProfileNewPassword"), pProgramState->changePassword.newPassword, vcMaxPathLength, ImGuiInputTextFlags_Password);
-      ImGui::InputText(vcString::Get("modalProfileReEnterNewPassword"), pProgramState->changePassword.newPasswordConfirm, vcMaxPathLength, ImGuiInputTextFlags_Password);
+      if (ImGui::InputText(vcString::Get("modalProfileNewPassword"), pProgramState->changePassword.newPassword, vcMaxPathLength, ImGuiInputTextFlags_Password))
+        memset(pProgramState->changePassword.message, 0, sizeof(pProgramState->changePassword.message));
+
+      if (ImGui::InputText(vcString::Get("modalProfileReEnterNewPassword"), pProgramState->changePassword.newPasswordConfirm, vcMaxPathLength, ImGuiInputTextFlags_Password))
+        memset(pProgramState->changePassword.message, 0, sizeof(pProgramState->changePassword.message));
     }
 
     ImGui::Separator();
-    
-    if (ImGui::Button(vcString::Get("modalProfileConfirmNewPassword"), ImVec2(130.0f, 0)))
+
+    bool newPasswordsAreSet = (pProgramState->changePassword.newPassword[0] != '\0') && (pProgramState->changePassword.newPasswordConfirm[0] != '\0');
+    bool tryChangePassword = (pProgramState->changePassword.currentPassword[0] != '\0') && newPasswordsAreSet;
+
+    if (pProgramState->changePassword.newPassword[0] != '\0' && udStrlen(pProgramState->changePassword.newPassword) < 8)
+    {
+      udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordRequirements"));
+      tryChangePassword = false;
+    }
+    else if (newPasswordsAreSet && !udStrEqual(pProgramState->changePassword.newPassword, pProgramState->changePassword.newPasswordConfirm))
+    {
+      udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordNoMatch"));
+      tryChangePassword = false;
+    }
+
+    if (pProgramState->changePassword.message[0] != '\0')
+      ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", pProgramState->changePassword.message);
+
+    bool submitPressed = ImGui::Button(vcString::Get("modalProfileConfirmNewPassword"), ImVec2(130.0f, 0));
+    tryChangePassword = tryChangePassword && submitPressed;
+
+    if (tryChangePassword)
     {
       udJSON changePasswordData;
       
@@ -694,6 +722,8 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
             udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordIncorrect"));
           else if (udStrEqual(pMessage, "Passwords don't match."))
             udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordNoMatch"));
+          else if (udStrEqual(pMessage, "Password is less than 8 character minimum."))
+            udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordRequirements"));
           else
             udStrcpy(pProgramState->changePassword.message, vcString::Get("modalChangePasswordUnknownError"));
         }
@@ -713,9 +743,6 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
       memset(pProgramState->changePassword.message, 0, sizeof(pProgramState->changePassword.message));
       ImGui::CloseCurrentPopup();
     }
-
-    ImGui::SameLine();
-    ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", pProgramState->changePassword.message);
 
     ImGui::EndPopup();
   }
