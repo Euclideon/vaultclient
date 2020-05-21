@@ -325,22 +325,21 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_sceneMatrix = delta * m_sceneMatrix;
 
   // Save it to the node...
-  if (m_pCurrentZone != nullptr || m_pProject->baseZone.srid == 0)
-  {
-    udDouble3 position;
-    udDouble3 scale;
-    udDoubleQuat orientation;
+  udDouble3 position;
+  udDouble3 scale;
+  udDoubleQuat orientation;
 
-    (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
+  (udDouble4x4::translation(-m_pivot) * m_sceneMatrix * udDouble4x4::translation(m_pivot)).extractTransforms(position, scale, orientation);
 
-    udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
+  udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
 
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
-  }
+  udGeoZone *pThisZone = m_pCurrentZone == nullptr ? &pProgramState->activeProject.baseZone : m_pCurrentZone;
+
+  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *pThisZone, vdkPGT_Point, &position, 1);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
 }
 
 void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
