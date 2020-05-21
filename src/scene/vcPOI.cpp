@@ -336,12 +336,17 @@ public:
         m_pParent->InsertPoint(udDouble3::zero());
         m_pParent->InsertPoint(udDouble3::zero());
       }
-
-      if (startPoint.z > position.z)
-        m_pParent->m_line.pPoints[1] = udDouble3::create(position.x, position.y, startPoint.z);
+      
+      udDouble3 localStartPoint = udGeoZone_TransformPoint(startPoint, pProgramState->geozone, pProgramState->activeProject.baseZone);
+      udDouble3 localEndPoint = udGeoZone_TransformPoint(position, pProgramState->geozone, pProgramState->activeProject.baseZone); 
+      udDouble3 middlePoint = udDouble3::zero();
+      udDouble3 direction = localEndPoint - localStartPoint;
+      if (direction.z > 0)
+        middlePoint = udDouble3::create(localStartPoint.x, localStartPoint.y, localEndPoint.z);
       else
-        m_pParent->m_line.pPoints[1] = udDouble3::create(startPoint.x, startPoint.y, position.z);
+        middlePoint = udDouble3::create(localEndPoint.x, localEndPoint.y, localStartPoint.z);
 
+      m_pParent->m_line.pPoints[1] = udGeoZone_TransformPoint(middlePoint, pProgramState->activeProject.baseZone, pProgramState->geozone);
       m_pParent->m_line.pPoints[2] = position;
 
       if (!isPreview)
