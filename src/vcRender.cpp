@@ -1590,6 +1590,10 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         pVoxelShaderData[numVisibleModels].data.displacementDirection.posColour = pVisSettings->displacement.max;
         pVoxelShaderData[numVisibleModels].data.displacementDirection.negColour = pVisSettings->displacement.min;
       }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_GPSTime) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_GPSTime, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_GPSTime;
+      }
 
       ++numVisibleModels;
 

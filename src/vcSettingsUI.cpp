@@ -971,7 +971,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
 {
   bool retVal = false;
 
-  const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection") };
+  const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns") };
   retVal |= ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
   UDCOMPILEASSERT(udLengthOf(visualizationModes) == vcVM_Count, "Update combo box!");
 
@@ -1007,8 +1007,23 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourNoMatch"), &pVisualizationSettings->displacement.error, ImGuiColorEditFlags_None);
 
     ImGui::Unindent();
+    break;
   }
-  break;
+  case vcVM_GPSTime: //TODO remove these...
+    ImGui::Text("GPS Time options...");
+    break;
+  case vcVM_ScanAngle:
+    ImGui::Text("Scan Angle options...");
+    break;
+  case vcVM_PointSourceID:
+    ImGui::Text("Point Source options...");
+    break;
+  case vcVM_ReturnNumber:
+    ImGui::Text("Return Number options...");
+    break;
+  case vcVM_NumberOfReturns:
+    ImGui::Text("Number of Returns options...");
+    break;
   default:
     break;
   }

@@ -32,6 +32,11 @@ enum vcVisualizatationMode
   vcVM_Classification,
   vcVM_DisplacementDistance,
   vcVM_DisplacementDirection,
+  vcVM_GPSTime,
+  vcVM_ScanAngle,
+  vcVM_PointSourceID,
+  vcVM_ReturnNumber,
+  vcVM_NumberOfReturns,
 
   vcVM_Count
 };
