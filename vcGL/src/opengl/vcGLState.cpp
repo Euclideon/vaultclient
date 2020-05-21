@@ -161,7 +161,7 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
     case vcGLSBM_None:
       break;
     case vcGLSBM_Interpolative:
-      glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+      glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
       break;
     case vcGLSBM_Additive:
       glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
