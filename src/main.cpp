@@ -467,7 +467,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               }
             }
           }
-          else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
+          else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj") || udStrEquali(pExt, ".fbx"))
           {
             if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Polygon", nullptr, pNextLoad, nullptr) != vE_Success)
             {

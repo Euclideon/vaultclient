@@ -10,6 +10,10 @@
 
 #include "parsers/vcOBJ.h"
 
+#if FBXSDK_ON
+# include "parsers/vcFBXPoly.h"
+#endif
+
 static int gPolygonShaderRefCount = 0;
 
 const vcVertexLayoutTypes *pDefaultMeshLayout = vcP3N3UV2VertexLayout;
@@ -464,6 +468,12 @@ udResult vcPolygonModel_CreateFromURL(vcPolygonModel **ppModel, const char *pURL
   {
     UD_ERROR_CHECK(vcPolygonModel_CreateFromOBJ(ppModel, pURL, pWorkerPool));
   }
+#if FBXSDK_ON
+  else if (udStrEquali(fn.GetExt(), ".fbx"))
+  {
+    UD_ERROR_CHECK(vcFBX_LoadPolygonModel(ppModel, pURL, pWorkerPool));
+  }
+#endif
   else if (udStrEquali(fn.GetExt(), ".vsm"))
   {
     void *pMemory = nullptr;
