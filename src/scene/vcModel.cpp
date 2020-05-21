@@ -335,7 +335,13 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
     udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
 
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+    if (m_pCurrentZone != nullptr)
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+    else if (m_pPreferredProjection != nullptr)
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &position, 1);
+    else
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
+
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
