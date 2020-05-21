@@ -1590,6 +1590,51 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         pVoxelShaderData[numVisibleModels].data.displacementDirection.posColour = pVisSettings->displacement.max;
         pVoxelShaderData[numVisibleModels].data.displacementDirection.negColour = pVisSettings->displacement.min;
       }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_GPSTime) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_GPSTime, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        double range = pProgramState->settings.visualization.GPSTime.maxTime - pProgramState->settings.visualization.GPSTime.minTime;
+        if (range < 0.0001)
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Black;
+        }
+        else
+        {
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_GPSTime;
+          pVoxelShaderData[numVisibleModels].data.GPSTime.mult = 1.0 / range;
+          pVoxelShaderData[numVisibleModels].data.GPSTime.minTime = pProgramState->settings.visualization.GPSTime.minTime;
+          pVoxelShaderData[numVisibleModels].data.GPSTime.maxTime = pProgramState->settings.visualization.GPSTime.maxTime;
+        }
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ScanAngle) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ScanDirection, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        double minAngleNorm = (pProgramState->settings.visualization.scanAngle.minAngle + 180.0) / 360.0;
+        double maxAngleNorm = (pProgramState->settings.visualization.scanAngle.maxAngle + 180.0) / 360.0;
+
+        pVoxelShaderData[numVisibleModels].data.scanAngle.minAngle = int16_t(minAngleNorm * vcVisualizationSettings::s_scanAngleRange + vcVisualizationSettings::s_scanAngleMin);
+        pVoxelShaderData[numVisibleModels].data.scanAngle.maxAngle = int16_t(maxAngleNorm * vcVisualizationSettings::s_scanAngleRange + vcVisualizationSettings::s_scanAngleMin);
+        pVoxelShaderData[numVisibleModels].data.scanAngle.range = pVoxelShaderData[numVisibleModels].data.scanAngle.maxAngle - pVoxelShaderData[numVisibleModels].data.scanAngle.minAngle;
+
+        if (pVoxelShaderData[numVisibleModels].data.scanAngle.range == 0)
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Black;
+        else
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_ScanAngle;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_PointSourceID) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_PointSourceID, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_PointSourceID;
+        pVoxelShaderData[numVisibleModels].data.pointSourceID.defaultColour = pProgramState->settings.visualization.pointSourceID.defaultColour;
+        pVoxelShaderData[numVisibleModels].data.pointSourceID.pColourMap = &pProgramState->settings.visualization.pointSourceID.colourMap;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ReturnNumber) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ReturnNumber, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_ReturnNumber;
+        pVoxelShaderData[numVisibleModels].data.returnNumber.pColours = pProgramState->settings.visualization.returnNumberColours;
+      }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_NumberOfReturns) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_NumberOfReturns, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NumberOfReturns;
+        pVoxelShaderData[numVisibleModels].data.numberOfReturns.pColours = pProgramState->settings.visualization.numberOfReturnsColours;
+      }
 
       ++numVisibleModels;
 

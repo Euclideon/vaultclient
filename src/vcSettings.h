@@ -32,6 +32,11 @@ enum vcVisualizatationMode
   vcVM_Classification,
   vcVM_DisplacementDistance,
   vcVM_DisplacementDirection,
+  vcVM_GPSTime,
+  vcVM_ScanAngle,
+  vcVM_PointSourceID,
+  vcVM_ReturnNumber,
+  vcVM_NumberOfReturns,
 
   vcVM_Count
 };
@@ -124,6 +129,14 @@ struct vcLanguageOption
 
 struct vcVisualizationSettings
 {
+  //These are defined in the LAS 1.4 spec
+  static const int16_t s_scanAngleMin = -30'000; //Represents -180 deg
+  static const int16_t s_scanAngleMax =  30'000; //Represents  180 deg
+  static const uint32_t s_scanAngleRange = s_scanAngleMax - s_scanAngleMin;
+
+  //The maximum number of returns by some modern LiDAR scanners seems to be 6.
+  static const uint32_t s_maxReturnNumbers = 6;
+
   vcVisualizatationMode mode;
 
   int minIntensity;
@@ -138,6 +151,33 @@ struct vcVisualizationSettings
     uint32_t error;
     uint32_t mid;
   } displacement;
+
+  struct
+  {
+    double minTime;
+    double maxTime;
+  } GPSTime;
+
+  struct
+  {
+    double minAngle;
+    double maxAngle;
+  } scanAngle;
+
+  struct KV
+  {
+    uint16_t id;
+    uint32_t colour;
+  };
+
+  struct
+  {
+    udChunkedArray<KV> colourMap;
+    uint32_t defaultColour;
+  } pointSourceID;
+
+  uint32_t returnNumberColours[s_maxReturnNumbers];
+  uint32_t numberOfReturnsColours[s_maxReturnNumbers];
 
   bool useCustomClassificationColours;
   bool customClassificationToggles[256];
@@ -400,6 +440,8 @@ const float vcSL_OpacityMax = 1.f;
 
 const float vcSL_IntensityMin = 0.f;
 const float vcSL_IntensityMax = 65535.f;
+
+const float vcSL_GPSTimeMin = 0.f;
 
 const int vcSL_EdgeHighlightMin = 1;
 const int vcSL_EdgeHighlightMax = 10;

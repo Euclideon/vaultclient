@@ -971,7 +971,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
 {
   bool retVal = false;
 
-  const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection") };
+  const char *visualizationModes[] = {vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns")};
   retVal |= ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
   UDCOMPILEASSERT(udLengthOf(visualizationModes) == vcVM_Count, "Update combo box!");
 
@@ -1007,11 +1007,100 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     vcIGSW_ColorPickerU32(vcString::Get("settingsVisDisplacementColourNoMatch"), &pVisualizationSettings->displacement.error, ImGuiColorEditFlags_None);
 
     ImGui::Unindent();
+    break;
   }
-  break;
+  case vcVM_GPSTime:
+  {
+    retVal |= ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMin"), &pVisualizationSettings->GPSTime.minTime, 0.0, 0.0, "%.1f");
+    retVal |= ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMax"), &pVisualizationSettings->GPSTime.maxTime, 0.0, 0.0, "%.1f");
+    if (pVisualizationSettings->GPSTime.maxTime < pVisualizationSettings->GPSTime.minTime)
+      pVisualizationSettings->GPSTime.maxTime = pVisualizationSettings->GPSTime.minTime;
+
+    break;
+  }
+  case vcVM_ScanAngle:
+  {
+    retVal |= ImGui::InputDouble(vcString::Get("settingsVisScanAngleMinAngle"), &pVisualizationSettings->scanAngle.minAngle, 0.0, 0.0, "%.1f");
+    retVal |= ImGui::InputDouble(vcString::Get("settingsVisScanAngleMaxAngle"), &pVisualizationSettings->scanAngle.maxAngle, 0.0, 0.0, "%.1f");
+    break;
+  }
+  case vcVM_PointSourceID:
+  {
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisPointSourceIDNoID"), &pVisualizationSettings->pointSourceID.defaultColour, ImGuiColorEditFlags_None);
+    static int newPointSourceID = 0;
+    if (ImGui::InputInt(vcString::Get("settingsVisPointSourceIDNewID"), &newPointSourceID))
+    {
+      retVal = true;
+
+      if (newPointSourceID < 0) newPointSourceID = 0;
+      if (newPointSourceID > 0xFFFF) newPointSourceID = 0xFFFF;
+    }
+
+    static uint32_t newPointSourceColour = 0;
+    vcIGSW_ColorPickerU32(vcString::Get("settingsVisPointSourceIDColour"), &newPointSourceColour, ImGuiColorEditFlags_None);
+    if (ImGui::Button(vcString::Get("settingsVisPointSourceIDAdd")))
+    {
+      retVal = true;
+
+      uint16_t id16 = uint16_t(newPointSourceID);
+
+      size_t index = size_t(-1);
+      for (size_t i = 0; i < pVisualizationSettings->pointSourceID.colourMap.length; ++i)
+      {
+        if (pVisualizationSettings->pointSourceID.colourMap[i].id == id16)
+        {
+          index = i;
+          break;
+        }
+      }
+
+      if (index == -1)
+        pVisualizationSettings->pointSourceID.colourMap.PushBack({id16, newPointSourceColour});
+      else
+        pVisualizationSettings->pointSourceID.colourMap[index].colour = newPointSourceColour;
+
+      newPointSourceColour = 0;
+      newPointSourceID++;
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button(vcString::Get("settingsVisPointSourceIDRemoveAll")))
+    {
+      retVal = true;
+
+      newPointSourceID = 0;
+      pVisualizationSettings->pointSourceID.colourMap.Clear();
+    }
+
+    size_t removeIndex = size_t(-1);
+    for (size_t i = 0; i < pVisualizationSettings->pointSourceID.colourMap.length; ++i)
+    {
+      if (ImGui::Button(udTempStr(" X ##PointSourceID%u", pVisualizationSettings->pointSourceID.colourMap[i].id)))
+        removeIndex = i;
+      ImGui::SameLine(0);
+      vcIGSW_ColorPickerU32(udTempStr("%u##PointSourceID", pVisualizationSettings->pointSourceID.colourMap[i].id), &pVisualizationSettings->pointSourceID.colourMap[i].colour, ImGuiColorEditFlags_None);
+    }
+
+    if (removeIndex != -1)
+      pVisualizationSettings->pointSourceID.colourMap.RemoveAt(removeIndex);
+    break;
+  }
+  case vcVM_ReturnNumber:
+  {
+    for (uint32_t i = 0; i < pVisualizationSettings->s_maxReturnNumbers; ++i)
+      vcIGSW_ColorPickerU32(udTempStr("%i", i + 1), &pVisualizationSettings->returnNumberColours[i], ImGuiColorEditFlags_None);
+    break;
+  }
+  case vcVM_NumberOfReturns:
+  {
+    for (uint32_t i = 0; i < pVisualizationSettings->s_maxReturnNumbers; ++i)
+      vcIGSW_ColorPickerU32(udTempStr("%i", i + 1), &pVisualizationSettings->numberOfReturnsColours[i], ImGuiColorEditFlags_None);
+    break;
+  }
   default:
     break;
   }
 
+  ImGui::Separator();
   return retVal;
 }
