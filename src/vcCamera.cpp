@@ -5,7 +5,9 @@
 #include "vcRender.h"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_ex/ImGuizmo.h"
+#include "udStringUtil.h"
 
 #define ONE_PIXEL_SQ 0.0001
 
@@ -464,9 +466,23 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   // Allow camera movement when left mouse button is holding down.
   if (!pProgramState->modalOpen)
   {
-    keyboardInput.y += vcHotkey::IsDown(vcB_Forward) - vcHotkey::IsDown(vcB_Backward);
-    keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
-    keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
+    bool enableMove = true;
+    ImGuiContext *p = ImGui::GetCurrentContext();
+    if (p && p->ActiveIdWindow)
+    {
+      const char *activeIdName = p->ActiveIdWindow->Name;
+      size_t len = udStrlen(activeIdName);
+      if (len > 0 && udStrstr(activeIdName, len, "###sceneDock") == nullptr)
+        enableMove = false;
+    }
+
+    if(enableMove)
+    {
+      keyboardInput.y += vcHotkey::IsDown(vcB_Forward) - vcHotkey::IsDown(vcB_Backward);
+      keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
+      keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
+    }
+    
   }
 
   if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen && !ImGui::IsAnyItemActive())
