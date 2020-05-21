@@ -472,7 +472,8 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     {
       const char *activeIdName = p->ActiveIdWindow->Name;
       size_t len = udStrlen(activeIdName);
-      if (len > 0 && udStrstr(activeIdName, len, "###sceneDock") == nullptr) enableMove = false;
+      if (len > 0 && udStrstr(activeIdName, len, "###sceneDock") == nullptr)
+        enableMove = false;
     }
 
     if(enableMove)
