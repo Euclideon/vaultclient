@@ -160,7 +160,7 @@ udResult vcOBJ_Load(vcOBJ **ppOBJ, const char *pFilename)
   UD_ERROR_NULL(pTextBuffer, udR_MemoryAllocationFailure);
   pTextBuffer[TEXT_BUFFER_SIZE] = 0; // Trailing nul terminator to simplify nul terminating the last line
 
-  pOBJ->basePath.SetFromFullPath(pFilename);
+  pOBJ->basePath.SetFromFullPath("%s", pFilename);
   pOBJ->positions.Init(65536);
   pOBJ->colors.Init(65536);
   pOBJ->uvs.Init(65536);

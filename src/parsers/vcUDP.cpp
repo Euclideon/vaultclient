@@ -99,7 +99,7 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   if (udStrchr(pModelFilename, ":") == nullptr && pModelFilename[0] != '/' && !udStrBeginsWith(pModelFilename, "\\\\"))
     file.SetFilenameWithExt(pModelFilename);
   else
-    file.SetFromFullPath(pModelFilename);
+    file.SetFromFullPath("%s", pModelFilename);
 
   vdkProjectNode *pNode = nullptr;
   vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
