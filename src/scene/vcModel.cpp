@@ -725,7 +725,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
       const char *pNameBuffer = nullptr;
       udSprintf(&pNameBuffer, "Displacement_%s_%s", oldName, newName);
       udFilename temp;
-      temp.SetFromFullPath(this->m_pNode->pURI);
+      temp.SetFromFullPath("%s", this->m_pNode->pURI);
       temp.SetFilenameNoExt(pNameBuffer);
       const char *pName = udStrdup(temp.GetPath());
 
