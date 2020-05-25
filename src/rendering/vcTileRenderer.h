@@ -21,6 +21,6 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
 void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer);
 
-udDouble3 vcTileRenderer_QueryMapAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal);
+udDouble3 vcTileRenderer_QueryMapAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, const udDouble3 *pWorldUp, udDouble3 *pNormal);
 
 #endif//vcTileRenderer_h__
