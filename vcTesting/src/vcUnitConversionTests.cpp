@@ -127,13 +127,13 @@ void VerifyTimeReference(vcTimeReference sourceType, double in, vcTimeReference 
 
   inData.seconds = in;
   outData = vcUnitConversion_ConvertTimeReference(inData, sourceType, destType);
-  EXPECT_TRUE(outData.success) << "fwd-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;
+  EXPECT_TRUE(outData.success) << "fwd-" << sourceType << " to " << destType;
   EXPECT_NEAR(outData.seconds, out, 0.0001) << "fwd-" << sourceType << " to " << destType;
 
   inData.seconds = out;
   outData = vcUnitConversion_ConvertTimeReference(inData, destType, sourceType);
-  EXPECT_TRUE(outData.success) << "fwd-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;
-  EXPECT_NEAR(outData.seconds, in, 0.0001) << "fwd-" << sourceType << " to " << destType;
+  EXPECT_TRUE(outData.success) << "back-" << sourceType << " to " << destType;
+  EXPECT_NEAR(outData.seconds, in, 0.0001) << "back-" << sourceType << " to " << destType;
 }
 
 void VerifyTimeReferenceWeek(double seconds, unsigned weeks, double out)
@@ -148,9 +148,9 @@ void VerifyTimeReferenceWeek(double seconds, unsigned weeks, double out)
 
   inData.seconds = out;
   outData = vcUnitConversion_ConvertTimeReference(inData, vcTimeReference_TAI, vcTimeReference_GPSWeek);
-  EXPECT_TRUE(outData.success) << "fwd-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;
-  EXPECT_EQ(outData.GPSWeek.weeks, weeks) << "fwd-" << vcTimeReference_TAI << " to " << vcTimeReference_GPSWeek;;
-  EXPECT_EQ(outData.GPSWeek.seconds, seconds) << "fwd-" << vcTimeReference_TAI << " to " << vcTimeReference_GPSWeek;;
+  EXPECT_TRUE(outData.success) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;
+  EXPECT_EQ(outData.GPSWeek.weeks, weeks) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;;
+  EXPECT_EQ(outData.GPSWeek.seconds, seconds) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;;
 }
 
 TEST(UnitConversion, TimeReference)
