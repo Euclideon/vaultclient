@@ -36,6 +36,36 @@ struct vcUDRSData
       uint32_t posColour;
       uint32_t negColour;
     } displacementDirection;
+    struct
+    {
+      double minTime;
+      double maxTime;
+      uint32_t minColour;
+      uint32_t maxColour;
+    } GPSTime;
+    struct
+    {
+      uint32_t leftColour;
+      uint32_t rightColour;
+    } scanAngle;
+    struct
+    {
+      struct IDColourPair
+      {
+        uint16_t id;
+        uint32_t colour;
+      };
+      const IDColourPair *pKVs;
+      uint32_t defaultColour;
+    } pointSourceID;
+    struct
+    {
+      const uint32_t *pColours;
+    } returnNumber;
+    struct
+    {
+      const uint32_t *pColours;
+    } numberOfReturns;
   } data;
 };
 
@@ -46,3 +76,7 @@ uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxel
 uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
 uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
 uint32_t vcVoxelShader_GPSTime(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
+uint32_t vcVoxelShader_ScanAngle(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
+uint32_t vcVoxelShader_PointSourceID(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
+uint32_t vcVoxelShader_ReturnNumber(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);
+uint32_t vcVoxelShader_NumberOfReturns(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData);

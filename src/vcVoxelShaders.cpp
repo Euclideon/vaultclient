@@ -156,9 +156,9 @@ uint32_t vcVoxelShader_Colour(vdkPointCloud *pPointCloud, uint64_t voxelID, cons
   return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
 }
 
-uint32_t vcVoxelShader_GPSTime(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_GPSTime(vdkPointCloud * /*pPointCloud*/, uint64_t /*voxelID*/, const void * /*pUserData*/)
 {
-  vcUDRSData *pData = (vcUDRSData *)pUserData;
+  //vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   return 0xFF0000FF;
 }

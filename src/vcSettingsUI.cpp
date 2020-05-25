@@ -1009,20 +1009,20 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     ImGui::Unindent();
     break;
   }
-  case vcVM_GPSTime: //TODO remove these...
-    ImGui::Text("GPS Time options...");
+  case vcVM_GPSTime: //TODO FRANK remove these...
+    ImGui::Text("GPS Time options..."); //double
     break;
   case vcVM_ScanAngle:
-    ImGui::Text("Scan Angle options...");
+    ImGui::Text("Scan Angle options..."); //uint16
     break;
   case vcVM_PointSourceID:
-    ImGui::Text("Point Source options...");
+    ImGui::Text("Point Source options..."); //uint16
     break;
   case vcVM_ReturnNumber:
-    ImGui::Text("Return Number options...");
+    ImGui::Text("Return Number options..."); //uint8
     break;
   case vcVM_NumberOfReturns:
-    ImGui::Text("Number of Returns options...");
+    ImGui::Text("Number of Returns options..."); //uint8
     break;
   default:
     break;
