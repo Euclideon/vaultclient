@@ -23,4 +23,7 @@ udDouble3 vcGIS_GetWorldLocalNorth(const udGeoZone &zone, udDouble3 localCoords)
 udDouble2 vcGIS_QuaternionToHeadingPitch(const udGeoZone &zone, udDouble3 localPosition, udDoubleQuat orientation); // Returns HPR from a Quaternion at a specific location
 udDoubleQuat vcGIS_HeadingPitchToQuaternion(const udGeoZone &zone, udDouble3 localPosition, udDouble2 headingPitch); // Returns a Quaternion from a HPR at a specific location
 
+// Note: Pitch is not implemented yet
+udDouble2 vcGIS_GetHeadingPitchFromLatLong(const udGeoZone &zone, const udDouble3 &latLon0, const udDouble3 &latLon1);
+
 #endif // !vcGIS_h__

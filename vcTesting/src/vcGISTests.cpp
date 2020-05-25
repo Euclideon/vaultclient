@@ -80,4 +80,20 @@ TEST(vcGIS, LocalAxis)
 
     EXPECT_TRUE(udEqualApprox(up, orientation.apply({ 0, 0, 1 })));
   }
+
+  {
+    udDouble2 headingNorth = vcGIS_GetHeadingPitchFromLatLong(rZone, udDouble3::create(152.96376, -27.206142, 0), udDouble3::create(152.96376, -27.206142 + 0.0005, 0));
+    EXPECT_TRUE(udEqualApprox(headingNorth, udDouble2::create(UD_DEG2RAD(0.0), 0.0)));
+    udDouble2 headingEast = vcGIS_GetHeadingPitchFromLatLong(rZone, udDouble3::create(152.96376, -27.206142, 0), udDouble3::create(152.96376 + 0.0005, -27.206142, 0));
+    EXPECT_TRUE(udEqualApprox(headingEast, udDouble2::create(UD_DEG2RAD(90.0), 0.0)));
+    udDouble2 headingSouth = vcGIS_GetHeadingPitchFromLatLong(rZone, udDouble3::create(152.96376, -27.206142, 0), udDouble3::create(152.96376, -27.206142 - 0.0005, 0));
+    EXPECT_TRUE(udEqualApprox(headingSouth, udDouble2::create(UD_DEG2RAD(180.0), 0.0)));
+    udDouble2 headingWest = vcGIS_GetHeadingPitchFromLatLong(rZone, udDouble3::create(152.96376, -27.206142, 0), udDouble3::create(152.96376 - 0.0005, -27.206142, 0));
+    EXPECT_TRUE(udEqualApprox(headingWest, udDouble2::create(UD_DEG2RAD(-90.0), 0.0)));
+
+    udDouble3 kansasCityLatLong = udDouble3::create(-94.581213, 39.099912, 0.0);
+    udDouble3 stLouisLatLong = udDouble3::create(-90.200203, 38.627089, 0.0);
+    udDouble2 headingPitchKanasStLouis = vcGIS_GetHeadingPitchFromLatLong(rZone, kansasCityLatLong, stLouisLatLong);
+    EXPECT_TRUE(udEqualApprox(headingPitchKanasStLouis, udDouble2::create(UD_DEG2RAD(96.51), 0.0)));
+  }
 }
