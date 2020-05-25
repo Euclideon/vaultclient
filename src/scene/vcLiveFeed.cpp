@@ -39,11 +39,13 @@ struct vcLiveFeedItem
   bool selected;
   double lastUpdated;
 
-  udDouble3 ypr; // Estimated for many IOTs
+  bool calculateHeadingPitch;
+  udDouble2 headingPitch; // Estimated for many IOTs
 
   udDouble3 previousPositionLatLong; // Previous known location
   udDouble3 livePositionLatLong; // Latest known location
 
+  udDouble3 previousLerpedLatLong;
   udDouble3 displayPosition; // Where we're going to display the item (geolocated space)
 
   double tweenAmount;
@@ -182,27 +184,19 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
         }
 
         udDouble3 dir = newPositionLatLong - pFeedItem->previousPositionLatLong;
-        bool hasOrientation = !pNode->Get("data.orientation").IsVoid();
+        pFeedItem->calculateHeadingPitch = pNode->Get("data.orientation").IsVoid();
 
         if (dir.x != 0 || dir.y != 0 || dir.z != 0)
         {
-          if (!hasOrientation)
-          {
-            //X and Y are latlong and Z is m so we need to fix it
-            dir = udNormalize3(udGeoZone_LatLongToCartesian(pInfo->pProgramState->geozone, newPositionLatLong, true) - udGeoZone_LatLongToCartesian(pInfo->pProgramState->geozone, pFeedItem->previousPositionLatLong, true));
-
-            pFeedItem->ypr = udDirectionToYPR(dir);
-          }
-
           pFeedItem->tweenAmount = 0;
           pFeedItem->previousPositionLatLong = pFeedItem->livePositionLatLong;
         }
 
-        if (hasOrientation)
+        if (!pFeedItem->calculateHeadingPitch)
         {
-          pFeedItem->ypr.x = -UD_DEG2RAD(pNode->Get("data.orientation.heading").AsDouble());
-          pFeedItem->ypr.y = UD_DEG2RAD(pNode->Get("data.orientation.pitch").AsDouble());
-          pFeedItem->ypr.z = UD_DEG2RAD(pNode->Get("data.orientation.roll").AsDouble());
+          pFeedItem->headingPitch.x = UD_DEG2RAD(pNode->Get("data.orientation.heading").AsDouble());
+          pFeedItem->headingPitch.y = UD_DEG2RAD(pNode->Get("data.orientation.pitch").AsDouble());
+          // roll not handled: pNode->Get("data.orientation.roll").AsDouble();
         }
 
         pFeedItem->lastUpdated = updated;
@@ -331,6 +325,7 @@ void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataDouble(m_pNode, "lodModifier", &m_labelLODModifier, 1.0);
 
   vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
+  vdkProjectNode_GetMetadataBool(m_pNode, "snapToMap", &m_snapToMap, false);
 
   ChangeProjection(pProgramState->geozone);
 }
@@ -373,9 +368,12 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
     udDouble3 cameraPosition = pProgramState->camera.position;
 
+    udDouble3 previousLerpedLatLong = pFeedItem->previousLerpedLatLong;
+
     pFeedItem->tweenAmount = m_tweenPositionAndOrientation ? udMin(1.0, pFeedItem->tweenAmount + pProgramState->deltaTime * 0.02) : 1.0;
-    udDouble3 lerpedPos = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
-    pFeedItem->displayPosition = udGeoZone_LatLongToCartesian(pProgramState->geozone, lerpedPos, true);
+    udDouble3 lerpedLatLong = udLerp(pFeedItem->previousPositionLatLong, pFeedItem->livePositionLatLong, pFeedItem->tweenAmount);
+    pFeedItem->displayPosition = udGeoZone_LatLongToCartesian(pProgramState->geozone, lerpedLatLong, true);
+    pFeedItem->previousLerpedLatLong = lerpedLatLong;
 
     double distanceSq = udMagSq3(pFeedItem->displayPosition - cameraPosition);
 
@@ -387,7 +385,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcLiveFeedItemLOD &lodRef = pFeedItem->lodLevels[lodI];
 
-      if (lodI < pFeedItem->lodLevels.length - 1 && distanceSq != 0.0 && distanceSq / m_labelLODModifier > (lodRef.distance*lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
+      if (lodI < pFeedItem->lodLevels.length - 1 && distanceSq != 0.0 && distanceSq / m_labelLODModifier >(lodRef.distance * lodRef.distance) / (pFeedItem->minBoundingRadius * pFeedItem->minBoundingRadius))
         continue;
 
       if (lodRef.sspixels != 0.0)
@@ -395,15 +393,6 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         // See if its within the threshold
         //continue; // if not in threshold
       }
-
-      if (lodRef.pLabelInfo != nullptr)
-      {
-        lodRef.pLabelInfo->worldPosition = pFeedItem->displayPosition;
-        pRenderData->labels.PushBack(lodRef.pLabelInfo);
-      }
-
-      if (lodRef.pPinIcon != nullptr)
-        pRenderData->pins.PushBack({ pFeedItem->displayPosition, lodRef.pPinIcon, 1 });
 
       if (lodRef.pModelAddress != nullptr)
       {
@@ -448,8 +437,38 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         if (pModel != nullptr)
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, udDouble4x4::rotationYPR(pFeedItem->ypr, pFeedItem->displayPosition), nullptr, vcGLSCM_Back, this, (uint64_t)(i+1) });
+        {
+          if (pFeedItem->calculateHeadingPitch && udMagSq3(lerpedLatLong - previousLerpedLatLong) > UD_EPSILON)
+            pFeedItem->headingPitch = vcGIS_GetHeadingPitchFromLatLong(pProgramState->geozone, previousLerpedLatLong, lerpedLatLong);
+
+          // Calculate a transform for the model
+          udDoubleQuat worldRotation = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pFeedItem->displayPosition, pFeedItem->headingPitch);
+          udDouble4x4 worldTransform = udDouble4x4::identity();
+
+          if (pProgramState->settings.maptiles.mapEnabled && m_snapToMap)
+          {
+            // Position + orient along map surface
+            udDouble3 mapNormal = {};
+            pFeedItem->displayPosition = vcRender_QueryMapAtCartesian(pProgramState->pRenderContext, pFeedItem->displayPosition, nullptr, &mapNormal);
+            worldTransform = udDouble4x4::lookAt(pFeedItem->displayPosition, pFeedItem->displayPosition + worldRotation.apply({ 0, 1, 0 }), mapNormal);
+          }
+          else
+          {
+            worldTransform = udDouble4x4::rotationQuat(worldRotation, pFeedItem->displayPosition);
+          }
+
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, worldTransform, nullptr, vcGLSCM_Back, this, (uint64_t)(i + 1) });
+        }
       }
+
+      if (lodRef.pLabelInfo != nullptr)
+      {
+        lodRef.pLabelInfo->worldPosition = pFeedItem->displayPosition;
+        pRenderData->labels.PushBack(lodRef.pLabelInfo);
+      }
+
+      if (lodRef.pPinIcon != nullptr)
+        pRenderData->pins.PushBack({ pFeedItem->displayPosition, lodRef.pPinIcon, 1 });
 
       break; // We got to the end so we should stop
     }
@@ -537,7 +556,11 @@ void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     if (ImGui::Checkbox(vcString::Get("liveFeedTween"), &m_tweenPositionAndOrientation))
       vdkProjectNode_SetMetadataBool(m_pNode, "tweenEnabled", m_tweenPositionAndOrientation);
 
-    char groupStr[udUUID::udUUID_Length+1];
+    // Snap to map
+    if (ImGui::Checkbox(vcString::Get("liveFeedSnapMap"), &m_snapToMap))
+      vdkProjectNode_SetMetadataBool(m_pNode, "snapToMap", m_snapToMap);
+
+    char groupStr[udUUID::udUUID_Length + 1];
     udStrcpy(groupStr, udUUID_GetAsString(&m_groupID));
     if (vcIGSW_InputText(vcString::Get("liveFeedGroupID"), groupStr, udLengthOf(groupStr)))
     {
