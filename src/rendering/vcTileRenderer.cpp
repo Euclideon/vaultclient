@@ -1185,7 +1185,7 @@ float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int
   return udLerp(colourB, colourT, rem.y);
 }
 
-udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point)
+udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &worldUp, const udDouble3 &point)
 {
   const vcQuadTreeNode *pNode = vcQuadTree_GetLeafNodeFromCartesian(&pTileRenderer->quadTree, point);
 
@@ -1212,30 +1212,32 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
     // `pDemHeights` can be null if inherited tile was ancestor, which has since been pruned
     if (pNode->pDemHeightsCopy != nullptr)
     {
-      udDouble3 p0 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[0]);
-      udDouble3 p3 = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, pNode->worldBounds[8]);
+      udDouble2 demUV = {};
+      vcGIS_LatLongToSlippy(&demUV, latLonAltZero, pNode->slippyPosition.z);
 
-      udDouble3 localPoint = latLonAltZero - p0;
-      udDouble3 demUV = localPoint / (p3 - p0);
-
-      udFloat2 sampleUV = udFloat2::create((float)udClamp(demUV.y, 0.0, 1.0), (float)udClamp(demUV.x, 0.0, 1.0));
+      udFloat2 sampleUV = udFloat2::create((float)(demUV.x - udFloor(demUV.x)), (float)(demUV.y - udFloor(demUV.y)));
       resultMapHeight += vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, sampleUV, pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
     }
   }
 
-  // TODO: This *should* use `vcTileRenderer_BilinearSample(pNode->worldNormals[])` for 'worldNormal', but the result are very-slightly wrong
-  udDouble3 worldNormal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, surfacePosition);
-  return surfacePosition + worldNormal * resultMapHeight;
+  return surfacePosition + worldUp * resultMapHeight;
 }
 
-udDouble3 vcTileRenderer_QueryMapAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, udDouble3 *pNormal)
+udDouble3 vcTileRenderer_QueryMapAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &point, const udDouble3 *pWorldUp, udDouble3 *pNormal)
 {
-  udDouble3 p0 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point);
+  // Assumption that the world up will not change significantly enough to recalculate per offset, so reuse
+  udDouble3 worldUp = (pWorldUp ? *pWorldUp : vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, point));
+
+  udDouble3 p0 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, worldUp, point);
   if (pNormal != nullptr)
   {
-    static const double SampleOffsetAmountMeters = 2.0f;
-    udDouble3 p1 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(SampleOffsetAmountMeters, 0, 0));
-    udDouble3 p2 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, point + udDouble3::create(SampleOffsetAmountMeters, SampleOffsetAmountMeters, 0));
+    static const double SampleOffsetAmountMeters = 4.0f;
+
+    udDouble3 forward = vcGIS_GetWorldLocalNorth(pTileRenderer->quadTree.geozone, point);
+    udDouble3 right = udNormalize3(udCross3(forward, worldUp));
+
+    udDouble3 p1 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, worldUp, point + (SampleOffsetAmountMeters * right));
+    udDouble3 p2 = vcTileRenderer_QueryMapHeightAtCartesian(pTileRenderer, worldUp, point + (SampleOffsetAmountMeters * forward));
 
     udDouble3 n0 = udCross3(udNormalize3(p1 - p0), udNormalize3(p2 - p0));
     *pNormal = udNormalize3(n0);
@@ -1243,3 +1245,4 @@ udDouble3 vcTileRenderer_QueryMapAtCartesian(vcTileRenderer *pTileRenderer, cons
 
   return p0;
 }
+
