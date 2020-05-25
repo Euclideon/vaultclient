@@ -65,11 +65,7 @@ double vcUnitConversion_ConvertTemperature(double sourceValue, vcTemperatureUnit
 
 vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData sourceValue, vcTimeReference sourceReference, vcTimeReference requiredReference)
 {
-  if (sourceReference == requiredReference)
-    return sourceValue;
-
-  vcTimeReferenceData result = sourceValue;
-  result.success = false;
+  vcTimeReferenceData result = {false};
 
   static double const s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
   static double const s_secondsBetweenEpochs_TAI_Unix = 378691200.0;
@@ -110,6 +106,11 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
   //Convert sourceValue to TAI
   switch (sourceReference)
   {
+    case vcTimeReference_TAI:
+    {
+      result.seconds = sourceValue.seconds;
+      break;
+    }
     case vcTimeReference_Unix:
     {
       if (sourceValue.seconds < 0.0)
@@ -118,21 +119,21 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       double leapSeconds = 0.0;
       for (size_t i = 0; i < udLengthOf(s_leapSeconds); ++i)
       {
-        if (result.seconds < s_leapSeconds[i])
+        if (sourceValue.seconds < s_leapSeconds[i])
           break;
         leapSeconds++;
       }
-      result.seconds = s_secondsBetweenEpochs_TAI_Unix + result.seconds + leapSeconds;
+      result.seconds = s_secondsBetweenEpochs_TAI_Unix + sourceValue.seconds + leapSeconds;
       break;
     }
     case vcTimeReference_GPS:
     {
-      result.seconds += s_secondsBetweenEpochs_TAI_GPS;
+      result.seconds = sourceValue.seconds + s_secondsBetweenEpochs_TAI_GPS;
       break;
     }
     case vcTimeReference_GPSAdjusted:
     {
-      result.seconds += s_secondsBetweenEpochs_TAI_GPS + 1.0e9;
+      result.seconds = sourceValue.seconds + (s_secondsBetweenEpochs_TAI_GPS + 1.0e9);
       break;
     }
     case vcTimeReference_GPSWeek:
@@ -148,9 +149,13 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
   //Required Reference
   switch (requiredReference)
   {
+    case vcTimeReference_TAI:
+    {
+      break;
+    }
     case vcTimeReference_Unix:
     {
-      if (sourceValue.seconds < s_secondsBetweenEpochs_TAI_Unix)
+      if (result.seconds < s_secondsBetweenEpochs_TAI_Unix)
         goto epilogue;
 
       result.seconds -= s_secondsBetweenEpochs_TAI_Unix;
@@ -176,11 +181,11 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
     }
     case vcTimeReference_GPSWeek:
     {
-      if (sourceValue.seconds < s_secondsBetweenEpochs_TAI_GPS)
+      if (result.seconds < s_secondsBetweenEpochs_TAI_GPS)
         goto epilogue;
 
       result.seconds -= s_secondsBetweenEpochs_TAI_GPS;
-      result.GPSWeek.weeks = (unsigned)udFloor(result.seconds / s_weekSeconds);
+      result.GPSWeek.weeks = (uint32_t)udFloor(result.seconds / s_weekSeconds);
       result.GPSWeek.secondsOfTheWeek = result.seconds - (s_weekSeconds * result.GPSWeek.weeks);
       break;
     }

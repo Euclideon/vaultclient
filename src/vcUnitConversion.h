@@ -78,8 +78,6 @@ enum vcTimeReference
   vcTimeReference_GPS,          //seconds since UTC 00:00:00, 6/1/1980
   vcTimeReference_GPSAdjusted,  //seconds since UTC 00:00:00, 6/1/1980 - 1'000'000'000
   vcTimeReference_GPSWeek,      //seconds of the week + week number since UTC 00:00:00, 6/1/1980 (sunday)
-
-  vcTimeReference_Count
 };
 
 struct vcTimeReferenceData
