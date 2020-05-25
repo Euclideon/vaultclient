@@ -128,18 +128,36 @@ float calculateHeightAboveEarthSurface(float3 fragEyePosition)
   return length(eyeToEarthSurface - projectedPosition) * isBelowSurface;
 }
 
-float3 contourColour(float3 col, float3 fragEyePosition)
+float3 contourColour(float3 col, float3 fragEyePosition, float pixelHeight)
 {
+  if (pixelHeight == 0.0)
+    return float3(1.0, 1.0, 0.0);
+
   float contourDistance = u_contourParams.x;
   float contourBandHeight = u_contourParams.y;
   float contourRainboxRepeat = u_contourParams.z;
   float contourRainboxIntensity = u_contourParams.w;
+      
+  const int NUM_HUE_SAMPLES = 16;
+  float3 totalRainbowColour = float3(0.0, 0.0, 0.0);
+  float samplingHeight = pixelHeight * 8.0;
+  float stepSize = samplingHeight / (NUM_HUE_SAMPLES - 1);  
+  float projectedHeight = abs(calculateHeightAboveEarthSurface(fragEyePosition));	
+  for (int i = 0; i < NUM_HUE_SAMPLES; i++)
+  {
+	float rainbowheight = projectedHeight + -samplingHeight / 2 + stepSize * (float)i;
+	float3 rainbowColour = hsv2rgb(float3(rainbowheight * (1.0 / contourRainboxRepeat), 1.0, 1.0));
+	float isContour = 1.0 - step(contourBandHeight, fmod(abs(rainbowheight), contourDistance));	
+	totalRainbowColour += rainbowColour;
+  }  
+  totalRainbowColour /= (float)NUM_HUE_SAMPLES;  
+  
+  float rainbowMultiplier = clamp((contourRainboxRepeat / (pixelHeight * 16.0)), 0.0, 1.0);
+  float3 baseColour = lerp(col.xyz, totalRainbowColour, clamp(contourRainboxIntensity * rainbowMultiplier, 0.0, 1.0));
 
-  float projectedHeight = abs(calculateHeightAboveEarthSurface(fragEyePosition));
-  float3 rainbowColour = hsv2rgb(float3(projectedHeight * (1.0 / contourRainboxRepeat), 1.0, 1.0));
-  float3 baseColour = lerp(col.xyz, rainbowColour, contourRainboxIntensity);
-
-  float isContour = 1.0 - step(contourBandHeight, fmod(abs(projectedHeight), contourDistance));
+  float contourMultiplier = clamp((contourDistance / (pixelHeight * 16.0)), 0.0, 1.0);
+  float isContour = (1.0 - step(contourBandHeight, fmod(abs(projectedHeight), contourDistance))) * contourMultiplier;  
+  
   return lerp(baseColour, u_contourColour.xyz, isContour * u_contourColour.w);
 }
 
@@ -176,10 +194,13 @@ PS_OUTPUT main(PS_INPUT input)
 
   float4 fragEyePosition = mul(u_inverseProjection, float4(input.clip.xy, clipZ, 1.0));
   fragEyePosition /= fragEyePosition.w;
+  
+  float4 eyePos2 = mul(u_inverseProjection, float4(input.clip.xy + float2(0, u_screenParams.y), clipZ, 1.0));
+  eyePos2 /= eyePos2.w;
 
   col.xyz = colourizeByHeight(col.xyz, fragEyePosition.xyz);
   col.xyz = colourizeByEyeDistance(col.xyz, fragEyePosition.xyz);
-  col.xyz = contourColour(col.xyz, fragEyePosition.xyz);
+  col.xyz = contourColour(col.xyz, fragEyePosition.xyz, length(eyePos2 - fragEyePosition));
   
   float edgeOutlineWidth = u_outlineParams.x;
   float edgeOutlineThreshold = u_outlineParams.y;
