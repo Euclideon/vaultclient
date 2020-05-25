@@ -120,3 +120,74 @@ TEST(UnitConversion, Temperature)
   for (int i = 0; i < vcTemperature_Count; ++i)
     EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertTemperature(vcUnitConversion_ConvertTemperature(10000.0, vcTemperature_Celcius, (vcTemperatureUnit)i), (vcTemperatureUnit)i, vcTemperature_Celcius));
 }
+
+void VerifyTimeReference(vcTimeReference sourceType, double in, vcTimeReference destType, double out)
+{
+  vcTimeReferenceData inData, outData;
+
+  inData.seconds = in;
+  outData = vcUnitConversion_ConvertTimeReference(inData, sourceType, destType);
+  EXPECT_TRUE(outData.success);
+  EXPECT_NEAR(outData.seconds, out, 0.0001) << "fwd-" << sourceType << " to " << destType;
+
+  inData.seconds = out;
+  outData = vcUnitConversion_ConvertTimeReference(inData, destType, sourceType);
+  EXPECT_TRUE(outData.success);
+  EXPECT_NEAR(outData.seconds, in, 0.0001) << "fwd-" << sourceType << " to " << destType;
+}
+
+void VerifyTimeReferenceWeek(double seconds, unsigned weeks, double out)
+{
+  vcTimeReferenceData inData, outData;
+
+  inData.GPSWeek.seconds = seconds;
+  inData.GPSWeek.weeks =weeks;
+  outData = vcUnitConversion_ConvertTimeReference(inData, vcTimeReference_GPSWeek, vcTimeReference_TAI);
+  EXPECT_TRUE(outData.success);
+  EXPECT_NEAR(outData.seconds, out, 0.0001) << "fwd-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;
+
+  inData.seconds = out;
+  outData = vcUnitConversion_ConvertTimeReference(inData, vcTimeReference_TAI, vcTimeReference_GPSWeek);
+  EXPECT_TRUE(outData.success);
+  EXPECT_EQ(outData.GPSWeek.weeks, weeks) << "fwd-" << vcTimeReference_TAI << " to " << vcTimeReference_GPSWeek;;
+  EXPECT_EQ(outData.GPSWeek.seconds, seconds) << "fwd-" << vcTimeReference_TAI << " to " << vcTimeReference_GPSWeek;;
+}
+
+TEST(UnitConversion, TimeReference)
+{
+  static double const s_seconds_TAI_Unix_epoch = 378691200.0;
+  static double const s_seconds_TAI_GPS_epoch  = 694656000.0;
+  static double const s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
+
+  vcTimeReferenceData in, out;
+
+  VerifyTimeReference(vcTimeReference_TAI, 0.0, vcTimeReference_TAI, 0.0);
+
+  //TAI, Unix
+  in.seconds = 0.0;
+  out = vcUnitConversion_ConvertTimeReference(in, vcTimeReference_TAI, vcTimeReference_Unix);
+  EXPECT_FALSE(out.success);
+
+  in.seconds = s_seconds_TAI_Unix_epoch - 1.0;
+  out = vcUnitConversion_ConvertTimeReference(in, vcTimeReference_TAI, vcTimeReference_Unix);
+  EXPECT_FALSE(out.success);
+
+  VerifyTimeReference(vcTimeReference_TAI, 378691200.0, vcTimeReference_Unix, 0.0);
+  VerifyTimeReference(vcTimeReference_TAI, s_seconds_TAI_GPS_epoch, vcTimeReference_Unix, s_seconds_TAI_GPS_epoch - s_seconds_TAI_Unix_epoch - 9.0);
+
+  //TAI, GPS
+  VerifyTimeReference(vcTimeReference_TAI, 0.0, vcTimeReference_GPS, -s_seconds_TAI_GPS_epoch);
+
+  //TAI, GPSAdjusted
+  VerifyTimeReference(vcTimeReference_TAI, 0.0, vcTimeReference_GPSAdjusted, -s_seconds_TAI_GPS_epoch - 1.0e9);
+
+  //TAI, GPSWeek
+  VerifyTimeReferenceWeek(0.0, 0, s_seconds_TAI_GPS_epoch);
+  VerifyTimeReferenceWeek(0.0, 42, s_seconds_TAI_GPS_epoch + 42.0 * s_weekSeconds);
+  VerifyTimeReferenceWeek(1234.0, 42, s_seconds_TAI_GPS_epoch + 42.0 * s_weekSeconds + 1234.0);
+
+  in.GPSWeek.seconds = -42.0;
+  in.GPSWeek.weeks = 0;
+  out = vcUnitConversion_ConvertTimeReference(in, vcTimeReference_GPSWeek, vcTimeReference_TAI);
+  EXPECT_FALSE(out.success);
+}
