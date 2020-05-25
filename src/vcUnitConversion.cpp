@@ -66,10 +66,12 @@ double vcUnitConversion_ConvertTemperature(double sourceValue, vcTemperatureUnit
 vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData sourceValue, vcTimeReference sourceReference, vcTimeReference requiredReference)
 {
   vcTimeReferenceData result = {false, {0.0}};
+  double TAI_seconds = 0.0;
+  double currentLeapSeconds = 0.0;
 
-  static double const s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
-  static double const s_secondsBetweenEpochs_TAI_Unix = 378691200.0;
-  static double const s_secondsBetweenEpochs_TAI_GPS = 694656000.0;
+  static const double s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
+  static const double s_secondsBetweenEpochs_TAI_Unix = 378691200.0;
+  static const double s_secondsBetweenEpochs_TAI_GPS = 694656000.0;
 
   //TODO this will have to be updated every time a leap second is introduced.
   //The next leap second date may be December 2020.
@@ -108,7 +110,7 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
   {
     case vcTimeReference_TAI:
     {
-      result.seconds = sourceValue.seconds;
+      TAI_seconds = sourceValue.seconds;
       break;
     }
     case vcTimeReference_Unix:
@@ -116,24 +118,24 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       if (sourceValue.seconds < 0.0)
         goto epilogue;
 
-      double leapSeconds = 0.0;
+      currentLeapSeconds = 0.0;
       for (size_t i = 0; i < udLengthOf(s_leapSeconds); ++i)
       {
         if (sourceValue.seconds < s_leapSeconds[i])
           break;
-        leapSeconds++;
+        currentLeapSeconds++;
       }
-      result.seconds = s_secondsBetweenEpochs_TAI_Unix + sourceValue.seconds + leapSeconds;
+      TAI_seconds = s_secondsBetweenEpochs_TAI_Unix + sourceValue.seconds + currentLeapSeconds;
       break;
     }
     case vcTimeReference_GPS:
     {
-      result.seconds = sourceValue.seconds + s_secondsBetweenEpochs_TAI_GPS;
+      TAI_seconds = sourceValue.seconds + s_secondsBetweenEpochs_TAI_GPS;
       break;
     }
     case vcTimeReference_GPSAdjusted:
     {
-      result.seconds = sourceValue.seconds + (s_secondsBetweenEpochs_TAI_GPS + 1.0e9);
+      TAI_seconds = sourceValue.seconds  + 1.0e9 + s_secondsBetweenEpochs_TAI_GPS;
       break;
     }
     case vcTimeReference_GPSWeek:
@@ -141,7 +143,7 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       if (sourceValue.GPSWeek.secondsOfTheWeek < 0.0)
         goto epilogue;
 
-      result.seconds = s_secondsBetweenEpochs_TAI_GPS + sourceValue.GPSWeek.secondsOfTheWeek + s_weekSeconds * double(sourceValue.GPSWeek.weeks);
+      TAI_seconds = s_secondsBetweenEpochs_TAI_GPS + s_weekSeconds * double(sourceValue.GPSWeek.weeks) + sourceValue.GPSWeek.secondsOfTheWeek;
       break;
     }
   }
@@ -151,48 +153,49 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
   {
     case vcTimeReference_TAI:
     {
+      result.seconds = TAI_seconds;
       break;
     }
     case vcTimeReference_Unix:
     {
-      if (result.seconds < s_secondsBetweenEpochs_TAI_Unix)
+      if (TAI_seconds < s_secondsBetweenEpochs_TAI_Unix)
         goto epilogue;
 
-      result.seconds -= s_secondsBetweenEpochs_TAI_Unix;
-      double leapSeconds = 0.0;
+      result.seconds = TAI_seconds - s_secondsBetweenEpochs_TAI_Unix;
+      currentLeapSeconds = 0.0;
       for (size_t i = 0; i < udLengthOf(s_leapSeconds); ++i)
       {
         if (result.seconds < s_leapSeconds[i])
           break;
-        leapSeconds++;
+        currentLeapSeconds++;
       }
-      result.seconds = result.seconds - leapSeconds;
+      result.seconds -= currentLeapSeconds;
       break;
     }
     case vcTimeReference_GPS:
     {
-      result.seconds -= s_secondsBetweenEpochs_TAI_GPS;
+      result.seconds = TAI_seconds - s_secondsBetweenEpochs_TAI_GPS;
       break;
     }
     case vcTimeReference_GPSAdjusted:
     {
-      result.seconds -= (s_secondsBetweenEpochs_TAI_GPS + 1.0e9);
+      result.seconds = TAI_seconds - s_secondsBetweenEpochs_TAI_GPS - 1.0e9;
       break;
     }
     case vcTimeReference_GPSWeek:
     {
-      if (result.seconds < s_secondsBetweenEpochs_TAI_GPS)
+      if (TAI_seconds < s_secondsBetweenEpochs_TAI_GPS)
         goto epilogue;
 
-      result.seconds -= s_secondsBetweenEpochs_TAI_GPS;
-      result.GPSWeek.weeks = (uint32_t)udFloor(result.seconds / s_weekSeconds);
-      result.GPSWeek.secondsOfTheWeek = result.seconds - (s_weekSeconds * result.GPSWeek.weeks);
+      TAI_seconds -= s_secondsBetweenEpochs_TAI_GPS;
+      result.GPSWeek.weeks = (uint32_t)udFloor(TAI_seconds / s_weekSeconds);
+      result.GPSWeek.secondsOfTheWeek = TAI_seconds - (s_weekSeconds * result.GPSWeek.weeks);
       break;
     }
   }
 
   result.success = true;
-  epilogue:
 
+epilogue:
   return result;
 }
