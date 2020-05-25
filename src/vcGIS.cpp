@@ -190,3 +190,23 @@ udDoubleQuat vcGIS_HeadingPitchToQuaternion(const udGeoZone &zone, udDouble3 loc
 
   return rotationHeading * rotationPitch * mat.extractQuaternion();
 }
+
+// calculate 'great circle' distance between two lat/lon positions
+// https://www.igismap.com/formula-to-find-bearing-or-heading-angle-between-two-points-latitude-longitude/
+udDouble2 vcGIS_GetHeadingPitchFromLatLong(const udGeoZone &zone, const udDouble3 &latLon0, const udDouble3 &latLon1)
+{
+  udUnused(zone);
+
+  double lA = latLon0.x;
+  double Oa = latLon0.y;
+  double lB = latLon1.x;
+  double Ob = latLon1.y;
+  double lD = lB - lA;
+
+  double x = udCos(UD_DEG2RAD(Ob)) * udSin(UD_DEG2RAD(lD));
+  double y = udCos(UD_DEG2RAD(Oa)) * udSin(UD_DEG2RAD(Ob)) - udSin(UD_DEG2RAD(Oa)) * udCos(UD_DEG2RAD(Ob)) * udCos(UD_DEG2RAD(lD));
+  double heading = udATan2(x, y);
+
+  // TODO: Pitch
+  return udDouble2::create(heading, 0.0f);
+}
