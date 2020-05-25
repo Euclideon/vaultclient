@@ -65,7 +65,7 @@ double vcUnitConversion_ConvertTemperature(double sourceValue, vcTemperatureUnit
 
 vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData sourceValue, vcTimeReference sourceReference, vcTimeReference requiredReference)
 {
-  vcTimeReferenceData result = {false, 0.0};
+  vcTimeReferenceData result = {false, {0.0}};
 
   static double const s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
   static double const s_secondsBetweenEpochs_TAI_Unix = 378691200.0;
