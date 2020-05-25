@@ -230,8 +230,8 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pCurrentNode->childBlockIndex = freeBlockIndex;
   }
 
-  udInt2 pViewSlippyCoords;
-  vcGIS_LocalToSlippy(pQuadTree->geozone, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->slippyCoords.z + currentDepth + 1);
+  udInt2 pViewSlippyCoords = {};
+  vcGIS_LocalToSlippy(pQuadTree->geozone, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->rootSlippyCoords.z + currentDepth + 1);
 
   udInt2 mortenIndices[] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
 
@@ -260,7 +260,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     if (slippyManhattanDist != 0)
       distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormals[4] * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.mapHeight));
 
-    int totalDepth = pQuadTree->slippyCoords.z + currentDepth;
+    int totalDepth = pQuadTree->rootSlippyCoords.z + currentDepth;
     bool alwaysSubdivide = pChildNode->visible && totalDepth < vcQuadTree_MinimumDescendLayer;
     if (alwaysSubdivide || vcQuadTree_ShouldSubdivide(distanceToQuadrant, totalDepth))
       vcQuadTree_RecurseGenerateTree(pQuadTree, childIndex, currentDepth + 1);
@@ -504,7 +504,7 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->metaData.nodeTouchedCount = 0;
   pQuadTree->metaData.leafNodeCount = 0;
 
-  pQuadTree->slippyCoords = viewInfo.slippyCoords;
+  pQuadTree->rootSlippyCoords = viewInfo.slippyCoords;
   pQuadTree->cameraDistanceZeroAltitude = udMag3(pQuadTree->cameraWorldPosition - viewInfo.cameraPositionZeroAltitude);
 
   pQuadTree->metaData.maxTreeDepth = udMax(0, (viewInfo.maxVisibleTileLevel - 1) - viewInfo.slippyCoords.z);

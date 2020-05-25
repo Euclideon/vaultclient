@@ -120,7 +120,7 @@ struct vcQuadTree
   vcQuadTreeMetaData metaData;
   udDouble4 frustumPlanes[6];
   udGeoZone geozone;
-  udInt3 slippyCoords;
+  udInt3 rootSlippyCoords;
   udDouble3 cameraWorldPosition;
   double cameraDistanceZeroAltitude;
 
