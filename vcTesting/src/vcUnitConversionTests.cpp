@@ -140,7 +140,7 @@ void VerifyTimeReferenceWeek(double seconds, unsigned weeks, double out)
 {
   vcTimeReferenceData inData, outData;
 
-  inData.GPSWeek.seconds = seconds;
+  inData.GPSWeek.secondsOfTheWeek = seconds;
   inData.GPSWeek.weeks =weeks;
   outData = vcUnitConversion_ConvertTimeReference(inData, vcTimeReference_GPSWeek, vcTimeReference_TAI);
   EXPECT_TRUE(outData.success) << "fwd-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;
@@ -150,7 +150,7 @@ void VerifyTimeReferenceWeek(double seconds, unsigned weeks, double out)
   outData = vcUnitConversion_ConvertTimeReference(inData, vcTimeReference_TAI, vcTimeReference_GPSWeek);
   EXPECT_TRUE(outData.success) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;
   EXPECT_EQ(outData.GPSWeek.weeks, weeks) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;;
-  EXPECT_EQ(outData.GPSWeek.seconds, seconds) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;;
+  EXPECT_EQ(outData.GPSWeek.secondsOfTheWeek, seconds) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;;
 }
 
 TEST(UnitConversion, TimeReference)
@@ -186,7 +186,7 @@ TEST(UnitConversion, TimeReference)
   VerifyTimeReferenceWeek(0.0, 42, s_seconds_TAI_GPS_epoch + 42.0 * s_weekSeconds);
   VerifyTimeReferenceWeek(1234.0, 42, s_seconds_TAI_GPS_epoch + 42.0 * s_weekSeconds + 1234.0);
 
-  in.GPSWeek.seconds = -42.0;
+  in.GPSWeek.secondsOfTheWeek = -42.0;
   in.GPSWeek.weeks = 0;
   out = vcUnitConversion_ConvertTimeReference(in, vcTimeReference_GPSWeek, vcTimeReference_TAI);
   EXPECT_FALSE(out.success);

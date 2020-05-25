@@ -1,6 +1,8 @@
 #ifndef vcUnitConversion_h__
 #define vcUnitConversion_h__
 
+#include <stdint.h>
+
 enum vcDistanceUnit
 {
   vcDistance_Metres,
@@ -88,8 +90,8 @@ struct vcTimeReferenceData
     double seconds;
     struct
     {
-      double seconds;
-      unsigned weeks;
+      double secondsOfTheWeek;
+      uint32_t weeks;
     } GPSWeek;
   };
 };
