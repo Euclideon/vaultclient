@@ -45,26 +45,21 @@ struct vcUDRSData
     } GPSTime;
     struct
     {
-      uint32_t leftColour;
-      uint32_t rightColour;
+      uint32_t colours[3]; //left, center, right
+      uint32_t errorColor;
     } scanAngle;
     struct
     {
-      struct IDColourPair
-      {
-        uint16_t id;
-        uint32_t colour;
-      };
-      const IDColourPair *pKVs;
+      const std::map<uint16_t, uint32_t> *pColourMap;
       uint32_t defaultColour;
     } pointSourceID;
     struct
     {
-      const uint32_t *pColours;
+      const uint32_t *pColours; //length == 256
     } returnNumber;
     struct
     {
-      const uint32_t *pColours;
+      const uint32_t *pColours; //length == 256
     } numberOfReturns;
   } data;
 };

@@ -1,6 +1,8 @@
 #ifndef vcSettings_h__
 #define vcSettings_h__
 
+#include <map>
+
 #include "SDL2/SDL.h"
 
 #include "udPlatform.h"
@@ -143,6 +145,29 @@ struct vcVisualizationSettings
     uint32_t error;
     uint32_t mid;
   } displacement;
+
+  struct
+  {
+    uint32_t minColour;
+    uint32_t maxColour;
+  } GPSTime;
+
+  static const uint32_t s_nSegments = 3;
+  struct
+  {
+    uint32_t colours[s_nSegments]; //left, center, right
+    uint32_t errorColor;
+  } scanAngle;
+
+  struct
+  {
+    std::map<uint16_t, uint32_t> colourMap; // id/colour
+    uint32_t defaultColour;
+  } pointSourceID;
+
+  static const uint32_t s_maxReturnNumbers = 5;
+  uint32_t returnNumberColours[s_maxReturnNumbers];
+  uint32_t numberOfReturnsColours[s_maxReturnNumbers];
 
   bool useCustomClassificationColours;
   bool customClassificationToggles[256];

@@ -971,7 +971,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
 {
   bool retVal = false;
 
-  const char *visualizationModes[] = { vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns") };
+  const char *visualizationModes[] = {vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns")};
   retVal |= ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
   UDCOMPILEASSERT(udLengthOf(visualizationModes) == vcVM_Count, "Update combo box!");
 
@@ -1009,21 +1009,63 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     ImGui::Unindent();
     break;
   }
-  case vcVM_GPSTime: //TODO FRANK remove these...
-    ImGui::Text("GPS Time options..."); //double
+  case vcVM_GPSTime: //TODO FRANK add strings to schema
+  {
+    vcIGSW_ColorPickerU32("Min Time Colour", &pVisualizationSettings->GPSTime.minColour, ImGuiColorEditFlags_None);
+    vcIGSW_ColorPickerU32("Max Time Colour", &pVisualizationSettings->GPSTime.maxColour, ImGuiColorEditFlags_None);
     break;
+  }
   case vcVM_ScanAngle:
-    ImGui::Text("Scan Angle options..."); //uint16
+  {
+    for (uint32_t i = 0; i < pVisualizationSettings->s_nSegments; ++i)
+    {
+      int angle = -180 + 360 * i / (pVisualizationSettings->s_nSegments - 1);
+      vcIGSW_ColorPickerU32(udTempStr("%i deg", angle), &pVisualizationSettings->scanAngle.colours[i], ImGuiColorEditFlags_None);
+    }
+
     break;
+  }
   case vcVM_PointSourceID:
-    ImGui::Text("Point Source options..."); //uint16
+  {
+    static int newPointSourceID = 0;
+    if (ImGui::InputInt("New Item", &newPointSourceID))
+    {
+      if (newPointSourceID < 0) newPointSourceID = 0;
+      if (newPointSourceID > 0xFFFF) newPointSourceID = 0xFFFF;
+    }
+
+    static uint32_t newPointSourceColour = 0;
+    vcIGSW_ColorPickerU32("Source Colour", &newPointSourceColour, ImGuiColorEditFlags_None);
+    if (ImGui::Button("Add Item"))
+    {
+      pVisualizationSettings->pointSourceID.colourMap[(uint16_t)newPointSourceID] = newPointSourceColour;
+      newPointSourceColour = 0;
+    }
+
+    int removeItem = -1;
+    for (auto &kv : pVisualizationSettings->pointSourceID.colourMap)
+    {
+      if (ImGui::Button(udTempStr("Remove %i", kv.first)))
+        removeItem = (int)kv.first;
+      vcIGSW_ColorPickerU32(udTempStr("'%i'", kv.first), &kv.second, ImGuiColorEditFlags_None);
+    }
+
+    if (removeItem != -1)
+      pVisualizationSettings->pointSourceID.colourMap.erase(uint16_t(removeItem));
     break;
+  }
   case vcVM_ReturnNumber:
-    ImGui::Text("Return Number options..."); //uint8
+  {
+    for (uint32_t i = 0; i < pVisualizationSettings->s_maxReturnNumbers; ++i)
+      vcIGSW_ColorPickerU32(udTempStr("value %i", i), &pVisualizationSettings->returnNumberColours[i], ImGuiColorEditFlags_None);
     break;
+  }
   case vcVM_NumberOfReturns:
-    ImGui::Text("Number of Returns options..."); //uint8
+  {
+    for (uint32_t i = 0; i < pVisualizationSettings->s_maxReturnNumbers; ++i)
+      vcIGSW_ColorPickerU32(udTempStr("value %i", i), &pVisualizationSettings->numberOfReturnsColours[i], ImGuiColorEditFlags_None);
     break;
+  }
   default:
     break;
   }

@@ -162,3 +162,108 @@ uint32_t vcVoxelShader_GPSTime(vdkPointCloud * /*pPointCloud*/, uint64_t /*voxel
 
   return 0xFF0000FF;
 }
+
+uint32_t vcVoxelShader_ScanAngle(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+{
+  //These are defined in the LAS 1.4 spec
+  static const int16_t s_minAngle = -30'000; //Represents -180 deg
+  static const int16_t s_maxAngle =  30'000; //Represents  180 deg
+  static const uint32_t s_range = uint32_t(s_maxAngle - s_minAngle);
+
+  uint32_t scanAngle = 0;
+
+  uint32_t pivot0 = 0;
+  uint32_t pivot1 = 0;
+
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+
+  uint32_t result = pData->data.scanAngle.errorColor;
+  int16_t *pScanAngle = nullptr;
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pScanAngle);
+
+  if (pScanAngle == nullptr)
+    goto epilogue;
+
+  if (*pScanAngle < s_minAngle|| *pScanAngle > s_maxAngle)
+    goto epilogue;
+
+  scanAngle = *pScanAngle - s_minAngle;
+
+  for (uint32_t i = 1; i < vcVisualizationSettings::s_nSegments; ++i)
+  {
+    pivot0 = pivot1;
+    pivot1 = s_range * i / vcVisualizationSettings::s_nSegments;
+
+    if (scanAngle < pivot1)
+    {
+      uint32_t segmentSize = (s_range << 16) / vcVisualizationSettings::s_nSegments;
+
+      uint32_t d = uint32_t(*pScanAngle - pivot0);
+
+      uint32_t fpMix0 = (d << 16) / segmentSize;
+      uint32_t fpMix1 = 0xFFFFul - fpMix0;
+
+      uint32_t clr0 = pData->data.scanAngle.colours[i - 1];
+      uint32_t clr1 = pData->data.scanAngle.colours[i];
+
+      result = 0;
+      for (int channel = 0; channel < 4; ++channel)
+      {
+        uint32_t c0 = (uint32_t)((uint8_t *)(&clr0))[channel];
+        uint32_t c1 = (uint32_t)((uint8_t *)(&clr1))[channel];
+
+        ((uint8_t*)(&result))[channel] = (uint8_t)((c0 * fpMix0 + c1 * fpMix1) >> 16);
+      }
+      break;
+    }
+  }
+
+epilogue:
+  return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
+}
+
+uint32_t vcVoxelShader_PointSourceID(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+
+  uint32_t result = pData->data.pointSourceID.defaultColour;
+  uint16_t *pID = nullptr;
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pID);
+
+  if (pID != nullptr)
+  {
+    auto it = pData->data.pointSourceID.pColourMap->find(*pID);
+    if (it != pData->data.pointSourceID.pColourMap->cend())
+      result = it->second;
+  }
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
+}
+
+uint32_t vcVoxelShader_ReturnNumber(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+
+  uint32_t result = 0;
+  uint8_t *pNumber = nullptr;
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pNumber);
+
+  if (pNumber != nullptr)
+    result = pData->data.returnNumber.pColours[*pNumber];
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
+}
+
+uint32_t vcVoxelShader_NumberOfReturns(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+
+  uint32_t result = 0;
+  uint8_t *pNumber = nullptr;
+  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pNumber);
+
+  if (pNumber != nullptr)
+    result = pData->data.returnNumber.pColours[*pNumber];
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
+}
