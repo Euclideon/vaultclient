@@ -438,7 +438,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
         if (pModel != nullptr)
         {
-          if (pFeedItem->calculateHeadingPitch && udMagSq3(lerpedLatLong - previousLerpedLatLong) > 0.0)
+          if (pFeedItem->calculateHeadingPitch && udMagSq3(lerpedLatLong - previousLerpedLatLong) > 0.000001f) // small amount of lat/lon movement
             pFeedItem->headingPitch = vcGIS_GetHeadingPitchFromLatLong(pProgramState->geozone, previousLerpedLatLong, lerpedLatLong);
 
           // Calculate a transform for the model
