@@ -25,6 +25,7 @@
 #include "vcViewShed.h"
 #include "vcQueryNode.h"
 #include "vcPlaceLayer.h"
+#include "vcVerticalMeasureTool.h"
 
 void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkProjectNode* pNode)
 {
@@ -106,6 +107,8 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcQueryNode(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "Places"))
         pNode->pUserData = new vcPlaceLayer(&pProgramState->activeProject, pNode, pProgramState);
+      else if (udStrEqual(pNode->itemtypeStr, "MHeight"))
+        pNode->pUserData = new vcVerticalMeasureTool(&pProgramState->activeProject, pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(&pProgramState->activeProject, pNode, pProgramState); // Catch all
     }
