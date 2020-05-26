@@ -372,5 +372,17 @@ bool vcTexture_EndReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32
     }
   }
 
+  // Flip R&B when required
+  if (pTexture->format == vcTextureFormat_RGBA8 && (pTexture->flags & vcTCF_RenderTarget))
+  {
+    pPixelData = (uint8_t*)pPixels;
+    for (int i = 0; i < (int)(height * width); ++i, pPixelData += pixelBytes)
+    {
+      uint8_t temp = pPixelData[0];
+      pPixelData[0] = pPixelData[2];
+      pPixelData[2] = temp;
+    }
+  }
+
   return result == udR_Success;
 }

@@ -381,10 +381,10 @@ void vcGLState_Scissor(int left, int top, int right, int bottom, bool force /*= 
   udUnused(force);
 
   MTLScissorRect rect = {
-      .x = (NSUInteger)left,
-      .y = (NSUInteger)top,
-      .width = (NSUInteger)right - left,
-      .height = (NSUInteger)bottom - top
+      .x = (NSUInteger)udMin(left, (int)g_pCurrFramebuffer->attachments[0]->width),
+      .y = (NSUInteger)udMin(top, (int)g_pCurrFramebuffer->attachments[0]->height),
+      .width = (NSUInteger)udMin(right - left, (int)g_pCurrFramebuffer->attachments[0]->width),
+      .height = (NSUInteger)udMin(bottom - top, (int)g_pCurrFramebuffer->attachments[0]->height)
   };
 
   if (g_pCurrFramebuffer == g_pDefaultFramebuffer && (g_pCurrFramebuffer->actions & vcRFA_Resize) != vcRFA_Resize)
