@@ -18,11 +18,11 @@
 
 vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
-  , m_pLineInstance(nullptr)
+  , m_done(false)
   , m_pickStart(true)
   , m_pickEnd(true)
+  , m_pLineInstance(nullptr)
 {
-  m_done = false;
   ClearPoints();
 
   vcLineRenderer_CreateLine(&m_pLineInstance);
@@ -162,7 +162,7 @@ void vcVerticalMeasureTool::ChangeProjection(const udGeoZone &newZone)
   udDouble3 *pPoints = nullptr;
   int number = 0;
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &pPoints, &number);
-  for(size_t i = 0; i < number; i ++)
+  for(int i = 0; i < number; i ++)
     m_points[i] = pPoints[i];
 
   udFree(pPoints);
