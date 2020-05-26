@@ -145,7 +145,7 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
   }
 
-  ImGui::Text(udTempStr("\n%s: %.3f", vcString::Get("scenePOIMHeight"), udAbs(m_points[0].z - m_points[2].z)));
+  ImGui::Text("%s: %.3f", vcString::Get("scenePOIMHeight"), udAbs(m_points[0].z - m_points[2].z));
 
 }
 

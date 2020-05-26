@@ -1253,6 +1253,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           }
         }
         break;
+
         case vcActiveTool_Inspect:
         {
           ImGui::TextUnformatted(vcString::Get("toolInspectRunning"));
@@ -1262,6 +1263,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             vcImGuiValueTreeObject(&pProgramState->udModelNodeAttributes);
         }
         break;
+
         case vcActiveTool_Annotate:
         {
           ImGui::Separator();
@@ -1283,6 +1285,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           }
         }
         break;
+
         case vcActiveTool_MeasureHeight:
         {
           ImGui::Separator();
@@ -1290,7 +1293,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           ImGui::Separator();
         }
         break;
-        default:
+
+        case vcActiveTool_Count:
+          // Does nothing
           break;
         }
       }
