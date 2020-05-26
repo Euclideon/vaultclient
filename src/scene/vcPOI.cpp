@@ -296,95 +296,6 @@ public:
   vcPOIState_General *ChangeState(vcState *pProgramState) override;
 };
 
-//----------------------------------------------------------------------------------------------------
-// vcPOIState_MeasureHeight
-//----------------------------------------------------------------------------------------------------
-
-class vcPOIState_MeasureHeight : public vcPOIState_General
-{
-private:
-  bool m_done;
-
-public:
-  vcPOIState_MeasureHeight(vcPOI *pParent)
-    : vcPOIState_General(pParent)
-    , m_done(false)
-  {
-    pParent->m_hideArea = true;
-  }
-
-  ~vcPOIState_MeasureHeight()
-  {
-
-  }
-
-  void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview) override
-  {
-    //Allow 2 points
-    if (m_done && !isPreview)
-      return;
-
-    if (m_pParent->m_line.numPoints == 0)
-    {
-      m_pParent->InsertPoint(position);
-    }
-    else
-    {
-      const udDouble3 &startPoint = m_pParent->m_line.pPoints[0];
-      if (m_pParent->m_line.numPoints == 1)
-      {
-        m_pParent->InsertPoint(udDouble3::zero());
-        m_pParent->InsertPoint(udDouble3::zero());
-      }
-      
-      udDouble3 localStartPoint = udGeoZone_TransformPoint(startPoint, pProgramState->geozone, pProgramState->activeProject.baseZone);
-      udDouble3 localEndPoint = udGeoZone_TransformPoint(position, pProgramState->geozone, pProgramState->activeProject.baseZone); 
-      udDouble3 middlePoint = udDouble3::zero();
-      udDouble3 direction = localEndPoint - localStartPoint;
-      if (direction.z > 0)
-        middlePoint = udDouble3::create(localStartPoint.x, localStartPoint.y, localEndPoint.z);
-      else
-        middlePoint = udDouble3::create(localEndPoint.x, localEndPoint.y, localStartPoint.z);
-
-      m_pParent->m_line.pPoints[1] = udGeoZone_TransformPoint(middlePoint, pProgramState->activeProject.baseZone, pProgramState->geozone);
-      m_pParent->m_line.pPoints[2] = position;
-
-      if (!isPreview)
-      {
-        m_done = true;
-        pProgramState->activeTool = vcActiveTool_Select;
-      }
-    }
-
-    m_pParent->UpdatePoints(pProgramState);
-
-    if (m_pParent->m_line.numPoints >= 1)
-    {
-      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, vdkPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
-      m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
-    }
-  }
-
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override
-  {
-    if (!m_pParent->IsVisible(pProgramState))
-      return;
-
-    if (m_pParent->m_selected)
-    {
-      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
-      {
-        vcRenderPolyInstance *pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
-        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
-      }
-    }
-
-    m_pParent->AddFenceToScene(pRenderData);
-    m_pParent->AddLabelsToScene(pRenderData);
-  }
-
-  vcPOIState_General *ChangeState(vcState *pProgramState) override;
-};
 
 //----------------------------------------------------------------------------------------------------
 // State changes
@@ -472,30 +383,6 @@ vcPOIState_General *vcPOIState_MeasureArea::ChangeState(vcState *pProgramState)
   return this;
 }
 
-vcPOIState_General *vcPOIState_MeasureHeight::ChangeState(vcState *pProgramState)
-{
-  bool shouldChange = pProgramState->activeTool != vcActiveTool_MeasureHeight;
-
-  if (shouldChange)
-  {
-    if (pProgramState->activeTool == vcActiveTool_MeasureHeight)
-      pProgramState->activeTool = vcActiveTool_Select;
-
-    //We need to remove the preview point
-    if (!m_done && m_pParent->m_line.numPoints == 3)
-    {
-      m_pParent->RemovePoint(pProgramState, 2);
-      m_pParent->RemovePoint(pProgramState, 1);
-
-      m_pParent->UpdatePoints(pProgramState);
-    }
-
-    return new vcPOIState_General(m_pParent);
-  }
-
-  return this;
-}
-
 //----------------------------------------------------------------------------------------------------
 // vcPOI
 //----------------------------------------------------------------------------------------------------
@@ -511,7 +398,6 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
   m_showArea = false;
   m_showLength = false;
   m_lengthLabels.Init(32);
-  m_hideArea = false;
 
   memset(&m_line, 0, sizeof(m_line));
 
@@ -568,11 +454,6 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
     case vcActiveTool_Annotate:
     {
       m_pState = new vcPOIState_Annotate(this);
-      break;
-    }
-    case vcActiveTool_MeasureHeight:
-    {
-      m_pState = new vcPOIState_MeasureHeight(this);
       break;
     }
     default:
@@ -726,9 +607,7 @@ void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
 void vcPOI::UpdatePoints(vcState *pProgramState)
 {
-  if(!m_hideArea)
-    CalculateArea();
-
+  CalculateArea();
   CalculateTotalLength();
   CalculateCentroid();
 
@@ -804,7 +683,7 @@ void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
     if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_showAllLengths))
       vdkProjectNode_SetMetadataBool(m_pNode, "showAllLengths", m_showAllLengths);
 
-    if (!m_hideArea && ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_showArea))
+    if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_showArea))
       vdkProjectNode_SetMetadataBool(m_pNode, "showArea", m_showArea);
 
     if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), itemID), &m_line.closed))

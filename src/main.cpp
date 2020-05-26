@@ -42,6 +42,7 @@
 #include "vcInternalTexturesData.h"
 #include "vcHotkey.h"
 #include "vcConstants.h"
+#include "vcVerticalMeasureTool.h"
 
 #include "vcGLState.h"
 #include "vcFramebuffer.h"
@@ -1228,11 +1229,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (!pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
           pProgramState->activeTool = vcActiveTool_Select;
 
-        if (pProgramState->activeTool == vcActiveTool_MeasureLine || pProgramState->activeTool == vcActiveTool_MeasureArea || pProgramState->activeTool == vcActiveTool_MeasureHeight)
+        switch (pProgramState->activeTool)
+        {
+        case vcActiveTool_MeasureLine:
+        case vcActiveTool_MeasureArea:
         {
           if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
           {
-            vcSceneItem *pSceneItem = (vcSceneItem*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+            vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
 
             char bufferA[128];
             char bufferB[128];
@@ -1248,7 +1252,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
           }
         }
-        else if (pProgramState->activeTool == vcActiveTool_Inspect)
+        break;
+
+        case vcActiveTool_Inspect:
         {
           ImGui::TextUnformatted(vcString::Get("toolInspectRunning"));
           ImGui::Separator();
@@ -1256,7 +1262,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           if (pProgramState->udModelNodeAttributes.IsObject())
             vcImGuiValueTreeObject(&pProgramState->udModelNodeAttributes);
         }
-        else if (pProgramState->activeTool == vcActiveTool_Annotate)
+        break;
+
+        case vcActiveTool_Annotate:
         {
           ImGui::Separator();
           static size_t const bufSize = 64;
@@ -1275,6 +1283,21 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             ImGui::Separator();
             vdkProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->sceneExplorer.clickedItem.pItem, buf);
           }
+        }
+        break;
+
+        case vcActiveTool_MeasureHeight:
+        {
+          ImGui::Separator();
+          ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
+          ImGui::Separator();
+        }
+        break;
+
+        case vcActiveTool_Select:
+        case vcActiveTool_Count:
+          // Does nothing
+          break;
         }
       }
     }
@@ -1814,34 +1837,31 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
       }
-      break;
     }
+    break;
     case vcActiveTool_Inspect:
       // Does nothing during operation
       break;
 
     case vcActiveTool_MeasureHeight:
     {
-      if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
+      vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+      if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "MHeight"))
       {
-        vcPOI *pPOI = (vcPOI *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-        pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian);
+        vcVerticalMeasureTool *pTool = (vcVerticalMeasureTool *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+        pTool->EndMeasure(pProgramState, pProgramState->worldMousePosCartesian);
       }
       else
       {
         vcProject_ClearSelection(pProgramState, false);
         vdkProjectNode *pNode = nullptr;
-        if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIHeightDefaultName"), nullptr, nullptr) == vE_Success)
+        if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "MHeight", vcString::Get("sceneVerticalMeasurementTool"), nullptr, nullptr) == vE_Success)
         {
           vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_LineString, &pProgramState->worldMousePosCartesian, 1);
           udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
-          vdkProjectNode_SetMetadataBool(pNode, "showAllLengths", true);
-          vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", 0xffffff00);
-          vdkProjectNode_SetMetadataInt(pNode, "lineMode", vcRRVM_ScreenLine);
-          vdkProjectNode_SetMetadataString(pNode, "lineMode", "Screen Line");
-          vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 2.0f);
         }
       }
+      
     }
     break;
 
@@ -1857,7 +1877,6 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     {
     case vcActiveTool_MeasureLine:
     case vcActiveTool_MeasureArea:
-    case vcActiveTool_MeasureHeight:
       if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == vdkPNT_PointOfInterest)
       {
         vcSceneItem *pSceneItem = (vcSceneItem*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
@@ -1992,6 +2011,21 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         lastVoxelID = pProgramState->udModelPickedNode;
       }
       break;
+
+    case vcActiveTool_MeasureHeight:
+    {
+      vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+      if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "MHeight"))
+      {
+        vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+        if (!pSceneItem->m_visible)
+          pProgramState->activeTool = vcActiveTool_Select;
+
+        vcVerticalMeasureTool *pTool = (vcVerticalMeasureTool *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+        pTool->Preview(pProgramState->worldMousePosCartesian);
+      }
+    }
+    break;
 
     default:
       // Does nothing
