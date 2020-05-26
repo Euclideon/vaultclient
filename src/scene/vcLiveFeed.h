@@ -53,6 +53,7 @@ public:
   double m_decayFrequency; // Remove items if they haven't updated more recently than this
   double m_maxDisplayDistance; // Distance to stop displaying entirely
   double m_labelLODModifier; // Distance modifier for label LOD
+  bool m_snapToMap; // snaps items to the map
 
   udUUID m_groupID; // Required for updating group mode
 

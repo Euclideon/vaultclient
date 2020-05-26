@@ -537,6 +537,7 @@
   "liveFeedMaxDisplayTime": "Oldest display time",
   "liveFeedDisplayDistance": "Maximum distance to display",
   "liveFeedTween": "Enable Tweening / Position Smoothing",
+  "liveFeedSnapMap": "Snap to map",
   "liveFeedDiagInfo": "Total Cached Items: {0}\nCurrently displaying {1} items.\nNext Update in {2} seconds.",
   "liveFeedGroupID": "Group ID",
   "liveFeedLODModifier": "LOD Distance Modifier",
