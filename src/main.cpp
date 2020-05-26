@@ -1294,6 +1294,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         }
         break;
 
+        case vcActiveTool_Select:
         case vcActiveTool_Count:
           // Does nothing
           break;
