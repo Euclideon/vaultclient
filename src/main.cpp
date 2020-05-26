@@ -2016,7 +2016,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
           pProgramState->activeTool = vcActiveTool_Select;
 
         vcVerticalMeasureTool *pTool = (vcVerticalMeasureTool *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-        pTool->Preview(pProgramState, pProgramState->worldMousePosCartesian);
+        pTool->Preview(pProgramState->worldMousePosCartesian);
       }
     }
     break;

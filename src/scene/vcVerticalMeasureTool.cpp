@@ -23,8 +23,7 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode
   , m_pickEnd(true)
 {
   m_done = false;
-  for (size_t i = 0; i < 3; i++)
-    m_points[i] = udDouble3::zero();
+  ClearPoints();
 
   vcLineRenderer_CreateLine(&m_pLineInstance);
 
@@ -40,13 +39,14 @@ vcVerticalMeasureTool::~vcVerticalMeasureTool()
 {
 }
 
-void vcVerticalMeasureTool::Preview(vcState *pProgramState, const udDouble3 &position)
+void vcVerticalMeasureTool::Preview(const udDouble3 &position)
 {
   m_points[2] = position;
 }
 
 void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &position)
 {
+  m_points[2] = position;
   m_done = true;
   pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
   vdkProjectNode_SetMetadataBool(m_pNode, "measureEnd", m_done);
@@ -152,12 +152,12 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
 {
   RemoveMeasureInfo();
+  pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
 }
 
 void vcVerticalMeasureTool::ChangeProjection(const udGeoZone &newZone)
 {
-  for (size_t i = 0; i < 3; i++)
-    m_points[i] = udDouble3::zero();
+  ClearPoints();
 
   udDouble3 *pPoints = nullptr;
   int number = 0;
@@ -166,6 +166,7 @@ void vcVerticalMeasureTool::ChangeProjection(const udGeoZone &newZone)
     m_points[i] = pPoints[i];
 
   udFree(pPoints);
+  pPoints = nullptr;
 }
 
 udDouble3 vcVerticalMeasureTool::GetLocalSpacePivot()
@@ -208,6 +209,15 @@ void vcVerticalMeasureTool::RemoveMeasureInfo()
   }
 
   if (m_labelInfo.pText)
+  {
     udFree(m_labelInfo.pText);
+    m_labelInfo.pText = nullptr;
+  }
 
+}
+
+void vcVerticalMeasureTool::ClearPoints()
+{
+  for (size_t i = 0; i < POINTSIZE; i++)
+    m_points[i] = udDouble3::zero();
 }

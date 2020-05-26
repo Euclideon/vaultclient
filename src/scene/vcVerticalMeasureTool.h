@@ -18,7 +18,7 @@ public:
   vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   virtual ~vcVerticalMeasureTool();
 
-  void Preview(vcState *pProgramState, const udDouble3 &position);
+  void Preview(const udDouble3 &position);
   void EndMeasure(vcState *pProgramState, const udDouble3 &position);
 
   virtual void OnNodeUpdate(vcState *pProgramState);
@@ -33,12 +33,14 @@ private:
   void UpdateIntersectionPosition(vcState *pProgramState);
   bool HasLine();
   void RemoveMeasureInfo();
+  void ClearPoints();
 
 private:
+  static const int POINTSIZE = 3;
   bool m_done;
   bool m_pickStart;
   bool m_pickEnd;
-  udDouble3 m_points[3];
+  udDouble3 m_points[POINTSIZE];
 
   vcLabelInfo m_labelInfo;
   vcLineInstance *m_pLineInstance;
