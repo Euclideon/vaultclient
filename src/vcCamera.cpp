@@ -629,11 +629,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   cameraSurfacePosition += pProgramState->camera.cameraUp * CameraGroundBufferDistanceMeters;
 
   // Calculate if camera is underneath earth surface
-  pProgramState->camera.cameraIsUnderSurface = udDot3(pProgramState->camera.cameraUp, udNormalize3(pProgramState->camera.position - cameraSurfacePosition)) < 0;
+  pProgramState->camera.cameraIsUnderSurface = false;//udDot3(pProgramState->camera.cameraUp, udNormalize3(pProgramState->camera.position - cameraSurfacePosition)) < 0;
   if (pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.camera.keepAboveSurface && pProgramState->camera.cameraIsUnderSurface)
   {
-    pProgramState->camera.cameraIsUnderSurface = false;
-    pProgramState->camera.position = cameraSurfacePosition;
+    //pProgramState->camera.cameraIsUnderSurface = false;
+    //pProgramState->camera.position = cameraSurfacePosition;
 
     // TODO: re-orient camera during orbit control to correctly focus on worldAnchorPoint
   }

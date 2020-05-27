@@ -49,6 +49,7 @@ struct vcNodeRenderInfo
     vcTexture *pTexture; // which texture to draw this node with for this frame. Note: may belong to an ancestor node.
     udFloat2 uvStart;
     udFloat2 uvEnd;
+    int depth;
   } drawInfo;
 };
 
@@ -95,6 +96,10 @@ struct vcQuadTreeNode
   // node payloads
   vcNodeRenderInfo colourInfo;
   vcNodeRenderInfo demInfo;
+  vcNodeRenderInfo normalInfo;
+
+  uint8_t *pShortPixels; // todo; move lol
+  uint32_t *pNormalPixels;
 };
 
 struct vcQuadTreeMetaData
@@ -177,6 +182,6 @@ inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQu
 
 void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode);
 
-const vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point);
+vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point);
 
 #endif//vcQuadTree_h__

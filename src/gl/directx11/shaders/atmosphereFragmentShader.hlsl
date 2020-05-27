@@ -1336,7 +1336,7 @@ float GetSkyVisibility(float3 p, float sceneDepth) {
 } 
 
 // TODO: Normals
-void GetSphereShadowInOut(float3 camera, float3 view_direction, float3 sun_direction, float3 geom_point,
+void GetGeometryShadowInOut(float3 camera, float3 sceneNormal, float3 view_direction, float3 sun_direction, float3 geom_point,
     out float d_in, out float d_out) {
   float3 pos = (camera - geom_point);
    
@@ -1364,9 +1364,12 @@ float linearizeDepth(float depth)
 
 float3 unpackNormal(float4 normalPacked)
 {
-  return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-                (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+  return float3(normalPacked.x, normalPacked.y,
+                sqrt(1 - normalPacked.x*normalPacked.x - normalPacked.y * normalPacked.y));
+				
+  //return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+ //               (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+//		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -1392,6 +1395,9 @@ PS_OUTPUT main(PS_INPUT input)
   float sceneDepth = logToLinearDepth(sceneLogDepth);
   sceneColour.xyz = pow(abs(sceneColour.xyz), float3(2.2, 2.2, 2.2));
 
+  float3 sceneNormal = unpackNormal(sceneNormalPacked);
+  //sceneColour.xyz = sceneNormal;
+  
   output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
 
@@ -1403,7 +1409,7 @@ PS_OUTPUT main(PS_INPUT input)
   float shadow_in = 0;
   float shadow_out = 0;
   //if (sceneLogDepth < 1.0)
-  //  GetSphereShadowInOut(camera, view_direction, sun_direction, geometryPoint, shadow_in, shadow_out);
+  //  GetGeometryShadowInOut(camera, sceneNormal, view_direction, sun_direction, geometryPoint, shadow_in, shadow_out);
 
   // Hack to fade out light shafts when the Sun is very close to the horizon.
   float lightshaft_fadein_hack = smoothstep(
@@ -1434,8 +1440,7 @@ get the sun and sky irradiance received at this point. The reflected radiance
 follows, by multiplying the irradiance with the geometry BRDF:
 */
 
-    // TODO: Normals
-    float3 normal = normalize(geometryPoint - earth_center); 
+    float3 normal = sceneNormal;
 
     // Compute the radiance reflected by the sphere.
     float3 sky_irradiance;
@@ -1482,7 +1487,7 @@ on the ground by the sun and sky visibility factors):
   float3 ground_radiance = float3(0.0, 0.0, 0.0);
   if (distance_to_intersection > 0.0) {
     float3 geomPoint = camera + view_direction * distance_to_intersection;
-    float3 normal = normalize(geomPoint - earth_center);
+    float3 normal = sceneNormal;//normalize(geomPoint - earth_center);
   
     // Compute the radiance reflected by the ground.
     float3 sky_irradiance;
@@ -1539,7 +1544,7 @@ the scene:
     output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
   // debugging
-  //output.Color0.xyz = lerp(float3(view_direction.z + camera.z, 0, 0), output.Color0.xyz, 0.00000000001);
+  //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
 	
   return output;
 }
