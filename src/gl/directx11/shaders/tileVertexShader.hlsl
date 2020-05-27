@@ -45,9 +45,10 @@ float CalcuteLogDepth(float4 clipPos)
   return (log2(max(1e-6, 1.0 + clipPos.w)) * Fcoef + u_clipZNear) * clipPos.w;
 }
 
-float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], float2 uv)
+float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], float2 uv2)
 {
   // whole
+  float2 uv = uv2;// - float2(0.5 / 256.0, 0.5 / 256.0);
   float ui = floor(uv.x);
   float vi = floor(uv.y);
   float ui2 = min((CONTROL_POINT_RES - 1.0), ui + 1.0);
@@ -62,9 +63,9 @@ float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], flo
   float4 p3 = samples[int(vi2 * CONTROL_POINT_RES + ui2)];
   
   // bilinear position
-  float4 pu = (p0 + (p1 - p0) * uvt.x);
-  float4 pv = (p2 + (p3 - p2) * uvt.x);
-  return (pu + (pv - pu) * uvt.y);
+  float4 pu = lerp(p0, p1, uvt.x);//(p0 + (p1 - p0) * uvt.x);
+  float4 pv = lerp(p2, p3, uvt.x);//(p2 + (p3 - p2) * uvt.x);
+  return lerp(pu, pv, uvt.y);
 }
 
 PS_INPUT main(VS_INPUT input)
@@ -86,10 +87,11 @@ PS_INPUT main(VS_INPUT input)
 	
   // note: could have precision issues on some devices
   output.colour = u_colour;
-  output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
+  output.uv = demUV;//u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
   
+  output.colour = float4(pow(tileHeight / 10000.0, 35.0) * 1000.0, 0, 0, 0);//pow(demUV, 115.0) * 8000.0, 0, 0);
   return output;
 }

@@ -95,6 +95,7 @@ struct vcQuadTreeNode
   // node payloads
   vcNodeRenderInfo colourInfo;
   vcNodeRenderInfo demInfo;
+  vcNodeRenderInfo normalInfo;
 };
 
 struct vcQuadTreeMetaData

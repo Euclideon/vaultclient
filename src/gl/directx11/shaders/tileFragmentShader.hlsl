@@ -37,11 +37,14 @@ PS_OUTPUT main(PS_INPUT input)
   float4 col = colourTexture.Sample(colourSampler, input.uv);
 
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
+  output.Color0.xyz = col.xyz * 2.0 - 1.0;
+ // output.Color0.xyz = input.colour.xyz;
   
   float scale = 1.0 / (u_clipZFar - u_clipZNear);
   float bias = -(u_clipZNear * 0.5);
   float depth = (input.depth.x / input.depth.y) * scale + bias; // depth packed here
   
   output.Normal = packNormal(float3(0, 0, 0), input.objectInfo.x, depth); 
+  
   return output;
 }
