@@ -41,6 +41,16 @@ void vcShader_UpdatePipeline(vcShader *pShader)
     }
   }
 
+  // Update unused render target colour formats if needed
+  for (int i = g_pCurrFramebuffer->attachmentCount; ; ++i)
+  {
+    if (pShader->pDesc.colorAttachments[i].pixelFormat == MTLPixelFormatInvalid)
+      break;
+
+    pShader->pDesc.colorAttachments[i].pixelFormat = MTLPixelFormatInvalid;
+    modified = true;
+  }
+
   // Update render target depth format
   if (g_pCurrFramebuffer->pDepth != nullptr && pShader->pDesc.depthAttachmentPixelFormat != g_pCurrFramebuffer->pDepth->texture.pixelFormat)
   {
