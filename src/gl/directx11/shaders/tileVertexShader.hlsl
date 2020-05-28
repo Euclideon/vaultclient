@@ -18,6 +18,7 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
+  float2 normalUV : TEXCOORD3;
 };
 
 // This should match CPU struct size
@@ -87,11 +88,11 @@ PS_INPUT main(VS_INPUT input)
 	
   // note: could have precision issues on some devices
   output.colour = u_colour;
-  output.uv = demUV;//u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
+  output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
+  output.normalUV = demUV;
   
-  output.colour = float4(input.pos.xy, 0, 0);//float4(pow(tileHeight / 10000.0, 35.0) * 1000.0, 0, 0, 0);//pow(demUV, 115.0) * 8000.0, 0, 0);
   return output;
 }

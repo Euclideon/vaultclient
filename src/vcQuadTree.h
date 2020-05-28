@@ -96,6 +96,9 @@ struct vcQuadTreeNode
   vcNodeRenderInfo colourInfo;
   vcNodeRenderInfo demInfo;
   vcNodeRenderInfo normalInfo;
+
+  uint8_t *pShortPixels; // todo; move lol
+  udFloat4 *pNormalPixels;
 };
 
 struct vcQuadTreeMetaData
@@ -178,6 +181,6 @@ inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQu
 
 void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode);
 
-const vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point);
+vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point);
 
 #endif//vcQuadTree_h__

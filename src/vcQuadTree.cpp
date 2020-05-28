@@ -195,15 +195,14 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
 {
-  return true;
-  //udDouble3 mapHeightOffset = pNode->worldNormals[4] * pQuadTree->pSettings->maptiles.mapHeight;
-  //return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, pNode->tileCenter + mapHeightOffset, pNode->tileExtents);
+  udDouble3 mapHeightOffset = pNode->worldNormals[4] * pQuadTree->pSettings->maptiles.mapHeight;
+  return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, pNode->tileCenter + mapHeightOffset, pNode->tileExtents);
 }
 
 inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
 {
   // trial and error'd this heuristic
-  const int RootRegionSize = 22000000; // higher == higher quality maps
+  const int RootRegionSize = 22000000 * 4; // higher == higher quality maps
   return distance < (RootRegionSize >> depth);
 }
 
@@ -633,8 +632,7 @@ void vcQuadTree_Prune(vcQuadTree *pQuadTree)
   while (pQuadTree->nodes.used > 0 && !vcQuadTree_IsBlockUsed(pQuadTree, pQuadTree->nodes.used - NodeChildCount))
     pQuadTree->nodes.used -= NodeChildCount;
 }
-
-const vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode, const udDouble3 &point)
+ vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode, const udDouble3 &point)
 {
   if (vcQuadTree_IsLeafNode(pNode))
     return pNode;
@@ -649,7 +647,7 @@ const vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree,
   return vcQuadTree_GetLeafNodeFromCartesian(pQuadTree, &pQuadTree->nodes.pPool[pNode->childBlockIndex + (childOffset.y * 2 + childOffset.x)], point);
 }
 
-const vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point)
+vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point)
 {
   return vcQuadTree_GetLeafNodeFromCartesian(pQuadTree, &pQuadTree->nodes.pPool[pQuadTree->rootIndex], point);
 }

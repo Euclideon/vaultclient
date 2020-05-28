@@ -13,6 +13,7 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
+  float2 normalUV : TEXCOORD3;
 };
 
 struct PS_OUTPUT
@@ -24,6 +25,9 @@ struct PS_OUTPUT
 sampler colourSampler;
 Texture2D colourTexture;
 
+sampler normalSampler;
+Texture2D normalTexture;
+
 float4 packNormal(float3 normal, float objectId, float depth)
 {
   return float4(normal.x / (1.0 - normal.z), normal.y / (1.0 - normal.z),
@@ -34,17 +38,16 @@ float4 packNormal(float3 normal, float objectId, float depth)
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
-  float4 col = colourTexture.Sample(colourSampler, input.uv + float2(0.5, 0.5) / 256.0);
+  float4 col = colourTexture.Sample(colourSampler, input.uv);
+  float4 normal = normalTexture.Sample(normalSampler, input.normalUV + float2(0.5, 0.5) / 256.0);
 
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
-  output.Color0.xyz = col.xyz;// * 2.0 - 1.0;
-  //output.Color0.xyz = input.colour.xyz;
   
   float scale = 1.0 / (u_clipZFar - u_clipZNear);
   float bias = -(u_clipZNear * 0.5);
   float depth = (input.depth.x / input.depth.y) * scale + bias; // depth packed here
   
-  output.Normal = packNormal(float3(0, 0, 0), input.objectInfo.x, depth); 
+  output.Normal = packNormal(normal.xyz, input.objectInfo.x, depth); 
   
   return output;
 }
