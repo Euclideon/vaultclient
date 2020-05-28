@@ -294,14 +294,14 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
     //Return Number
     uint32_t beginColour = 0xABCDEF;
-    for (int i = 0; i < pSettings->visualization.s_maxReturnNumbers; i++)
+    for (uint32_t i = 0; i < pSettings->visualization.s_maxReturnNumbers; i++)
     {
       pSettings->visualization.returnNumberColours[i] = data.Get("visualization.returnNumberColours[%d]", i).AsInt(0xFF000000 | (beginColour & 0xFFFFFF));
       beginColour += 0x987657;
     }
 
     //Number Of Returns
-    for (int i = 0; i < pSettings->visualization.s_maxReturnNumbers; i++)
+    for (uint32_t i = 0; i < pSettings->visualization.s_maxReturnNumbers; i++)
     {
       pSettings->visualization.numberOfReturnsColours[i] = data.Get("visualization.numberOfReturnsColours[%d]", i).AsInt(0xFF000000 | (beginColour & 0xFFFFFF));
       beginColour += 0x987657;

@@ -1054,7 +1054,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
         }
       }
 
-      if (index == -1)
+      if (index == size_t(-1))
         pVisualizationSettings->pointSourceID.colourMap.PushBack({id16, newPointSourceColour});
       else
         pVisualizationSettings->pointSourceID.colourMap[index].colour = newPointSourceColour;
@@ -1081,7 +1081,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
       vcIGSW_ColorPickerU32(udTempStr("%u##PointSourceID", pVisualizationSettings->pointSourceID.colourMap[i].id), &pVisualizationSettings->pointSourceID.colourMap[i].colour, ImGuiColorEditFlags_None);
     }
 
-    if (removeIndex != -1)
+    if (removeIndex != size_t(-1))
       pVisualizationSettings->pointSourceID.colourMap.RemoveAt(removeIndex);
     break;
   }
