@@ -821,6 +821,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
       for (int w = 0; w < pNode->demInfo.data.width; ++w)
       {
         int index = h * pNode->demInfo.data.width + w;
+        //uint32_t p = ((w % 5) == 0 || (h % 5) == 0) ? 0x1f000000 : 0;
         uint32_t p = ((uint32_t*)pNode->demInfo.data.pData)[index];
         uint8_t r = uint8_t((p & 0xff000000) >> 24);
         uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
@@ -867,7 +868,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
       // generate normals
       int stepSize = 1;//5;
-      //texelWorldSize *= stepSize;
+      texelWorldSize *= 1;
       //const float TexelMetersLevel13 = 19.093f * 1.0;
       //float texelWorldSize = (float)(TexelMetersLevel13 * udPow(2.0, udMax(0, 13 - pNode->slippyPosition.z)));
 
@@ -887,11 +888,13 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
       static int globelDebugCol = 40;
 
       udFloat2 stepSize2 = udFloat2::create(1.0f / pNode->demInfo.data.width, 1.0f / pNode->demInfo.data.height);
-      uint32_t *pNormals = udAllocType(uint32_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
-      for (int h = 0; h < pNode->demInfo.data.height; ++h)
+      //uint32_t *pNormals = udAllocType(uint32_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
+      udFloat4 *pNormals = udAllocType(udFloat4, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
+      for (int h2 = 0; h2 < pNode->demInfo.data.height; ++h2)
       {
         for (int w = 0; w < pNode->demInfo.data.width; ++w)
         {
+          int h = h2;
           udFloat2 uv = udFloat2::create(float(w) / pNode->demInfo.data.width, float(h) / pNode->demInfo.data.height);
 
           //float r = 
@@ -919,8 +922,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
             udFloat3 p10 = p1 - p0;
             udFloat3 p20 = p2 - p0;
-            p10 = udNormalize3(p10);
-            p20 = udNormalize3(p20);
+            //p10 = udNormalize3(p10);
+            //p20 = udNormalize3(p20);
             udFloat3 rn = udCross(p10, p20);
             rn = udNormalize3(rn);
             n += rn;
@@ -944,20 +947,22 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
           ////udFloat3 n = udNormalize3(udFloat3::create(left.z - right.z, down.z - up.z, 2.0f));
 
 
-          int nx = (int)(((n.x * 0.5f) + 0.5f) * 255);
-          int ny = (int)(((n.y * 0.5f) + 0.5f) * 255);
-          int nz = (int)(((n.z * 0.5f) + 0.5f) * 255);
+          //int nx = (int)(((n.x * 0.5f) + 0.5f) * 255);
+          //int ny = (int)(((n.y * 0.5f) + 0.5f) * 255);
+          //int nz = (int)(((n.z * 0.5f) + 0.5f) * 255);
 
           if (h == globalDebugRow && w == globelDebugCol)
           {
-            nx = 0xff; ny = 0; nz = 0;
+            n = udFloat3::create(1, 0, 0);
+          //  nx = 0xff; ny = 0; nz = 0;
           }
-
-          pNormals[i0] = nx | (ny << 8) | (nz << 16) | (0xff000000);
+          //
+          //pNormals[i0] = nx | (ny << 8) | (nz << 16) | (0xff000000);
+          pNormals[i0] = udFloat4::create(n, 0.0f);
         }
       }
 
-      vcTexture_CreateAdv(&pNode->colourInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNormals, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp);
+      vcTexture_CreateAdv(&pNode->colourInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNormals, vcTextureFormat_RGBA32F, vcTFM_Linear, false, vcTWM_Clamp);
       udFree(pNormals);
     }
 

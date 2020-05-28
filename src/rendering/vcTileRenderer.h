@@ -4,7 +4,7 @@
 #include "udMath.h"
 
 // Cap depth at level 19 (system doesn't have access to these tiles yet)
-enum { MaxVisibleTileLevel = 14 };
+enum { MaxVisibleTileLevel = 19 };
 
 struct vcSettings;
 struct udGeoZone;

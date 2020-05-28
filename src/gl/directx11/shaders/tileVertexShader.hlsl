@@ -92,6 +92,6 @@ PS_INPUT main(VS_INPUT input)
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
   
-  output.colour = float4(pow(tileHeight / 10000.0, 35.0) * 1000.0, 0, 0, 0);//pow(demUV, 115.0) * 8000.0, 0, 0);
+  output.colour = float4(input.pos.xy, 0, 0);//float4(pow(tileHeight / 10000.0, 35.0) * 1000.0, 0, 0, 0);//pow(demUV, 115.0) * 8000.0, 0, 0);
   return output;
 }
