@@ -14,7 +14,12 @@
 
 EM_JS(void, vcTexture_glGetBufferSubData, (GLenum target, GLintptr offset, GLsizeiptr size, void *data, GLenum type), {
   var heap = __heapObjectForWebGLType(type);
-  GLctx.getBufferSubData(target, offset, heap, data >> (__heapAccessShiftForWebGLType[type] | 0), size);
+  var shift = 0;
+  if (typeof(__heapAccessShiftForWebGLType) === 'undefined')
+    shift = __heapAccessShiftForWebGLHeap(heap);
+  else
+    shift = __heapAccessShiftForWebGLType[type] | 0;
+  GLctx.getBufferSubData(target, offset, heap, data >> shift, size);
 });
 #endif
 
