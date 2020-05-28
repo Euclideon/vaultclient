@@ -841,11 +841,11 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
       }
     }
 
-    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pShortPixels, vcTextureFormat_RG8, vcTFM_Nearest, false, vcTWM_Clamp);
+    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pShortPixels, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pShortPixels);
     udFree(pNode->demInfo.data.pData);
 
-    if (pNode->slippyPosition.x == 6074 && pNode->slippyPosition.y == 3432 && pNode->slippyPosition.z == 13)
+    //if (pNode->slippyPosition.x == 6074 && pNode->slippyPosition.y == 3432 && pNode->slippyPosition.z == 13)
     {
       udInt2 slipA = pNode->slippyPosition.toVector2();
       udInt2 slipB = slipA + udInt2::create(1, 0);
@@ -901,7 +901,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
           int i0 = h * pNode->demInfo.data.width + w;
           udFloat3 p0 = udFloat3::create(0.0f, 0.0f, pNode->pDemHeightsCopy[i0]);
-          //p0.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv, pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
+          p0.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv, pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
 
           udFloat3 n = udFloat3::zero();
           for (int e = 0; e < 4; ++e)
@@ -916,9 +916,9 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
             int index1 = udClamp(h + offsets[e1].y, 0, maxHeightIndex) * pNode->demInfo.data.width + udClamp(w + offsets[e1].x, 0, maxWidthIndex);
 
             udFloat3 p1 = udFloat3::create(texelWorldSize.x * offsets[e0].x, texelWorldSize.y * offsets[e0].y, pNode->pDemHeightsCopy[index0]);
-            //p1.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e0].x, stepSize2.y * offsets[e0].y), pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
+            p1.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e0].x, stepSize2.y * offsets[e0].y), pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
             udFloat3 p2 = udFloat3::create(texelWorldSize.x * offsets[e1].x, texelWorldSize.y * offsets[e1].y, pNode->pDemHeightsCopy[index1]);
-            //p2.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e1].x, stepSize2.y * offsets[e1].y), pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
+            p2.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e1].x, stepSize2.y * offsets[e1].y), pNode->demHeightsCopySize.x, pNode->demHeightsCopySize.y);
 
             udFloat3 p10 = p1 - p0;
             udFloat3 p20 = p2 - p0;
