@@ -843,6 +843,7 @@ int main(int argc, char **args)
   programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   programState.settings.languageOptions.Init(4);
+  programState.settings.visualization.pointSourceID.colourMap.Init(32);
 
   programState.passwordFieldHasFocus = true;
   programState.renaming = -1;

@@ -269,6 +269,44 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       }
     }
 
+    //GPSTime
+    pSettings->visualization.GPSTime.minTime = data.Get("visualization.GPSTime.minTime").AsDouble(0.0);
+    pSettings->visualization.GPSTime.maxTime = data.Get("visualization.GPSTime.maxTime").AsDouble(0.0);
+
+    //Scan Angle
+    pSettings->visualization.scanAngle.minAngle = data.Get("visualization.scanAngle.minAngle").AsDouble(-180.0);
+    pSettings->visualization.scanAngle.maxAngle = data.Get("visualization.scanAngle.maxAngle").AsDouble(180.0);
+
+    //Point Source ID
+    pSettings->visualization.pointSourceID.defaultColour = data.Get("visualization.pointSourceID.defaultColour").AsInt(0x00FFFF00);
+    if (data.Get("visualization.pointSourceID.colourMap").IsArray())
+    {
+      pSettings->visualization.pointSourceID.colourMap.Clear();
+      for (size_t i = 0; i < data.Get("visualization.pointSourceID.colourMap").ArrayLength(); ++i)
+      {
+        int id = data.Get("visualization.pointSourceID.colourMap").Get("[%zu].id", i).AsInt(-1);
+        uint32_t colour = data.Get("visualization.pointSourceID.colourMap").Get("[%zu].colour", i).AsInt(0);
+
+        if (id != -1)
+          pSettings->visualization.pointSourceID.colourMap.PushBack({uint16_t(id), colour});
+      }
+    }
+
+    //Return Number
+    uint32_t beginColour = 0xABCDEF;
+    for (uint32_t i = 0; i < pSettings->visualization.s_maxReturnNumbers; i++)
+    {
+      pSettings->visualization.returnNumberColours[i] = data.Get("visualization.returnNumberColours[%d]", i).AsInt(0xFF000000 | (beginColour & 0xFFFFFF));
+      beginColour += 0x987657;
+    }
+
+    //Number Of Returns
+    for (uint32_t i = 0; i < pSettings->visualization.s_maxReturnNumbers; i++)
+    {
+      pSettings->visualization.numberOfReturnsColours[i] = data.Get("visualization.numberOfReturnsColours[%d]", i).AsInt(0xFF000000 | (beginColour & 0xFFFFFF));
+      beginColour += 0x987657;
+    }
+
     // Post visualization - Edge Highlighting
     pSettings->postVisualization.edgeOutlines.width = data.Get("postVisualization.edgeOutlines.width").AsInt(1);
     pSettings->postVisualization.edgeOutlines.threshold = data.Get("postVisualization.edgeOutlines.threshold").AsFloat(2.0f);
@@ -605,6 +643,29 @@ bool vcSettings_Save(vcSettings *pSettings)
     if (pSettings->visualization.customClassificationColorLabels[i] != nullptr)
       data.Set("visualization.classificationColourLabels[] = '%03d%s'", i, pSettings->visualization.customClassificationColorLabels[i]);
 
+  //GPS Time
+  data.Set("visualization.GPSTime.minTime = %f", pSettings->visualization.GPSTime.minTime);
+  data.Set("visualization.GPSTime.maxTime = %f", pSettings->visualization.GPSTime.maxTime);
+
+  //Scan angle
+  data.Set("visualization.scanAngle.minAngle = %f", pSettings->visualization.scanAngle.minAngle);
+  data.Set("visualization.scanAngle.maxAngle = %f", pSettings->visualization.scanAngle.maxAngle);
+
+  //Point source ID
+  data.Set("visualization.pointSourceID.defaultColour = %u", pSettings->visualization.pointSourceID.defaultColour);
+  for (uint32_t i = 0; i < pSettings->visualization.pointSourceID.colourMap.length; ++i)
+  {
+    data.Set("visualization.pointSourceID.colourMap[%u].id = %u", i, pSettings->visualization.pointSourceID.colourMap[i].id);
+    data.Set("visualization.pointSourceID.colourMap[%u].colour = %u", i, pSettings->visualization.pointSourceID.colourMap[i].colour);
+  }
+
+  //Return number, Number of returns
+  for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
+  {
+    data.Set("visualization.returnNumberColours[] = %u", pSettings->visualization.returnNumberColours[i]);
+    data.Set("visualization.numberOfReturnsColours[] = %u", pSettings->visualization.numberOfReturnsColours[i]);
+  }
+
   // Post visualization - Edge Highlighting
   data.Set("postVisualization.edgeOutlines.enabled = %s", pSettings->postVisualization.edgeOutlines.enable ? "true" : "false");
   data.Set("postVisualization.edgeOutlines.width = %d", pSettings->postVisualization.edgeOutlines.width);
@@ -725,6 +786,7 @@ void vcSettings_Cleanup(vcSettings *pSettings)
   vcSettings_Cleanup_CustomClassificationColorLabels(pSettings);
 
   pSettings->languageOptions.Deinit();
+  pSettings->visualization.pointSourceID.colourMap.Deinit();
 
   vcTexture_Destroy(&pSettings->convertdefaults.watermark.pTexture);
 }
