@@ -1605,7 +1605,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
           pVoxelShaderData[numVisibleModels].data.GPSTime.maxTime = pProgramState->settings.visualization.GPSTime.maxTime;
         }
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ScanAngle) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ScanDirection, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ScanAngle) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ScanAngle, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
       {
         double minAngleNorm = (pProgramState->settings.visualization.scanAngle.minAngle + 180.0) / 360.0;
         double maxAngleNorm = (pProgramState->settings.visualization.scanAngle.maxAngle + 180.0) / 360.0;
