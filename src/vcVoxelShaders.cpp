@@ -166,9 +166,13 @@ uint32_t vcVoxelShader_GPSTime(vdkPointCloud * pPointCloud, uint64_t voxelID, co
   if (pGPSTime != nullptr)
   {
     if (*pGPSTime < pData->data.GPSTime.minTime)
+    {
       result = 0xFF000000;
+    }
     else if (*pGPSTime > pData->data.GPSTime.maxTime)
+    {
       result = 0xFFFFFFFF;
+    }
     else
     {
       double frac = (*pGPSTime - pData->data.GPSTime.minTime) * pData->data.GPSTime.mult;
@@ -192,9 +196,13 @@ uint32_t vcVoxelShader_ScanAngle(vdkPointCloud *pPointCloud, uint64_t voxelID, c
     goto epilogue;
 
   if (*pScanAngle < pData->data.scanAngle.minAngle)
+  {
     result = 0xFF000000;
+  }
   else if (*pScanAngle > pData->data.scanAngle.maxAngle)
+  {
     result = 0xFFFFFFFF;
+  }
   else
   {
     uint32_t scanAngle = uint32_t(int32_t(*pScanAngle) - pData->data.scanAngle.minAngle);
@@ -238,9 +246,12 @@ uint32_t vcVoxelShader_ReturnNumber(vdkPointCloud *pPointCloud, uint64_t voxelID
   uint8_t *pNumber = nullptr;
   vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pNumber);
 
-  if (pNumber != nullptr && *pNumber <= vcVisualizationSettings::s_maxReturnNumbers)
-    result = pData->data.returnNumber.pColours[*pNumber];
+  if (pNumber == nullptr || *pNumber == 0 || *pNumber > vcVisualizationSettings::s_maxReturnNumbers)
+    goto epilogue;
 
+  result = pData->data.returnNumber.pColours[*pNumber - 1];
+
+epilogue:
   return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
 }
 
@@ -252,8 +263,11 @@ uint32_t vcVoxelShader_NumberOfReturns(vdkPointCloud *pPointCloud, uint64_t voxe
   uint8_t *pNumber = nullptr;
   vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pNumber);
 
-  if (pNumber != nullptr)
-    result = pData->data.returnNumber.pColours[*pNumber];
+  if (pNumber == nullptr || *pNumber == 0 || *pNumber > vcVisualizationSettings::s_maxReturnNumbers)
+    goto epilogue;
 
+  result = pData->data.numberOfReturns.pColours[*pNumber - 1];
+
+epilogue:
   return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
 }
