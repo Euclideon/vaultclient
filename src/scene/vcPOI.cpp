@@ -779,7 +779,7 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vcWebFile_OpenBrowser(m_hyperlink);
   }
 
-  if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, 512, ImGuiInputTextFlags_EnterReturnsTrue))
+  if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
     vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
    
   if (m_attachment.pModel != nullptr)
