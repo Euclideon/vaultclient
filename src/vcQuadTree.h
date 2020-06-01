@@ -98,7 +98,7 @@ struct vcQuadTreeNode
   vcNodeRenderInfo normalInfo;
 
   uint8_t *pShortPixels; // todo; move lol
-  udFloat4 *pNormalPixels;
+  uint32_t *pNormalPixels;
 };
 
 struct vcQuadTreeMetaData

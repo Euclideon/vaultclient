@@ -202,7 +202,7 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
 inline bool vcQuadTree_ShouldSubdivide(double distance, int depth)
 {
   // trial and error'd this heuristic
-  const int RootRegionSize = 22000000 * 4; // higher == higher quality maps
+  const int RootRegionSize = 22000000; // higher == higher quality maps
   return distance < (RootRegionSize >> depth);
 }
 

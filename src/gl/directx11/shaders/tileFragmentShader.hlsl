@@ -40,7 +40,8 @@ PS_OUTPUT main(PS_INPUT input)
   PS_OUTPUT output;
   float4 col = colourTexture.Sample(colourSampler, input.uv);
   float4 normal = normalTexture.Sample(normalSampler, input.normalUV + float2(0.5, 0.5) / 256.0);
-
+  normal.xyz = normal.xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
+  
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
   
   float scale = 1.0 / (u_clipZFar - u_clipZNear);
