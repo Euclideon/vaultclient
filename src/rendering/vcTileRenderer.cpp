@@ -212,8 +212,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
     for (int w = 0; w < pNode->demInfo.data.width; ++w)
     {
       int index = h * pNode->demInfo.data.width + w;
-      uint32_t p = ((w % 5) == 0 || (h % 5) == 0) ? 0x1f000000 : 0;
-      //uint32_t p = ((uint32_t*)pNode->demInfo.data.pData)[index];
+      //uint32_t p = ((w % 5) == 0 || (h % 5) == 0) ? 0x1f000000 : 0;
+      uint32_t p = ((uint32_t*)pNode->demInfo.data.pData)[index];
       uint8_t r = uint8_t((p & 0xff000000) >> 24);
       uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
 
@@ -967,11 +967,11 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
     vcTileRenderer_GenerateNormalsAndDem(pTileRenderer->quadTree.geozone, pNode);
 
-    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->pShortPixels, vcTextureFormat_RG8, vcTFM_Nearest, false, vcTWM_Clamp);
+    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->pShortPixels, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pNode->pShortPixels);
     udFree(pNode->demInfo.data.pData);
 
-    vcTexture_CreateAdv(&pNode->normalInfo.data.pTexture, vcTextureType_Texture2D, pNode->normalInfo.data.width, pNode->normalInfo.data.height, 1, pNode->pNormalPixels, vcTextureFormat_RGBA8, vcTFM_Nearest, false, vcTWM_Clamp);
+    vcTexture_CreateAdv(&pNode->normalInfo.data.pTexture, vcTextureType_Texture2D, pNode->normalInfo.data.width, pNode->normalInfo.data.height, 1, pNode->pNormalPixels, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pNode->pNormalPixels);
 
     pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Absolute;
