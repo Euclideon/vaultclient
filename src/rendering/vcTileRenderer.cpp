@@ -50,28 +50,29 @@ int MeshLeft = 1 << 3;
 int MeshConfigurations[] =
 {
   0,
+  1,
 
-  MeshUp,                              //  ^
-  MeshRight,                           //   >
-  MeshDown,                            //  .
-  MeshLeft,                            // <
-
-  MeshUp | MeshRight,                  //  ^>
-  MeshUp | MeshDown,                   //  ^.
-  MeshUp | MeshLeft,                   // <^
-
-  MeshRight | MeshDown,                //  .>
-  MeshRight | MeshLeft,                // < >
-
-  MeshDown | MeshLeft,                 // <.
-
-  MeshUp | MeshRight | MeshDown,       //  ^.>
-  MeshUp | MeshLeft | MeshRight,       // <^>
-  MeshUp | MeshLeft | MeshDown,        // <^.
-
-  MeshDown | MeshLeft | MeshRight,     // <.>
-
-  MeshUp | MeshLeft | MeshRight | MeshDown // <^.>
+  //MeshUp,                              //  ^
+  //MeshRight,                           //   >
+  //MeshDown,                            //  .
+  //MeshLeft,                            // <
+  //
+  //MeshUp | MeshRight,                  //  ^>
+  //MeshUp | MeshDown,                   //  ^.
+  //MeshUp | MeshLeft,                   // <^
+  //
+  //MeshRight | MeshDown,                //  .>
+  //MeshRight | MeshLeft,                // < >
+  //
+  //MeshDown | MeshLeft,                 // <.
+  //
+  //MeshUp | MeshRight | MeshDown,       //  ^.>
+  //MeshUp | MeshLeft | MeshRight,       // <^>
+  //MeshUp | MeshLeft | MeshDown,        // <^.
+  //
+  //MeshDown | MeshLeft | MeshRight,     // <.>
+  //
+  //MeshUp | MeshLeft | MeshRight | MeshDown // <^.>
 };
 
 struct vcTileRenderer
@@ -83,7 +84,9 @@ struct vcTileRenderer
   vcSettings *pSettings;
   vcQuadTree quadTree;
 
-  vcMesh *pTileMeshes[udLengthOf(MeshConfigurations)];
+  vcMesh *pBaseTileMesh;
+  vcMesh *pEdgeTileMeshes[udLengthOf(MeshConfigurations)];
+
   vcTexture *pEmptyTileTexture;
   vcTexture *pEmptyDemTileTexture;
 
@@ -105,6 +108,10 @@ struct vcTileRenderer
     vcShaderConstantBuffer *pConstantBuffer;
     vcShaderSampler *uniform_texture;
     vcShaderSampler *uniform_dem;
+    vcShaderSampler *uniform_demN;
+    vcShaderSampler *uniform_demE;
+    vcShaderSampler *uniform_demS;
+    vcShaderSampler *uniform_demW;
 
     struct
     {
@@ -316,7 +323,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       const char *pSlippyStrs[] = { zSlippyStr, xSlippyStr, ySlippyStr };
 
       // process dem and/or colour request
-      if (pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (pBestNode->slippyPosition.x == 6074 && pBestNode->slippyPosition.y == 3432 && pBestNode->slippyPosition.z == 13 &&
+        pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
@@ -358,7 +366,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
   return 0;
 }
 
-void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV, int collapseEdgeMask)
+void vcTileRenderer_BuildBaseMesh(vcP3Vertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV, int collapseEdgeMask)
 {
   for (int y = 0; y < TileIndexResolution; ++y)
   {
@@ -374,7 +382,51 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
       pIndicies[index * 6 + 3] = vertIndex + TileVertexResolution;
       pIndicies[index * 6 + 4] = vertIndex + TileVertexResolution + 1;
       pIndicies[index * 6 + 5] = vertIndex + 1;
+    }
+  }
 
+  float normalizeVertexPositionScale = float(TileVertexResolution) / (TileVertexResolution - 1); // ensure verts are [0, 1]
+  for (int y = 0; y < TileVertexResolution; ++y)
+  {
+    for (int x = 0; x < TileVertexResolution; ++x)
+    {
+      uint32_t index = y * TileVertexResolution + x;
+
+      // artificially clamp edges (for now)
+      //float normX = ((float)(udClamp(x, 1, TileVertexResolution - 2)) / TileVertexResolution) * normalizeVertexPositionScale;
+      //float normY = ((float)(udClamp(y, 1, TileVertexResolution - 2)) / TileVertexResolution) * normalizeVertexPositionScale;
+      float normX = ((float)(x) / TileVertexResolution) * normalizeVertexPositionScale;
+      float normY = ((float)(y) / TileVertexResolution) * normalizeVertexPositionScale;
+      pVerts[index].position.x = minUV.x + normX * (maxUV.x - minUV.x);
+      pVerts[index].position.y = minUV.y + normY * (maxUV.y - minUV.y);
+      pVerts[index].position.z = (float)index;
+    }
+  }
+}
+
+void vcTileRenderer_BuildEdgeMesh(vcP3Vertex *pVerts, int *pIndicies, udFloat2 minUV, udFloat2 maxUV, int collapseEdgeMask)
+{
+  int startX = 29;
+  int startY = 0;
+  int width = 2;
+  int height = 30;//TileVertexResolution - 1;
+
+  for (int y = 0; y < height; ++y)
+  {
+    for (int x = 0; x < width; ++x)
+    {
+      int index = y * width + x;
+      int vertIndex = y * width + x;
+
+      pIndicies[index * 6 + 0] = vertIndex + width;
+      pIndicies[index * 6 + 1] = vertIndex + 1;
+      pIndicies[index * 6 + 2] = vertIndex;
+
+      pIndicies[index * 6 + 3] = vertIndex + width;
+      pIndicies[index * 6 + 4] = vertIndex + width + 1;
+      pIndicies[index * 6 + 5] = vertIndex + 1;
+
+      /*
       // corner cases
       if ((collapseEdgeMask & MeshDown) && (collapseEdgeMask & MeshRight) && x >= (TileIndexResolution - 2) && y >= (TileIndexResolution - 2))
       {
@@ -575,21 +627,27 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
           pIndicies[index * 6 + 2] = vertIndex + TileVertexResolution;
         }
       }
+      */
     }
   }
 
   float normalizeVertexPositionScale = float(TileVertexResolution) / (TileVertexResolution - 1); // ensure verts are [0, 1]
+  uint32_t index = 0;
   for (int y = 0; y < TileVertexResolution; ++y)
   {
     for (int x = 0; x < TileVertexResolution; ++x)
     {
-      uint32_t index = y * TileVertexResolution + x;
+      if (x < startX || x >= startX + width || y < startY || y >= startY + height)
+        continue;
+
       float normX = ((float)(x) / TileVertexResolution) * normalizeVertexPositionScale;
       float normY = ((float)(y) / TileVertexResolution) * normalizeVertexPositionScale;
+      //float normX = ((float)(x) / TileVertexResolution) * normalizeVertexPositionScale;
+      //float normY = ((float)(y) / TileVertexResolution) * normalizeVertexPositionScale;
       pVerts[index].position.x = minUV.x + normX * (maxUV.x - minUV.x);
       pVerts[index].position.y = minUV.y + normY * (maxUV.y - minUV.y);
       pVerts[index].position.z = (float)index;
-
+      index++;
     }
   }
 }
@@ -626,10 +684,13 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pTileRenderer));
 
   // build mesh variants
+  vcTileRenderer_BuildBaseMesh(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f), 0);
+  vcMesh_Create(&pTileRenderer->pBaseTileMesh, vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
+
   for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
   {
-    vcTileRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f), MeshConfigurations[i]);
-    vcMesh_Create(&pTileRenderer->pTileMeshes[i], vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
+    vcTileRenderer_BuildEdgeMesh(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f), MeshConfigurations[i]);
+    vcMesh_Create(&pTileRenderer->pEdgeTileMeshes[i], vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
   }
 
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
@@ -677,8 +738,9 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
 
   vcTileRenderer_DestroyShaders(pTileRenderer);
 
+  vcMesh_Destroy(&pTileRenderer->pBaseTileMesh);
   for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
-    vcMesh_Destroy(&pTileRenderer->pTileMeshes[i]);
+    vcMesh_Destroy(&pTileRenderer->pEdgeTileMeshes[i]);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
   vcTexture_Destroy(&pTileRenderer->pEmptyDemTileTexture);
 
@@ -700,6 +762,11 @@ udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer)
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "colour"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_dem, pTileRenderer->presentShader.pProgram, "dem"), udR_InternalError);
+
+  //UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demN, pTileRenderer->presentShader.pProgram, "demN"), udR_InternalError);
+  //UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demE, pTileRenderer->presentShader.pProgram, "demE"), udR_InternalError);
+  //UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demS, pTileRenderer->presentShader.pProgram, "demS"), udR_InternalError);
+  //UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demW, pTileRenderer->presentShader.pProgram, "demW"), udR_InternalError);
 
   result = udR_Success;
 epilogue:
@@ -944,7 +1011,7 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   udReleaseMutex(pTileRenderer->cache.pMutex);
 }
 
-void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcMesh *pMesh, const udDouble4x4 &view)
+void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, const udDouble4x4 &view)
 {
   vcTexture *pTexture = pNode->colourInfo.drawInfo.pTexture;
   if (pTexture == nullptr)
@@ -982,14 +1049,36 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
 #if GRAPHICS_API_OPENGL
   samplerIndex = 1;
 #endif
-  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemTexture, samplerIndex, pTileRenderer->presentShader.uniform_dem, vcGLSamplerShaderStage_Vertex);
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemTexture, ++samplerIndex, pTileRenderer->presentShader.uniform_dem, vcGLSamplerShaderStage_Vertex);
+
+  //vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTileRenderer->pEmptyDemTileTexture, ++samplerIndex, pTileRenderer->presentShader.uniform_demN, vcGLSamplerShaderStage_Vertex);
+  //vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTileRenderer->pEmptyDemTileTexture, ++samplerIndex, pTileRenderer->presentShader.uniform_demE, vcGLSamplerShaderStage_Vertex);
+  //vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTileRenderer->pEmptyDemTileTexture, ++samplerIndex, pTileRenderer->presentShader.uniform_demS, vcGLSamplerShaderStage_Vertex);
+  //vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTileRenderer->pEmptyDemTileTexture, ++samplerIndex, pTileRenderer->presentShader.uniform_demW, vcGLSamplerShaderStage_Vertex);
 
   vcShader_BindConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer, &pTileRenderer->presentShader.everyObject, sizeof(pTileRenderer->presentShader.everyObject));
 
-  vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
+  vcMesh_Render(pTileRenderer->pBaseTileMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
 
   //pNode->rendered = true;
   ++pTileRenderer->quadTree.metaData.nodeRenderCount;
+
+
+
+  // Lookup mesh variant for rendering
+  //size_t meshIndex = 0;
+  //for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
+  //{
+  //  if (MeshConfigurations[mc] == pNode->neighbours)
+  //  {
+  //    meshIndex = mc;
+  //    break;
+  //  }
+  //}
+
+  //vcMesh_Render(pTileRenderer->pEdgeTileMeshes[meshIndex], 2 * 30 * 2);//TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
+
+
 }
 
 void vcTileRenderer_DrapeColour(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
@@ -1082,18 +1171,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   vcTileRenderer_DrapeColour(pNode, pBestTexturedAncestor);
   vcTileRenderer_DrapeDEM(pNode, pBestDemAncestor);
 
-  // Lookup mesh variant for rendering
-  size_t meshIndex = 0;
-  for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
-  {
-    if (MeshConfigurations[mc] == pNode->neighbours)
-    {
-      meshIndex = mc;
-      break;
-    }
-  }
-
-  vcTileRenderer_DrawNode(pTileRenderer, pNode, pTileRenderer->pTileMeshes[meshIndex], view);
+  vcTileRenderer_DrawNode(pTileRenderer, pNode, view);
 }
 
 void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, const float encodedObjectId)

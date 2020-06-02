@@ -38,6 +38,18 @@ cbuffer u_EveryObject : register(b0)
 sampler demSampler;
 Texture2D demTexture;
 
+//sampler demSamplerN;
+//Texture2D demTextureN;
+//
+//sampler demSamplerE;
+//Texture2D demTextureE;
+//
+//sampler demSamplerS;
+//Texture2D demTextureS;
+//
+//sampler demSamplerW;
+//Texture2D demTextureW;
+
 // this works for highly tesselated geometry
 float CalcuteLogDepth(float4 clipPos)
 {
@@ -81,6 +93,15 @@ PS_INPUT main(VS_INPUT input)
   // Reconstruct uint16 in float space and then convert back to int16 in float space
   float tileHeight = ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
 
+  //float2 tileHeightSampleN = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
+  if (input.pos.y == 0.0)
+  {
+    //tileHeight = 0.0;
+  }
+  //float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
+  //float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
+  //float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
+		
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
