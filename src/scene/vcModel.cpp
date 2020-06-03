@@ -124,6 +124,8 @@ vcModel::vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
   m_pWatermark(nullptr),
   m_visualization()
 {
+  Init(pProgramState);
+
   vcModelLoadInfo *pLoadInfo = udAllocType(vcModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
   {
@@ -143,8 +145,6 @@ vcModel::vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
   {
     m_loadStatus = vcSLS_Failed;
   }
-
-  memcpy(m_visualization.customClassificationColors, GeoverseClassificationColours, sizeof(m_visualization.customClassificationColors));
 }
 
 vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud) :
@@ -161,14 +161,25 @@ vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pClou
   m_pWatermark(nullptr),
   m_visualization()
 {
+  Init(pProgramState);
+
   m_pPointCloud = pCloud;
   m_loadStatus = vcSLS_Loaded;
 
   vcModel_LoadMetadata(pProgramState, this, udDouble3::zero());
 
   m_pNode->pUserData = this;
+ }
 
+void vcModel::Init(vcState *pProgramState)
+{
+  //Visualisations...
   memcpy(m_visualization.customClassificationColors, GeoverseClassificationColours, sizeof(m_visualization.customClassificationColors));
+
+  //TODO These should live in m_pNode, but I don't think the api exists yet to manipulate arrays.
+  m_visualization.pointSourceID.colourMap.Init(32);
+  for (size_t i = 0; i < pProgramState->settings.visualization.pointSourceID.colourMap.length; i++)
+    m_visualization.pointSourceID.colourMap.PushBack(pProgramState->settings.visualization.pointSourceID.colourMap[i]);
 }
 
 void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -279,6 +290,50 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
       displacement.x = 0.0;
       displacement.y = 1.0;
     }
+  }
+
+  if (vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", &m_visualization.GPSTime.minTime, pProgramState->settings.visualization.GPSTime.minTime) != vE_Success && vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", &m_visualization.GPSTime.maxTime, pProgramState->settings.visualization.GPSTime.maxTime) != vE_Success)
+  {
+    const char *pGPSTime = m_metadata.Get("AttrMinMax_udGPSTime").AsString();
+    if (pGPSTime != nullptr && udStrcmp(pGPSTime, "") != 0)
+    {
+      char pStart[128] = "";
+      udStrcpy(pStart, pGPSTime);
+      char *pGPSTimeArray[2];
+      udStrTokenSplit(pStart, ",", pGPSTimeArray, 2);
+
+      if (pGPSTimeArray[0] != nullptr && udStrcmp(pGPSTimeArray[0], "") != 0)
+        m_visualization.GPSTime.minTime = udStrAtoi(pGPSTimeArray[0]);
+
+      if (pGPSTimeArray[1] != nullptr && udStrcmp(pGPSTimeArray[1], "") != 0)
+        m_visualization.GPSTime.maxTime = udStrAtoi(pGPSTimeArray[1]);
+    }
+  }
+
+  if (vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", &m_visualization.scanAngle.minAngle, pProgramState->settings.visualization.scanAngle.minAngle) != vE_Success && vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", &m_visualization.scanAngle.maxAngle, pProgramState->settings.visualization.scanAngle.maxAngle) != vE_Success)
+  {
+    const char *pScanAngle = m_metadata.Get("AttrMinMax_udScanAngle").AsString();
+    if (pScanAngle != nullptr && udStrcmp(pScanAngle, "") != 0)
+    {
+      char pStart[128] = "";
+      udStrcpy(pStart, pScanAngle);
+      char *pScanAngleArray[2];
+      udStrTokenSplit(pStart, ",", pScanAngleArray, 2);
+
+      if (pScanAngleArray[0] != nullptr && udStrcmp(pScanAngleArray[0], "") != 0)
+        m_visualization.scanAngle.minAngle = udStrAtoi(pScanAngleArray[0]);
+
+      if (pScanAngleArray[1] != nullptr && udStrcmp(pScanAngleArray[1], "") != 0)
+        m_visualization.scanAngle.maxAngle = udStrAtoi(pScanAngleArray[1]);
+    }
+  }
+
+  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", &m_visualization.pointSourceID.defaultColour, pProgramState->settings.visualization.pointSourceID.defaultColour);
+
+  for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
+  {
+    vdkProjectNode_GetMetadataUint(m_pNode, "visualization.returnNumberColours[i]", &m_visualization.returnNumberColours[i], pProgramState->settings.visualization.returnNumberColours[i]);
+    vdkProjectNode_GetMetadataUint(m_pNode, "visualization.numberOfReturnsColours[i]", &m_visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
   }
 
   m_visualization.displacement.bounds = udFloat2::create((float)displacement.x, (float)displacement.y);
@@ -411,6 +466,17 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
     vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.maxColour", m_visualization.displacement.max);
     vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.errorColour", m_visualization.displacement.error);
     vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.midColour", m_visualization.displacement.mid);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", m_visualization.GPSTime.minTime);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", m_visualization.GPSTime.maxTime);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", m_visualization.scanAngle.minAngle);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", m_visualization.scanAngle.maxAngle);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", m_visualization.pointSourceID.defaultColour);
+
+    for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
+    {
+      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), m_visualization.returnNumberColours[i]);
+      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), m_visualization.numberOfReturnsColours[i]);
+    }
   }
 
   // Show MetaData Info
@@ -759,6 +825,8 @@ void vcModel::Cleanup(vcState *pProgramState)
 
     vcTexture_Destroy(&m_pWatermark);
   }
+
+  m_visualization.pointSourceID.colourMap.Deinit();
 }
 
 udDouble3 vcModel::GetLocalSpacePivot()

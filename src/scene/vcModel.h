@@ -53,6 +53,9 @@ public:
   vcGizmoAllowedControls GetAllowedControls();
 
   void ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty);
+
+private:
+  void Init(vcState *pProgramState);
 };
 
 #endif //vcModel_h__
