@@ -300,16 +300,17 @@ void vcQuadTree_CalculateNeighbours(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode
     udInt2 morten = vcQuadTree_DecodeMorten(pNode->morten, pNode->slippyPosition.z);
     vcQuadTreeNode *pRootNode = &pQuadTree->nodes.pPool[pQuadTree->rootIndex];
 
-    vcQuadTreeNode *pNeighbourUp = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(0, -1), pNode->slippyPosition.z);
-    vcQuadTreeNode *pNeighbourRight = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(1, 0), pNode->slippyPosition.z);
-    vcQuadTreeNode *pNeighbourDown = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(0, 1), pNode->slippyPosition.z);
-    vcQuadTreeNode *pNeighbourLeft = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(-1, 0), pNode->slippyPosition.z);
+    pNode->pNeighbours[0] = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(0, -1), pNode->slippyPosition.z);
+    pNode->pNeighbours[1] = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(1, 0), pNode->slippyPosition.z);
+    pNode->pNeighbours[2] = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(0, 1), pNode->slippyPosition.z);
+    pNode->pNeighbours[3] = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(-1, 0), pNode->slippyPosition.z);
+    pNode->pNeighbours[4] = vcQuadTree_FindNodeFromMorten(pQuadTree, pRootNode, morten + udInt2::create(1, -1), pNode->slippyPosition.z);
 
-    pNode->neighbours = 0;
-    pNode->neighbours |= 0x1 * int(pNeighbourUp->slippyPosition.z < pNode->slippyPosition.z);
-    pNode->neighbours |= 0x2 * int(pNeighbourRight->slippyPosition.z < pNode->slippyPosition.z);
-    pNode->neighbours |= 0x4 * int(pNeighbourDown->slippyPosition.z < pNode->slippyPosition.z);
-    pNode->neighbours |= 0x8 * int(pNeighbourLeft->slippyPosition.z < pNode->slippyPosition.z);
+    pNode->neighboursMask = 0;
+    pNode->neighboursMask |= 0x1 * int(pNode->pNeighbours[0]->slippyPosition.z < pNode->slippyPosition.z);
+    pNode->neighboursMask |= 0x2 * int(pNode->pNeighbours[1]->slippyPosition.z < pNode->slippyPosition.z);
+    pNode->neighboursMask |= 0x4 * int(pNode->pNeighbours[2]->slippyPosition.z < pNode->slippyPosition.z);
+    pNode->neighboursMask |= 0x8 * int(pNode->pNeighbours[3]->slippyPosition.z < pNode->slippyPosition.z);
   }
   else
   {

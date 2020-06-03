@@ -43,5 +43,7 @@ PS_OUTPUT main(PS_INPUT input)
   float depth = (input.depth.x / input.depth.y) * scale + bias; // depth packed here
   
   output.Normal = packNormal(float3(0, 0, 0), input.objectInfo.x, depth); 
+  
+  output.Color0 = output.Color0 * 0.000001 + input.colour;
   return output;
 }

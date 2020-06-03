@@ -105,6 +105,11 @@ struct vcTileRenderer
     vcShaderConstantBuffer *pConstantBuffer;
     vcShaderSampler *uniform_texture;
     vcShaderSampler *uniform_dem;
+    vcShaderSampler *uniform_demN;
+    vcShaderSampler *uniform_demE;
+    vcShaderSampler *uniform_demNE;
+    //vcShaderSampler *uniform_demS;
+    //vcShaderSampler *uniform_demW;
 
     struct
     {
@@ -116,6 +121,10 @@ struct vcTileRenderer
       udFloat4 objectInfo; // objectId.x
       udFloat4 uvOffsetScale;
       udFloat4 demUVOffsetScale;
+
+      udFloat4 NdemUVOffsetScale;
+      udFloat4 EdemUVOffsetScale;
+      udFloat4 NEdemUVOffsetScale;
     } everyObject;
   } presentShader;
 };
@@ -316,7 +325,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       const char *pSlippyStrs[] = { zSlippyStr, xSlippyStr, ySlippyStr };
 
       // process dem and/or colour request
-      if (pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (//pBestNode->slippyPosition.x == 6074 && pBestNode->slippyPosition.y == 3432 && pBestNode->slippyPosition.z == 13 &&
+        pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
@@ -701,6 +711,12 @@ udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer)
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "colour"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_dem, pTileRenderer->presentShader.pProgram, "dem"), udR_InternalError);
 
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demN, pTileRenderer->presentShader.pProgram, "demN"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demE, pTileRenderer->presentShader.pProgram, "demE"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demNE, pTileRenderer->presentShader.pProgram, "demNE"), udR_InternalError);
+  //UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demS, pTileRenderer->presentShader.pProgram, "demS"), udR_InternalError);
+  //UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_demW, pTileRenderer->presentShader.pProgram, "demW"), udR_InternalError);
+
   result = udR_Success;
 epilogue:
 
@@ -982,7 +998,45 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
 #if GRAPHICS_API_OPENGL
   samplerIndex = 1;
 #endif
-  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemTexture, samplerIndex, pTileRenderer->presentShader.uniform_dem, vcGLSamplerShaderStage_Vertex);
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemTexture, samplerIndex++, pTileRenderer->presentShader.uniform_dem, vcGLSamplerShaderStage_Vertex);
+
+  vcTexture *pDemNTexture = pTileRenderer->pEmptyDemTileTexture;//pNode->demInfo.drawInfo.pTexture;
+  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->pNeighbours[0] != nullptr && pNode->pNeighbours[0]->demInfo.drawInfo.pTexture != nullptr)
+  {
+    udFloat2 demSize = pNode->pNeighbours[0]->demInfo.drawInfo.uvEnd - pNode->pNeighbours[0]->demInfo.drawInfo.uvStart;
+    pTileRenderer->presentShader.everyObject.NdemUVOffsetScale = udFloat4::create(pNode->pNeighbours[0]->demInfo.drawInfo.uvStart, demSize.x, demSize.y);
+    pDemNTexture = pNode->pNeighbours[0]->demInfo.drawInfo.pTexture;
+  }
+
+  vcTexture *pDemETexture = pTileRenderer->pEmptyDemTileTexture;//pNode->demInfo.drawInfo.pTexture;
+  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->pNeighbours[1] != nullptr && pNode->pNeighbours[1]->demInfo.drawInfo.pTexture != nullptr)
+  {
+    udFloat2 demSize = pNode->pNeighbours[1]->demInfo.drawInfo.uvEnd - pNode->pNeighbours[1]->demInfo.drawInfo.uvStart;
+    pTileRenderer->presentShader.everyObject.EdemUVOffsetScale = udFloat4::create(pNode->pNeighbours[1]->demInfo.drawInfo.uvStart, demSize.x, demSize.y);
+    pDemETexture = pNode->pNeighbours[1]->demInfo.drawInfo.pTexture;
+  }
+
+  vcTexture *pDemNETexture = pTileRenderer->pEmptyDemTileTexture;//pNode->demInfo.drawInfo.pTexture;
+  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->pNeighbours[4] != nullptr && pNode->pNeighbours[4]->demInfo.drawInfo.pTexture != nullptr)
+  {
+    udFloat2 demSize = pNode->pNeighbours[4]->demInfo.drawInfo.uvEnd - pNode->pNeighbours[4]->demInfo.drawInfo.uvStart;
+    pTileRenderer->presentShader.everyObject.NEdemUVOffsetScale = udFloat4::create(pNode->pNeighbours[4]->demInfo.drawInfo.uvStart, demSize.x, demSize.y);
+    pDemNETexture = pNode->pNeighbours[4]->demInfo.drawInfo.pTexture;
+  }
+
+  //vcTexture *pDemSTexture = pTileRenderer->pEmptyDemTileTexture;//pNode->demInfo.drawInfo.pTexture;
+  //if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->pNeighbours[2] != nullptr && pNode->pNeighbours[2]->demInfo.drawInfo.pTexture != nullptr)
+  //  pDemSTexture = pNode->pNeighbours[2]->demInfo.drawInfo.pTexture;
+
+  //vcTexture *pDemWTexture = pTileRenderer->pEmptyDemTileTexture;//pNode->demInfo.drawInfo.pTexture;
+  //if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->pNeighbours[3] != nullptr && pNode->pNeighbours[3]->demInfo.drawInfo.pTexture != nullptr)
+  //  pDemWTexture = pNode->pNeighbours[3]->demInfo.drawInfo.pTexture;
+
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemNTexture, samplerIndex++, pTileRenderer->presentShader.uniform_demN, vcGLSamplerShaderStage_Vertex);
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemETexture, samplerIndex++, pTileRenderer->presentShader.uniform_demE, vcGLSamplerShaderStage_Vertex);
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemNETexture, samplerIndex++, pTileRenderer->presentShader.uniform_demNE, vcGLSamplerShaderStage_Vertex);
+  //vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemSTexture, samplerIndex++, pTileRenderer->presentShader.uniform_demS, vcGLSamplerShaderStage_Vertex);
+  //vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemWTexture, samplerIndex++, pTileRenderer->presentShader.uniform_demW, vcGLSamplerShaderStage_Vertex);
 
   vcShader_BindConstantBuffer(pTileRenderer->presentShader.pProgram, pTileRenderer->presentShader.pConstantBuffer, &pTileRenderer->presentShader.everyObject, sizeof(pTileRenderer->presentShader.everyObject));
 
@@ -1086,7 +1140,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   size_t meshIndex = 0;
   for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
   {
-    if (MeshConfigurations[mc] == pNode->neighbours)
+    if (MeshConfigurations[mc] == pNode->neighboursMask)
     {
       meshIndex = mc;
       break;
