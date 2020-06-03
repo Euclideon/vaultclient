@@ -1011,10 +1011,22 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   }
   case vcVM_GPSTime:
   {
-    retVal |= ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMin"), &pVisualizationSettings->GPSTime.minTime, 0.0, 0.0, "%.1f");
-    retVal |= ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMax"), &pVisualizationSettings->GPSTime.maxTime, 0.0, 0.0, "%.1f");
-    if (pVisualizationSettings->GPSTime.maxTime < pVisualizationSettings->GPSTime.minTime)
+    bool minEdited = ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMin"), &pVisualizationSettings->GPSTime.minTime, 0.0, 0.0, "%.1f");
+    bool maxEdited = ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMax"), &pVisualizationSettings->GPSTime.maxTime, 0.0, 0.0, "%.1f");
+
+    retVal |= (minEdited || maxEdited);
+
+    const double minGPSTime = -1e9;        //06/01/1980 GPS adjusted time
+    const double maxGPSTime = 32188147218; //06/01/3000 GPS time
+
+    pVisualizationSettings->GPSTime.minTime = udClamp(pVisualizationSettings->GPSTime.minTime, minGPSTime, maxGPSTime);
+    pVisualizationSettings->GPSTime.maxTime = udClamp(pVisualizationSettings->GPSTime.maxTime, minGPSTime, maxGPSTime);
+
+    if (minEdited && (pVisualizationSettings->GPSTime.minTime > pVisualizationSettings->GPSTime.maxTime))
       pVisualizationSettings->GPSTime.maxTime = pVisualizationSettings->GPSTime.minTime;
+
+    if (maxEdited && pVisualizationSettings->GPSTime.maxTime < pVisualizationSettings->GPSTime.minTime)
+      pVisualizationSettings->GPSTime.minTime = pVisualizationSettings->GPSTime.maxTime;
 
     break;
   }
