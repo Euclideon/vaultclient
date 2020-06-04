@@ -478,7 +478,10 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
   vdkProjectNode_GetMetadataString(m_pNode, "hyperlink", &pTemp, "");
   udStrcpy(m_hyperlink, pTemp);
-  
+
+  vdkProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
+  udStrcpy(m_description, pTemp);
+
   if (vdkProjectNode_GetMetadataBool(m_pNode, "lineDualColour", &m_line.isDualColour, false) != vE_Success)
   {
     m_line.isDualColour = (m_line.colourPrimary != m_line.colourSecondary);
@@ -776,6 +779,9 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vcWebFile_OpenBrowser(m_hyperlink);
   }
 
+  if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
+    vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
+   
   if (m_attachment.pModel != nullptr)
   {
     const double minSpeed = 0.0;
@@ -1146,7 +1152,6 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
       m_pLabelInfo->pText = m_pNode->pName;
 
     pRenderData->labels.PushBack(m_pLabelInfo);
-
   }
 }
 

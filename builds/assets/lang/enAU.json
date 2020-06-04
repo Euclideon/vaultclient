@@ -492,6 +492,7 @@
   "scenePOILabelBackgroundColour": "Background Colour",
   "scenePOILabelHyperlink": "Hyperlink",
   "scenePOILabelOpenHyperlink": "Open Hyperlink",
+  "scenePOILabelDescription": "Description",
   "scenePOILabelImageURL": "Image URL",
   "scenePOILabelOpenImageURL": "Open Image URL",
   "scenePOILabelSize": "Label Size",
