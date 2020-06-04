@@ -335,7 +335,6 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
       [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
       g_pCurrFramebuffer->commandBuffer = nil;
       g_pCurrFramebuffer->encoder = nil;
-      //need this?
       g_pCurrFramebuffer->actions = 0;
     }
   
