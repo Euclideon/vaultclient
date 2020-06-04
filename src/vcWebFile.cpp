@@ -156,8 +156,7 @@ epilogue:
 #elif UDPLATFORM_EMSCRIPTEN
 void vcWebFile_OpenBrowser(const char *pWebpageAddress)
 {
-  // TODO: Open new tab with link
-  udUnused(pWebpageAddress);
+  MAIN_THREAD_EM_ASM(window.open(UTF8ToString($0)), pWebpageAddress);
 }
 #else
 void vcWebFile_OpenBrowser(const char *pWebpageAddress)
