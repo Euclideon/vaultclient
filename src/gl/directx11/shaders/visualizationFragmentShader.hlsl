@@ -142,13 +142,13 @@ float3 contourColour(float3 col, float3 fragEyePosition, float pixelHeight)
   float3 totalRainbowColour = float3(0.0, 0.0, 0.0);
   float samplingHeight = pixelHeight * 8.0;
   float stepSize = samplingHeight / (NUM_HUE_SAMPLES - 1);  
-  float projectedHeight = abs(calculateHeightAboveEarthSurface(fragEyePosition));	
+  float projectedHeight = abs(calculateHeightAboveEarthSurface(fragEyePosition));    
   for (int i = 0; i < NUM_HUE_SAMPLES; i++)
   {
-	float rainbowheight = projectedHeight + -samplingHeight / 2 + stepSize * (float)i;
-	float3 rainbowColour = hsv2rgb(float3(rainbowheight * (1.0 / contourRainboxRepeat), 1.0, 1.0));
-	float isContour = 1.0 - step(contourBandHeight, fmod(abs(rainbowheight), contourDistance));	
-	totalRainbowColour += rainbowColour;
+    float rainbowheight = projectedHeight + -samplingHeight / 2 + stepSize * (float)i;
+    float3 rainbowColour = hsv2rgb(float3(rainbowheight * (1.0 / contourRainboxRepeat), 1.0, 1.0));
+    float isContour = 1.0 - step(contourBandHeight, fmod(abs(rainbowheight), contourDistance));    
+    totalRainbowColour += rainbowColour;
   }  
   totalRainbowColour /= (float)NUM_HUE_SAMPLES;  
   
@@ -188,7 +188,7 @@ PS_OUTPUT main(PS_INPUT input)
   float4 col = sceneColourTexture.Sample(sceneColourSampler, input.uv);
   float4 packedNormal = sceneNormalTexture.Sample(sceneNormalSampler, input.uv);
   float logDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
-	
+    
   float depth = logToLinearDepth(logDepth);
   float clipZ = linearDepthToClipZ(depth);
 
