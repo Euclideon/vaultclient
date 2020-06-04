@@ -29,6 +29,8 @@ void vcConvertCMD_ShowOptions()
   printf("   -proxyURL <url>             - Set the proxy URL\n");
   printf("   -proxyUsername <username>   - Set the username to use with the proxy\n");
   printf("   -proxyPassword <password>   - Set the password to use with the proxy\n");
+  printf("   -watermark <filename>       - Use the supplied image file as the watermark\n");
+  printf("   -copyright <details>        - Adds the copyright information to the \"Copyright\" metadata field\n");
 }
 
 struct vcConvertData
@@ -62,6 +64,8 @@ struct vcConvertCMDSettings
   bool pause;
   bool pauseOnError;
   bool autoOverwrite;
+
+  const char *pCopyright;
 
   udChunkedArray<const char*> files;
 };
@@ -143,6 +147,11 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
     else if (udStrEquali(ppArgv[i], "-proxyPassword"))
     {
       pSettings->pProxyPassword = ppArgv[i + 1];
+      i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-copyright"))
+    {
+      pSettings->pCopyright = ppArgv[i + 1];
       i += 2;
     }
     else
@@ -250,7 +259,7 @@ int main(int argc, const char **ppArgv)
   }
 
   printf("Performing Initial Preprocess...\n");
-  for (int i = 0; i < settings.files.length; ++i)
+  for (size_t i = 0; i < settings.files.length; ++i)
   {
     udFindDir *pFindDir = nullptr;
     udResult res = udOpenDir(&pFindDir, settings.files[i]);
@@ -263,7 +272,7 @@ int main(int argc, const char **ppArgv)
 
         udFilename foundFile(pFindDir->pFilename);
         foundFile.SetFolder(settings.files[i]);
-        printf("\tPreprocessing '%s'...\n", foundFile.GetPath());
+        printf("\tPreprocessing '%s'... [%" PRIu64 " total items]\n", foundFile.GetPath(), pInfo->totalItems);
         result = vdkConvert_AddItem(pModel, foundFile.GetPath());
         if (result != vE_Success)
           printf("\t\tUnable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
@@ -272,7 +281,7 @@ int main(int argc, const char **ppArgv)
     }
     else
     {
-      printf("\tPreprocessing '%s'...\n", settings.files[i]);
+      printf("\tPreprocessing '%s'... [%" PRIu64 " total items]\n", settings.files[i], pInfo->totalItems);
       result = vdkConvert_AddItem(pModel, settings.files[i]);
       if (result != vE_Success)
         printf("\t\tUnable to convert %s [Error:%d]:\n", settings.files[i], result);
@@ -306,6 +315,13 @@ int main(int argc, const char **ppArgv)
     convdata.pConvertContext = pModel;
 
     printf("Converting--\n");
+
+    if (settings.pCopyright != nullptr)
+    {
+      printf("\tCopyright: %s\n", settings.pCopyright);
+      vdkConvert_SetMetadata(convdata.pConvertContext, "Copyright", settings.pCopyright);
+    }
+
     printf("\tOutput: %s\n", pInfo->pOutputName);
     printf("\tTemp: %s\n", pInfo->pTempFilesPrefix);
     printf("\t# Inputs: %" PRIu64 "\n\n", pInfo->totalItems);
