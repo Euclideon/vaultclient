@@ -44,7 +44,7 @@ PS_OUTPUT main(PS_INPUT input)
   
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
   //output.Color0.xyz = output.Color0.xyz * 0.00001 + normal.xyz;
-  //output.Color0.xyz = output.Color0.xyz * 0.00001 + normalfloat3(abs(normal.x), abs(normal.x), abs(normal.x));
+  output.Color0.xyz = output.Color0.xyz * 0.00001 + normal;//float3(abs(normal.z), abs(normal.z), abs(normal.z));
   
   float scale = 1.0 / (u_clipZFar - u_clipZNear);
   float bias = -(u_clipZNear * 0.5);

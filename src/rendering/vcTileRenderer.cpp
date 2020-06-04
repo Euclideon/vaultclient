@@ -212,8 +212,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
     for (int w = 0; w < pNode->demInfo.data.width; ++w)
     {
       int index = h * pNode->demInfo.data.width + w;
-      //uint32_t p = ((w % 5) == 0 || (h % 5) == 0) ? 0x1f000000 : 0;
-      uint32_t p = ((uint32_t*)pNode->demInfo.data.pData)[index];
+      uint32_t p = ((w % 5) == 0 || (h % 5) == 0) ? 0x1f000000 : 0;
+      //uint32_t p = ((uint32_t*)pNode->demInfo.data.pData)[index];
       uint8_t r = uint8_t((p & 0xff000000) >> 24);
       uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
 
