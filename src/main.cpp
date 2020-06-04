@@ -385,26 +385,6 @@ void vcMain_MainLoop(vcState *pProgramState)
         }
 #endif //VC_HASCONVERT
 
-        // test to see if specified filepath is valid
-        udFile *pTestFile = nullptr;
-        udResult result = udFile_Open(&pTestFile, pNextLoad, udFOF_Read);
-        if (result == udR_Success)
-        {
-          udFile_Close(&pTestFile);
-        }
-        else
-        {
-          vcState::ErrorItem status;
-          status.source = vcES_File;
-          status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
-          status.resultCode = result;
-
-          pNextLoad = nullptr;
-
-          pProgramState->errorItems.PushBack(status);
-
-          continue;
-        }
 
         udFilename loadFile(pNextLoad);
         const char *pExt = loadFile.GetExt();
@@ -485,10 +465,12 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               continue;
             }
-            else if (firstLoad) // Was successful
+            else // Was successful
             {
               vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->camera.position, 1);
-              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+
+              if (firstLoad)
+                udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
             }
           }
           else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
