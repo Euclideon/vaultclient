@@ -65,8 +65,6 @@ struct vcFBX
   uint32_t everyNth;
   uint32_t everyNthAccum;
 
-  bool noTextures;
-
   vdkTriangleVoxelizer *pTrivox;
   double *pTriPositions;
   udDouble3 *pTriWeights;
@@ -189,7 +187,6 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
   FbxMesh *pMesh = pNode->GetMesh();
   pFBX->map = pMesh->GetElementMaterial()->GetMappingMode();
   pFBX->ref = pMesh->GetElementMaterial()->GetReferenceMode();
-  pFBX->noTextures = true;
   pFBX->pIndex = &pMesh->GetElementMaterial()->GetIndexArray();
 
   for (int i = 0; i < totalMats; ++i)
@@ -207,8 +204,6 @@ void vcFBX_GetTextures(vcFBX *pFBX, FbxNode *pNode)
     {
       if (diffuse.GetSrcObjectCount<FbxTexture>() > 0)
       {
-        pFBX->noTextures = false;
-
         for (int j = 0; j < diffuse.GetSrcObjectCount<FbxFileTexture>(); ++j)
         {
           FbxFileTexture *pTexture = diffuse.GetSrcObject<FbxFileTexture>(j);
@@ -471,11 +466,6 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
           uint32_t index = 0;
 
-          if (pFBX->noTextures)
-          {
-            index = (uint32_t)pFBX->materials.length - 1;
-          }
-          else
           {
             switch (pFBX->map)
             {
@@ -605,11 +595,6 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
             {
               uint32_t index = 0;
 
-              if (pFBX->noTextures)
-              {
-                index = (uint32_t)pFBX->materials.length - 1;
-              }
-              else
               {
                 switch (pFBX->map)
                 {
@@ -775,7 +760,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
                   colour = 0xff000000 | ((colour & 0xff) << 16) | (colour & 0xff00) | ((colour & 0xff0000) >> 16);
                   memcpy(pAttr, &colour, sizeof(uint32_t));
-                  pAttr = &pAttr[sizeof(uint32_t)];
+                  pAttr += pBuffer->attributeStride;
                 } // End if colour
               } // End for numpoints
 
