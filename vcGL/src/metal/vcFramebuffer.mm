@@ -88,13 +88,16 @@ bool vcFramebuffer_Bind(vcFramebuffer *pFramebuffer, const vcFramebufferClearOpe
   if (pFramebuffer == nullptr)
     return false;
 
-  // Finalise current framebuffer being binding this framebuffer
+  // Finalise current framebuffer before binding this framebuffer
   if (g_pCurrFramebuffer != nullptr && g_pCurrFramebuffer != g_pDefaultFramebuffer)
   {
     @autoreleasepool {
-      [g_pCurrFramebuffer->encoder endEncoding];
-      [g_pCurrFramebuffer->commandBuffer commit];
-      [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
+      if (g_pCurrFramebuffer->encoder != nil)
+      {
+        [g_pCurrFramebuffer->encoder endEncoding];
+        [g_pCurrFramebuffer->commandBuffer commit];
+        [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
+      }
 
       g_pCurrFramebuffer->commandBuffer = nil;
       g_pCurrFramebuffer->encoder = nil;

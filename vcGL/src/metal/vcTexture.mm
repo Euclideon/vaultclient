@@ -328,6 +328,16 @@ bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint
 
   @autoreleasepool
   {
+    if (g_pCurrFramebuffer == pFramebuffer)
+    {
+      [g_pCurrFramebuffer->encoder endEncoding];
+      [g_pCurrFramebuffer->commandBuffer commit];
+      [g_pCurrFramebuffer->commandBuffer waitUntilCompleted];
+      g_pCurrFramebuffer->commandBuffer = nil;
+      g_pCurrFramebuffer->encoder = nil;
+      g_pCurrFramebuffer->actions = 0;
+    }
+  
     if (pTexture->blitBuffer == nil)
       pTexture->blitBuffer = [g_device newBufferWithLength:pixelBytes * pTexture->width * pTexture->height options:MTLResourceStorageModeShared];
     else if (pTexture->blitBuffer.length < pixelBytes * pTexture->width * pTexture->height)
