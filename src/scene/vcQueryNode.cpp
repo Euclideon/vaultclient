@@ -48,6 +48,8 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
       m_shape = vcQNFS_Cylinder;
   }
 
+  ChangeProjection(pProgramState->geozone);
+
   vdkProjectNode_GetMetadataDouble(m_pNode, "size.x", &m_extents.x, 1.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "size.y", &m_extents.y, 1.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "size.z", &m_extents.z, 1.0);
@@ -55,8 +57,6 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_ypr.x, 0.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_ypr.y, 0.0);
   vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_ypr.z, 0.0);
-
-  ChangeProjection(pProgramState->geozone);
 
   switch (m_shape)
   {
@@ -188,6 +188,9 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
     m_center = pPoint[0];
 
   udFree(pPoint);
+
+  udDoubleQuat q = vcGIS_GetQuaternion(newZone, m_center);
+  m_ypr = q.eulerAngles();
 
   switch (m_shape)
   {

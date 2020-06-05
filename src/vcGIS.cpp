@@ -96,6 +96,19 @@ void vcGIS_GetOrthonormalBasis(const udGeoZone &zone, udDouble3 localPosition, u
   //Shouldn't need to normalise north
 }
 
+udDoubleQuat vcGIS_GetQuaternion(const udGeoZone &zone, udDouble3 localPosition)
+{
+  udDouble3 up, north, east;
+  vcGIS_GetOrthonormalBasis(zone, localPosition, &up, &north, &east);
+
+  udDouble4x4 m = udDouble4x4::create(-north.x, -north.y, -north.z, 0,
+                                       east.x,   east.y,   east.z,  0,
+                                       up.x,     up.y,     up.z,    0,
+                                       0,        0,        0,       1);
+
+  return m.extractQuaternion();
+}
+
 udDouble3 vcGIS_GetWorldLocalUp(const udGeoZone &zone, udDouble3 localCoords)
 {
   if (zone.projection == udGZPT_Unknown || zone.projection >= udGZPT_TransverseMercator)

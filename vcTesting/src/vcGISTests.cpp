@@ -96,4 +96,30 @@ TEST(vcGIS, LocalAxis)
     udDouble2 headingPitchKanasStLouis = vcGIS_GetHeadingPitchFromLatLong(rZone, kansasCityLatLong, stLouisLatLong);
     EXPECT_TRUE(udEqualApprox(headingPitchKanasStLouis, udDouble2::create(UD_DEG2RAD(96.51), 0.0)));
   }
+
+  {
+    udDouble3 localPosition = udGeoZone_LatLongToCartesian(lZone, { 0.0, 0.0, 6371000.0 });
+    udDoubleQuat q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, -1), q.apply({ 1, 0, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({ 0, 1, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({ 0, 0, 1 })));
+
+    localPosition = udGeoZone_LatLongToCartesian(lZone, { 0.0, 90.0, 6371000.0 });
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, -1), q.apply({ 1, 0, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(-1, 0, 0), q.apply({ 0, 1, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({ 0, 0, 1 })));
+
+    localPosition = udGeoZone_LatLongToCartesian(lZone, { 0.0, 180.0, 6371000.0 });
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, -1), q.apply({ 1, 0, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({ 0, 1, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(-1, 0, 0), q.apply({ 0, 0, 1 })));
+
+    localPosition = udGeoZone_LatLongToCartesian(lZone, { 0.0, -90.0, 6371000.0 });
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, -1), q.apply({ 1, 0, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({ 0, 1, 0 })));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({ 0, 0, 1 })));
+  }
 }
