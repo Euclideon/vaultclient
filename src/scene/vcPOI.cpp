@@ -112,7 +112,7 @@ public:
 
   }
 
-  vdkProjectGeometryType GetGeometryType() const
+  vdkProjectGeometryType GetGeometryType() const override
   {
     return vdkPGT_Point;
   }
@@ -170,7 +170,7 @@ public:
 
   }
 
-  vdkProjectGeometryType GetGeometryType() const
+  vdkProjectGeometryType GetGeometryType() const override
   {
     return vdkPGT_LineString;
   }
@@ -254,7 +254,7 @@ public:
 
   }
 
-  vdkProjectGeometryType GetGeometryType() const
+  vdkProjectGeometryType GetGeometryType() const override
   {
     return vdkPGT_Polygon;
   }
