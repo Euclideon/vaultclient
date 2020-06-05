@@ -69,6 +69,25 @@ float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], flo
   return lerp(pu, pv, uvt.y);
 }
 
+float demHeight(float2 uv)
+{
+  float2 tileHeightSample = demTexture.SampleLevel( demSampler, uv, 0 ).xy;
+    // Reconstruct uint16 in float space and then convert back to int16 in float space
+  return ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
+}
+
+float3 calculateNormal(float2 uv)
+{
+  float scale = 2.0;
+  float2 offset = u_objectInfo.yz * scale;
+  float2 uvOffset = float2(0.0, scale / 128.0);
+  float3 p0 = float3(0, 0, demHeight(uv + uvOffset.xx));
+  float3 p1 = float3(offset.x, 0, demHeight(uv + uvOffset.yx));
+  float3 p2 = float3(0, offset.y, demHeight(uv + uvOffset.xy));
+  
+  return normalize(cross(p1 - p0, p2 - p0));
+}
+
 PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
@@ -79,15 +98,15 @@ PS_INPUT main(VS_INPUT input)
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
-  float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
-  // Reconstruct uint16 in float space and then convert back to int16 in float space
-  float tileHeight = ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
+  float tileHeight = demHeight(demUV);
+  
+  float3 normal = calculateNormal(demUV);
 
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
-  output.colour = u_colour;
+  output.colour = float4(normal, 0.0);//u_colour;
   output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);
