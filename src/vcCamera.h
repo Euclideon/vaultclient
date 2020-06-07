@@ -57,6 +57,7 @@ enum vcInputState
   vcCIS_Panning,
   vcCIS_MovingForward,
   vcCIS_Rotate,
+  vcCIS_MoveToViewpoint,
 
   vcCIS_Count
 };
@@ -69,6 +70,7 @@ struct vcCameraInput
   udDoubleQuat startAngle;
   udDoubleQuat targetAngle;
   double progress;
+  udDouble2 headingPitch;
 
   vcCameraPivotMode currentPivotMode;
 

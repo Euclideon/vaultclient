@@ -263,10 +263,31 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
     double travelProgress = udEase(pCamInput->progress, udET_CubicInOut);
     pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
 
-    udDouble3 axis = udNormalize(pProgramState->worldAnchorPoint - (pCamInput->startPosition + moveVector * closest));
-    udDoubleQuat targetAngle = udDoubleQuat::create(axis, 0);
-    pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pCamera->position, udSlerp(pCamInput->startAngle, targetAngle, travelProgress));
+    if (pCamera->headingPitch.y > UD_PI)
+      pCamera->headingPitch.y -= UD_2PI;
+  }
+  break;
 
+  case vcCIS_MoveToViewpoint:
+  {
+    udDouble3 moveVector = pProgramState->worldAnchorPoint - pCamInput->startPosition;
+    pCamInput->progress += deltaTime / 2; // 2 second travel time
+
+    if (pCamInput->progress > 1.0)
+    {
+      pCamInput->targetAngle = udDoubleQuat::identity();
+      pCamInput->progress = 1.0;
+
+      pCamInput->inputState = vcCIS_None;
+      pProgramState->camera.headingPitch = pCamInput->headingPitch;
+      pCamera->position = pProgramState->worldAnchorPoint;
+      
+      break;
+    }
+
+    double travelProgress = udEase(pCamInput->progress, udET_CubicInOut);
+    pCamera->position = pCamInput->startPosition + moveVector * travelProgress;
+    pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pCamera->position, udSlerp(pCamInput->startAngle, pCamInput->targetAngle, travelProgress));
     if (pCamera->headingPitch.y > UD_PI)
       pCamera->headingPitch.y -= UD_2PI;
   }

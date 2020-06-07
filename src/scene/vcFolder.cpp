@@ -293,7 +293,18 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         if (pNode->itemtype != vdkPNT_Folder && pSceneItem->GetWorldSpacePivot() != udDouble3::zero() && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
         {
           // Trigger a camera movement path
-          pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+          if (pNode->itemtype != vdkPNT_Viewpoint)
+          {
+            pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+          }
+          else
+          {
+            pProgramState->cameraInput.inputState = vcCIS_MoveToViewpoint;
+            vdkProjectNode_GetMetadataDouble(pNode, "transform.heading", &pProgramState->cameraInput.headingPitch.x, 0.0);
+            vdkProjectNode_GetMetadataDouble(pNode, "transform.pitch", &pProgramState->cameraInput.headingPitch.y, 0.0);
+            pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->cameraInput.headingPitch);
+          }
+
           pProgramState->cameraInput.startPosition = pProgramState->camera.position;
           pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
           pProgramState->cameraInput.progress = 0.0;
