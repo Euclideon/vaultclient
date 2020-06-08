@@ -189,6 +189,9 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
 
   udFree(pPoint);
 
+  udDoubleQuat q = vcGIS_GetQuaternion(newZone, m_center);
+  m_ypr = q.eulerAngles();
+
   switch (m_shape)
   {
   case vcQNFS_Box:
