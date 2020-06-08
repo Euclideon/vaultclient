@@ -14,6 +14,7 @@ struct PS_INPUT
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
   float2 normalUV : TEXCOORD3;
+  float3x3 tbn : TEXCOORD4;
 };
 
 struct PS_OUTPUT
@@ -41,7 +42,12 @@ PS_OUTPUT main(PS_INPUT input)
   float4 normal = normalTexture.Sample(normalSampler, input.normalUV);
   normal.xyz = normal.xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
   
-  output.Color0 = float4(col.xyz, input.colour.w);
+  //normal.xy = normal.yx;
+  
+  normal.xyz = normalize(mul(input.tbn, normal.xyz));
+  //normal.xz = -normal.xz;
+  
+  output.Color0 = float4(col.xyz, input.colour.w);// * 0.000001 + float4(input.colour.xyz, 1.0);
   
   float scale = 1.0 / (u_clipZFar - u_clipZNear);
   float bias = -(u_clipZNear * 0.5);

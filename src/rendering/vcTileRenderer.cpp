@@ -112,6 +112,8 @@ struct vcTileRenderer
     {
       udFloat4x4 projectionMatrix;
       udFloat4x4 viewMatrix;
+      udFloat4x4 inverseViewMatrix;
+      udFloat4 baseNormal;
       udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 eyeNormals[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
@@ -212,14 +214,12 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
 
   pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
 
-  // PUT THIS AND NORMALS IN THREAD
   pNode->pShortPixels = udAllocType(uint8_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 2, udAF_Zero);
   for (int h = 0; h < pNode->demInfo.data.height; ++h)
   {
     for (int w = 0; w < pNode->demInfo.data.width; ++w)
     {
       int index = h * pNode->demInfo.data.width + w;
-      //uint32_t p = ((w % 5) == 0 || (h % 5) == 0) ? 0x1f000000 : 0;
       uint32_t p = ((uint32_t*)pNode->demInfo.data.pData)[index];
       uint8_t r = uint8_t((p & 0xff000000) >> 24);
       uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
@@ -254,8 +254,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
     udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
     // generate normals
-    int stepSize = 1; // TODO: At lower levels something is wrong, so smudge them
-    if (pNode->slippyPosition.z >= 12)
+    int stepSize = 1; 
+    if (pNode->slippyPosition.z >= 12) // TODO: At lower levels something is wrong, so smudge them
       stepSize = 3;
 
     udInt2 offsets[] =
@@ -265,9 +265,6 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
       udInt2::create(-stepSize, 0),
       udInt2::create(0, -stepSize),
     };
-
-    static int globalDebugRow = 236;
-    static int globelDebugCol = 40;
 
     udFloat2 stepSize2 = udFloat2::create(1.0f / pNode->normalInfo.data.width, 1.0f / pNode->normalInfo.data.height);
     pNode->pNormalPixels = udAllocType(uint32_t, pNode->normalInfo.data.width * pNode->normalInfo.data.height, udAF_Zero);
@@ -286,8 +283,6 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
         {
           int e0 = e * 2;
           int e1 = (e * 2 + 1) % 4;
-          //int e0 = e;
-          //int e1 = (e + 1) % 4;
           int maxWidthIndex = pNode->normalInfo.data.width - 1;
           int maxHeightIndex = pNode->normalInfo.data.height - 1;
           int index0 = udClamp(h + offsets[e0].y, 0, maxHeightIndex) * pNode->normalInfo.data.width + udClamp(w + offsets[e0].x, 0, maxWidthIndex);
@@ -1111,6 +1106,8 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pTileRenderer->presentShader.everyObject.eyeNormals[t] = eyeSpaceNormal;
   }
 
+  pTileRenderer->presentShader.everyObject.baseNormal = udFloat4::create(udFloat3::create(pNode->worldNormals[4]), 0.0);
+
   udFloat2 size = pNode->colourInfo.drawInfo.uvEnd - pNode->colourInfo.drawInfo.uvStart;
   pTileRenderer->presentShader.everyObject.uvOffsetScale = udFloat4::create(pNode->colourInfo.drawInfo.uvStart, size.x, size.y);
 
@@ -1293,6 +1290,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTileRenderer->presentShader.everyObject.viewMatrix = udFloat4x4::create(view);
+  pTileRenderer->presentShader.everyObject.inverseViewMatrix = udInverse(pTileRenderer->presentShader.everyObject.viewMatrix);
 
   objectId = encodedObjectId;
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);

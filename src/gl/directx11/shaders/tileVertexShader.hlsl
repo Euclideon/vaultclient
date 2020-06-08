@@ -19,6 +19,7 @@ struct PS_INPUT
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
   float2 normalUV : TEXCOORD3;
+  float3x3 tbn : TEXCOORD4;
 };
 
 // This should match CPU struct size
@@ -28,6 +29,8 @@ cbuffer u_EveryObject : register(b0)
 {
   float4x4 u_projection;
   float4x4 u_view;
+  float4x4 u_inverseView;
+  float4 u_baseNormal;
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_eyeNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
@@ -85,6 +88,14 @@ PS_INPUT main(VS_INPUT input)
   float4 eyePos = BilinearSample(u_eyePositions, indexUV);
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
+  float3 worldNormal = u_baseNormal;//normalize(mul(u_inverseView, float4(eyeNormal.xyz, 0.0)).xyz);
+  
+  float3 t = normalize(cross(worldNormal.xyz, float3(1, 0, 0)));
+  float3 b = normalize(cross(t, worldNormal.xyz));
+  float3x3 tbn = float3x3(t.x, t.y, t.z,
+                          b.x, b.y, b.z,
+						  worldNormal.x, worldNormal.y, worldNormal.z);
+                          
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
   float tileHeight = demHeight(demUV);
   
@@ -92,12 +103,13 @@ PS_INPUT main(VS_INPUT input)
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
-  output.colour = u_colour;
+  output.colour = float4(b.xyz, 1.0);//u_colour;
   output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
   output.normalUV = demUV;
+  output.tbn = tbn;
   
   return output;
 }
