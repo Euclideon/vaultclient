@@ -99,7 +99,7 @@ PS_INPUT main(VS_INPUT input)
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
-  float tileHeight = demHeight(demUV);
+  float tileHeight = demHeight(demUV);// * 0.1;
   
   float3 normal = calculateNormal(demUV);
 

@@ -257,7 +257,10 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
 
     printf("%d : %f, %f\n", pNode->slippyPosition.z, texelWorldSize.x, texelWorldSize.y);
     // generate normals
-    int stepSize = 1; // they're a bit inaccurate, so 'smudge' a tiny bit
+    int stepSize = 1; // TODO: At lower levels something is wrong, so smudge them
+    if (pNode->slippyPosition.z >= 12)
+      stepSize = 3;//(pNode->slippyPosition.z - 11) * 3;
+
     //texelWorldSize *= stepSize;
     //const float TexelMetersLevel13 = 19.093f * 1.0;
     //float texelWorldSize = (float)(TexelMetersLevel13 * udPow(2.0, udMax(0, 13 - pNode->slippyPosition.z)));
@@ -287,58 +290,36 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
 
         int i0 = h * pNode->normalInfo.data.width + w;
         udFloat3 p0 = udFloat3::create(0.0f, 0.0f, pNode->pDemHeightsCopy[i0]);
-        //p0.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv, pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+        p0.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv, pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
         udFloat3 n = udFloat3::zero();
-        for (int e = 0; e < 4; ++e)
+        for (int e = 0; e < 2; ++e)
         {
-          //int e0 = e * 2;
-          //int e1 = (e * 2 + 1) % 4;
-          int e0 = e;
-          int e1 = (e + 1) % 4;
+          int e0 = e * 2;
+          int e1 = (e * 2 + 1) % 4;
+          //int e0 = e;
+          //int e1 = (e + 1) % 4;
           int maxWidthIndex = pNode->normalInfo.data.width - 1;
           int maxHeightIndex = pNode->normalInfo.data.height - 1;
           int index0 = udClamp(h + offsets[e0].y, 0, maxHeightIndex) * pNode->normalInfo.data.width + udClamp(w + offsets[e0].x, 0, maxWidthIndex);
           int index1 = udClamp(h + offsets[e1].y, 0, maxHeightIndex) * pNode->normalInfo.data.width + udClamp(w + offsets[e1].x, 0, maxWidthIndex);
 
           udFloat3 p1 = udFloat3::create(texelWorldSize.x * offsets[e0].x, texelWorldSize.y * offsets[e0].y, pNode->pDemHeightsCopy[index0]);
-          //p1.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e0].x, stepSize2.y * offsets[e0].y), pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+          p1.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e0].x, stepSize2.y * offsets[e0].y), pNode->normalInfo.data.width, pNode->normalInfo.data.height);
           udFloat3 p2 = udFloat3::create(texelWorldSize.x * offsets[e1].x, texelWorldSize.y * offsets[e1].y, pNode->pDemHeightsCopy[index1]);
-          //p2.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e1].x, stepSize2.y * offsets[e1].y), pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+          p2.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e1].x, stepSize2.y * offsets[e1].y), pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
-          udFloat3 p10 = p1 - p0;
-          udFloat3 p20 = p2 - p0;
-          //p10 = udNormalize3(p10);
-          //p20 = udNormalize3(p20);
-          udFloat3 rn = udCross(p10, p20);
+          udFloat3 rn = udCross(p1 - p0, p2 - p0);
           rn = udNormalize3(rn);
           n += rn;
         }
         n = udNormalize3(n);
-
-
-        //int rightIndex = (h + 0) * pNode->demInfo.data.width + udMin(w + stepSize, pNode->demInfo.data.width - 1);
-        //int downIndex = udMax(h - stepSize, 0) * pNode->demInfo.data.width + (w + 0);
-        //udFloat3 right = udFloat3::create(p0.x + texelWorldSize, p0.y, pNode->pDemHeightsCopy[rightIndex]);
-        //udFloat3 down = udFloat3::create(p0.x , p0.y - texelWorldSize, pNode->pDemHeightsCopy[downIndex]);
-        //
-        //int leftIndex = (h + 0) * pNode->demInfo.data.width + udMax(w - stepSize, 0);
-        //int upIndex = udMin(h + stepSize, pNode->demInfo.data.height - 1) * pNode->demInfo.data.width + (w + 0);
-        //udFloat3 left = udFloat3::create(p0.x - texelWorldSize, p0.y, pNode->pDemHeightsCopy[leftIndex]);
-        //udFloat3 up = udFloat3::create(p0.x, p0.y + texelWorldSize, pNode->pDemHeightsCopy[upIndex]);
-        //
-        //udFloat3 n0 = udNormalize(udCross3((right - middle), (up - middle)));
-        //udFloat3 n1 = udNormalize(udCross3((left - middle), (down - middle)));
-        //udFloat3 n = n1;//udNormalize3(n0 + n1);
-        ////udFloat3 n = udNormalize3(udFloat3::create(left.z - right.z, down.z - up.z, 2.0f));
-
 
         int nx = (int)(((n.x * 0.5f) + 0.5f) * 255);
         int ny = (int)(((n.y * 0.5f) + 0.5f) * 255);
         int nz = (int)(((n.z * 0.5f) + 0.5f) * 255);
         
         pNode->pNormalPixels[i0] = nx | (ny << 8) | (nz << 16) | (0xff000000);
-        //pNode->pNormalPixels[i0] = udFloat4::create(n, 0.0f);
       }
     }
 

@@ -28,11 +28,50 @@ Texture2D colourTexture;
 sampler normalSampler;
 Texture2D normalTexture;
 
+//vec3 decodeNormal(vec3 normalPacked)
+//{
+//  return normalPacked * vec3(2.0) - vec3(1.0);
+//  /*
+//  // N.x | N.y | N.zSign, (7 bits spare) | specular
+//  normalPacked = normalPacked * 2 - 1;
+//  vec3 normal = vec3((2.0 * normalPacked.x) / (1 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)),
+//                     (2.0 * normalPacked.y) / (1 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)),
+//		     (-1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+//
+//  return normal.xzy;
+//  */
+//}
+//
+//
+//vec4 encodeNormal(vec3 normal, float specular)
+//{
+//  return vec4(normal * vec3(0.5) + vec3(0.5), specular);
+//  
+//  /*
+//  // N.x | N.y | N.zSign, (7 bits spare) | specular
+//  return vec4((normal.x / (1.0 - normal.y)) * 0.5 + 0.5, 
+//              (normal.z / (1.0 - normal.y)) * 0.5 + 0.5,
+//              (int(sign(normal.z) * 0.5 + 0.5) / 255.0), 
+//	       specular);
+//  */
+//}
+
 float4 packNormal(float3 normal, float objectId, float depth)
 {
-  return float4(normal.x / (1.0 - normal.z), normal.y / (1.0 - normal.z),
-                objectId,
+  return float4(normal.x, normal.y,// / (1.0 - normal.z), normal.y / (1.0 - normal.z),
+                //objectId,
+				(int)(sign(normal.z)),
 	            depth);
+}
+
+float3 unpackNormal(float4 normalPacked)
+{
+  return float3(normalPacked.x, normalPacked.y,
+                sqrt(1 - normalPacked.x*normalPacked.x - normalPacked.y * normalPacked.y));
+				
+  //return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+  //              (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+	//	        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -43,7 +82,10 @@ PS_OUTPUT main(PS_INPUT input)
   normal.xyz = normal.xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
   
   //normal.xyz = input.colour.xyz;
-  
+  //normal.xyz = float3(0,0,1);
+  //float4 test = packNormal(normal.xyz, 0, 0);
+  //normal.xyz = unpackNormal(test);
+   
   output.Color0 = float4(col.xyz, input.colour.w);
   //output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);
   //output.Color0.xyz = output.Color0.xyz * 0.00001 + normal.xyz;

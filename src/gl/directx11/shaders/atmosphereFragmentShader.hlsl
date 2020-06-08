@@ -1364,9 +1364,12 @@ float linearizeDepth(float depth)
 
 float3 unpackNormal(float4 normalPacked)
 {
-  return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-                (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+  return float3(normalPacked.x, normalPacked.y,
+                sqrt(1 - normalPacked.x*normalPacked.x - normalPacked.y * normalPacked.y));
+				
+  //return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+ //               (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
+//		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -1437,8 +1440,7 @@ get the sun and sky irradiance received at this point. The reflected radiance
 follows, by multiplying the irradiance with the geometry BRDF:
 */
 
-    // TODO: Normals
-    float3 normal = sceneNormal;//normalize(geometryPoint - earth_center); 
+    float3 normal = sceneNormal;
 
     // Compute the radiance reflected by the sphere.
     float3 sky_irradiance;
