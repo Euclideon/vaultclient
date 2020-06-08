@@ -202,6 +202,13 @@ float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int
 
 void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode *pNode)
 {
+  pNode->demMinMax[0] = 32767;
+  pNode->demMinMax[1] = -32768;
+
+  pNode->demHeightsCopySize.x = pNode->demInfo.data.width;
+  pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
+  pNode->normalInfo.data.width = pNode->demInfo.data.width;
+  pNode->normalInfo.data.height = pNode->demInfo.data.height;
 
   pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
 
@@ -243,27 +250,13 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
     vcGIS_SlippyToLocal(zone, &a1, slipA, pNode->slippyPosition.z);
     vcGIS_SlippyToLocal(zone, &b1, slipB, pNode->slippyPosition.z);
     vcGIS_SlippyToLocal(zone, &c1, slipB, pNode->slippyPosition.z);
-    //udFloat2 d2 = udFloat2::create(a1.x - b1.x, a1.y - b1.y);
-
-    //
-    //udFloat2 texelWorldSize = udFloat2::create(udMag2(a.toVector2() - b.toVector2())) / udFloat2::create(pNode->demInfo.data.width, pNode->demInfo.data.height);
-
-    //vcGIS_SlippyToLocal();
-    udDouble3 a = pNode->worldBounds[8] - pNode->worldBounds[0];
-    double b = udMag3(a);
-    udFloat2 d = udFloat2::create(udAbs(a.x), udAbs(a.y));
-    //udFloat2 texelWorldSize = d / udFloat2::create(pNode->demInfo.data.width, pNode->demInfo.data.height);
+    
     udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
-    printf("%d : %f, %f\n", pNode->slippyPosition.z, texelWorldSize.x, texelWorldSize.y);
     // generate normals
     int stepSize = 1; // TODO: At lower levels something is wrong, so smudge them
     if (pNode->slippyPosition.z >= 12)
-      stepSize = 3;//(pNode->slippyPosition.z - 11) * 3;
-
-    //texelWorldSize *= stepSize;
-    //const float TexelMetersLevel13 = 19.093f * 1.0;
-    //float texelWorldSize = (float)(TexelMetersLevel13 * udPow(2.0, udMax(0, 13 - pNode->slippyPosition.z)));
+      stepSize = 3;
 
     udInt2 offsets[] =
     {
@@ -271,10 +264,6 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
       udInt2::create(0, stepSize),
       udInt2::create(-stepSize, 0),
       udInt2::create(0, -stepSize),
-      //udInt2::create(stepSize, stepSize),
-      //udInt2::create(-stepSize, stepSize),
-      //udInt2::create(-stepSize, -stepSize),
-      //udInt2::create(stepSize, -stepSize),
     };
 
     static int globalDebugRow = 236;
@@ -482,7 +471,9 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         if (demResult == udR_Success)
         {
          // udLockMutex(pCache->pMutex);
-         // vcTileRenderer_GenerateNormalsAndDem(pRenderer->quadTree.geozone, pBestNode);
+          //pNode->normalInfo.data.width = 256;
+          //pNode->normalInfo.data.height = 256;
+          vcTileRenderer_GenerateNormalsAndDem(pRenderer->quadTree.geozone, pBestNode);
          // udReleaseMutex(pCache->pMutex);
         }
 
@@ -943,15 +934,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
   {
     pNode->demInfo.tryLoad = false;
 
-    pNode->demMinMax[0] = 32767;
-    pNode->demMinMax[1] = -32768;
-
-    pNode->demHeightsCopySize.x = pNode->demInfo.data.width;
-    pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
-    pNode->normalInfo.data.width = pNode->demInfo.data.width;
-    pNode->normalInfo.data.height = pNode->demInfo.data.height;
-
-    vcTileRenderer_GenerateNormalsAndDem(pTileRenderer->quadTree.geozone, pNode);
+    //vcTileRenderer_GenerateNormalsAndDem(pTileRenderer->quadTree.geozone, pNode);
 
     vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->pShortPixels, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pNode->pShortPixels);
