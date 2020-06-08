@@ -232,6 +232,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
     }
   }
 
+  uint64_t start = udPerfCounterStart();
+
   //if (pNode->slippyPosition.x == 6074 && pNode->slippyPosition.y == 3432 && pNode->slippyPosition.z == 13)
   {
     udInt2 slipA = pNode->slippyPosition.toVector2();
@@ -253,6 +255,7 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
     //udFloat2 texelWorldSize = d / udFloat2::create(pNode->demInfo.data.width, pNode->demInfo.data.height);
     udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
+    printf("%d : %f, %f\n", pNode->slippyPosition.z, texelWorldSize.x, texelWorldSize.y);
     // generate normals
     int stepSize = 1; // they're a bit inaccurate, so 'smudge' a tiny bit
     //texelWorldSize *= stepSize;
@@ -305,8 +308,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
 
           udFloat3 p10 = p1 - p0;
           udFloat3 p20 = p2 - p0;
-          p10 = udNormalize3(p10);
-          p20 = udNormalize3(p20);
+          //p10 = udNormalize3(p10);
+          //p20 = udNormalize3(p20);
           udFloat3 rn = udCross(p10, p20);
           rn = udNormalize3(rn);
           n += rn;
@@ -337,7 +340,9 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
         pNode->pNormalPixels[i0] = nx | (ny << 8) | (nz << 16) | (0xff000000);
         //pNode->pNormalPixels[i0] = udFloat4::create(n, 0.0f);
       }
-    }   
+    }
+
+    printf("Took: %fms\n", udPerfCounterMilliseconds(start));
   }
 }
 
@@ -1112,6 +1117,9 @@ static float objectId = 0;
 
 void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcMesh *pMesh, const udDouble4x4 &view)
 {
+  //if (!(pNode->slippyPosition.x == 6074 && pNode->slippyPosition.y == 3432 && pNode->slippyPosition.z == 13))
+  //  return;
+
   vcTexture *pTexture = pNode->colourInfo.drawInfo.pTexture;
   if (pTexture == nullptr)
   {
@@ -1121,11 +1129,13 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
 
   vcTexture *pDemTexture = pNode->demInfo.drawInfo.pTexture;
   vcTexture *pNormalTexture = pNode->normalInfo.drawInfo.pTexture;
+  int depth = pNode->demInfo.drawInfo.depth;
   if (pDemTexture == nullptr || !pTileRenderer->pSettings->maptiles.demEnabled)
   {
     // TODO: completeRender = false?
     pDemTexture = pTileRenderer->pEmptyDemTileTexture;
     pNormalTexture = pTileRenderer->pEmptyNormalTexture;
+    depth = 1;
   }
 
   for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
@@ -1169,7 +1179,7 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     udFloat2 d = udFloat2::create(udAbs(a.x), udAbs(a.y));
     udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(256.0, 256.0);//pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
-    pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(objectId, texelWorldSize.x, texelWorldSize.y, 0);
+    pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(objectId, texelWorldSize.x, texelWorldSize.y, depth);
   }
 
   vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
@@ -1209,6 +1219,7 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
   if (pAncestor != nullptr && pAncestor != pChild)
   {
     // calculate what portion of ancestors DEM to display at this tile
+    pChild->demInfo.drawInfo.depth = pAncestor->slippyPosition.z;
     pChild->demInfo.drawInfo.pTexture = pAncestor->demInfo.drawInfo.pTexture;
     pChild->normalInfo.drawInfo.pTexture = pAncestor->normalInfo.drawInfo.pTexture;
     int depthDiff = pChild->slippyPosition.z - pAncestor->slippyPosition.z;
@@ -1242,6 +1253,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   pNode->colourInfo.drawInfo.pTexture = nullptr;
   pNode->demInfo.drawInfo.pTexture = nullptr;
   pNode->normalInfo.drawInfo.pTexture = nullptr;
+  pNode->demInfo.drawInfo.depth = pNode->slippyPosition.z;
   if (pNode->colourInfo.data.pTexture != nullptr)
   {
     pNode->colourInfo.drawInfo.pTexture = pNode->colourInfo.data.pTexture;

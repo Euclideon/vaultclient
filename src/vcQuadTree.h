@@ -49,6 +49,7 @@ struct vcNodeRenderInfo
     vcTexture *pTexture; // which texture to draw this node with for this frame. Note: may belong to an ancestor node.
     udFloat2 uvStart;
     udFloat2 uvEnd;
+    int depth;
   } drawInfo;
 };
 

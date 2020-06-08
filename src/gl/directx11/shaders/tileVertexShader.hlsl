@@ -78,9 +78,10 @@ float demHeight(float2 uv)
 
 float3 calculateNormal(float2 uv)
 {
-  float scale = 2.0;
+  float scale = 1.0;
   float2 offset = u_objectInfo.yz * scale;
-  float2 uvOffset = float2(0.0, scale / 128.0);
+  float depth = max(1, 13 - u_objectInfo.w);
+  float2 uvOffset = float2(0.0, scale / (2048.0 / u_objectInfo.w));//2048.0 / (1.0 / depth)); // 2048
   float3 p0 = float3(0, 0, demHeight(uv + uvOffset.xx));
   float3 p1 = float3(offset.x, 0, demHeight(uv + uvOffset.yx));
   float3 p2 = float3(0, offset.y, demHeight(uv + uvOffset.xy));
