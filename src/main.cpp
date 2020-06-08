@@ -1817,7 +1817,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
       if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("toolAnnotateDefaultText"), nullptr, nullptr) == vE_Success)
       {
-        vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
+        vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
       }
     }
