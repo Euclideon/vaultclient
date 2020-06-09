@@ -47,7 +47,10 @@ PS_OUTPUT main(PS_INPUT input)
   normal.xyz = normalize(mul(input.tbn, normal.xyz));
   //normal.xz = -normal.xz;
   
-  output.Color0 = float4(col.xyz, input.colour.w);// * 0.000001 + float4(input.colour.xyz, 1.0);
+  // vertex normals
+  normal.xyz = input.colour.xyz; 
+  
+  output.Color0 = float4(col.xyz, input.colour.w);// * 0.000001 + float4(normal.xyz, 1.0);
   
   float scale = 1.0 / (u_clipZFar - u_clipZNear);
   float bias = -(u_clipZNear * 0.5);

@@ -30,7 +30,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_projection;
   float4x4 u_view;
   float4x4 u_inverseView;
-  float4 u_baseNormal;
+  float4 u_normalTangent[2];
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_eyeNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
@@ -79,6 +79,22 @@ float demHeight(float2 uv)
   return ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
 }
 
+float3 calculateNormal(float2 uv, float2 drapeScale)
+{
+  float scale = 1.0;
+  float2 offset = u_objectInfo.yz * scale;
+  float depth = max(1, 13 - u_objectInfo.w);
+  float2 uvOffset = float2(0.0, drapeScale.x / 63.0);
+  float3 p0 = float3(0, 0, demHeight(uv + uvOffset.xx));
+  float3 p1 = float3(offset.x, 0, demHeight(uv + uvOffset.yx));
+  float3 p2 = float3(0, offset.y, demHeight(uv + uvOffset.xy));
+  
+  //float3 p3 = float3(-offset.x, 0, demHeight(uv - uvOffset.yx));
+  //float3 p4 = float3(0, -offset.y, demHeight(uv - uvOffset.xy));
+  
+  return normalize(normalize(cross(p1 - p0, p2 - p0)));// + normalize(cross(p3 - p0, p4 - p0)));
+}
+
 PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
@@ -88,22 +104,24 @@ PS_INPUT main(VS_INPUT input)
   float4 eyePos = BilinearSample(u_eyePositions, indexUV);
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
-  float3 worldNormal = u_baseNormal;//normalize(mul(u_inverseView, float4(eyeNormal.xyz, 0.0)).xyz);
+  float3 worldNormal = u_normalTangent[0];//normalize(mul(u_inverseView, float4(eyeNormal.xyz, 0.0)).xyz);
   
-  float3 t = normalize(cross(worldNormal.xyz, float3(1, 0, 0)));
-  float3 b = normalize(cross(t, worldNormal.xyz));
-  float3x3 tbn = float3x3(t.x, t.y, t.z,
-                          b.x, b.y, b.z,
-						  worldNormal.x, worldNormal.y, worldNormal.z);
+  float3 t = u_normalTangent[1];//normalize(cross(worldNormal.xyz, float3(0, -1, 0)));
+  float3 b = normalize(cross(worldNormal.xyz, t));
+  float3x3 tbn = float3x3(t, b, worldNormal);//t.x, t.y, t.z,
+                          //b.x, b.y, b.z,
+						  //worldNormal.x, worldNormal.y, worldNormal.z);
                           
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
   float tileHeight = demHeight(demUV);
   
+  float3 normal = calculateNormal(demUV, u_demUVOffsetScale.zw);
+	
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
-  output.colour = float4(b.xyz, 1.0);//u_colour;
+  output.colour = float4(normal.xyz, 1.0);//u_colour;
   output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);

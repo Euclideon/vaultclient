@@ -113,7 +113,7 @@ struct vcTileRenderer
       udFloat4x4 projectionMatrix;
       udFloat4x4 viewMatrix;
       udFloat4x4 inverseViewMatrix;
-      udFloat4 baseNormal;
+      udFloat4 normalTangent[2];
       udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 eyeNormals[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
@@ -255,8 +255,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
 
     // generate normals
     int stepSize = 1; 
-    if (pNode->slippyPosition.z >= 12) // TODO: At lower levels something is wrong, so smudge them
-      stepSize = 3;
+    //if (pNode->slippyPosition.z >= 12) // TODO: At lower levels something is wrong, so smudge them
+    //  stepSize = 3;
 
     udInt2 offsets[] =
     {
@@ -1106,7 +1106,15 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pTileRenderer->presentShader.everyObject.eyeNormals[t] = eyeSpaceNormal;
   }
 
-  pTileRenderer->presentShader.everyObject.baseNormal = udFloat4::create(udFloat3::create(pNode->worldNormals[4]), 0.0);
+  udDouble3 up, east, north;
+  vcGIS_GetOrthonormalBasis(pTileRenderer->quadTree.geozone, pNode->worldBounds[4], &up, &north, &east);
+
+  pTileRenderer->presentShader.everyObject.normalTangent[0] = udFloat4::create(udFloat3::create(up), 0.0f);
+  pTileRenderer->presentShader.everyObject.normalTangent[1] = udFloat4::create(udFloat3::create(east), 0.0f);
+
+  //pTileRenderer->presentShader.everyObject.baseNormal = udFloat4::create(udFloat3::create(pNode->worldNormals[4]), 0.0);
+  //udFloat3 t = udNormalize3(udCross3(pTileRenderer->presentShader.everyObject.baseNormal.toVector3(), udFloat3::create(0, -1, 0)));
+  //udFloat3 b = udNormalize3(udCross3(pTileRenderer->presentShader.everyObject.baseNormal.toVector3(), t));
 
   udFloat2 size = pNode->colourInfo.drawInfo.uvEnd - pNode->colourInfo.drawInfo.uvStart;
   pTileRenderer->presentShader.everyObject.uvOffsetScale = udFloat4::create(pNode->colourInfo.drawInfo.uvStart, size.x, size.y);
