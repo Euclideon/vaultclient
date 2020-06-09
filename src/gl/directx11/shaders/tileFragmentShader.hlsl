@@ -48,7 +48,7 @@ PS_OUTPUT main(PS_INPUT input)
   //normal.xz = -normal.xz;
   
   // vertex normals
-  normal.xyz = input.colour.xyz; 
+  //normal.xyz = input.colour.xyz; 
   
   output.Color0 = float4(col.xyz, input.colour.w);// * 0.000001 + float4(normal.xyz, 1.0);
   
