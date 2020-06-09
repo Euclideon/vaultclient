@@ -1141,12 +1141,12 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     udDouble3 a1, b1, c1;
     vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &a1, slipA, pNode->slippyPosition.z);
     vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &b1, slipB, pNode->slippyPosition.z);
-    vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &c1, slipB, pNode->slippyPosition.z);
+    vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &c1, slipC, pNode->slippyPosition.z);
 
     udDouble3 a = pNode->worldBounds[8] - pNode->worldBounds[0];
     double b = udMag3(a);
     udFloat2 d = udFloat2::create(udAbs(a.x), udAbs(a.y));
-    udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(256.0, 256.0);//pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+    udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(63.0f, 63.0f);//pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
     pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(objectId, texelWorldSize.x, texelWorldSize.y, depth);
   }
