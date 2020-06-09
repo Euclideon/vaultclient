@@ -13,7 +13,6 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
-  float2 normalUV : TEXCOORD3;
 };
 
 struct PS_OUTPUT
@@ -37,17 +36,9 @@ PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
   float4 col = colourTexture.Sample(colourSampler, input.uv);
-  
-  float4 normal = normalTexture.Sample(normalSampler, input.normalUV);
-  normal.xyz = normal.xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
-  
-  //normal.xy = normal.yx;
-  
-  //normal.xyz = normalize(mul(input.tbn, normal.xyz));
-  //normal.xz = -normal.xz;
-  
+
   // vertex normals
-  normal.xyz = input.colour.xyz; 
+  float3 normal = input.colour.xyz; 
   
   output.Color0 = float4(col.xyz, input.colour.w);// * 0.000001 + float4(normal.xyz, 1.0);
   

@@ -668,8 +668,8 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
 {
   udResult result;
   vcTileRenderer *pTileRenderer = nullptr;
-  vcP3Vertex verts[TileVertexResolution * TileVertexResolution] = {};
-  int indicies[TileIndexResolution * TileIndexResolution * 6] = {};
+  vcP3Vertex *pVerts = nullptr;
+  int *pIndicies = nullptr;
   uint32_t greyPixel = 0xf3f3f3ff;
   uint16_t flatDemPixel = 0x8000;
   uint32_t flatNormalPixel = 0x7f7fffff;
@@ -677,6 +677,12 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
 
   pTileRenderer = udAllocType(vcTileRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pTileRenderer, udR_MemoryAllocationFailure);
+
+  pVerts = udAllocType(vcP3Vertex, TileVertexResolution * TileVertexResolution, udAF_Zero);
+  UD_ERROR_NULL(pVerts, udR_MemoryAllocationFailure);
+
+  pIndicies = udAllocType(int, TileVertexResolution * TileVertexResolution * 6, udAF_Zero);
+  UD_ERROR_NULL(pIndicies, udR_MemoryAllocationFailure);
 
   pTileRenderer->generateTreeUpdateTimer = QuadTreeUpdateFrequencySec;
 
@@ -699,8 +705,8 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   // build mesh variants
   for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
   {
-    vcTileRenderer_BuildMeshVertices(verts, indicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f), MeshConfigurations[i]);
-    vcMesh_Create(&pTileRenderer->pTileMeshes[i], vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), verts, TileVertexResolution * TileVertexResolution, indicies, TileIndexResolution * TileIndexResolution * 6);
+    vcTileRenderer_BuildMeshVertices(pVerts, pIndicies, udFloat2::create(0.0f, 0.0f), udFloat2::create(1.0f, 1.0f), MeshConfigurations[i]);
+    vcMesh_Create(&pTileRenderer->pTileMeshes[i], vcP3VertexLayout, (int)udLengthOf(vcP3VertexLayout), pVerts, TileVertexResolution * TileVertexResolution, pIndicies, TileIndexResolution * TileIndexResolution * 6);
   }
 
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
@@ -715,6 +721,8 @@ epilogue:
   if (pTileRenderer)
     vcTileRenderer_Destroy(&pTileRenderer);
 
+  udFree(pVerts);
+  udFree(pIndicies);
   return result;
 }
 
@@ -1047,7 +1055,7 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     udFloat2 d = udFloat2::create(udAbs(a.x), udAbs(a.y));
     udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1));// / udFloat2::create(256.0, 256.0);//pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
-    pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(objectId, texelWorldSize.x, texelWorldSize.y, 0.0f);
+    pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(objectId, texelWorldSize.x, texelWorldSize.y, TileVertexResolution);
   }
 
   vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad

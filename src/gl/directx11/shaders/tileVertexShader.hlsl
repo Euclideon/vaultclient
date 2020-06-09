@@ -18,7 +18,6 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
-  float2 normalUV : TEXCOORD3;
 };
 
 // This should match CPU struct size
@@ -78,10 +77,9 @@ float demHeight(float2 uv)
 
 float3 calculateNormal(float2 uv, float2 drapeScale)
 {
-  float scale = 1.0;
-  float2 offset = u_objectInfo.yz * scale / 63.0;
-  float depth = max(1, 13 - u_objectInfo.w);
-  float2 uvOffset = float2(0.0, drapeScale.x / 63.0);
+  float scale = 1.0 / u_objectInfo.w;
+  float2 offset = u_objectInfo.yz * scale;
+  float2 uvOffset = float2(0.0, (drapeScale.x * scale));
   float3 p0 = float3(0, 0, demHeight(uv + uvOffset.xx));
   float3 p1 = float3(offset.x, 0, demHeight(uv + uvOffset.yx));
   float3 p2 = float3(0, offset.y, demHeight(uv + uvOffset.xy));
@@ -100,7 +98,7 @@ PS_INPUT main(VS_INPUT input)
   float2 indexUV = input.pos.xy * (CONTROL_POINT_RES - 1.0);
   float4 eyePos = BilinearSample(u_eyePositions, indexUV);
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
-
+                  
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
   float tileHeight = demHeight(demUV);
   
@@ -115,7 +113,6 @@ PS_INPUT main(VS_INPUT input)
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
-  output.normalUV = demUV;
   
   return output;
 }
