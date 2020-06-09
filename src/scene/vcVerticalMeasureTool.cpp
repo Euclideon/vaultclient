@@ -72,7 +72,10 @@ void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
 
 void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  if (m_pickStart || !m_done)
+  if (!m_visible)
+    return;
+
+  if (m_selected && (m_pickStart || !m_done))
   {
     vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
     udDouble3 linearDistance = (pProgramState->camera.position - m_points[0]);
@@ -89,7 +92,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
   {
     UpdateIntersectionPosition(pProgramState);
 
-    if (m_pickEnd || !m_done)
+    if (m_selected && (m_pickEnd || !m_done))
     {
       vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
       udDouble3 linearDistance = (pProgramState->camera.position - m_points[2]);
@@ -99,7 +102,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
       pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
       pInstance->sceneItemInternalId = 2;
       pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
-    }    
+    }
 
     m_labelInfo.worldPosition = m_points[1];
     char labelBuf[128] = {};
