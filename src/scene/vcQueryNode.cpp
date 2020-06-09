@@ -16,6 +16,7 @@ vcQueryNode::vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pP
   vcSceneItem(pProject, pNode, pProgramState),
   m_shape(vcQNFS_Box),
   m_inverted(false),
+  m_currentProjection(udDoubleQuat::identity()),
   m_center(udDouble3::zero()),
   m_extents(udDouble3::one()),
   m_ypr(udDouble3::zero()),
@@ -189,8 +190,14 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
 
   udFree(pPoint);
 
-  udDoubleQuat q = vcGIS_GetQuaternion(newZone, m_center);
-  m_ypr = q.eulerAngles();
+  udDoubleQuat qNewProjection = vcGIS_GetQuaternion(newZone, m_center);
+  udDoubleQuat qScene = udDoubleQuat::create(m_ypr);
+  m_ypr = (qNewProjection * (m_currentProjection.inverse() * qScene)).eulerAngles();
+  m_currentProjection = qNewProjection;
+
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
+  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 
   switch (m_shape)
   {
