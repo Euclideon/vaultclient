@@ -96,10 +96,8 @@ struct vcQuadTreeNode
   // node payloads
   vcNodeRenderInfo colourInfo;
   vcNodeRenderInfo demInfo;
-  vcNodeRenderInfo normalInfo;
 
   uint8_t *pShortPixels; // todo; move lol
-  uint32_t *pNormalPixels;
 };
 
 struct vcQuadTreeMetaData

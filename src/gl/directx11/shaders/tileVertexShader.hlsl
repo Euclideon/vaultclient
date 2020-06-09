@@ -19,7 +19,6 @@ struct PS_INPUT
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
   float2 normalUV : TEXCOORD3;
-  float3x3 tbn : TEXCOORD4;
 };
 
 // This should match CPU struct size
@@ -29,8 +28,6 @@ cbuffer u_EveryObject : register(b0)
 {
   float4x4 u_projection;
   float4x4 u_view;
-  float4x4 u_inverseView;
-  float4 u_normalTangent[2];
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_eyeNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
@@ -82,7 +79,7 @@ float demHeight(float2 uv)
 float3 calculateNormal(float2 uv, float2 drapeScale)
 {
   float scale = 1.0;
-  float2 offset = u_objectInfo.yz * scale;
+  float2 offset = u_objectInfo.yz * scale / 63.0;
   float depth = max(1, 13 - u_objectInfo.w);
   float2 uvOffset = float2(0.0, drapeScale.x / 63.0);
   float3 p0 = float3(0, 0, demHeight(uv + uvOffset.xx));
@@ -104,14 +101,6 @@ PS_INPUT main(VS_INPUT input)
   float4 eyePos = BilinearSample(u_eyePositions, indexUV);
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
-  float3 worldNormal = u_normalTangent[0];//normalize(mul(u_inverseView, float4(eyeNormal.xyz, 0.0)).xyz);
-  
-  float3 t = u_normalTangent[1];//normalize(cross(worldNormal.xyz, float3(0, -1, 0)));
-  float3 b = normalize(cross(worldNormal.xyz, t));
-  float3x3 tbn = float3x3(t, b, worldNormal);//t.x, t.y, t.z,
-                          //b.x, b.y, b.z,
-						  //worldNormal.x, worldNormal.y, worldNormal.z);
-                          
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
   float tileHeight = demHeight(demUV);
   
@@ -127,7 +116,6 @@ PS_INPUT main(VS_INPUT input)
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
   output.normalUV = demUV;
-  output.tbn = tbn;
   
   return output;
 }

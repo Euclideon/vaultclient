@@ -112,8 +112,6 @@ struct vcTileRenderer
     {
       udFloat4x4 projectionMatrix;
       udFloat4x4 viewMatrix;
-      udFloat4x4 inverseViewMatrix;
-      udFloat4 normalTangent[2];
       udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 eyeNormals[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
@@ -202,15 +200,13 @@ float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int
   return udLerp(colourB, colourT, rem.y);
 }
 
-void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode *pNode)
+void vcTileRenderer_GenerateDem(const udGeoZone &zone, vcQuadTreeNode *pNode)
 {
   pNode->demMinMax[0] = 32767;
   pNode->demMinMax[1] = -32768;
 
   pNode->demHeightsCopySize.x = pNode->demInfo.data.width;
   pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
-  pNode->normalInfo.data.width = pNode->demInfo.data.width;
-  pNode->normalInfo.data.height = pNode->demInfo.data.height;
 
   pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
 
@@ -237,77 +233,6 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
       // Convert from [-32k, 32k] to [0, 65k]
       pNode->pShortPixels[index * 2 + 1] = (g ^ 0x80);
     }
-  }
-
-  uint64_t start = udPerfCounterStart();
-
-  //if (pNode->slippyPosition.x == 6074 && pNode->slippyPosition.y == 3432 && pNode->slippyPosition.z == 13)
-  {
-    udInt2 slipA = pNode->slippyPosition.toVector2();
-    udInt2 slipB = slipA + udInt2::create(1, 0);
-    udInt2 slipC = slipA + udInt2::create(0, 1);
-    udDouble3 a1, b1, c1;
-    vcGIS_SlippyToLocal(zone, &a1, slipA, pNode->slippyPosition.z);
-    vcGIS_SlippyToLocal(zone, &b1, slipB, pNode->slippyPosition.z);
-    vcGIS_SlippyToLocal(zone, &c1, slipB, pNode->slippyPosition.z);
-    
-    udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(pNode->normalInfo.data.width, pNode->normalInfo.data.height);
-
-    // generate normals
-    int stepSize = 1; 
-    //if (pNode->slippyPosition.z >= 12) // TODO: At lower levels something is wrong, so smudge them
-    //  stepSize = 3;
-
-    udInt2 offsets[] =
-    {
-      udInt2::create(stepSize, 0),
-      udInt2::create(0, stepSize),
-      udInt2::create(-stepSize, 0),
-      udInt2::create(0, -stepSize),
-    };
-
-    udFloat2 stepSize2 = udFloat2::create(1.0f / pNode->normalInfo.data.width, 1.0f / pNode->normalInfo.data.height);
-    pNode->pNormalPixels = udAllocType(uint32_t, pNode->normalInfo.data.width * pNode->normalInfo.data.height, udAF_Zero);
-    for (int h = 0; h < pNode->normalInfo.data.height; ++h)
-    {
-      for (int w = 0; w < pNode->normalInfo.data.width; ++w)
-      {
-        udFloat2 uv = udFloat2::create(float(w) / pNode->normalInfo.data.width, float(h) / pNode->normalInfo.data.height);
-
-        int i0 = h * pNode->normalInfo.data.width + w;
-        udFloat3 p0 = udFloat3::create(0.0f, 0.0f, pNode->pDemHeightsCopy[i0]);
-        p0.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv, pNode->normalInfo.data.width, pNode->normalInfo.data.height);
-
-        udFloat3 n = udFloat3::zero();
-        for (int e = 0; e < 2; ++e)
-        {
-          int e0 = e * 2;
-          int e1 = (e * 2 + 1) % 4;
-          int maxWidthIndex = pNode->normalInfo.data.width - 1;
-          int maxHeightIndex = pNode->normalInfo.data.height - 1;
-          int index0 = udClamp(h + offsets[e0].y, 0, maxHeightIndex) * pNode->normalInfo.data.width + udClamp(w + offsets[e0].x, 0, maxWidthIndex);
-          int index1 = udClamp(h + offsets[e1].y, 0, maxHeightIndex) * pNode->normalInfo.data.width + udClamp(w + offsets[e1].x, 0, maxWidthIndex);
-
-          udFloat3 p1 = udFloat3::create(texelWorldSize.x * offsets[e0].x, texelWorldSize.y * offsets[e0].y, pNode->pDemHeightsCopy[index0]);
-          p1.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e0].x, stepSize2.y * offsets[e0].y), pNode->normalInfo.data.width, pNode->normalInfo.data.height);
-          udFloat3 p2 = udFloat3::create(texelWorldSize.x * offsets[e1].x, texelWorldSize.y * offsets[e1].y, pNode->pDemHeightsCopy[index1]);
-          p2.z = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + udFloat2::create(stepSize2.x * offsets[e1].x, stepSize2.y * offsets[e1].y), pNode->normalInfo.data.width, pNode->normalInfo.data.height);
-
-          udFloat3 rn = udCross(p1 - p0, p2 - p0);
-          rn = udNormalize3(rn);
-          n += rn;
-        }
-        n = udNormalize3(n);
-
-        int nx = (int)(((n.x * 0.5f) + 0.5f) * 255);
-        int ny = (int)(((n.y * 0.5f) + 0.5f) * 255);
-        int nz = (int)(((n.z * 0.5f) + 0.5f) * 255);
-        
-        pNode->pNormalPixels[i0] = nx | (ny << 8) | (nz << 16) | (0xff000000);
-      }
-    }
-
-    printf("Took: %fms\n", udPerfCounterMilliseconds(start));
   }
 }
 
@@ -464,13 +389,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         demResult = vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL);
 
         if (demResult == udR_Success)
-        {
-         // udLockMutex(pCache->pMutex);
-          //pNode->normalInfo.data.width = 256;
-          //pNode->normalInfo.data.height = 256;
-          vcTileRenderer_GenerateNormalsAndDem(pRenderer->quadTree.geozone, pBestNode);
-         // udReleaseMutex(pCache->pMutex);
-        }
+          vcTileRenderer_GenerateDem(pRenderer->quadTree.geozone, pBestNode);
 
         pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
       }
@@ -929,14 +848,9 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
   {
     pNode->demInfo.tryLoad = false;
 
-    //vcTileRenderer_GenerateNormalsAndDem(pTileRenderer->quadTree.geozone, pNode);
-
     vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->pShortPixels, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pNode->pShortPixels);
     udFree(pNode->demInfo.data.pData);
-
-    vcTexture_CreateAdv(&pNode->normalInfo.data.pTexture, vcTextureType_Texture2D, pNode->normalInfo.data.width, pNode->normalInfo.data.height, 1, pNode->pNormalPixels, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp);
-    udFree(pNode->pNormalPixels);
 
     pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Absolute;
     vcQuadTree_CalculateNodeAABB(&pTileRenderer->quadTree, pNode);
@@ -1087,14 +1001,10 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   }
 
   vcTexture *pDemTexture = pNode->demInfo.drawInfo.pTexture;
-  vcTexture *pNormalTexture = pNode->normalInfo.drawInfo.pTexture;
-  int depth = pNode->demInfo.drawInfo.depth;
   if (pDemTexture == nullptr || !pTileRenderer->pSettings->maptiles.demEnabled)
   {
     // TODO: completeRender = false?
     pDemTexture = pTileRenderer->pEmptyDemTileTexture;
-    pNormalTexture = pTileRenderer->pEmptyNormalTexture;
-    depth = 1;
   }
 
   for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
@@ -1106,16 +1016,6 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pTileRenderer->presentShader.everyObject.eyeNormals[t] = eyeSpaceNormal;
   }
 
-  udDouble3 up, east, north;
-  vcGIS_GetOrthonormalBasis(pTileRenderer->quadTree.geozone, pNode->worldBounds[4], &up, &north, &east);
-
-  pTileRenderer->presentShader.everyObject.normalTangent[0] = udFloat4::create(udFloat3::create(up), 0.0f);
-  pTileRenderer->presentShader.everyObject.normalTangent[1] = udFloat4::create(udFloat3::create(east), 0.0f);
-
-  //pTileRenderer->presentShader.everyObject.baseNormal = udFloat4::create(udFloat3::create(pNode->worldNormals[4]), 0.0);
-  //udFloat3 t = udNormalize3(udCross3(pTileRenderer->presentShader.everyObject.baseNormal.toVector3(), udFloat3::create(0, -1, 0)));
-  //udFloat3 b = udNormalize3(udCross3(pTileRenderer->presentShader.everyObject.baseNormal.toVector3(), t));
-
   udFloat2 size = pNode->colourInfo.drawInfo.uvEnd - pNode->colourInfo.drawInfo.uvStart;
   pTileRenderer->presentShader.everyObject.uvOffsetScale = udFloat4::create(pNode->colourInfo.drawInfo.uvStart, size.x, size.y);
 
@@ -1123,7 +1023,6 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   pTileRenderer->presentShader.everyObject.demUVOffsetScale = udFloat4::create(pNode->demInfo.drawInfo.uvStart, demSize.x, demSize.y);
 
   vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTexture, 0, pTileRenderer->presentShader.uniform_texture);
-  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pNormalTexture, 1, pTileRenderer->presentShader.uniform_normal);
 
   // TODO: This is a hack, needs to be fixed for both graphics APIs
   uint16_t samplerIndex = 0;
@@ -1141,14 +1040,14 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     udDouble3 a1, b1, c1;
     vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &a1, slipA, pNode->slippyPosition.z);
     vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &b1, slipB, pNode->slippyPosition.z);
-    vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &c1, slipB, pNode->slippyPosition.z);
+    vcGIS_SlippyToLocal(pTileRenderer->quadTree.geozone, &c1, slipC, pNode->slippyPosition.z);
 
     udDouble3 a = pNode->worldBounds[8] - pNode->worldBounds[0];
     double b = udMag3(a);
     udFloat2 d = udFloat2::create(udAbs(a.x), udAbs(a.y));
-    udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1)) / udFloat2::create(256.0, 256.0);//pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+    udFloat2 texelWorldSize = udFloat2::create(udMag3(a1 - b1), udMag3(a1 - c1));// / udFloat2::create(256.0, 256.0);//pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
-    pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(objectId, texelWorldSize.x, texelWorldSize.y, depth);
+    pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(objectId, texelWorldSize.x, texelWorldSize.y, 0.0f);
   }
 
   vcMesh_Render(pMesh, TileIndexResolution * TileIndexResolution * 2); // 2 tris per quad
@@ -1190,7 +1089,6 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
     // calculate what portion of ancestors DEM to display at this tile
     pChild->demInfo.drawInfo.depth = pAncestor->slippyPosition.z;
     pChild->demInfo.drawInfo.pTexture = pAncestor->demInfo.drawInfo.pTexture;
-    pChild->normalInfo.drawInfo.pTexture = pAncestor->normalInfo.drawInfo.pTexture;
     int depthDiff = pChild->slippyPosition.z - pAncestor->slippyPosition.z;
     int slippyRange = (int)udPow(2.0f, (float)depthDiff);
     udFloat2 boundsRange = udFloat2::create((float)slippyRange);
@@ -1221,7 +1119,6 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
   pNode->colourInfo.drawInfo.pTexture = nullptr;
   pNode->demInfo.drawInfo.pTexture = nullptr;
-  pNode->normalInfo.drawInfo.pTexture = nullptr;
   pNode->demInfo.drawInfo.depth = pNode->slippyPosition.z;
   if (pNode->colourInfo.data.pTexture != nullptr)
   {
@@ -1232,7 +1129,6 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   if (pNode->demInfo.data.pTexture != nullptr)
   {
     pNode->demInfo.drawInfo.pTexture = pNode->demInfo.data.pTexture;
-    pNode->normalInfo.drawInfo.pTexture = pNode->normalInfo.data.pTexture;
     pBestDemAncestor = pNode;
   }
 
@@ -1298,7 +1194,6 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTileRenderer->presentShader.everyObject.viewMatrix = udFloat4x4::create(view);
-  pTileRenderer->presentShader.everyObject.inverseViewMatrix = udInverse(pTileRenderer->presentShader.everyObject.viewMatrix);
 
   objectId = encodedObjectId;
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);

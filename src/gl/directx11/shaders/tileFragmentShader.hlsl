@@ -14,7 +14,6 @@ struct PS_INPUT
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
   float2 normalUV : TEXCOORD3;
-  float3x3 tbn : TEXCOORD4;
 };
 
 struct PS_OUTPUT
@@ -44,7 +43,7 @@ PS_OUTPUT main(PS_INPUT input)
   
   //normal.xy = normal.yx;
   
-  normal.xyz = normalize(mul(input.tbn, normal.xyz));
+  //normal.xyz = normalize(mul(input.tbn, normal.xyz));
   //normal.xz = -normal.xz;
   
   // vertex normals
