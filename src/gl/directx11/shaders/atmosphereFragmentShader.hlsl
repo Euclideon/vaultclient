@@ -1365,10 +1365,9 @@ float linearizeDepth(float depth)
 float3 unpackNormal(float4 normalPacked)
 {
   int zNormalSign = float(int(normalPacked.y * 0xffff) >> 15) * 2 - 1;
-  //float normalY = (((normalPacked.y * 0xffff) / 0x7fff) * 2.0 - 1.0);//(float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;
-  float normalY = (float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;//(float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;
+  float normalY = (float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;
   return float3(normalPacked.x, normalY,
-                zNormalSign * sqrt(1 - normalPacked.x*normalPacked.x - normalY * normalY));
+                zNormalSign * sqrt(1 - min(0.99999, normalPacked.x*normalPacked.x - normalY * normalY)));
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -1402,7 +1401,7 @@ PS_OUTPUT main(PS_INPUT input)
 
   float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
   float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
-  float fadeDistanceHack = 0.65;
+  float fadeDistanceHack = 0.675;
   
   // TODO: Normals
   float shadow_in = 0;
@@ -1545,7 +1544,7 @@ the scene:
     output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
   // debugging
-  output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
+ // output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
 	
   return output;
 }

@@ -33,10 +33,7 @@ float4 packNormal(float3 normal, float objectId, float depth)
 {
   int normalY15 = int((normal.y * 0.5 + 0.5) * 0x7fff + 0.5);
   int zNormalSign = (int)(sign(normal.z) * 0.5 + 0.5);
-  //return float4(normal.x, normal.y, objectId, depth);
   return float4(normal.x, float((zNormalSign << 15) | normalY15) / 0xffff, objectId, depth);
-  
-  //return float4(normal.x, (float)((zNormalSign << 15) | normalY15), objectId, depth);
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -48,7 +45,7 @@ PS_OUTPUT main(PS_INPUT input)
   normal.xyz = normal.xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
   //normal.xyz = normal.xyz * 0.000001 + input.colour.xyz;//float3(0,0,1);
   //normal.xy = normal.yx;
-  //normal.xyz = float3(0, 0, 1);
+  //normal.xyz = float3(1, 0, 0);
   
   normal.xyz = normalize(mul(normal.xyz, input.tbn));
   //normal.xz = -normal.xz;

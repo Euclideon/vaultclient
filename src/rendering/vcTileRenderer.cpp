@@ -469,9 +469,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
           //pNode->normalInfo.data.height = 256;
           vcTileRenderer_GenerateNormalsAndDem(pRenderer->quadTree.geozone, pBestNode);
          // udReleaseMutex(pCache->pMutex);
+          pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
         }
-
-        pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
       }
 
       if (pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
