@@ -34,6 +34,7 @@ private:
   bool HasLine();
   void RemoveMeasureInfo();
   void ClearPoints();
+  void UpdateSetting(vcState *pProgramState);
 
 private:
   static const int POINTSIZE = 3;
@@ -44,6 +45,11 @@ private:
 
   vcLabelInfo m_labelInfo;
   vcLineInstance *m_pLineInstance;
+
+  uint32_t m_textColourBGRA;
+  uint32_t m_textBackgroundBGRA;
+  uint32_t m_lineColour;
+  double m_lineWidth;
 
 };
 
