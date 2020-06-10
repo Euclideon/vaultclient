@@ -148,12 +148,8 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (ImGui::IsItemDeactivatedAfterEdit())
       vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
 
-    float width = m_lineWidth;
-    if (ImGui::SliderFloat(udTempStr("%s##VerticalLineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &width, 3.f, 15.f, "%.2f", 3.f))
-    {
-      m_lineWidth = width;
+    if (ImGui::SliderFloat(udTempStr("%s##VerticalLineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_lineWidth, 3.f, 15.f, "%.2f", 3.f))
       vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", m_lineWidth);
-    }
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLineColour%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_lineColour, ImGuiColorEditFlags_None))
       vdkProjectNode_SetMetadataUint(m_pNode, "lineColour", m_lineColour);
@@ -269,5 +265,8 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
   m_labelInfo.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
 
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColour", &m_lineColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
-  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", &m_lineWidth, pProgramState->settings.tools.line.width);
+
+  double width = pProgramState->settings.tools.line.width;
+  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", &width, pProgramState->settings.tools.line.width);
+  m_lineWidth = (float)width;
 }

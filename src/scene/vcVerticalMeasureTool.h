@@ -49,7 +49,7 @@ private:
   uint32_t m_textColourBGRA;
   uint32_t m_textBackgroundBGRA;
   uint32_t m_lineColour;
-  double m_lineWidth;
+  float m_lineWidth;
 
 };
 
