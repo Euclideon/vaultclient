@@ -192,6 +192,7 @@ struct vcState
     vcSceneItemRef insertItem;
     vcSceneItemRef clickedItem;
     std::vector<vcSceneItemRef> selectedItems;
+    vcSceneItemRef selectStartItem;
   } sceneExplorer;
 
   struct ImageInfo

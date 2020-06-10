@@ -239,6 +239,11 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
       bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
       if (sceneExplorerItemClicked)
       {
+        if (ImGui::GetIO().KeyShift && pProgramState->sceneExplorer.selectStartItem.pItem == nullptr && pProgramState->sceneExplorer.selectedItems.size() > 0)
+          pProgramState->sceneExplorer.selectStartItem = pProgramState->sceneExplorer.selectedItems.back();
+        else if (!ImGui::GetIO().KeyShift)
+          pProgramState->sceneExplorer.selectStartItem = {};
+
         if (!ImGui::GetIO().KeyCtrl)
           vcProject_ClearSelection(pProgramState);
 
