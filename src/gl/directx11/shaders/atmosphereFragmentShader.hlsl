@@ -1364,12 +1364,11 @@ float linearizeDepth(float depth)
 
 float3 unpackNormal(float4 normalPacked)
 {
-  return float3(normalPacked.x, normalPacked.y,
-                sqrt(1 - normalPacked.x*normalPacked.x - normalPacked.y * normalPacked.y));
-				
-  //return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
- //               (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-//		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+  int zNormalSign = float(int(normalPacked.y * 0xffff) >> 15) * 2 - 1;
+  //float normalY = (((normalPacked.y * 0xffff) / 0x7fff) * 2.0 - 1.0);//(float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;
+  float normalY = (float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;//(float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;
+  return float3(normalPacked.x, normalY,
+                zNormalSign * sqrt(1 - normalPacked.x*normalPacked.x - normalY * normalY));
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -1439,7 +1438,7 @@ approximation as in <code>GetSunVisibility</code>:
 get the sun and sky irradiance received at this point. The reflected radiance
 follows, by multiplying the irradiance with the geometry BRDF:
 */
-
+    //sceneNormal = normalize(geometryPoint - earth_center); 
     float3 normal = sceneNormal;
 
     // Compute the radiance reflected by the sphere.
@@ -1487,8 +1486,10 @@ on the ground by the sun and sky visibility factors):
   float3 ground_radiance = float3(0.0, 0.0, 0.0);
   if (distance_to_intersection > 0.0) {
     float3 geomPoint = camera + view_direction * distance_to_intersection;
-    float3 normal = sceneNormal;//normalize(geomPoint - earth_center);
-  
+    float3 normal = normalize(geomPoint - earth_center);
+    if (geometry_alpha == 0.0)
+	  sceneNormal = normal;
+	
     // Compute the radiance reflected by the ground.
     float3 sky_irradiance;
     float3 sun_irradiance = GetSunAndSkyIrradiance(
@@ -1544,7 +1545,7 @@ the scene:
     output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
   // debugging
-  //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
+  output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
 	
   return output;
 }

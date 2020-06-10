@@ -98,7 +98,7 @@ PS_INPUT main(VS_INPUT input)
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
-  output.colour = u_colour;
+  output.colour = float4(worldNormal, 0.0);//u_colour;
   output.uv = u_uvOffsetScale.xy + u_uvOffsetScale.zw * input.pos.xy;
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);

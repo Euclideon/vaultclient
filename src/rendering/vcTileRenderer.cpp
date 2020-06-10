@@ -254,8 +254,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
 
     // generate normals
     int stepSize = 1; 
-    //if (pNode->slippyPosition.z >= 12) // TODO: At lower levels something is wrong, so smudge them
-    //  stepSize = 3;
+    if (pNode->slippyPosition.z >= 12) // TODO: At lower levels something is wrong, so smudge them
+      stepSize = 3;
 
     udInt2 offsets[] =
     {

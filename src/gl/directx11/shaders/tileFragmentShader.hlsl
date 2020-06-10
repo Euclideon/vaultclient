@@ -31,7 +31,12 @@ Texture2D normalTexture;
 
 float4 packNormal(float3 normal, float objectId, float depth)
 {
-  return float4(normal.x, normal.y, objectId, depth);
+  int normalY15 = int((normal.y * 0.5 + 0.5) * 0x7fff + 0.5);
+  int zNormalSign = (int)(sign(normal.z) * 0.5 + 0.5);
+  //return float4(normal.x, normal.y, objectId, depth);
+  return float4(normal.x, float((zNormalSign << 15) | normalY15) / 0xffff, objectId, depth);
+  
+  //return float4(normal.x, (float)((zNormalSign << 15) | normalY15), objectId, depth);
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -41,15 +46,16 @@ PS_OUTPUT main(PS_INPUT input)
   
   float4 normal = normalTexture.Sample(normalSampler, input.normalUV);
   normal.xyz = normal.xyz * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
-  
+  //normal.xyz = normal.xyz * 0.000001 + input.colour.xyz;//float3(0,0,1);
   //normal.xy = normal.yx;
+  //normal.xyz = float3(0, 0, 1);
   
-  normal.xyz = normalize(mul(input.tbn, normal.xyz));
+  normal.xyz = normalize(mul(normal.xyz, input.tbn));
   //normal.xz = -normal.xz;
   
   // vertex normals
   //normal.xyz = input.colour.xyz; 
-  
+  //normal.xyz = normalize(normal.xyz * 0.0000001 + float3(0, 1, 1));
   output.Color0 = float4(col.xyz, input.colour.w);// * 0.000001 + float4(normal.xyz, 1.0);
   
   float scale = 1.0 / (u_clipZFar - u_clipZNear);
