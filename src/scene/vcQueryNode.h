@@ -22,6 +22,8 @@ private:
 
   bool m_inverted;
 
+  udDoubleQuat m_currentProjection;
+
   udDouble3 m_center;
   udDouble3 m_extents;
   udDouble3 m_ypr;
