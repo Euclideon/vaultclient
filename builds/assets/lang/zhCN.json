@@ -650,6 +650,8 @@
   "bindingsToggleMeasureHeightTool": "切換到高度測量工具",
   "scenePOIMHeightPickStart": "起始点",
   "scenePOIMHeightPickEnd": "终点",
-  "scenePOIMHeight": "高度差",
+  "sceneVerticalDistance": "高度差",
+  "sceneHorizontalDistance": "水平差",
+  "sceneStraightDistance": "直线距离",
   "sceneVerticalMeasurementTool": "垂直测距"
 }
