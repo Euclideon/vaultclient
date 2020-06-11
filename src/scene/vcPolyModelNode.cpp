@@ -23,11 +23,12 @@ void vcPolyModelNode_LoadModel(void *pLoadInfoPtr)
     return;
 
   udInterlockedCompareExchange(&pLoadInfo->pNode->m_loadStatus, vcSLS_Loading, vcSLS_Pending);
-  if (vcPolygonModel_CreateFromURL(&pLoadInfo->pNode->m_pModel, pLoadInfo->pNode->m_pNode->pURI, pLoadInfo->pProgramState->pWorkerPool) == udR_Success)
-    udInterlockedCompareExchange(&pLoadInfo->pNode->m_loadStatus, vcSLS_Loaded, vcSLS_Loading);
-  else
-    udInterlockedCompareExchange(&pLoadInfo->pNode->m_loadStatus, vcSLS_Failed, vcSLS_Loading);
+  udResult result = vcPolygonModel_CreateFromURL(&pLoadInfo->pNode->m_pModel, pLoadInfo->pNode->m_pNode->pURI, pLoadInfo->pProgramState->pWorkerPool);
 
+  if (result == udR_OpenFailure)
+    result = vcPolygonModel_CreateFromURL(&pLoadInfo->pNode->m_pModel, udTempStr("%s%s", pLoadInfo->pProgramState->activeProject.pRelativeBase, pLoadInfo->pNode->m_pNode->pURI), pLoadInfo->pProgramState->pWorkerPool);
+
+  udInterlockedCompareExchange(&pLoadInfo->pNode->m_loadStatus, (result == udR_Success ? vcSLS_Loaded : vcSLS_Failed), vcSLS_Loading);
 }
 
 vcPolyModelNode::vcPolyModelNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
