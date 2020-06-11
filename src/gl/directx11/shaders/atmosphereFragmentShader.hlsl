@@ -1426,7 +1426,8 @@ approximation as in <code>GetSunVisibility</code>:
   float geometry_alpha = 0.0;
   float3 geometry_radiance = float3(0, 0, 0);
   // TODO: do following calculations in eye space, to avoid precision issues
-  if (sceneLogDepth < fadeDistanceHack) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
+  // TODO: idk why, but flickering occurs when sceneLogDepth > 0.85
+  if (sceneLogDepth < 0.85)//fadeDistanceHack) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
   {
     geometry_alpha = 1.0;
 
@@ -1483,14 +1484,12 @@ on the ground by the sun and sky visibility factors):
   float3 ground_radiance = float3(0.0, 0.0, 0.0);
   if (distance_to_intersection > 0.0) {
     float3 geomPoint = camera + view_direction * distance_to_intersection;
-    float3 normal = normalize(geomPoint - earth_center);
-    if (geometry_alpha == 0.0)
-	  sceneNormal = normal;
+    float3 earthNormal = normalize(geomPoint - earth_center);
 	
     // Compute the radiance reflected by the ground.
     float3 sky_irradiance;
     float3 sun_irradiance = GetSunAndSkyIrradiance(
-        geomPoint - earth_center, normal, sun_direction, sky_irradiance);		
+        geomPoint - earth_center, earthNormal, sun_direction, sky_irradiance);		
 		
     //ground_radiance = sceneColour.xyz * (1.0 / PI) * (
     //    sun_irradiance * GetSunVisibility(geomPoint, sun_direction, sceneDepth) +
@@ -1529,6 +1528,9 @@ the scene:
     radiance = radiance + transmittance * GetSolarRadiance();
   }
 
+  // fade geometry out smoothly
+  geometry_alpha = saturate(geometry_alpha * (1.0 - saturate(10.0 * (sceneLogDepth - fadeDistanceHack) / (1.0 - fadeDistanceHack))));
+  
   radiance = lerp(radiance, ground_radiance, ground_alpha);
   radiance = lerp(radiance, geometry_radiance, geometry_alpha);
 
@@ -1538,13 +1540,12 @@ the scene:
 
   // if viewing underneath earth surface, cancel atmo
   float3 earthCamera = camera - earth_center;
-  if (length(earthCamera) < u_earthCenter.w && dot(earthCamera, view_direction) <= 0.0)//earthCamera.z <= 0.0 && view_direction.z < 0.0)
+  if (length(earthCamera) < u_earthCenter.w && dot(earthCamera, view_direction) <= 0.0)
     output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
   // debugging
   //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
-  //output.Color0.xyz = lerp(sceneColour.xyz, output.Color0.xyz, 0.00000000001);
-	
+
   return output;
 }
 

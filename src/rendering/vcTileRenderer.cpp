@@ -752,7 +752,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   vcTileRenderer *pTileRenderer = nullptr;
   vcP3Vertex verts[TileVertexResolution * TileVertexResolution] = {};
   int indicies[TileIndexResolution * TileIndexResolution * 6] = {};
-  uint32_t greyPixel = 0xf3f3f3ff;
+  uint32_t greyPixel = 0xff000000; // abgr
   uint16_t flatDemPixel = 0x8000;
   uint32_t flatNormalPixel = 0xffff7f7f;
   UD_ERROR_NULL(ppTileRenderer, udR_InvalidParameter_);
@@ -1082,7 +1082,7 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   if (pTexture == nullptr)
   {
     pNode->completeRender = false;
-    pTexture = pTileRenderer->pEmptyNormalTexture;
+    pTexture = pTileRenderer->pEmptyTileTexture;
   }
 
   vcTexture *pDemTexture = pNode->demInfo.drawInfo.pTexture;
