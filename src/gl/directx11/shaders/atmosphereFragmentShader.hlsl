@@ -1457,7 +1457,7 @@ the sphere, which depends on the length of this segment which is in shadow:
     //    max(0.0, min(shadow_out, distance_to_geom_intersection) - shadow_in) *
     //    lightshaft_fadein_hack;
 	
-	float shadow_length = 40000.0;//distance_to_geom_intersection * lightshaft_fadein_hack;
+	float shadow_length = 0.85 * distance_to_geom_intersection * lightshaft_fadein_hack;
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         geometryPoint - earth_center, shadow_length, sun_direction, transmittance);
@@ -1504,7 +1504,7 @@ on the ground by the sun and sky visibility factors):
     //float shadow_length =
     //    max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
     //    lightshaft_fadein_hack;
-	float shadow_length = 40000.0;//distance_to_intersection * 0.65; // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint()
+	float shadow_length = 0.0;//distance_to_intersection * 0.65; // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint()
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         geomPoint - earth_center, shadow_length, sun_direction, transmittance);
