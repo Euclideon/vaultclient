@@ -1399,7 +1399,8 @@ PS_OUTPUT main(PS_INPUT input)
 
   float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
   float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
-  float fadeDistanceHack = 0.675;
+  float maxFadeDistanceHack = 0.7;
+  float minFadeDistanceHack = 0.55;
   
   // TODO: Normals
   float shadow_in = 0;
@@ -1427,7 +1428,7 @@ approximation as in <code>GetSunVisibility</code>:
   float3 geometry_radiance = float3(0, 0, 0);
   // TODO: do following calculations in eye space, to avoid precision issues
   // TODO: idk why, but flickering occurs when sceneLogDepth > 0.85
-  if (sceneLogDepth < 0.85)//fadeDistanceHack) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
+  if (sceneLogDepth < maxFadeDistanceHack)//fadeDistanceHack) // HACK: after this depth we start getting precision issues...so ignore scene geometry after this
   {
     geometry_alpha = 1.0;
 
@@ -1452,10 +1453,12 @@ follows, by multiplying the irradiance with the geometry BRDF:
 the sphere, which depends on the length of this segment which is in shadow:
 */
 	// TODO Normals: As we 'fade' out our geometry, also 'fade' out the amount of shadow it casts...so that it can blend correctly with the ground
-    float shadow_length = lerp(distance_to_geom_intersection * 0.65, 0.0, pow(sceneLogDepth / fadeDistanceHack, 8.0)); // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint() at near distances
+    //float shadow_length = lerp(distance_to_geom_intersection * 0.65, 0.0, pow(sceneLogDepth / fadeDistanceHack, 8.0)); // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint() at near distances
 	//float shadow_length =
     //    max(0.0, min(shadow_out, distance_to_geom_intersection) - shadow_in) *
     //    lightshaft_fadein_hack;
+	
+	float shadow_length = distance_to_geom_intersection * lightshaft_fadein_hack;
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         geometryPoint - earth_center, shadow_length, sun_direction, transmittance);
@@ -1529,7 +1532,7 @@ the scene:
   }
 
   // fade geometry out smoothly
-  geometry_alpha = saturate(geometry_alpha * (1.0 - saturate(10.0 * (sceneLogDepth - fadeDistanceHack) / (1.0 - fadeDistanceHack))));
+  geometry_alpha = geometry_alpha * min(1.0, (1.0 - smoothstep(minFadeDistanceHack, maxFadeDistanceHack, sceneLogDepth)));
   
   radiance = lerp(radiance, ground_radiance, ground_alpha);
   radiance = lerp(radiance, geometry_radiance, geometry_alpha);
