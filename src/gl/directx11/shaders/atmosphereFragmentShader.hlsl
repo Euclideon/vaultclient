@@ -1409,8 +1409,7 @@ PS_OUTPUT main(PS_INPUT input)
   //  GetGeometryShadowInOut(camera, sceneNormal, view_direction, sun_direction, geometryPoint, shadow_in, shadow_out);
 
   // Hack to fade out light shafts when the Sun is very close to the horizon.
-  float lightshaft_fadein_hack = smoothstep(
-      0.02, 0.04, dot(normalize(camera - earth_center), sun_direction));
+  float lightshaft_fadein_hack = 1.0;//smoothstep(0.02, 0.04, dot(normalize(camera - earth_center), sun_direction));
 
 /*
 <p>We then test whether the view ray intersects the sphere S or not. If it does,
@@ -1487,7 +1486,7 @@ on the ground by the sun and sky visibility factors):
   float3 ground_radiance = float3(0.0, 0.0, 0.0);
   if (distance_to_intersection > 0.0) {
     float3 geomPoint = camera + view_direction * distance_to_intersection;
-    float3 earthNormal = normalize(geomPoint - earth_center);
+    float3 earthNormal = sceneNormal;//normalize(geomPoint - earth_center);
 	
     // Compute the radiance reflected by the ground.
     float3 sky_irradiance;
