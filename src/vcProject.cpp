@@ -358,11 +358,76 @@ bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem)
   return false;
 }
 
+static void vcProject_SelectRange(vcState *pProgramState, vdkProjectNode *pNode1, vdkProjectNode *pNode2)
+{
+  udChunkedArray<vdkProjectNode *> stack;
+  stack.Init(32);
+  stack.PushBack(pProgramState->activeProject.pRoot);
+
+  vdkProjectNode *pChild = pProgramState->activeProject.pRoot->pFirstChild;
+  bool select = false;
+  do
+  {
+    // If the current node is either of the end nodes in the range, toggle the selection
+    bool toggleSelect = (pChild == pNode1 || pChild == pNode2);
+    if (toggleSelect)
+      select = !select;
+
+    // If selecting (or toggling to include last item), select the current node
+    if (select || toggleSelect)
+    {
+      ((vcSceneItem *)pChild->pUserData)->m_selected = true;
+      pProgramState->sceneExplorer.selectedItems.push_back({ stack[stack.length - 1], pChild });
+    }
+
+    // If no longer selecting, break out of the loop
+    if (toggleSelect && !select)
+      break;
+
+    // Add child to the stack to simplify the code below
+    stack.PushBack(pChild);
+
+    // Depth first search for the nodes
+    if (pChild->pFirstChild)
+    {
+      pChild = pChild->pFirstChild;
+      continue;
+    }
+
+    // Try the sibling of the current node (pChild)
+    if (pChild->pNextSibling)
+    {
+      pChild = pChild->pNextSibling;
+      stack.PopBack();
+      continue;
+    }
+
+    // There are no children or siblings, pop up the stack until there's a sibling
+    do
+    {
+      stack.PopBack();
+      pChild = stack[stack.length - 1];
+    } while (pChild->pNextSibling == nullptr);
+
+    // Pop the current node and try the sibling
+    stack.PopBack();
+    pChild = pChild->pNextSibling;
+  } while (stack.length > 0);
+
+  stack.Deinit();
+}
+
 void vcProject_SelectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
 {
   vcSceneItem *pItem = (vcSceneItem*)pNode->pUserData;
 
-  if (pItem != nullptr && !pItem->m_selected)
+  // If we're doing range selection, else normal selection
+  if (pItem != nullptr && pProgramState->sceneExplorer.selectStartItem.pItem != nullptr)
+  {
+    vdkProjectNode *pSelectNode = pProgramState->sceneExplorer.selectStartItem.pItem;
+    vcProject_SelectRange(pProgramState, pNode, pSelectNode);
+  }
+  else if (pItem != nullptr && !pItem->m_selected)
   {
     pItem->m_selected = true;
     pProgramState->sceneExplorer.selectedItems.push_back({ pParent, pNode });
