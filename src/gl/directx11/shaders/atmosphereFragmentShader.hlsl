@@ -1396,11 +1396,35 @@ PS_OUTPUT main(PS_INPUT input)
   
   output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
-
+  
   float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
   float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
   float maxFadeDistanceHack = 0.85;
   float minFadeDistanceHack = 0.6;
+  
+  // Compute the distance between the view ray line and the Earth center,
+  // and the distance between the camera and the intersection of the view
+  // ray with the ground (or NaN if there is no intersection).
+  float3 p = camera - earth_center;
+  float p_dot_v = dot(p, view_direction);
+  float p_dot_p = dot(p, p);
+  float ray_earth_center_squared_distance = p_dot_p - p_dot_v * p_dot_v;
+  float distance_to_intersection = -p_dot_v - sqrt(
+      u_earthCenter.w * u_earthCenter.w - ray_earth_center_squared_distance);
+
+  // Compute the radiance reflected by the ground, if the ray intersects it.
+  float3 geomPoint = geometryPoint;
+  // TODO: WHY DOES THIS WORK? MY STUFF ABOVE IS IN EYE SPACE? RIGHT? RIGHT?...MAYBE STORE EYE SPACE POSITIONS IN G-BUFFER, DOES ALL OF THIS GO AWAY?!
+  if (distance_to_intersection > 0.0)
+    geomPoint = camera + view_direction * distance_to_intersection;
+	
+  float3 earthNormal = normalize(geomPoint - earth_center);
+  float3 earthTangent = normalize(cross(earthNormal, float3(0, 0, 1)));
+  float3 earthBitangent = normalize(cross(earthNormal, earthTangent));
+  
+  // TODO: The normals are inverted! fix
+  float3x3 tbn = float3x3(earthTangent, earthBitangent, earthNormal);
+  sceneNormal = mul(sceneNormal, tbn);
   
   // TODO: Normals
   float shadow_in = 0;
@@ -1471,27 +1495,16 @@ don't compute it. Note also how we modulate the sun and sky irradiance received
 on the ground by the sun and sky visibility factors):
 */
 
-  // Compute the distance between the view ray line and the Earth center,
-  // and the distance between the camera and the intersection of the view
-  // ray with the ground (or NaN if there is no intersection).
-  float3 p = camera - earth_center;
-  float p_dot_v = dot(p, view_direction);
-  float p_dot_p = dot(p, p);
-  float ray_earth_center_squared_distance = p_dot_p - p_dot_v * p_dot_v;
-  float distance_to_intersection = -p_dot_v - sqrt(
-      u_earthCenter.w * u_earthCenter.w - ray_earth_center_squared_distance);
-
   // Compute the radiance reflected by the ground, if the ray intersects it.
   float ground_alpha = 0.0;
   float3 ground_radiance = float3(0.0, 0.0, 0.0);
   if (distance_to_intersection > 0.0) {
-    float3 geomPoint = camera + view_direction * distance_to_intersection;
-    float3 earthNormal = sceneNormal;//normalize(geomPoint - earth_center);
+    //geomPoint = camera + view_direction * distance_to_intersection;
 	
     // Compute the radiance reflected by the ground.
     float3 sky_irradiance;
     float3 sun_irradiance = GetSunAndSkyIrradiance(
-        geomPoint - earth_center, earthNormal, sun_direction, sky_irradiance);		
+        geomPoint - earth_center, sceneNormal, sun_direction, sky_irradiance);		
 		
     //ground_radiance = sceneColour.xyz * (1.0 / PI) * (
     //    sun_irradiance * GetSunVisibility(geomPoint, sun_direction, sceneDepth) +
@@ -1546,8 +1559,11 @@ the scene:
     output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
   // debugging
-  //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
-
+  output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
+  
+  //float diff = length(geometryPoint - geomPoint);
+  //output.Color0.xyz = lerp(float3(diff, diff, diff), output.Color0.xyz, 0.00000000001);
+  
   return output;
 }
 

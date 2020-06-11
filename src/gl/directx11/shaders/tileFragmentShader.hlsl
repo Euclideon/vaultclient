@@ -46,7 +46,7 @@ PS_OUTPUT main(PS_INPUT input)
   //normal.xy = normal.yx;
   //normal.xyz = float3(1, 0, 0);
   
-  normal.xyz = normalize(mul(normal.xyz, input.tbn));
+  //normal.xyz = normalize(mul(normal.xyz, input.tbn));
   //normal.xz = -normal.xz;
   
   // vertex normals
