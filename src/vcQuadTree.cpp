@@ -602,6 +602,8 @@ void vcQuadTree_Prune(vcQuadTree *pQuadTree)
     {
       vcQuadTreeNode *pNode = &pQuadTree->nodes.pPool[blockIndex];
 
+      printf("Main Thread: Freeing Node: %d/%d/%d\n", pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
+
       // inform parent its children are dead
       if (pNode->parentIndex != INVALID_NODE_INDEX)
       {

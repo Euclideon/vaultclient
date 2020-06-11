@@ -1364,10 +1364,8 @@ float linearizeDepth(float depth)
 
 float3 unpackNormal(float4 normalPacked)
 {
-  int zNormalSign = float(int(normalPacked.y * 0xffff) >> 15) * 2 - 1;
-  float normalY = (float(int(normalPacked.y * 0xffff) & 0x7fff) / 0x7fff) * 2.0 - 1.0;
-  return float3(normalPacked.x, normalY,
-                zNormalSign * sqrt(1 - min(0.99999, normalPacked.x*normalPacked.x - normalY * normalY)));
+  return float3(normalPacked.x, normalPacked.y,
+                sign(normalPacked.w) * sqrt((1 - dot(normalPacked.xy, normalPacked.xy))));
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -1544,7 +1542,8 @@ the scene:
     output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
   // debugging
- // output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
+  //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
+  //output.Color0.xyz = lerp(sceneColour.xyz, output.Color0.xyz, 0.00000000001);
 	
   return output;
 }

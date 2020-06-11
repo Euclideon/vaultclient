@@ -467,8 +467,11 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
          // udLockMutex(pCache->pMutex);
           //pNode->normalInfo.data.width = 256;
           //pNode->normalInfo.data.height = 256;
+          printf("BEGIN Worker Thread: generating DEM/Normal Data: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+
           vcTileRenderer_GenerateNormalsAndDem(pRenderer->quadTree.geozone, pBestNode);
          // udReleaseMutex(pCache->pMutex);
+          printf("END Worker Thread: generating DEM/Normal Data: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
           pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
         }
       }
@@ -751,7 +754,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   int indicies[TileIndexResolution * TileIndexResolution * 6] = {};
   uint32_t greyPixel = 0xf3f3f3ff;
   uint16_t flatDemPixel = 0x8000;
-  uint32_t flatNormalPixel = 0x7f7fffff;
+  uint32_t flatNormalPixel = 0xffff7f7f;
   UD_ERROR_NULL(ppTileRenderer, udR_InvalidParameter_);
 
   pTileRenderer = udAllocType(vcTileRenderer, 1, udAF_Zero);
@@ -925,6 +928,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
   pNode->demInfo.tryLoad = true;
   if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Loaded, vcNodeRenderInfo::vcTLS_Downloaded))
   {
+    printf("BEGIN Main thread: Loading node DEM/Normal Data: %d/%d/%d\n", pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
     pNode->demInfo.tryLoad = false;
 
     //vcTileRenderer_GenerateNormalsAndDem(pTileRenderer->quadTree.geozone, pNode);
@@ -942,6 +946,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     // conditonal update AABBs of tree (up and down)
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
+
+    printf("END Main thread: Loading node DEM/Normal Data: %d/%d/%d\n", pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
   }
 }
 

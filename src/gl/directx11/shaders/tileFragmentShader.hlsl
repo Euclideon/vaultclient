@@ -31,9 +31,8 @@ Texture2D normalTexture;
 
 float4 packNormal(float3 normal, float objectId, float depth)
 {
-  int normalY15 = int((normal.y * 0.5 + 0.5) * 0x7fff + 0.5);
-  int zNormalSign = (int)(sign(normal.z) * 0.5 + 0.5);
-  return float4(normal.x, float((zNormalSign << 15) | normalY15) / 0xffff, objectId, depth);
+  float zSign = sign(normal.z);
+  return float4(normal.x, normal.y, objectId, zSign * depth);
 }
 
 PS_OUTPUT main(PS_INPUT input)
