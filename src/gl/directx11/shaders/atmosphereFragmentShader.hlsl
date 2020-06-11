@@ -1399,8 +1399,8 @@ PS_OUTPUT main(PS_INPUT input)
 
   float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
   float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
-  float maxFadeDistanceHack = 0.7;
-  float minFadeDistanceHack = 0.55;
+  float maxFadeDistanceHack = 0.85;
+  float minFadeDistanceHack = 0.6;
   
   // TODO: Normals
   float shadow_in = 0;
