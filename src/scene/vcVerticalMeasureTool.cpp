@@ -173,12 +173,15 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
       m_labelInfo.textSize = (vcLabelFontSize)size;
       vdkProjectNode_SetMetadataInt(m_pNode, "textSize", size);
     }
+
+    if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
+      vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
+
+    ImGui::Text("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
+    ImGui::Text("%s: %.3f", vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2]));
+    ImGui::Text("%s: %.3f", vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2]));
+
   }
-
-  ImGui::Text("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
-  ImGui::Text("%s: %.3f", vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2]));
-  ImGui::Text("%s: %.3f", vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2]));
-
 }
 
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
@@ -271,4 +274,9 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
   double width = pProgramState->settings.tools.line.width;
   vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", &width, pProgramState->settings.tools.line.width);
   m_lineWidth = (float)width;
+
+  const char *pTemp;
+  vdkProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
+  udStrcpy(m_description, pTemp);
+  
 }

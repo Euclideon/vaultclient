@@ -51,6 +51,8 @@ private:
   uint32_t m_lineColour;
   float m_lineWidth;
 
+  char m_description[vcMaxPathLength];
+
 };
 
 #endif
