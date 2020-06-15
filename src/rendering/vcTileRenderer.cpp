@@ -265,12 +265,14 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
       udInt2::create(0, -stepSize),
     };
 
-    printf("Generating normals for node: (%d):%d/%d/%d...width/height=%d/%d\n", (int)pNode, pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z, pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+    //printf("Generating normals for node: (%d):%d/%d/%d...width/height=%d/%d\n", (int)pNode, pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z, pNode->normalInfo.data.width, pNode->normalInfo.data.height);
 
     udFloat2 stepSize2 = udFloat2::create(1.0f / pNode->normalInfo.data.width, 1.0f / pNode->normalInfo.data.height);
     pNode->pNormalPixels = udAllocType(uint32_t, pNode->normalInfo.data.width * pNode->normalInfo.data.height, udAF_Zero);
     for (int h = 0; h < pNode->normalInfo.data.height; ++h)
     {
+      //printf("htick : node: (%d):%d/%d/%d\n", (int)pNode, pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
+
       for (int w = 0; w < pNode->normalInfo.data.width; ++w)
       {
         udFloat2 uv = udFloat2::create(float(w) / pNode->normalInfo.data.width, float(h) / pNode->normalInfo.data.height);
@@ -303,7 +305,14 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
         int nx = (int)(((n.x * 0.5f) + 0.5f) * 255);
         int ny = (int)(((n.y * 0.5f) + 0.5f) * 255);
         int nz = (int)(((n.z * 0.5f) + 0.5f) * 255);
+
         
+        //if (pNode->pNormalPixels == nullptr)
+        //{
+        //  __debugbreak();
+        //  printf("HOLD UP : node: (%d):%d/%d/%d\n", (int)pNode, pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
+        //}
+
         pNode->pNormalPixels[i0] = nx | (ny << 8) | (nz << 16) | (0xff000000);
       }
     }
@@ -445,20 +454,20 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       pCache->tileLoadList.RemoveSwapLast(best);
       printf("Picked best node index= %d:, (%d):%d/%d/%d\n", best, (int)pBestNode, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
 
-      pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
-      pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
+      bool demRequest = pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
+      bool colourRequest = pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
       udReleaseMutex(pCache->pMutex);
 
       char localURL[vcMaxPathLength] = {};
       char serverURL[vcMaxPathLength] = {};
 
-      char xSlippyStr[16];
-      char ySlippyStr[16];
-      char zSlippyStr[16];
+      char xSlippyStr[16] = {};
+      char ySlippyStr[16] = {};
+      char zSlippyStr[16] = {};
       const char *pSlippyStrs[] = { zSlippyStr, xSlippyStr, ySlippyStr };
 
       // process dem and/or colour request
-      if (pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (demRequest)
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
@@ -480,7 +489,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         }
       }
 
-      if (pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (colourRequest)
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.activeServer.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
 
@@ -941,8 +950,12 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     udFree(pNode->pShortPixels);
     udFree(pNode->demInfo.data.pData);
 
+    printf("a Main thread: node DEM/Normal Data: (%d, %d):%d/%d/%d\n", (int)pNode, pNode->demInfo.loadStatus.Get(), pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
+
     vcTexture_CreateAdv(&pNode->normalInfo.data.pTexture, vcTextureType_Texture2D, pNode->normalInfo.data.width, pNode->normalInfo.data.height, 1, pNode->pNormalPixels, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pNode->pNormalPixels);
+
+    printf("b Main thread: node DEM/Normal Data: (%d, %d):%d/%d/%d\n", (int)pNode, pNode->demInfo.loadStatus.Get(), pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
 
     pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Absolute;
     vcQuadTree_CalculateNodeAABB(&pTileRenderer->quadTree, pNode);
