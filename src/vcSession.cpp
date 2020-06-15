@@ -43,10 +43,30 @@ void vcSession_GetProjectsWT(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
+  udJSON parsed = {};
   const char *pProjData = nullptr;
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "dev/projects", nullptr, &pProjData) == vE_Success)
-    pProgramState->projects.Parse(pProjData);
-  vdkServerAPI_ReleaseResult(&pProjData);
+
+  char reqBuffer[512];
+  int offset = 0;
+
+  do
+  {
+    udSprintf(reqBuffer, "{ \"index\": %d, \"count\": 50 }", offset);
+
+    if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/projects", nullptr, &pProjData) == vE_Success)
+    {
+      // This won't work if there are more than 50 projects
+      pProgramState->projects.Parse(pProjData);
+
+      //parsed.Parse(pProjData);
+      //offset += parsed.Get("count").AsInt();
+      //
+      //if (parsed.Get("groups").ArrayLength() == 0 || parsed.Get("count").AsInt() == 0)
+        break;
+    }
+
+    vdkServerAPI_ReleaseResult(&pProjData);
+  } while (false);
 }
 
 void vcSession_GetPackagesWT(void *pProgramStatePtr)

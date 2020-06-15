@@ -118,6 +118,50 @@ void vcProject_ExtractCamera(vcState *pProgramState)
   vcProject_ExtractCameraRecursive(pProgramState, pProgramState->activeProject.pRoot);
 }
 
+bool vcProject_InitFromServer(vcState *pProgramState, const char *pProjectID)
+{
+  vdkProject *pProject = nullptr;
+  if (vdkProject_LoadFromServer(pProgramState->pVDKContext, &pProject, pProjectID) == vE_Success)
+  {
+    vcProject_Deinit(pProgramState, &pProgramState->activeProject);
+
+    udGeoZone zone = {};
+    vcGIS_ChangeSpace(&pProgramState->geozone, zone);
+
+    pProgramState->sceneExplorer.selectedItems.clear();
+    pProgramState->sceneExplorer.clickedItem = {};
+
+    pProgramState->activeProject.pProject = pProject;
+    vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
+    pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
+    pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+
+    int32_t projectZone = 84; // LongLat
+    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, 84);
+    if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
+      udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, 84);
+
+    int32_t recommendedSRID = -1;
+    if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
+      vcGIS_ChangeSpace(&pProgramState->geozone, zone);
+
+    vcProject_ExtractCamera(pProgramState);
+  }
+  else
+  {
+    vcState::ErrorItem projectError;
+    projectError.source = vcES_ProjectChange;
+    projectError.pData = udStrdup(pProjectID);
+    projectError.resultCode = udR_ParseError;
+
+    pProgramState->errorItems.PushBack(projectError);
+
+    vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+  }
+
+  return (pProject != nullptr);
+}
+
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
 {
   char *pMemory = nullptr;
