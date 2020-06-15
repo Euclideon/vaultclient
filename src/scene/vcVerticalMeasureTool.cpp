@@ -20,6 +20,7 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode
   vcSceneItem(pProject, pNode, pProgramState)
   , m_done(false)
   , m_pickStart(true)
+  , m_pickEnd(true)
   , m_markDelete(false)
   , m_pLineInstance(nullptr)
 {
