@@ -25,6 +25,7 @@ struct vcCamera
   //udDouble3 eulerRotation;
   udDouble2 headingPitch;
   udDouble3 cameraUp;
+  udDouble3 cameraNorth;
 
   bool cameraIsUnderSurface; 
 

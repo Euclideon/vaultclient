@@ -1314,8 +1314,8 @@ cbuffer u_fragParams : register(b0)
   float4 u_earthCenter; // w is radius
   float4 u_sunDirection;// w unused
   float4 u_sunSize; //zw unused
-  float4x4 u_inverseViewProjection;
-  float4x4 u_inverseProjection;
+  float4 u_earthUp; // w unused
+  float4 u_earthNorth; // w unused
 };
 
 sampler sceneColourSampler;
@@ -1442,13 +1442,15 @@ PS_OUTPUT main(PS_INPUT input)
   if (distance_to_intersection > 0.0)
     geomPoint = camera + view_direction * distance_to_intersection;
 	
-  float3 earthNormal = normalize(geomPoint - earth_center);
-  float3 earthTangent = normalize(cross(earthNormal, float3(0, 0, 1)));
+  //float3 earthNormal = normalize(geomPoint - earth_center);
+  //float3 earthTangent = normalize(cross(earthNormal, float3(0, 0, 1)));
+  float3 earthNormal = u_earthUp.xyz;
+  float3 earthTangent = u_earthNorth.xyz;
   float3 earthBitangent = normalize(cross(earthNormal, earthTangent));
   
   // TODO: The normals are inverted! fix
   float3x3 tbn = float3x3(earthTangent, earthBitangent, earthNormal);
-  sceneNormal = mul(sceneNormal, tbn);
+  sceneNormal = mul(tbn, sceneNormal);
   
   // TODO: Normals
   float shadow_in = 0;
@@ -1487,7 +1489,7 @@ follows, by multiplying the irradiance with the geometry BRDF:
     //sceneNormal = normalize(geometryPoint - earth_center); 
     float3 normal = sceneNormal;
 
-    // Compute the radiance reflected by the sphere.
+    // Compute the radiance reflected by the geometry.
     float3 sky_irradiance;
     float3 sun_irradiance = GetSunAndSkyIrradiance(
         geometryPoint - earth_center, normal, sun_direction, sky_irradiance);
@@ -1497,7 +1499,7 @@ follows, by multiplying the irradiance with the geometry BRDF:
 
 /*
 <p>Finally, we take into account the aerial perspective between the camera and
-the sphere, which depends on the length of this segment which is in shadow:
+the geometry, which depends on the length of this segment which is in shadow:
 */
 	// TODO Normals: As we 'fade' out our geometry, also 'fade' out the amount of shadow it casts...so that it can blend correctly with the ground
     //float shadow_length = lerp(distance_to_geom_intersection * 0.65, 0.0, pow(sceneLogDepth / fadeDistanceHack, 8.0)); // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint() at near distances
@@ -1513,7 +1515,7 @@ the sphere, which depends on the length of this segment which is in shadow:
     // TODO: This is fixing the symptom - the real problem is why is 'in_scatter' so damn strong?
 	// I'm guessing the scale is off
 	float hack_dampenScatterScalar = pow(sceneLogDepth, 6.0) * 6.0;
-    geometry_radiance = geometry_radiance * transmittance + in_scatter * hack_dampenScatterScalar;
+    geometry_radiance = lerp(geometry_radiance, geometry_radiance * transmittance + in_scatter * hack_dampenScatterScalar, 1.0);
   }
 
 /*
