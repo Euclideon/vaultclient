@@ -28,11 +28,11 @@ public:
   virtual void Cleanup(vcState *pProgramState);
   virtual void ChangeProjection(const udGeoZone &newZone);
   virtual udDouble3 GetLocalSpacePivot();
+  virtual bool IsValid() const { return !m_markDelete; }
 
 private:
   void UpdateIntersectionPosition(vcState *pProgramState);
   bool HasLine();
-  void RemoveMeasureInfo();
   void ClearPoints();
   void UpdateSetting(vcState *pProgramState);
 
@@ -41,6 +41,8 @@ private:
   bool m_done;
   bool m_pickStart;
   bool m_pickEnd;
+  bool m_markDelete;
+
   udDouble3 m_points[POINTSIZE];
 
   vcLabelInfo m_labelInfo;
