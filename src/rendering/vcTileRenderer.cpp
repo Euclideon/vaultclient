@@ -265,6 +265,8 @@ void vcTileRenderer_GenerateNormalsAndDem(const udGeoZone &zone, vcQuadTreeNode 
       udInt2::create(0, -stepSize),
     };
 
+    printf("Generating normals for node: (%d):%d/%d/%d...width/height=%d/%d\n", (int)pNode, pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z, pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+
     udFloat2 stepSize2 = udFloat2::create(1.0f / pNode->normalInfo.data.width, 1.0f / pNode->normalInfo.data.height);
     pNode->pNormalPixels = udAllocType(uint32_t, pNode->normalInfo.data.width * pNode->normalInfo.data.height, udAF_Zero);
     for (int h = 0; h < pNode->normalInfo.data.height; ++h)
@@ -441,6 +443,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
       pCache->tileLoadList.RemoveSwapLast(best);
+      printf("Picked best node index= %d:, (%d):%d/%d/%d\n", best, (int)pBestNode, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+
       pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
       pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
       udReleaseMutex(pCache->pMutex);
@@ -467,11 +471,11 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
          // udLockMutex(pCache->pMutex);
           //pNode->normalInfo.data.width = 256;
           //pNode->normalInfo.data.height = 256;
-          printf("BEGIN Worker Thread: generating DEM/Normal Data: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+          printf("BEGIN Worker Thread: generating DEM/Normal Data: (%d, %d):%d/%d/%d\n", (int)pBestNode, pBestNode->demInfo.loadStatus.Get(), pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
 
           vcTileRenderer_GenerateNormalsAndDem(pRenderer->quadTree.geozone, pBestNode);
          // udReleaseMutex(pCache->pMutex);
-          printf("END Worker Thread: generating DEM/Normal Data: %d/%d/%d\n", pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
+          printf("END Worker Thread: generating DEM/Normal Data: (%d, %d):%d/%d/%d\n", (int)pBestNode, pBestNode->demInfo.loadStatus.Get(), pBestNode->slippyPosition.x, pBestNode->slippyPosition.y, pBestNode->slippyPosition.z);
           pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
         }
       }
@@ -928,7 +932,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
   pNode->demInfo.tryLoad = true;
   if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Loaded, vcNodeRenderInfo::vcTLS_Downloaded))
   {
-    printf("BEGIN Main thread: Loading node DEM/Normal Data: %d/%d/%d\n", pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
+    printf("BEGIN Main thread: Loading node DEM/Normal Data: (%d, %d):%d/%d/%d\n", (int)pNode, pNode->demInfo.loadStatus.Get(), pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
     pNode->demInfo.tryLoad = false;
 
     //vcTileRenderer_GenerateNormalsAndDem(pTileRenderer->quadTree.geozone, pNode);
@@ -947,7 +951,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
 
-    printf("END Main thread: Loading node DEM/Normal Data: %d/%d/%d\n", pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
+    printf("END Main thread: Loading node DEM/Normal Data: (%d, %d):%d/%d/%d\n", (int)pNode, pNode->demInfo.loadStatus.Get(), pNode->slippyPosition.x, pNode->slippyPosition.y, pNode->slippyPosition.z);
   }
 }
 
