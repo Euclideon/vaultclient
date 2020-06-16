@@ -28,9 +28,8 @@ Texture2D albedoTexture;
 
 float4 packNormal(float3 normal, float objectId, float depth)
 {
-  return float4(normal.x / (1.0 - normal.z), normal.y / (1.0 - normal.z),
-                objectId,
-	            depth);
+  float zSign = step(0, normal.z) * 2 - 1; // signed 0
+  return float4(normal.x, normal.y, objectId, zSign * depth);
 }
 
 PS_OUTPUT main(PS_INPUT input)

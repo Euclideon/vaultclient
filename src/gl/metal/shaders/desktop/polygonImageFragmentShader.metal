@@ -29,10 +29,10 @@ struct main0_in
 fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], texture2d<float> albedoTexture [[texture(0)]], sampler albedoSampler [[sampler(0)]])
 {
     main0_out out = {};
-    float _55 = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    float _56 = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
     out.out_var_SV_Target0 = albedoTexture.sample(albedoSampler, in.in_var_TEXCOORD0) * in.in_var_COLOR0;
-    out.out_var_SV_Target1 = float4(0.0, 0.0, in.in_var_TEXCOORD2.x, _55);
-    out.gl_FragDepth = _55;
+    out.out_var_SV_Target1 = float4(0.0, 0.0, in.in_var_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * _56);
+    out.gl_FragDepth = _56;
     return out;
 }
 

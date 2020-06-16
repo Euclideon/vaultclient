@@ -11,10 +11,10 @@ layout(location = 1) out highp vec4 out_var_SV_Target1;
 
 void main()
 {
-    highp vec4 _36 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD0);
-    highp float _37 = _36.x;
+    highp vec4 _38 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD0);
+    highp float _39 = _38.x;
     out_var_SV_Target0 = vec4(texture(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, varying_TEXCOORD0).zyx, 1.0);
-    out_var_SV_Target1 = vec4(0.0, 0.0, 0.0, _37);
-    gl_FragDepth = _37;
+    out_var_SV_Target1 = vec4(0.0, 0.0, 0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _39);
+    gl_FragDepth = _39;
 }
 

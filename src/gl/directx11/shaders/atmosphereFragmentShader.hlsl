@@ -1364,9 +1364,8 @@ float linearizeDepth(float depth)
 
 float3 unpackNormal(float4 normalPacked)
 {
-  return float3((2.0 * normalPacked.x) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-                (2.0 * normalPacked.y) / (1 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y),
-		        (-1.0 + normalPacked.x*normalPacked.x + normalPacked.y*normalPacked.y) / (1.0 + (normalPacked.x*normalPacked.x) + (normalPacked.y*normalPacked.y)));
+  return float3(normalPacked.x, normalPacked.y,
+                sign(normalPacked.w) * sqrt(1 - dot(normalPacked.xy, normalPacked.xy)));
 }
 
 PS_OUTPUT main(PS_INPUT input)
