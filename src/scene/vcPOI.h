@@ -11,6 +11,7 @@
 #include "vcLineRenderer.h"
 #include "vcGLState.h"
 #include "vcSettings.h"
+#include "vcPolygonModel.h"
 
 class vcPOIState_General;
 struct vcRenderPolyInstance;
@@ -56,9 +57,10 @@ private:
   double m_totalLength;
   double m_area;
   udDouble3 m_centroid;
-
+  
   udChunkedArray<vcLabelInfo> m_lengthLabels;
 
+  vcPolygonModel *m_pPolyModel;
   vcFenceRenderer *m_pFence;
   vcLabelInfo *m_pLabelInfo;
   const char *m_pLabelText;
@@ -133,10 +135,12 @@ private:
   bool IsVisible(vcState *pProgramState);
   void AddFenceToScene(vcRenderData *pRenderData);
   void AddLabelsToScene(vcRenderData *pRenderData);
+  void AddFillPolygonToScene(vcRenderData *pRenderData);
   void AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void DoFlythrough(vcState *pProgramState);
   bool LoadAttachedModel(const char *pNewPath);
   bool GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress);
+  void GenerateLineFillPolygon();
 };
 
 #endif //vcPOI_h__

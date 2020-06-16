@@ -85,8 +85,16 @@ public:
       }
     }
 
+    if (m_pParent->m_pPolyModel != nullptr)
+    {
+      if ((m_pParent->m_pPolyModel->pMeshes[0].numVertices - 1) != m_pParent->m_line.numPoints)
+        m_pParent->GenerateLineFillPolygon();
+      m_pParent->AddFillPolygonToScene(pRenderData);
+    }
+
     m_pParent->AddFenceToScene(pRenderData);
     m_pParent->AddLabelsToScene(pRenderData);
+    
     m_pParent->AddAttachedModelsToScene(pProgramState, pRenderData);
     m_pParent->DoFlythrough(pProgramState);
   }
@@ -311,11 +319,13 @@ public:
 
     m_pParent->AddFenceToScene(pRenderData);
     m_pParent->AddLabelsToScene(pRenderData);
+
+    m_pParent->GenerateLineFillPolygon();
+    m_pParent->AddFillPolygonToScene(pRenderData);
   }
 
   vcPOIState_General *ChangeState(vcState *pProgramState) override;
 };
-
 
 //----------------------------------------------------------------------------------------------------
 // State changes
@@ -427,6 +437,7 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
   m_line.fenceMode = vcRRVM_Fence;
 
   m_pLabelText = nullptr;
+  m_pPolyModel = nullptr;
   m_pFence = nullptr;
   m_pLine = nullptr;
   m_pLabelInfo = udAllocType(vcLabelInfo, 1, udAF_Zero);
@@ -947,6 +958,7 @@ void vcPOI::Cleanup(vcState *pProgramState)
   vcPolygonModel_Destroy(&m_attachment.pModel);
 
   m_lengthLabels.Deinit();
+  vcPolygonModel_Destroy(&m_pPolyModel);
   vcFenceRenderer_Destroy(&m_pFence);
   vcLineRenderer_DestroyLine(&m_pLine);
   udFree(m_pLabelInfo);
@@ -1167,6 +1179,86 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
       m_pLabelInfo->pText = m_pNode->pName;
 
     pRenderData->labels.PushBack(m_pLabelInfo);
+  }
+}
+
+void vcPOI::AddFillPolygonToScene(vcRenderData *pRenderData)
+{
+  if (m_pPolyModel == nullptr)
+    return;
+
+  // This colour conversion is odd
+  udFloat4 argb = vcIGSW_BGRAToImGui(m_line.colourPrimary);
+  m_pPolyModel->pMeshes[0].material.colour = vcIGSW_ImGuiToBGRA(udFloat4::create(argb[1], argb[0], argb[3], argb[2]));
+
+  vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+  pInstance->pModel = m_pPolyModel;
+  pInstance->pSceneItem = this;
+  pInstance->worldMat = udDouble4x4::identity();
+  pInstance->sceneItemInternalId = (uint64_t)0;
+  pInstance->cullFace = vcGLSCM_None;
+  //pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+}
+
+void vcPOI::GenerateLineFillPolygon()
+{
+  if (m_line.numPoints >= 3)
+  {
+    udDouble3 min = m_line.pPoints[0];
+    udDouble3 max = m_line.pPoints[0];
+
+    for (int pointIndex = 1; pointIndex < m_line.numPoints; ++pointIndex)
+      for (int xyz = 0; xyz < 3; ++xyz)
+      {
+        min[xyz] = udMin(min[xyz], m_line.pPoints[pointIndex][xyz]);
+        max[xyz] = udMax(max[xyz], m_line.pPoints[pointIndex][xyz]);
+      }
+
+    udFloat3 center = udFloat3::create((min + max) / 2.0);
+
+    // Add triangle(s)
+    int numVerts = m_line.numPoints + 1;
+    int numIndices = m_line.numPoints * 3;
+
+    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numVerts, udAF_Zero);
+    uint32_t *pIndices = udAllocType(uint32_t, numIndices, udAF_Zero);
+
+    udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
+    udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
+
+    pVerts[0] = { center, defaultNormal, defaultUV };
+    for (int i = 0; i < m_line.numPoints; ++i)
+      pVerts[i + 1] = { udFloat3::create(m_line.pPoints[i]), defaultNormal, defaultUV };
+
+    for (int i = 0; i < m_line.numPoints; ++i)
+    {
+      int indicesIndex = i * 3;
+      pIndices[indicesIndex + 0] = 0; // center
+      pIndices[indicesIndex + 1] = i + 1;
+      pIndices[indicesIndex + 2] = i + 2;
+    }
+
+    // Wrap last triangle around to first vertex
+    pIndices[m_line.numPoints * 3 - 1] = 1;
+
+    vcPolygonModel_Destroy(&m_pPolyModel);
+    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numVerts, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), pIndices, numIndices);
+
+    /*
+    udFloat4 argb = vcIGSW_BGRAToImGui(m_line.colourPrimary);
+    m_pParent->m_pPolyModel->pMeshes[0].material.colour = vcIGSW_ImGuiToBGRA(udFloat4::create(argb[1], argb[0], argb[3], argb[2]));
+
+    vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+    pInstance->pModel = m_pParent->m_pPolyModel;
+    pInstance->pSceneItem = m_pParent;
+    pInstance->worldMat = udDouble4x4::identity();
+    pInstance->sceneItemInternalId = (uint64_t)0;
+    pInstance->cullFace = vcGLSCM_None;
+    */
+    //m_pParent->m_pLine->colour;
+
+    udFree(pVerts);
+    udFree(pIndices);
   }
 }
 
