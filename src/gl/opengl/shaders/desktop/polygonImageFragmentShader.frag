@@ -21,9 +21,9 @@ layout(location = 1) out vec4 out_var_SV_Target1;
 
 void main()
 {
-    float _55 = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    float _56 = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
     out_var_SV_Target0 = texture(SPIRV_Cross_CombinedalbedoTexturealbedoSampler, in_var_TEXCOORD0) * in_var_COLOR0;
-    out_var_SV_Target1 = vec4(0.0, 0.0, in_var_TEXCOORD2.x, _55);
-    gl_FragDepth = _55;
+    out_var_SV_Target1 = vec4(0.0, 0.0, in_var_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * _56);
+    gl_FragDepth = _56;
 }
 

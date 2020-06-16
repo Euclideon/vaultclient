@@ -22,6 +22,6 @@ layout(location = 1) out highp vec4 out_var_SV_Target1;
 void main()
 {
     out_var_SV_Target0 = vec4(texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, varying_TEXCOORD0).xyz * varying_COLOR0.xyz, varying_COLOR0.w);
-    out_var_SV_Target1 = vec4(0.0, 0.0, varying_TEXCOORD2.x, ((varying_TEXCOORD1.x / varying_TEXCOORD1.y) * (1.0 / (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear))) + (u_cameraPlaneParams.u_clipZNear * (-0.5)));
+    out_var_SV_Target1 = vec4(0.0, 0.0, varying_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * (((varying_TEXCOORD1.x / varying_TEXCOORD1.y) * (1.0 / (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear))) + (u_cameraPlaneParams.u_clipZNear * (-0.5))));
 }
 

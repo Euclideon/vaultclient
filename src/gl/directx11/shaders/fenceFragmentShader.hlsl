@@ -28,9 +28,8 @@ Texture2D colourTexture;
 
 float4 packNormal(float3 normal, float objectId, float depth)
 {
-  return float4(normal.x / (1.0 - normal.z), normal.y / (1.0 - normal.z),
-    objectId,
-    depth);
+  float zSign = step(0, normal.z) * 2 - 1; // signed 0
+  return float4(normal.x, normal.y, objectId, zSign * depth);
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -43,6 +42,6 @@ PS_OUTPUT main(PS_INPUT input)
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
 
-  output.Normal = packNormal(float3(0.0, 0.0, 0.0), 0.0, output.Depth0);
+  output.Normal = packNormal(float3(0.0, 0.0, 1.0), 0.0, output.Depth0);
   return output;
 }
