@@ -1423,8 +1423,12 @@ PS_OUTPUT main(PS_INPUT input)
   
   float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
   float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
-  float maxFadeDistanceHack = 0.85;
-  float minFadeDistanceHack = 0.6;
+  
+  float heightAboveSurface = abs(length(camera.xyz - earth_center) - ATMOSPHERE.bottom_radius);
+  float heightAboveSurfaceScalar = heightAboveSurface / 50000.0;
+  
+  float maxFadeDistanceHack = 0.75;//lerp(0.75, 0.75, heightAboveSurfaceScalar);
+  float minFadeDistanceHack = 0.6;//lerp(0.6, 0.6, heightAboveSurfaceScalar);
   
   // Compute the distance between the view ray line and the Earth center,
   // and the distance between the camera and the intersection of the view
@@ -1442,15 +1446,19 @@ PS_OUTPUT main(PS_INPUT input)
   if (distance_to_intersection > 0.0)
     geomPoint = camera + view_direction * distance_to_intersection;
 	
+  float hack_dampenScatterScalar = min(1.0, pow(sceneLogDepth, 6.0) * 6.0);
+  float3 earthNormal = normalize(lerp(u_earthUp.xyz, normalize(geomPoint - earth_center), hack_dampenScatterScalar));
+  float3 earthTangent = normalize(lerp(u_earthNorth.xyz, normalize(cross(earthNormal, float3(0, 0, 1))), hack_dampenScatterScalar));
   //float3 earthNormal = normalize(geomPoint - earth_center);
   //float3 earthTangent = normalize(cross(earthNormal, float3(0, 0, 1)));
-  float3 earthNormal = u_earthUp.xyz;
-  float3 earthTangent = u_earthNorth.xyz;
+  //float3 earthNormal = u_earthUp.xyz;
+  //float3 earthTangent = u_earthNorth.xyz;
   float3 earthBitangent = normalize(cross(earthNormal, earthTangent));
+  
   
   // TODO: The normals are inverted! fix
   float3x3 tbn = float3x3(earthTangent, earthBitangent, earthNormal);
-  sceneNormal = mul(tbn, sceneNormal);
+  sceneNormal = mul(sceneNormal, tbn);
   
   // TODO: Normals
   float shadow_in = 0;
@@ -1501,12 +1509,11 @@ follows, by multiplying the irradiance with the geometry BRDF:
 <p>Finally, we take into account the aerial perspective between the camera and
 the geometry, which depends on the length of this segment which is in shadow:
 */
-	// TODO Normals: As we 'fade' out our geometry, also 'fade' out the amount of shadow it casts...so that it can blend correctly with the ground
-    //float shadow_length = lerp(distance_to_geom_intersection * 0.65, 0.0, pow(sceneLogDepth / fadeDistanceHack, 8.0)); // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint() at near distances
 	float shadow_length =
         max(0.0, min(shadow_out, distance_to_geom_intersection) - shadow_in) *
         lightshaft_fadein_hack;
 	
+	//shadow_length = 10000.0;//float(sceneLogDepth < 1.0);
 	//float shadow_length = 0.85 * distance_to_geom_intersection * lightshaft_fadein_hack;
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
@@ -1514,9 +1521,17 @@ the geometry, which depends on the length of this segment which is in shadow:
 		
     // TODO: This is fixing the symptom - the real problem is why is 'in_scatter' so damn strong?
 	// I'm guessing the scale is off
-	float hack_dampenScatterScalar = pow(sceneLogDepth, 6.0) * 6.0;
-    geometry_radiance = lerp(geometry_radiance, geometry_radiance * transmittance + in_scatter * hack_dampenScatterScalar, 1.0);
+	
+    geometry_radiance = lerp(sceneColour.xyz, geometry_radiance * transmittance + in_scatter * hack_dampenScatterScalar, 1.0);
+	
   }
+  
+  
+  	//if (input.uv.x < 1.0)
+	//{
+	//  output.Color0 = float4(heightAboveSurfaceScalar,0,0,1);
+	//  return output;
+	//}
 
 /*
 <p>In the following we repeat the same steps as above, but for the planet sphere
@@ -1579,7 +1594,7 @@ the scene:
   
   radiance = lerp(radiance, ground_radiance, ground_alpha);
   radiance = lerp(radiance, geometry_radiance, geometry_alpha);
-
+ 
   output.Color0.rgb = 
       pow(abs(float3(1.0, 1.0, 1.0) - exp(-radiance / u_whitePoint.xyz * exposure)), float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
   output.Color0.a = 1.0;
