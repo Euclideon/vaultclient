@@ -385,6 +385,9 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   udFloat4x4 inverseView = udFloat4x4::create(udInverse(pProgramState->camera.matrices.view));
   udFloat4x4 inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
 
+  udDouble4x4 inverseViewProjection2 = pProgramState->camera.matrices.viewProjection * udDouble4x4::translation(earthCenter);
+  inverseViewProjection2 = udInverse(inverseViewProjection2);
+
   vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
   pAtmosphereRenderer->renderShader.vertParams.viewFromClip = inverseProjection;
   pAtmosphereRenderer->renderShader.vertParams.modelFromView = inverseView;
@@ -394,7 +397,7 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.z = (float)earthCenterEyePos.z;
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.w = (float)earthRadius;
   pAtmosphereRenderer->renderShader.fragParams.inverseViewProjection = inverseViewProjection;
-  pAtmosphereRenderer->renderShader.fragParams.inverseProjection = inverseProjection;
+  pAtmosphereRenderer->renderShader.fragParams.inverseProjection = udFloat4x4::create(inverseViewProjection2);
   pAtmosphereRenderer->renderShader.fragParams.camera.x = (float)pProgramState->camera.position.x;
   pAtmosphereRenderer->renderShader.fragParams.camera.y = (float)pProgramState->camera.position.y;
   pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->camera.position.z;

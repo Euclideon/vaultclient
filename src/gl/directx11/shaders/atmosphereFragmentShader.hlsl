@@ -1395,9 +1395,20 @@ PS_OUTPUT main(PS_INPUT input)
   output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
 
-  float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
-  float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
+  //float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
+  //float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
   float fadeDistanceHack = 0.65;
+  float4 worldPos = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, sceneDepth, 1.0));
+  worldPos /= worldPos.w;
+  
+  float4 eyePos = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, sceneDepth, 1.0));
+  eyePos /= eyePos.w;
+  
+  float distance_to_geom_intersection = length(camera - worldPos.xyz);
+  float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
+  
+  //geometryPoint = worldPos.xyz;//worldPos.xyz;//eyePos.xyz;
+  float3 worldGeomPoint = eyePos.xyz;
   
   // TODO: Normals
   float shadow_in = 0;
@@ -1506,6 +1517,12 @@ on the ground by the sun and sky visibility factors):
         geomPoint - earth_center, shadow_length, sun_direction, transmittance);
     ground_radiance = ground_radiance * transmittance + in_scatter;
     ground_alpha = 1.0;
+	
+	if (input.uv.x < 1.0)
+	{
+	  output.Color0 = float4(float3(distance_to_geom_intersection / 550.0, 0, 0),1);
+	  return output;
+	}
   }
 /*
 <p>Finally, we compute the radiance and transmittance of the sky, and composite
@@ -1538,8 +1555,9 @@ the scene:
   if (length(earthCamera) < u_earthCenter.w && dot(earthCamera, view_direction) <= 0.0)//earthCamera.z <= 0.0 && view_direction.z < 0.0)
     output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
 	
+
   // debugging
-  //output.Color0.xyz = lerp(float3(view_direction.z + camera.z, 0, 0), output.Color0.xyz, 0.00000000001);
+  //output.Color0.xyz = lerp(geometryPoint.xyz, output.Color0.xyz, 0.00000000001);
 	
   return output;
 }
