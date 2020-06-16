@@ -95,6 +95,10 @@ struct vcQuadTreeNode
   // node payloads
   vcNodeRenderInfo colourInfo;
   vcNodeRenderInfo demInfo;
+
+  // TODO: (AB#1751)
+  // Note: 'normalInfo' piggy backs a lot of its state from 'demInfo'.
+  vcNodeRenderInfo normalInfo;
 };
 
 struct vcQuadTreeMetaData

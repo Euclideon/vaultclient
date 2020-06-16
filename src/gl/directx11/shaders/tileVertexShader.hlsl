@@ -18,6 +18,7 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
+  float2 normalUV : TEXCOORD3;
 };
 
 // This should match CPU struct size
@@ -62,9 +63,16 @@ float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], flo
   float4 p3 = samples[int(vi2 * CONTROL_POINT_RES + ui2)];
   
   // bilinear position
-  float4 pu = (p0 + (p1 - p0) * uvt.x);
-  float4 pv = (p2 + (p3 - p2) * uvt.x);
-  return (pu + (pv - pu) * uvt.y);
+  float4 pu = lerp(p0, p1, uvt.x);
+  float4 pv = lerp(p2, p3, uvt.x);
+  return lerp(pu, pv, uvt.y);
+}
+
+float demHeight(float2 uv)
+{
+  float2 tileHeightSample = demTexture.SampleLevel( demSampler, uv, 0 ).xy;
+    // Reconstruct uint16 in float space and then convert back to int16 in float space
+  return ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
 }
 
 PS_INPUT main(VS_INPUT input)
@@ -77,9 +85,7 @@ PS_INPUT main(VS_INPUT input)
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
-  float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
-  // Reconstruct uint16 in float space and then convert back to int16 in float space
-  float tileHeight = ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
+  float tileHeight = demHeight(demUV);
 
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
@@ -90,6 +96,7 @@ PS_INPUT main(VS_INPUT input)
   output.pos = finalClipPos;
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
-  
+  output.normalUV = demUV;
+	
   return output;
 }

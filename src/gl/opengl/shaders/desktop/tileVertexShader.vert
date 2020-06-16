@@ -33,39 +33,40 @@ layout(location = 0) out vec4 out_var_COLOR0;
 layout(location = 1) out vec2 out_var_TEXCOORD0;
 layout(location = 2) out vec2 out_var_TEXCOORD1;
 layout(location = 3) out vec2 out_var_TEXCOORD2;
+layout(location = 4) out vec2 out_var_TEXCOORD3;
 
-vec2 _55;
+vec2 _56;
 
 void main()
 {
-    vec2 _60 = in_var_POSITION.xy * 2.0;
-    float _62 = _60.x;
-    float _63 = floor(_62);
-    float _64 = _60.y;
-    float _65 = floor(_64);
-    float _67 = min(2.0, _63 + 1.0);
-    float _70 = _62 - _63;
-    float _71 = _64 - _65;
-    float _72 = _65 * 3.0;
-    int _74 = int(_72 + _63);
-    int _78 = int(_72 + _67);
-    float _81 = min(2.0, _65 + 1.0) * 3.0;
-    int _83 = int(_81 + _63);
-    int _87 = int(_81 + _67);
-    vec4 _92 = u_EveryObject.u_eyePositions[_74] + ((u_EveryObject.u_eyePositions[_78] - u_EveryObject.u_eyePositions[_74]) * _70);
-    vec4 _110 = u_EveryObject.u_eyeNormals[_74] + ((u_EveryObject.u_eyeNormals[_78] - u_EveryObject.u_eyeNormals[_74]) * _70);
-    vec4 _126 = textureLod(SPIRV_Cross_CombineddemTexturedemSampler, u_EveryObject.u_demUVOffsetScale.xy + (u_EveryObject.u_demUVOffsetScale.zw * in_var_POSITION.xy), 0.0);
-    vec4 _137 = ((_92 + (((u_EveryObject.u_eyePositions[_83] + ((u_EveryObject.u_eyePositions[_87] - u_EveryObject.u_eyePositions[_83]) * _70)) - _92) * _71)) + ((_110 + (((u_EveryObject.u_eyeNormals[_83] + ((u_EveryObject.u_eyeNormals[_87] - u_EveryObject.u_eyeNormals[_83]) * _70)) - _110) * _71)) * (((_126.x * 255.0) + (_126.y * 65280.0)) - 32768.0))) * u_EveryObject.u_projection;
-    float _148 = _137.w;
-    float _154 = ((log2(max(9.9999999747524270787835121154785e-07, 1.0 + _148)) * ((u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear) / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0))) + u_cameraPlaneParams.u_clipZNear) * _148;
-    vec4 _155 = _137;
-    _155.z = _154;
-    vec2 _167 = _55;
-    _167.x = u_EveryObject.u_objectInfo.x;
-    gl_Position = _155;
+    vec2 _61 = in_var_POSITION.xy * 2.0;
+    float _63 = _61.x;
+    float _64 = floor(_63);
+    float _65 = _61.y;
+    float _66 = floor(_65);
+    float _68 = min(2.0, _64 + 1.0);
+    float _73 = _66 * 3.0;
+    int _75 = int(_73 + _64);
+    int _79 = int(_73 + _68);
+    float _82 = min(2.0, _66 + 1.0) * 3.0;
+    int _84 = int(_82 + _64);
+    int _88 = int(_82 + _68);
+    vec4 _91 = vec4(_63 - _64);
+    vec4 _94 = vec4(_65 - _66);
+    vec2 _113 = u_EveryObject.u_demUVOffsetScale.xy + (u_EveryObject.u_demUVOffsetScale.zw * in_var_POSITION.xy);
+    vec4 _117 = textureLod(SPIRV_Cross_CombineddemTexturedemSampler, _113, 0.0);
+    vec4 _128 = (mix(mix(u_EveryObject.u_eyePositions[_75], u_EveryObject.u_eyePositions[_79], _91), mix(u_EveryObject.u_eyePositions[_84], u_EveryObject.u_eyePositions[_88], _91), _94) + (mix(mix(u_EveryObject.u_eyeNormals[_75], u_EveryObject.u_eyeNormals[_79], _91), mix(u_EveryObject.u_eyeNormals[_84], u_EveryObject.u_eyeNormals[_88], _91), _94) * (((_117.x * 255.0) + (_117.y * 65280.0)) - 32768.0))) * u_EveryObject.u_projection;
+    float _139 = _128.w;
+    float _145 = ((log2(max(9.9999999747524270787835121154785e-07, 1.0 + _139)) * ((u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear) / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0))) + u_cameraPlaneParams.u_clipZNear) * _139;
+    vec4 _146 = _128;
+    _146.z = _145;
+    vec2 _158 = _56;
+    _158.x = u_EveryObject.u_objectInfo.x;
+    gl_Position = _146;
     out_var_COLOR0 = u_EveryObject.u_colour;
     out_var_TEXCOORD0 = u_EveryObject.u_uvOffsetScale.xy + (u_EveryObject.u_uvOffsetScale.zw * in_var_POSITION.xy);
-    out_var_TEXCOORD1 = vec2(_154, _148);
-    out_var_TEXCOORD2 = _167;
+    out_var_TEXCOORD1 = vec2(_145, _139);
+    out_var_TEXCOORD2 = _158;
+    out_var_TEXCOORD3 = _113;
 }
 
