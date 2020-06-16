@@ -1316,8 +1316,6 @@ cbuffer u_fragParams : register(b0)
   float4 u_sunSize; //zw unused
   float4 u_earthUp; // w unused
   float4 u_earthNorth; // w unused
-  float4x4 u_inverseProjection;
-  float4x4 u_inverseViewProjection;
 };
 
 sampler sceneColourSampler;
@@ -1383,11 +1381,6 @@ float logToLinearDepth(float logDepth)
   return a + b / worldDepth;
 }
 
-float reconstructDepth(float logDepth)
-{
- return pow(2.0, logDepth * log2(s_CameraFarPlane + 1.0)) - 1.0;
-}
-
 float linearizeDepth(float depth)
 {
   return (2.0 * s_CameraNearPlane) / (s_CameraFarPlane + s_CameraNearPlane - depth * (s_CameraFarPlane - s_CameraNearPlane));
@@ -1428,14 +1421,8 @@ PS_OUTPUT main(PS_INPUT input)
   output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
   
-  // TODO: THIS IS WHERE THE INACCURACY COMES FROM
-  float distance_to_geom_intersection = sceneLogDepth * s_CameraFarPlane;//linearizeDepth(sceneDepth) * s_CameraFarPlane;//
+  float distance_to_geom_intersection = linearizeDepth(sceneDepth) * s_CameraFarPlane;
   float3 geometryPoint = camera + view_direction * distance_to_geom_intersection;
-  float4 t = mul(u_inverseViewProjection, float4(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0, (sceneDepth), 1.0));
-  t /= t.w;
-  geometryPoint = t.xyz;
-  geometryPoint = float3(sceneLogDepth,0.0, 0.0);
-  
   float maxFadeDistanceHack = 0.85;
   float minFadeDistanceHack = 0.6;
   
@@ -1494,10 +1481,6 @@ approximation as in <code>GetSunVisibility</code>:
   {
     geometry_alpha = 1.0;
 
- //6374826.9249809794
- //constexpr double kBottomRadius = 6360000.0;
- //constexpr double kTopRadius = 6420000.0;
-  
 /*
 <p>We can then compute the intersection point and its normal, and use them to
 get the sun and sky irradiance received at this point. The reflected radiance
@@ -1518,10 +1501,13 @@ follows, by multiplying the irradiance with the geometry BRDF:
 <p>Finally, we take into account the aerial perspective between the camera and
 the geometry, which depends on the length of this segment which is in shadow:
 */
+	// TODO Normals: As we 'fade' out our geometry, also 'fade' out the amount of shadow it casts...so that it can blend correctly with the ground
+    //float shadow_length = lerp(distance_to_geom_intersection * 0.65, 0.0, pow(sceneLogDepth / fadeDistanceHack, 8.0)); // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint() at near distances
 	float shadow_length =
         max(0.0, min(shadow_out, distance_to_geom_intersection) - shadow_in) *
         lightshaft_fadein_hack;
 	
+	//float shadow_length = 0.85 * distance_to_geom_intersection * lightshaft_fadein_hack;
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         geometryPoint - earth_center, shadow_length, sun_direction, transmittance);
@@ -1530,7 +1516,6 @@ the geometry, which depends on the length of this segment which is in shadow:
 	// I'm guessing the scale is off
 	float hack_dampenScatterScalar = pow(sceneLogDepth, 6.0) * 6.0;
     geometry_radiance = lerp(geometry_radiance, geometry_radiance * transmittance + in_scatter * hack_dampenScatterScalar, 1.0);
-	//geometry_radiance = lerp(float3(pow(sceneLogDepth, 1.0), 0, 0), geometry_radiance * transmittance + in_scatter * hack_dampenScatterScalar, 0.0001);
   }
 
 /*
@@ -1559,9 +1544,10 @@ on the ground by the sun and sky visibility factors):
         sky_irradiance);
   
     // TODO: Normals
-    float shadow_length =
-        max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
-        lightshaft_fadein_hack;
+    //float shadow_length =
+    //    max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
+    //    lightshaft_fadein_hack;
+	float shadow_length = 0.0;//distance_to_intersection * 0.65; // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint()
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,
         geomPoint - earth_center, shadow_length, sun_direction, transmittance);
@@ -1589,7 +1575,7 @@ the scene:
 
   // fade geometry out smoothly
   geometry_alpha = geometry_alpha * min(1.0, (1.0 - smoothstep(minFadeDistanceHack, maxFadeDistanceHack, sceneLogDepth)));
-  //geometry_alpha = 0.0;
+  //geometry_alpha = 1.0;
   
   radiance = lerp(radiance, ground_radiance, ground_alpha);
   radiance = lerp(radiance, geometry_radiance, geometry_alpha);
@@ -1605,7 +1591,6 @@ the scene:
 	
   // debugging
   //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
-  output.Color0.xyz = lerp(geometryPoint.xyz, output.Color0.xyz, 0.00000000001);
   
   //float diff = length(geometryPoint - geomPoint);
   //output.Color0.xyz = lerp(float3(diff, diff, diff), output.Color0.xyz, 0.00000000001);

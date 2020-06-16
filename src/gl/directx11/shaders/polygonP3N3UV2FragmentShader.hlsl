@@ -48,8 +48,7 @@ PS_OUTPUT main(PS_INPUT input)
 
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
-  //output.Depth0 = input.fLogDepth.x / input.fLogDepth.y;
-  
+
   output.Normal = packNormal(input.normal, input.objectInfo.x, output.Depth0); 
   return output;
 }
