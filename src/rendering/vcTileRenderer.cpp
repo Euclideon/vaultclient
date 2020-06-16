@@ -303,8 +303,10 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
       vcQuadTreeNode *pBestNode = pCache->tileLoadList[best];
       pCache->tileLoadList.RemoveSwapLast(best);
-      pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
-      pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
+
+      bool doDemRequest = pBestNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
+      bool doColourRequest = pBestNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Downloading, vcNodeRenderInfo::vcTLS_InQueue);
+
       udReleaseMutex(pCache->pMutex);
 
       char localURL[vcMaxPathLength] = {};
@@ -316,7 +318,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       const char *pSlippyStrs[] = { zSlippyStr, xSlippyStr, ySlippyStr };
 
       // process dem and/or colour request
-      if (pBestNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (doDemRequest)
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
         udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
@@ -325,7 +327,7 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         demResult = vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL);
       }
 
-      if (pBestNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      if (doColourRequest)
       {
         udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(pRenderer->pSettings->maptiles.activeServer.tileServerAddressUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
 
