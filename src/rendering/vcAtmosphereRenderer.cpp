@@ -59,6 +59,8 @@ struct vcAtmosphereRenderer
       udFloat4 sunSize; //zw unused
       udFloat4 earthUp; // w unused
       udFloat4 earthNorth; // w unused
+      udFloat4x4 inverseProjection;
+      udFloat4x4 inverseViewProjection;
     } fragParams;
 
     struct
@@ -402,6 +404,8 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.earthNorth.x = (float)pProgramState->camera.cameraNorth.x;
   pAtmosphereRenderer->renderShader.fragParams.earthNorth.y = (float)pProgramState->camera.cameraNorth.y;
   pAtmosphereRenderer->renderShader.fragParams.earthNorth.z = (float)pProgramState->camera.cameraNorth.z;
+  pAtmosphereRenderer->renderShader.fragParams.inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
+  pAtmosphereRenderer->renderShader.fragParams.inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
 
   pAtmosphereRenderer->renderShader.fragParams.sunDirection = udFloat4::create(udFloat3::create(pAtmosphereRenderer->sunDirection), 0);
 

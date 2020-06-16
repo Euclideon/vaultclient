@@ -95,7 +95,7 @@ PS_INPUT main(VS_INPUT input)
   float tileHeight = demHeight(demUV);
   
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
-  finalClipPos.z = CalcuteLogDepth(finalClipPos);
+  //finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
   output.colour = float4(worldNormal, 0.0);//u_colour;

@@ -43,7 +43,7 @@ PS_INPUT main(VS_INPUT input)
   output.uv = input.uv;
   output.normal = worldNormal;
   output.colour = u_colour;// * input.colour;
-  output.fLogDepth.x = 1.0 + output.pos.w;
+  output.fLogDepth = 1.0 + output.pos.w;
   output.objectInfo.x = u_objectInfo.x;
 
   return output;
