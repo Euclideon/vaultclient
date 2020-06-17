@@ -73,7 +73,9 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       if (!pSceneItem->IsValid())
       {
         pSceneItem->Cleanup(pProgramState);
-        pNode = RemoveCurrentNode(pProgramState, pNode);
+        vdkProjectNode *nextNode = pNode->pNextSibling;
+        vcProject_RemoveItem(pProgramState, m_pNode, pNode);
+        pNode = nextNode;
         continue;
       }
 
@@ -396,14 +398,4 @@ void vcFolder::Cleanup(vcState *pProgramState)
     vcProject_RemoveItem(pProgramState, m_pNode, pNode);
     pNode = pNode->pNextSibling;
   }
-}
-
-vdkProjectNode *vcFolder::RemoveCurrentNode(vcState *pProgramState, vdkProjectNode *pNode)
-{
-  if (m_pNode->pFirstChild == pNode)
-    m_pNode->pFirstChild = pNode->pNextSibling;
-
-  vdkProjectNode *nextNode = pNode->pNextSibling;
-  vcProject_RemoveItem(pProgramState, m_pNode, pNode);
-  return nextNode; 
 }

@@ -20,8 +20,6 @@ public:
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
   void HandleImGui(vcState *pProgramState, size_t *pItemID) override;
   void Cleanup(vcState *pProgramState) override;
-
-  vdkProjectNode *RemoveCurrentNode(vcState *pProgramState, vdkProjectNode *pNode);
 };
 
 #endif //vcFolder_h__
