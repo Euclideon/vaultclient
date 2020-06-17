@@ -746,8 +746,43 @@ void vcTileRenderer_RecursiveUpUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeN
   vcTileRenderer_RecursiveUpUpdateNodeAABB(pQuadTree, pParentNode);
 }
 
+// TODO: Move to udCore (AB#1573)
+uint16_t Float32ToFloat16(float float32)
+{
+  uint32_t x = *((uint32_t*)&float32);
+  return ((x >> 16) & 0x8000) | ((((x & 0x7f800000) - 0x38000000) >> 13) & 0x7c00) | ((x >> 13) & 0x03ff);
+}
+
+float Float16ToFloat322(uint16_t float16)
+{
+  uint16_t sign_bit = (float16 & 0b1000000000000000) >> 15;
+  uint16_t exponent = (float16 & 0b0111110000000000) >> 10;
+  uint16_t fraction = (float16 & 0b0000001111111111) >> 0;
+
+  float sign = (sign_bit) ? -1.0f : 1.0f;
+  float m = 1.0f;
+  uint16_t exponentBias = 15;
+
+  // The exponents '00000' and '11111' are interpreted specially
+  if (exponent == 31)
+    return sign * INFINITY;
+
+  if (exponent == 0)
+  {
+    m = 0.0f;
+    exponentBias = 14;
+  }
+
+  return sign * udPow(2.0f, float(exponent - exponentBias)) * (m + (fraction / 1024.0f));
+}
+
 void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
 {
+  float a = Float16ToFloat322(Float32ToFloat16(1.0f));
+  float b = Float16ToFloat322(Float32ToFloat16(2.0f));
+  float c = Float16ToFloat322(Float32ToFloat16(0.5f));
+  float d = Float16ToFloat322(Float32ToFloat16(0.325f)); // precision issues
+
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
   bool queueTile = (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_None);
   if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Failed && pNode->demInfo.loadRetryCount < TileFailedRetryCount)
@@ -783,7 +818,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
     pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demHeightsCopySize.x * pNode->demHeightsCopySize.y, udAF_Zero);
 
-    uint8_t *pShortPixels = udAllocType(uint8_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 2, udAF_Zero);
+    uint16_t *pShortPixels = udAllocType(uint16_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 4, udAF_Zero);
     for (int h = 0; h < pNode->demInfo.data.height; ++h)
     {
       for (int w = 0; w < pNode->demInfo.data.width; ++w)
@@ -802,13 +837,13 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
         pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
         pNode->pDemHeightsCopy[index] = height;
 
-        pShortPixels[index * 2 + 0] = r;
-        // Convert from [-32k, 32k] to [0, 65k]
-        pShortPixels[index * 2 + 1] = (g ^ 0x80);
+        // Convert from [-32k, 32k] to [0.0, 1.0]
+        float normalizedHeight = uint32_t(height + 0x7fff) / float(0xffff);
+        pShortPixels[index * 4 + 3] = Float32ToFloat16(normalizedHeight);
       }
     }
 
-    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pShortPixels, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
+    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pShortPixels, vcTextureFormat_RGBA16F, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pShortPixels);
     udFree(pNode->demInfo.data.pData);
 

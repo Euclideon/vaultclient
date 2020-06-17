@@ -77,9 +77,8 @@ PS_INPUT main(VS_INPUT input)
   float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
-  float2 tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).xy;
-  // Reconstruct uint16 in float space and then convert back to int16 in float space
-  float tileHeight = ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
+  float tileHeightSample = demTexture.SampleLevel( demSampler, demUV, 0 ).w;
+  float tileHeight = tileHeightSample * 65535.0 - 32768.0;
 
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
