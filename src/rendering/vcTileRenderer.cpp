@@ -86,6 +86,7 @@ struct vcTileRenderer
   vcMesh *pTileMeshes[udLengthOf(MeshConfigurations)];
   vcTexture *pEmptyTileTexture;
   vcTexture *pEmptyDemTileTexture;
+  vcTexture *pEmptyNormalTexture;
 
   udDouble3 cameraPosition;
 
@@ -105,6 +106,7 @@ struct vcTileRenderer
     vcShaderConstantBuffer *pConstantBuffer;
     vcShaderSampler *uniform_texture;
     vcShaderSampler *uniform_dem;
+    vcShaderSampler *uniform_normal;
 
     struct
     {
@@ -224,8 +226,6 @@ udResult vcTileRenderer_HandleTileDownload(vcNodeRenderInfo *pRenderNodeInfo, co
   pRenderNodeInfo->data.height = height;
   pRenderNodeInfo->data.pData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
 
-  pRenderNodeInfo->loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
-
   stbi_image_free(pData);
   result = udR_Success;
 epilogue:
@@ -235,6 +235,125 @@ epilogue:
 
   udFree(pFileData);
   return result;
+}
+
+template <typename T>
+float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int32_t width, int32_t height)
+{
+  static float HalfPixelOffset = -0.5f;
+  udFloat2 uv = { (sampleUV[0] + HalfPixelOffset / width) * width,
+                  (sampleUV[1] + HalfPixelOffset / height) * height };
+
+  udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
+  udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
+
+  float maxWidth = width - 1.0f;
+  float maxHeight = height - 1.0f;
+
+  udFloat2 uvBL = udFloat2::create(udClamp(whole.x + 0.0f, 0.0f, maxWidth), udClamp(whole.y + 0.0f, 0.0f, maxHeight));
+  udFloat2 uvBR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 0, 0.0f, maxHeight));
+  udFloat2 uvTL = udFloat2::create(udClamp(whole.x + 0, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
+  udFloat2 uvTR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
+
+  float pColourBL = (float)pPixelData[(int)(uvBL.x + uvBL.y * width)];
+  float pColourBR = (float)pPixelData[(int)(uvBR.x + uvBR.y * width)];
+  float pColourTL = (float)pPixelData[(int)(uvTL.x + uvTL.y * width)];
+  float pColourTR = (float)pPixelData[(int)(uvTR.x + uvTR.y * width)];
+
+  float colourT = udLerp(pColourTL, pColourTR, rem.x);
+  float colourB = udLerp(pColourBL, pColourBR, rem.x);
+  return udLerp(colourB, colourT, rem.y);
+}
+
+void vcTileRenderer_GenerateDEMAndNormalMaps(vcQuadTreeNode *pNode, void *pRawDemPixels)
+{
+  pNode->demMinMax[0] = 32767;
+  pNode->demMinMax[1] = -32768;
+
+  pNode->demHeightsCopySize.x = pNode->demInfo.data.width;
+  pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
+
+  pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
+
+  uint8_t *pDemPixels = udAllocType(uint8_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 2, udAF_Zero);
+  for (int h = 0; h < pNode->demInfo.data.height; ++h)
+  {
+    for (int w = 0; w < pNode->demInfo.data.width; ++w)
+    {
+      int index = h * pNode->demInfo.data.width + w;
+      uint32_t p = ((uint32_t*)pRawDemPixels)[index];
+      uint8_t r = uint8_t((p & 0xff000000) >> 24);
+      uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
+
+      int16_t height = r | (g << 8);
+
+      if (height == -32768) // TODO: invalid sentinel value
+        height = 0;
+
+      pNode->demMinMax[0] = udMin(pNode->demMinMax.x, (int32_t)height);
+      pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
+      pNode->pDemHeightsCopy[index] = height;
+
+      pDemPixels[index * 2 + 0] = r;
+      // Convert from [-32k, 32k] to [0, 65k]
+      pDemPixels[index * 2 + 1] = (g ^ 0x80);
+    }
+  }
+
+  // And now generate normals
+  pNode->normalInfo.data.width = pNode->demInfo.data.width;
+  pNode->normalInfo.data.height = pNode->demInfo.data.height;
+
+  // Calculate the horizontal region distances covered by this node
+  udFloat2 tileWorldSize = udFloat2::create((float)udMag3(pNode->worldBounds[2] - pNode->worldBounds[0]), (float)udMag3(pNode->worldBounds[6] - pNode->worldBounds[0]));
+
+  float stepSize = 1.0f + (pNode->slippyPosition.z >= 12 ? (pNode->slippyPosition.z - 11) : 0.0f); // TODO: At lower levels blocky artefacts appear, so 'smudge'
+  udFloat2 stepOffset = udFloat2::create(stepSize / pNode->normalInfo.data.width, stepSize / pNode->normalInfo.data.height);
+
+  udFloat2 offsets[] =
+  {
+    udFloat2::create( stepOffset.x, 0),
+    udFloat2::create(0,             stepOffset.y),
+    udFloat2::create(-stepOffset.x, 0),
+    udFloat2::create(0,            -stepOffset.y),
+  };
+
+  uint32_t *pNormalPixels = udAllocType(uint32_t, pNode->normalInfo.data.width * pNode->normalInfo.data.height, udAF_Zero);
+  for (int h = 0; h < pNode->normalInfo.data.height; ++h)
+  {
+    for (int w = 0; w < pNode->normalInfo.data.width; ++w)
+    {
+      int i0 = h * pNode->normalInfo.data.width + w;
+      udFloat2 uv = udFloat2::create(float(w) / pNode->normalInfo.data.width, float(h) / pNode->demInfo.data.height);
+
+      float h0 = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv, pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+      udFloat3 p0 = udFloat3::create(0.0f, 0.0f, h0);
+
+      udFloat3 n = udFloat3::zero();
+      for (int e = 0; e < 2; ++e)
+      {
+        int e0 = e * 2;
+        float h1 = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + offsets[e0], pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+        udFloat3 p1 = udFloat3::create(tileWorldSize.x * offsets[e0].x, tileWorldSize.y * offsets[e0].y, h1);
+
+        int e1 = e0 + 1;
+        float h2 = vcTileRenderer_BilinearSample(pNode->pDemHeightsCopy, uv + offsets[e1], pNode->normalInfo.data.width, pNode->normalInfo.data.height);
+        udFloat3 p2 = udFloat3::create(tileWorldSize.x * offsets[e1].x, tileWorldSize.y * offsets[e1].y, h2);
+
+        n += udNormalize3(udCross(p1 - p0, p2 - p0));
+      }
+      n = udNormalize3(n);
+
+      int nx = (int)(((n.x * 0.5f) + 0.5f) * 255);
+      int ny = (int)(((n.y * 0.5f) + 0.5f) * 255);
+      int nz = (int)(((n.z * 0.5f) + 0.5f) * 255);
+      pNormalPixels[i0] = nx | (ny << 8) | (nz << 16) | (0xff000000);
+    }
+  }
+
+  // TODO: (AB#1751)
+  pNode->demInfo.data.pData = pDemPixels;
+  pNode->normalInfo.data.pData = pNormalPixels;
 }
 
 uint32_t vcTileRenderer_LoadThread(void *pThreadData)
@@ -312,9 +431,9 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       char localURL[vcMaxPathLength] = {};
       char serverURL[vcMaxPathLength] = {};
 
-      char xSlippyStr[16];
-      char ySlippyStr[16];
-      char zSlippyStr[16];
+      char xSlippyStr[16] = {};
+      char ySlippyStr[16] = {};
+      char zSlippyStr[16] = {};
       const char *pSlippyStrs[] = { zSlippyStr, xSlippyStr, ySlippyStr };
 
       // process dem and/or colour request
@@ -325,6 +444,19 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
         // allow continue on failure
         demResult = vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL);
+
+        // Decode DEM and generate normals
+        if (demResult == udR_Success)
+        {
+          // TODO: (AB#1751)
+          void *pRawDemPixels = pBestNode->demInfo.data.pData;
+
+          vcTileRenderer_GenerateDEMAndNormalMaps(pBestNode, pRawDemPixels);
+          pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
+
+          // TODO: (AB#1751)
+          udFree(pRawDemPixels);
+        }
       }
 
       if (doColourRequest)
@@ -339,6 +471,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
 
         // allow continue on failure
         colourResult = vcTileRenderer_HandleTileDownload(&pBestNode->colourInfo, serverURL, localURL);
+        if (colourResult == udR_Success) 
+          pBestNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
       }
 
       if (demResult != udR_Success)
@@ -602,8 +736,9 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   vcTileRenderer *pTileRenderer = nullptr;
   vcP3Vertex verts[TileVertexResolution * TileVertexResolution] = {};
   int indicies[TileIndexResolution * TileIndexResolution * 6] = {};
-  uint32_t greyPixel = 0xf3f3f3ff;
+  uint32_t greyPixel = 0xfff3f3f3; // abgr
   uint16_t flatDemPixel = 0x8000;
+  uint32_t flatNormalPixel = 0xffff7f7f;
   UD_ERROR_NULL(ppTileRenderer, udR_InvalidParameter_);
 
   pTileRenderer = udAllocType(vcTileRenderer, 1, udAF_Zero);
@@ -636,6 +771,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
 
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyTileTexture, 1, 1, &greyPixel));
   UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyDemTileTexture, 1, 1, &flatDemPixel, vcTextureFormat_RG8));
+  UD_ERROR_CHECK(vcTexture_Create(&pTileRenderer->pEmptyNormalTexture, 1, 1, &flatNormalPixel));
 
   *ppTileRenderer = pTileRenderer;
   pTileRenderer = nullptr;
@@ -683,6 +819,7 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
     vcMesh_Destroy(&pTileRenderer->pTileMeshes[i]);
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
   vcTexture_Destroy(&pTileRenderer->pEmptyDemTileTexture);
+  vcTexture_Destroy(&pTileRenderer->pEmptyNormalTexture);
 
   vcQuadTree_Destroy(&(*ppTileRenderer)->quadTree);
   udFree(*ppTileRenderer);
@@ -701,6 +838,7 @@ udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer)
   UD_ERROR_IF(!vcShader_Bind(pTileRenderer->presentShader.pProgram), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject)), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "colour"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_normal, pTileRenderer->presentShader.pProgram, "normal"), udR_InternalError);
   UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_dem, pTileRenderer->presentShader.pProgram, "dem"), udR_InternalError);
 
   result = udR_Success;
@@ -776,41 +914,11 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
   {
     pNode->demInfo.tryLoad = false;
 
-    pNode->demMinMax[0] = 32767;
-    pNode->demMinMax[1] = -32768;
-
-    pNode->demHeightsCopySize.x = pNode->demInfo.data.width;
-    pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
-    pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demHeightsCopySize.x * pNode->demHeightsCopySize.y, udAF_Zero);
-
-    uint8_t *pShortPixels = udAllocType(uint8_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 2, udAF_Zero);
-    for (int h = 0; h < pNode->demInfo.data.height; ++h)
-    {
-      for (int w = 0; w < pNode->demInfo.data.width; ++w)
-      {
-        int index = h * pNode->demInfo.data.width + w;
-        uint32_t p = ((uint32_t*)pNode->demInfo.data.pData)[index];
-        uint8_t r = uint8_t((p & 0xff000000) >> 24);
-        uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
-
-        int16_t height = r | (g << 8);
-
-        if (height == -32768) // TODO: invalid sentinel value
-          height = 0;
-
-        pNode->demMinMax[0] = udMin(pNode->demMinMax.x, (int32_t)height);
-        pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
-        pNode->pDemHeightsCopy[index] = height;
-
-        pShortPixels[index * 2 + 0] = r;
-        // Convert from [-32k, 32k] to [0, 65k]
-        pShortPixels[index * 2 + 1] = (g ^ 0x80);
-      }
-    }
-
-    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pShortPixels, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
-    udFree(pShortPixels);
+    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->demInfo.data.pData, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pNode->demInfo.data.pData);
+
+    vcTexture_CreateAdv(&pNode->normalInfo.data.pTexture, vcTextureType_Texture2D, pNode->normalInfo.data.width, pNode->normalInfo.data.height, 1, pNode->normalInfo.data.pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp);
+    udFree(pNode->normalInfo.data.pData);
 
     pNode->demBoundsState = vcQuadTreeNode::vcDemBoundsState_Absolute;
     vcQuadTree_CalculateNodeAABB(&pTileRenderer->quadTree, pNode);
@@ -960,10 +1068,12 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   }
 
   vcTexture *pDemTexture = pNode->demInfo.drawInfo.pTexture;
+  vcTexture *pNormalTexture = pNode->normalInfo.drawInfo.pTexture;
   if (pDemTexture == nullptr || !pTileRenderer->pSettings->maptiles.demEnabled)
   {
     // TODO: completeRender = false?
     pDemTexture = pTileRenderer->pEmptyDemTileTexture;
+    pNormalTexture = pTileRenderer->pEmptyNormalTexture;
   }
 
   for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
@@ -982,11 +1092,12 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   pTileRenderer->presentShader.everyObject.demUVOffsetScale = udFloat4::create(pNode->demInfo.drawInfo.uvStart, demSize.x, demSize.y);
 
   vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pTexture, 0, pTileRenderer->presentShader.uniform_texture);
+  vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pNormalTexture, 1, pTileRenderer->presentShader.uniform_normal);
 
   // TODO: This is a hack, needs to be fixed for both graphics APIs
   uint16_t samplerIndex = 0;
 #if GRAPHICS_API_OPENGL
-  samplerIndex = 1;
+  samplerIndex = 2;
 #endif
   vcShader_BindTexture(pTileRenderer->presentShader.pProgram, pDemTexture, samplerIndex, pTileRenderer->presentShader.uniform_dem, vcGLSamplerShaderStage_Vertex);
 
@@ -1030,6 +1141,7 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
   {
     // calculate what portion of ancestors DEM to display at this tile
     pChild->demInfo.drawInfo.pTexture = pAncestor->demInfo.drawInfo.pTexture;
+    pChild->normalInfo.drawInfo.pTexture = pAncestor->normalInfo.drawInfo.pTexture;
     int depthDiff = pChild->slippyPosition.z - pAncestor->slippyPosition.z;
     int slippyRange = (int)udPow(2.0f, (float)depthDiff);
     udFloat2 boundsRange = udFloat2::create((float)slippyRange);
@@ -1060,6 +1172,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
   pNode->colourInfo.drawInfo.pTexture = nullptr;
   pNode->demInfo.drawInfo.pTexture = nullptr;
+  pNode->normalInfo.drawInfo.pTexture = nullptr;
   if (pNode->colourInfo.data.pTexture != nullptr)
   {
     pNode->colourInfo.drawInfo.pTexture = pNode->colourInfo.data.pTexture;
@@ -1069,6 +1182,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, const ud
   if (pNode->demInfo.data.pTexture != nullptr)
   {
     pNode->demInfo.drawInfo.pTexture = pNode->demInfo.data.pTexture;
+    pNode->normalInfo.drawInfo.pTexture = pNode->normalInfo.data.pTexture;
     pBestDemAncestor = pNode;
   }
 
@@ -1161,34 +1275,6 @@ void vcTileRenderer_ClearTiles(vcTileRenderer *pTileRenderer)
   vcQuadTree_Reset(&pTileRenderer->quadTree);
 
   udReleaseMutex(pTileRenderer->cache.pMutex);
-}
-
-template <typename T>
-float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int32_t width, int32_t height)
-{
-  static float HalfPixelOffset = -0.5f;
-  udFloat2 uv = { (sampleUV[0] + HalfPixelOffset / width) * width,
-                  (sampleUV[1] + HalfPixelOffset / height) * height };
-
-  udFloat2 whole = udFloat2::create(udFloor(uv.x), udFloor(uv.y));
-  udFloat2 rem = udFloat2::create(uv.x - whole.x, uv.y - whole.y);
-
-  float maxWidth = width - 1.0f;
-  float maxHeight = height - 1.0f;
-
-  udFloat2 uvBL = udFloat2::create(udClamp(whole.x + 0.0f, 0.0f, maxWidth), udClamp(whole.y + 0.0f, 0.0f, maxHeight));
-  udFloat2 uvBR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 0, 0.0f, maxHeight));
-  udFloat2 uvTL = udFloat2::create(udClamp(whole.x + 0, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
-  udFloat2 uvTR = udFloat2::create(udClamp(whole.x + 1, 0.0f, maxWidth), udClamp(whole.y + 1, 0.0f, maxHeight));
-
-  float pColourBL = (float)pPixelData[(int)(uvBL.x + uvBL.y * width)];
-  float pColourBR = (float)pPixelData[(int)(uvBR.x + uvBR.y * width)];
-  float pColourTL = (float)pPixelData[(int)(uvTL.x + uvTL.y * width)];
-  float pColourTR = (float)pPixelData[(int)(uvTR.x + uvTR.y * width)];
-
-  float colourT = udLerp(pColourTL, pColourTR, rem.x);
-  float colourB = udLerp(pColourBL, pColourBR, rem.x);
-  return udLerp(colourB, colourT, rem.y);
 }
 
 udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &worldUp, const udDouble3 &point)
