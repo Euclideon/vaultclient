@@ -772,7 +772,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
   }
 
   pNode->demInfo.tryLoad = true;
-  if (pNode->demInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Loaded, vcNodeRenderInfo::vcTLS_Downloaded))
+  if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloaded)
   {
     pNode->demInfo.tryLoad = false;
 
@@ -818,6 +818,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     // conditonal update AABBs of tree (up and down)
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
+
+    pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Loaded);
   }
 }
 
@@ -847,12 +849,14 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
   }
 
   pNode->colourInfo.tryLoad = true;
-  if (pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_Loaded, vcNodeRenderInfo::vcTLS_Downloaded))
+  if (pNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloaded)
   {
     pNode->colourInfo.tryLoad = false;
 
     vcTexture_CreateAdv(&pNode->colourInfo.data.pTexture, vcTextureType_Texture2D, pNode->colourInfo.data.width, pNode->colourInfo.data.height, 1, pNode->colourInfo.data.pData, vcTextureFormat_RGBA8, vcTFM_Linear, true, vcTWM_Clamp, vcTCF_None, 16);
     udFree(pNode->colourInfo.data.pData);
+
+    pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Loaded);
     return true;
   }
 
@@ -1189,7 +1193,7 @@ float vcTileRenderer_BilinearSample(T *pPixelData, const udFloat2 &sampleUV, int
 
 udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer, const udDouble3 &worldUp, const udDouble3 &point)
 {
-  const vcQuadTreeNode *pNode = vcQuadTree_GetLeafNodeFromCartesian(&pTileRenderer->quadTree, point);
+  vcQuadTreeNode *pNode = vcQuadTree_GetLeafNodeFromCartesian(&pTileRenderer->quadTree, point);
 
   udDouble3 latLonAltZero = udGeoZone_CartesianToLatLong(pTileRenderer->quadTree.geozone, point);
   latLonAltZero.z = 0;
@@ -1204,7 +1208,7 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
       // search for fine DEM data up the tree
       while (pNode->parentIndex != INVALID_NODE_INDEX)
       {
-        if (pNode->pDemHeightsCopy != nullptr)
+        if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Loaded)
           break;
 
         pNode = &pTileRenderer->quadTree.nodes.pPool[pNode->parentIndex];
@@ -1212,7 +1216,7 @@ udDouble3 vcTileRenderer_QueryMapHeightAtCartesian(vcTileRenderer *pTileRenderer
     }
 
     // `pDemHeights` can be null if inherited tile was ancestor, which has since been pruned
-    if (pNode->pDemHeightsCopy != nullptr)
+    if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Loaded)
     {
       udDouble2 demUV = {};
       vcGIS_LatLongToSlippy(&demUV, latLonAltZero, pNode->slippyPosition.z);
