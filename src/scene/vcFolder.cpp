@@ -70,6 +70,14 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       vcSceneItem *pSceneItem = (vcSceneItem *)pNode->pUserData;
 
       pSceneItem->AddToScene(pProgramState, pRenderData);
+      if (!pSceneItem->IsValid())
+      {
+        pSceneItem->Cleanup(pProgramState);
+        vdkProjectNode *nextNode = pNode->pNextSibling;
+        vcProject_RemoveItem(pProgramState, m_pNode, pNode);
+        pNode = nextNode;
+        continue;
+      }
 
       if (pSceneItem->m_lastUpdateTime < pSceneItem->m_pNode->lastUpdate)
         pSceneItem->UpdateNode(pProgramState);

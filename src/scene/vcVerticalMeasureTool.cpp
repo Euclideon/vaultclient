@@ -21,6 +21,7 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode
   , m_done(false)
   , m_pickStart(true)
   , m_pickEnd(true)
+  , m_markDelete(false)
   , m_pLineInstance(nullptr)
 {
   ClearPoints();
@@ -58,14 +59,6 @@ void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataBool(m_pNode, "pickEnd", &m_pickEnd, true);
   vdkProjectNode_GetMetadataBool(m_pNode, "measureEnd", &m_done, false);
 
-  if (pProgramState->activeTool != vcActiveTool::vcActiveTool_MeasureHeight && !m_done && HasLine())
-  {
-    m_points[1] = udDouble3::zero();
-    m_points[2] = udDouble3::zero();
-
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 1);
-  }
-
   ChangeProjection(pProgramState->geozone);
   UpdateSetting(pProgramState);
 }
@@ -73,6 +66,12 @@ void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
 
 void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
+  if (pProgramState->activeTool != vcActiveTool::vcActiveTool_MeasureHeight && !m_done && HasLine())
+  {
+    m_markDelete = true;
+    return;
+  }
+
   if (!m_visible)
     return;
 
@@ -186,7 +185,19 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
 {
-  RemoveMeasureInfo();
+  ClearPoints();
+
+  if (m_pLineInstance)
+  {
+    vcLineRenderer_DestroyLine(&m_pLineInstance);
+    m_pLineInstance = nullptr;
+  }
+
+  if (m_labelInfo.pText)
+  {
+    udFree(m_labelInfo.pText);
+    m_labelInfo.pText = nullptr;
+  }
   pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
 }
 
@@ -233,22 +244,6 @@ void vcVerticalMeasureTool::UpdateIntersectionPosition(vcState *pProgramState)
 bool vcVerticalMeasureTool::HasLine()
 {
   return m_points[2] != udDouble3::zero();
-}
-
-void vcVerticalMeasureTool::RemoveMeasureInfo()
-{
-  if (m_pLineInstance)
-  {
-    vcLineRenderer_DestroyLine(&m_pLineInstance);
-    m_pLineInstance = nullptr;
-  }
-
-  if (m_labelInfo.pText)
-  {
-    udFree(m_labelInfo.pText);
-    m_labelInfo.pText = nullptr;
-  }
-
 }
 
 void vcVerticalMeasureTool::ClearPoints()
