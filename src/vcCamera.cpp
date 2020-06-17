@@ -159,6 +159,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
   udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pCamera->position, pCamera->headingPitch);
 
   pCamera->cameraUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
+  pCamera->cameraNorth = vcGIS_GetWorldLocalNorth(pProgramState->geozone, pProgramState->camera.position);
 
   switch (pCamInput->inputState)
   {
