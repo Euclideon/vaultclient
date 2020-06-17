@@ -39,7 +39,7 @@ PS_OUTPUT main(PS_INPUT input)
   PS_OUTPUT output;
   float4 col = colourTexture.Sample(colourSampler, input.uv);
 
-  float3 normal = normalTexture.Sample(normalSampler, input.normalUV);
+  float3 normal = normalTexture.Sample(normalSampler, input.normalUV).xyz;
   normal = normal * float3(2.0, 2.0, 2.0) - float3(1.0, 1.0, 1.0);
   
   output.Color0 = float4(col.xyz * input.colour.xyz, input.colour.w);

@@ -57,8 +57,7 @@ struct vcAtmosphereRenderer
       udFloat4 earthCenter; // w unused
       udFloat4 sunDirection;// w unused
       udFloat4 sunSize; //zw unused
-      udFloat4x4 inverseViewProjection;
-      udFloat4x4 inverseProjection;
+      udFloat4 earthNorth; // w unused
     } fragParams;
 
     struct
@@ -383,7 +382,6 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
 
   udFloat4x4 inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
   udFloat4x4 inverseView = udFloat4x4::create(udInverse(pProgramState->camera.matrices.view));
-  udFloat4x4 inverseViewProjection = udFloat4x4::create(pProgramState->camera.matrices.inverseViewProjection);
 
   vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
   pAtmosphereRenderer->renderShader.vertParams.viewFromClip = inverseProjection;
@@ -393,12 +391,13 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.y = (float)earthCenterEyePos.y;
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.z = (float)earthCenterEyePos.z;
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.w = (float)earthRadius;
-  pAtmosphereRenderer->renderShader.fragParams.inverseViewProjection = inverseViewProjection;
-  pAtmosphereRenderer->renderShader.fragParams.inverseProjection = inverseProjection;
   pAtmosphereRenderer->renderShader.fragParams.camera.x = (float)pProgramState->camera.position.x;
   pAtmosphereRenderer->renderShader.fragParams.camera.y = (float)pProgramState->camera.position.y;
   pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->camera.position.z;
   pAtmosphereRenderer->renderShader.fragParams.camera.w = (float)(pAtmosphereRenderer->use_luminance != NONE ? pAtmosphereRenderer->exposure * 1e-5 : pAtmosphereRenderer->exposure);
+  pAtmosphereRenderer->renderShader.fragParams.earthNorth.x = (float)pProgramState->camera.cameraNorth.x;
+  pAtmosphereRenderer->renderShader.fragParams.earthNorth.y = (float)pProgramState->camera.cameraNorth.y;
+  pAtmosphereRenderer->renderShader.fragParams.earthNorth.z = (float)pProgramState->camera.cameraNorth.z;
 
   pAtmosphereRenderer->renderShader.fragParams.sunDirection = udFloat4::create(udFloat3::create(pAtmosphereRenderer->sunDirection), 0);
 

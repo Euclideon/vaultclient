@@ -18,11 +18,10 @@ struct type_u_fragParams
     float4 u_earthCenter;
     float4 u_sunDirection;
     float4 u_sunSize;
-    float4x4 u_inverseViewProjection;
-    float4x4 u_inverseProjection;
+    float4 u_earthNorth;
 };
 
-constant float4 _109 = {};
+constant float4 _110 = {};
 
 struct main0_out
 {
@@ -40,538 +39,549 @@ struct main0_in
 fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], constant type_u_fragParams& u_fragParams [[buffer(1)]], texture2d<float> transmittanceTexture [[texture(0)]], texture3d<float> scatteringTexture [[texture(1)]], texture2d<float> irradianceTexture [[texture(2)]], texture2d<float> sceneColourTexture [[texture(3)]], texture2d<float> sceneNormalTexture [[texture(4)]], texture2d<float> sceneDepthTexture [[texture(5)]], sampler transmittanceSampler [[sampler(0)]], sampler scatteringSampler [[sampler(1)]], sampler irradianceSampler [[sampler(2)]], sampler sceneColourSampler [[sampler(3)]], sampler sceneNormalSampler [[sampler(4)]], sampler sceneDepthSampler [[sampler(5)]])
 {
     main0_out out = {};
-    float _117 = u_fragParams.u_earthCenter.w + 60000.0;
-    float3 _130 = normalize(in.in_var_TEXCOORD1);
-    float4 _134 = sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD0);
-    float4 _138 = sceneNormalTexture.sample(sceneNormalSampler, in.in_var_TEXCOORD0);
-    float4 _142 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD0);
-    float _143 = _142.x;
-    float _148 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
-    float3 _162 = pow(abs(_134.xyz), float3(2.2000000476837158203125));
-    float _168 = ((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (((u_cameraPlaneParams.s_CameraFarPlane / _148) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _143 * log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0)) - 1.0))) * _148))) * u_cameraPlaneParams.s_CameraFarPlane;
-    bool _171 = _143 < 0.64999997615814208984375;
-    float3 _762;
-    if (_171)
+    float _118 = u_fragParams.u_earthCenter.w + 60000.0;
+    float3 _131 = normalize(in.in_var_TEXCOORD1);
+    float4 _135 = sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD0);
+    float4 _139 = sceneNormalTexture.sample(sceneNormalSampler, in.in_var_TEXCOORD0);
+    float4 _143 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD0);
+    float _144 = _143.x;
+    float _149 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
+    float2 _167 = _139.xy;
+    float3 _175 = pow(abs(_135.xyz), float3(2.2000000476837158203125));
+    float _181 = ((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (((u_cameraPlaneParams.s_CameraFarPlane / _149) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _144 * log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0)) - 1.0))) * _149))) * u_cameraPlaneParams.s_CameraFarPlane;
+    float3 _183 = u_fragParams.u_camera.xyz + (_131 * _181);
+    float3 _184 = u_fragParams.u_camera.xyz - u_fragParams.u_earthCenter.xyz;
+    float _185 = dot(_184, _131);
+    float _187 = _185 * _185;
+    float _189 = -_185;
+    float _190 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
+    float _193 = _189 - sqrt(_190 - (dot(_184, _184) - _187));
+    bool _194 = _193 > 0.0;
+    float3 _199;
+    if (_194)
     {
-        float3 _174 = (u_fragParams.u_camera.xyz + (_130 * _168)) - u_fragParams.u_earthCenter.xyz;
-        float3 _175 = normalize(_174);
-        float _178 = length(_174);
-        float _180 = dot(_174, u_fragParams.u_sunDirection.xyz) / _178;
-        float _182 = _117 - u_fragParams.u_earthCenter.w;
-        float4 _193 = irradianceTexture.sample(irradianceSampler, float2(0.0078125 + (((_180 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_178 - u_fragParams.u_earthCenter.w) / _182) * 0.9375)));
-        float _200 = u_fragParams.u_earthCenter.w / _178;
-        float _206 = _117 * _117;
-        float _207 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
-        float _209 = sqrt(_206 - _207);
-        float _210 = _178 * _178;
-        float _213 = sqrt(fast::max(_210 - _207, 0.0));
-        float _224 = _117 - _178;
-        float4 _237 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_178) * _180) + sqrt(fast::max((_210 * ((_180 * _180) - 1.0)) + _206, 0.0)), 0.0) - _224) / ((_213 + _209) - _224)) * 0.99609375), 0.0078125 + ((_213 / _209) * 0.984375)));
-        float _256 = mix(_168 * 0.64999997615814208984375, 0.0, pow(_143 * 1.53846156597137451171875, 8.0));
-        float3 _257 = u_fragParams.u_camera.xyz - u_fragParams.u_earthCenter.xyz;
-        float3 _260 = normalize(_174 - _257);
-        float _261 = length(_257);
-        float _262 = dot(_257, _260);
-        float _269 = (-_262) - sqrt(((_262 * _262) - (_261 * _261)) + _206);
-        bool _270 = _269 > 0.0;
-        float3 _276;
-        float _277;
-        if (_270)
+        _199 = u_fragParams.u_camera.xyz + (_131 * _193);
+    }
+    else
+    {
+        _199 = _183;
+    }
+    float3 _203 = _199 - u_fragParams.u_earthCenter.xyz;
+    float3 _204 = normalize(_203);
+    float3 _212 = float3(_139.xy, float(int(sign(_139.w))) * sqrt(1.0 - dot(_167, _167)));
+    _212.y = _139.y * (-1.0);
+    float3 _213 = float3x3(normalize(cross(u_fragParams.u_earthNorth.xyz, _204)), u_fragParams.u_earthNorth.xyz, _204) * _212;
+    bool _214 = _144 < 0.75;
+    float3 _802;
+    if (_214)
+    {
+        float3 _217 = _183 - u_fragParams.u_earthCenter.xyz;
+        float _220 = length(_217);
+        float _222 = dot(_217, u_fragParams.u_sunDirection.xyz) / _220;
+        float _224 = _118 - u_fragParams.u_earthCenter.w;
+        float4 _235 = irradianceTexture.sample(irradianceSampler, float2(0.0078125 + (((_222 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_220 - u_fragParams.u_earthCenter.w) / _224) * 0.9375)));
+        float _242 = u_fragParams.u_earthCenter.w / _220;
+        float _248 = _118 * _118;
+        float _250 = sqrt(_248 - _190);
+        float _251 = _220 * _220;
+        float _254 = sqrt(fast::max(_251 - _190, 0.0));
+        float _265 = _118 - _220;
+        float4 _278 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_220) * _222) + sqrt(fast::max((_251 * ((_222 * _222) - 1.0)) + _248, 0.0)), 0.0) - _265) / ((_254 + _250) - _265)) * 0.99609375), 0.0078125 + ((_254 / _250) * 0.984375)));
+        float _295 = fast::max(0.0, fast::min(0.0, _181));
+        float3 _298 = normalize(_217 - _184);
+        float _299 = length(_184);
+        float _300 = dot(_184, _298);
+        float _307 = (-_300) - sqrt(((_300 * _300) - (_299 * _299)) + _248);
+        bool _308 = _307 > 0.0;
+        float3 _314;
+        float _315;
+        if (_308)
         {
-            _276 = _257 + (_260 * _269);
-            _277 = _262 + _269;
+            _314 = _184 + (_298 * _307);
+            _315 = _300 + _307;
         }
         else
         {
-            _276 = _257;
-            _277 = _262;
+            _314 = _184;
+            _315 = _300;
         }
-        float _296;
-        float _278 = _270 ? _117 : _261;
-        float _279 = _277 / _278;
-        float _280 = dot(_276, u_fragParams.u_sunDirection.xyz);
-        float _281 = _280 / _278;
-        float _282 = dot(_260, u_fragParams.u_sunDirection.xyz);
-        float _284 = length(_174 - _276);
-        float _286 = _278 * _278;
-        float _289 = _286 * ((_279 * _279) - 1.0);
-        bool _292 = (_279 < 0.0) && ((_289 + _207) >= 0.0);
-        float3 _421;
+        float _334;
+        float _316 = _308 ? _118 : _299;
+        float _317 = _315 / _316;
+        float _318 = dot(_314, u_fragParams.u_sunDirection.xyz);
+        float _319 = _318 / _316;
+        float _320 = dot(_298, u_fragParams.u_sunDirection.xyz);
+        float _322 = length(_217 - _314);
+        float _324 = _316 * _316;
+        float _327 = _324 * ((_317 * _317) - 1.0);
+        bool _330 = (_317 < 0.0) && ((_327 + _190) >= 0.0);
+        float3 _459;
         switch (0u)
         {
             default:
             {
-                _296 = (2.0 * _278) * _279;
-                float _301 = fast::clamp(sqrt((_284 * (_284 + _296)) + _286), u_fragParams.u_earthCenter.w, _117);
-                float _304 = fast::clamp((_277 + _284) / _301, -1.0, 1.0);
-                if (_292)
+                _334 = (2.0 * _316) * _317;
+                float _339 = fast::clamp(sqrt((_322 * (_322 + _334)) + _324), u_fragParams.u_earthCenter.w, _118);
+                float _342 = fast::clamp((_315 + _322) / _339, -1.0, 1.0);
+                if (_330)
                 {
-                    float _362 = -_304;
-                    float _363 = _301 * _301;
-                    float _366 = sqrt(fast::max(_363 - _207, 0.0));
-                    float _377 = _117 - _301;
-                    float _391 = -_279;
-                    float _394 = sqrt(fast::max(_286 - _207, 0.0));
-                    float _405 = _117 - _278;
-                    _421 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_301) * _362) + sqrt(fast::max((_363 * ((_362 * _362) - 1.0)) + _206, 0.0)), 0.0) - _377) / ((_366 + _209) - _377)) * 0.99609375), 0.0078125 + ((_366 / _209) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_278) * _391) + sqrt(fast::max((_286 * ((_391 * _391) - 1.0)) + _206, 0.0)), 0.0) - _405) / ((_394 + _209) - _405)) * 0.99609375), 0.0078125 + ((_394 / _209) * 0.984375))).xyz, float3(1.0));
+                    float _400 = -_342;
+                    float _401 = _339 * _339;
+                    float _404 = sqrt(fast::max(_401 - _190, 0.0));
+                    float _415 = _118 - _339;
+                    float _429 = -_317;
+                    float _432 = sqrt(fast::max(_324 - _190, 0.0));
+                    float _443 = _118 - _316;
+                    _459 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_339) * _400) + sqrt(fast::max((_401 * ((_400 * _400) - 1.0)) + _248, 0.0)), 0.0) - _415) / ((_404 + _250) - _415)) * 0.99609375), 0.0078125 + ((_404 / _250) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_316) * _429) + sqrt(fast::max((_324 * ((_429 * _429) - 1.0)) + _248, 0.0)), 0.0) - _443) / ((_432 + _250) - _443)) * 0.99609375), 0.0078125 + ((_432 / _250) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
                 else
                 {
-                    float _310 = sqrt(fast::max(_286 - _207, 0.0));
-                    float _318 = _117 - _278;
-                    float _332 = _301 * _301;
-                    float _335 = sqrt(fast::max(_332 - _207, 0.0));
-                    float _346 = _117 - _301;
-                    _421 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_278) * _279) + sqrt(fast::max(_289 + _206, 0.0)), 0.0) - _318) / ((_310 + _209) - _318)) * 0.99609375), 0.0078125 + ((_310 / _209) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_301) * _304) + sqrt(fast::max((_332 * ((_304 * _304) - 1.0)) + _206, 0.0)), 0.0) - _346) / ((_335 + _209) - _346)) * 0.99609375), 0.0078125 + ((_335 / _209) * 0.984375))).xyz, float3(1.0));
+                    float _348 = sqrt(fast::max(_324 - _190, 0.0));
+                    float _356 = _118 - _316;
+                    float _370 = _339 * _339;
+                    float _373 = sqrt(fast::max(_370 - _190, 0.0));
+                    float _384 = _118 - _339;
+                    _459 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_316) * _317) + sqrt(fast::max(_327 + _248, 0.0)), 0.0) - _356) / ((_348 + _250) - _356)) * 0.99609375), 0.0078125 + ((_348 / _250) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_339) * _342) + sqrt(fast::max((_370 * ((_342 * _342) - 1.0)) + _248, 0.0)), 0.0) - _384) / ((_373 + _250) - _384)) * 0.99609375), 0.0078125 + ((_373 / _250) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
             }
         }
-        float _424 = sqrt(fast::max(_286 - _207, 0.0));
-        float _425 = _424 / _209;
-        float _427 = 0.015625 + (_425 * 0.96875);
-        float _430 = ((_277 * _277) - _286) + _207;
-        float _463;
-        if (_292)
+        float _462 = sqrt(fast::max(_324 - _190, 0.0));
+        float _463 = _462 / _250;
+        float _465 = 0.015625 + (_463 * 0.96875);
+        float _468 = ((_315 * _315) - _324) + _190;
+        float _501;
+        if (_330)
         {
-            float _453 = _278 - u_fragParams.u_earthCenter.w;
-            _463 = 0.5 - (0.5 * (0.0078125 + (((_424 == _453) ? 0.0 : ((((-_277) - sqrt(fast::max(_430, 0.0))) - _453) / (_424 - _453))) * 0.984375)));
+            float _491 = _316 - u_fragParams.u_earthCenter.w;
+            _501 = 0.5 - (0.5 * (0.0078125 + (((_462 == _491) ? 0.0 : ((((-_315) - sqrt(fast::max(_468, 0.0))) - _491) / (_462 - _491))) * 0.984375)));
         }
         else
         {
-            float _440 = _117 - _278;
-            _463 = 0.5 + (0.5 * (0.0078125 + (((((-_277) + sqrt(fast::max(_430 + (_209 * _209), 0.0))) - _440) / ((_424 + _209) - _440)) * 0.984375)));
+            float _478 = _118 - _316;
+            _501 = 0.5 + (0.5 * (0.0078125 + (((((-_315) + sqrt(fast::max(_468 + (_250 * _250), 0.0))) - _478) / ((_462 + _250) - _478)) * 0.984375)));
         }
-        float _468 = -u_fragParams.u_earthCenter.w;
-        float _475 = _209 - _182;
-        float _476 = (fast::max((_468 * _281) + sqrt(fast::max((_207 * ((_281 * _281) - 1.0)) + _206, 0.0)), 0.0) - _182) / _475;
-        float _478 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _475;
-        float _485 = 0.015625 + ((fast::max(1.0 - (_476 / _478), 0.0) / (1.0 + _476)) * 0.96875);
-        float _487 = (_282 + 1.0) * 3.5;
-        float _488 = floor(_487);
-        float _489 = _487 - _488;
-        float _493 = _488 + 1.0;
-        float4 _499 = scatteringTexture.sample(scatteringSampler, float3((_488 + _485) * 0.125, _463, _427));
-        float _500 = 1.0 - _489;
-        float4 _503 = scatteringTexture.sample(scatteringSampler, float3((_493 + _485) * 0.125, _463, _427));
-        float4 _505 = (_499 * _500) + (_503 * _489);
-        float3 _506 = _505.xyz;
-        float3 _519;
+        float _506 = -u_fragParams.u_earthCenter.w;
+        float _513 = _250 - _224;
+        float _514 = (fast::max((_506 * _319) + sqrt(fast::max((_190 * ((_319 * _319) - 1.0)) + _248, 0.0)), 0.0) - _224) / _513;
+        float _516 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _513;
+        float _523 = 0.015625 + ((fast::max(1.0 - (_514 / _516), 0.0) / (1.0 + _514)) * 0.96875);
+        float _525 = (_320 + 1.0) * 3.5;
+        float _526 = floor(_525);
+        float _527 = _525 - _526;
+        float _531 = _526 + 1.0;
+        float4 _537 = scatteringTexture.sample(scatteringSampler, float3((_526 + _523) * 0.125, _501, _465));
+        float _538 = 1.0 - _527;
+        float4 _541 = scatteringTexture.sample(scatteringSampler, float3((_531 + _523) * 0.125, _501, _465));
+        float4 _543 = (_537 * _538) + (_541 * _527);
+        float3 _544 = _543.xyz;
+        float3 _557;
         switch (0u)
         {
             default:
             {
-                float _509 = _505.x;
-                if (_509 == 0.0)
+                float _547 = _543.x;
+                if (_547 == 0.0)
                 {
-                    _519 = float3(0.0);
+                    _557 = float3(0.0);
                     break;
                 }
-                _519 = (((_506 * _505.w) / float3(_509)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _557 = (((_544 * _543.w) / float3(_547)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float _521 = fast::max(_284 - _256, 0.0);
-        float _526 = fast::clamp(sqrt((_521 * (_521 + _296)) + _286), u_fragParams.u_earthCenter.w, _117);
-        float _527 = _277 + _521;
-        float _530 = (_280 + (_521 * _282)) / _526;
-        float _531 = _526 * _526;
-        float _534 = sqrt(fast::max(_531 - _207, 0.0));
-        float _535 = _534 / _209;
-        float _537 = 0.015625 + (_535 * 0.96875);
-        float _540 = ((_527 * _527) - _531) + _207;
-        float _573;
-        if (_292)
+        float _559 = fast::max(_322 - _295, 0.0);
+        float _564 = fast::clamp(sqrt((_559 * (_559 + _334)) + _324), u_fragParams.u_earthCenter.w, _118);
+        float _565 = _315 + _559;
+        float _568 = (_318 + (_559 * _320)) / _564;
+        float _569 = _564 * _564;
+        float _572 = sqrt(fast::max(_569 - _190, 0.0));
+        float _573 = _572 / _250;
+        float _575 = 0.015625 + (_573 * 0.96875);
+        float _578 = ((_565 * _565) - _569) + _190;
+        float _611;
+        if (_330)
         {
-            float _563 = _526 - u_fragParams.u_earthCenter.w;
-            _573 = 0.5 - (0.5 * (0.0078125 + (((_534 == _563) ? 0.0 : ((((-_527) - sqrt(fast::max(_540, 0.0))) - _563) / (_534 - _563))) * 0.984375)));
+            float _601 = _564 - u_fragParams.u_earthCenter.w;
+            _611 = 0.5 - (0.5 * (0.0078125 + (((_572 == _601) ? 0.0 : ((((-_565) - sqrt(fast::max(_578, 0.0))) - _601) / (_572 - _601))) * 0.984375)));
         }
         else
         {
-            float _550 = _117 - _526;
-            _573 = 0.5 + (0.5 * (0.0078125 + (((((-_527) + sqrt(fast::max(_540 + (_209 * _209), 0.0))) - _550) / ((_534 + _209) - _550)) * 0.984375)));
+            float _588 = _118 - _564;
+            _611 = 0.5 + (0.5 * (0.0078125 + (((((-_565) + sqrt(fast::max(_578 + (_250 * _250), 0.0))) - _588) / ((_572 + _250) - _588)) * 0.984375)));
         }
-        float _584 = (fast::max((_468 * _530) + sqrt(fast::max((_207 * ((_530 * _530) - 1.0)) + _206, 0.0)), 0.0) - _182) / _475;
-        float _591 = 0.015625 + ((fast::max(1.0 - (_584 / _478), 0.0) / (1.0 + _584)) * 0.96875);
-        float4 _599 = scatteringTexture.sample(scatteringSampler, float3((_488 + _591) * 0.125, _573, _537));
-        float4 _602 = scatteringTexture.sample(scatteringSampler, float3((_493 + _591) * 0.125, _573, _537));
-        float4 _604 = (_599 * _500) + (_602 * _489);
-        float3 _605 = _604.xyz;
-        float3 _618;
+        float _622 = (fast::max((_506 * _568) + sqrt(fast::max((_190 * ((_568 * _568) - 1.0)) + _248, 0.0)), 0.0) - _224) / _513;
+        float _629 = 0.015625 + ((fast::max(1.0 - (_622 / _516), 0.0) / (1.0 + _622)) * 0.96875);
+        float4 _637 = scatteringTexture.sample(scatteringSampler, float3((_526 + _629) * 0.125, _611, _575));
+        float4 _640 = scatteringTexture.sample(scatteringSampler, float3((_531 + _629) * 0.125, _611, _575));
+        float4 _642 = (_637 * _538) + (_640 * _527);
+        float3 _643 = _642.xyz;
+        float3 _656;
         switch (0u)
         {
             default:
             {
-                float _608 = _604.x;
-                if (_608 == 0.0)
+                float _646 = _642.x;
+                if (_646 == 0.0)
                 {
-                    _618 = float3(0.0);
+                    _656 = float3(0.0);
                     break;
                 }
-                _618 = (((_605 * _604.w) / float3(_608)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _656 = (((_643 * _642.w) / float3(_646)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float3 _725;
-        if (_256 > 0.0)
+        float3 _763;
+        if (_295 > 0.0)
         {
-            float3 _724;
+            float3 _762;
             switch (0u)
             {
                 default:
                 {
-                    float _625 = fast::clamp(_527 / _526, -1.0, 1.0);
-                    if (_292)
+                    float _663 = fast::clamp(_565 / _564, -1.0, 1.0);
+                    if (_330)
                     {
-                        float _674 = -_625;
-                        float _685 = _117 - _526;
-                        float _698 = -_279;
-                        float _709 = _117 - _278;
-                        _724 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_526) * _674) + sqrt(fast::max((_531 * ((_674 * _674) - 1.0)) + _206, 0.0)), 0.0) - _685) / ((_534 + _209) - _685)) * 0.99609375), 0.0078125 + (_535 * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_278) * _698) + sqrt(fast::max((_286 * ((_698 * _698) - 1.0)) + _206, 0.0)), 0.0) - _709) / ((_424 + _209) - _709)) * 0.99609375), 0.0078125 + (_425 * 0.984375))).xyz, float3(1.0));
+                        float _712 = -_663;
+                        float _723 = _118 - _564;
+                        float _736 = -_317;
+                        float _747 = _118 - _316;
+                        _762 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_564) * _712) + sqrt(fast::max((_569 * ((_712 * _712) - 1.0)) + _248, 0.0)), 0.0) - _723) / ((_572 + _250) - _723)) * 0.99609375), 0.0078125 + (_573 * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_316) * _736) + sqrt(fast::max((_324 * ((_736 * _736) - 1.0)) + _248, 0.0)), 0.0) - _747) / ((_462 + _250) - _747)) * 0.99609375), 0.0078125 + (_463 * 0.984375))).xyz, float3(1.0));
                         break;
                     }
                     else
                     {
-                        float _636 = _117 - _278;
-                        float _659 = _117 - _526;
-                        _724 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_278) * _279) + sqrt(fast::max(_289 + _206, 0.0)), 0.0) - _636) / ((_424 + _209) - _636)) * 0.99609375), 0.0078125 + (_425 * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_526) * _625) + sqrt(fast::max((_531 * ((_625 * _625) - 1.0)) + _206, 0.0)), 0.0) - _659) / ((_534 + _209) - _659)) * 0.99609375), 0.0078125 + (_535 * 0.984375))).xyz, float3(1.0));
+                        float _674 = _118 - _316;
+                        float _697 = _118 - _564;
+                        _762 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_316) * _317) + sqrt(fast::max(_327 + _248, 0.0)), 0.0) - _674) / ((_462 + _250) - _674)) * 0.99609375), 0.0078125 + (_463 * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_564) * _663) + sqrt(fast::max((_569 * ((_663 * _663) - 1.0)) + _248, 0.0)), 0.0) - _697) / ((_572 + _250) - _697)) * 0.99609375), 0.0078125 + (_573 * 0.984375))).xyz, float3(1.0));
                         break;
                     }
                 }
             }
-            _725 = _724;
+            _763 = _762;
         }
         else
         {
-            _725 = _421;
+            _763 = _459;
         }
-        float3 _727 = _506 - (_725 * _605);
-        float3 _729 = _519 - (_725 * _618);
-        float _730 = _729.x;
-        float _731 = _727.x;
-        float3 _746;
+        float3 _765 = _544 - (_763 * _643);
+        float3 _767 = _557 - (_763 * _656);
+        float _768 = _767.x;
+        float _769 = _765.x;
+        float3 _784;
         switch (0u)
         {
             default:
             {
-                if (_731 == 0.0)
+                if (_769 == 0.0)
                 {
-                    _746 = float3(0.0);
+                    _784 = float3(0.0);
                     break;
                 }
-                _746 = (((float4(_731, _727.yz, _730).xyz * _730) / float3(_731)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _784 = (((float4(_769, _765.yz, _768).xyz * _768) / float3(_769)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float _750 = 1.0 + (_282 * _282);
-        _762 = (((_162.xyz * 0.3183098733425140380859375) * ((float3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * fast::max((_237.xyz * smoothstep(_200 * (-0.004674999974668025970458984375), _200 * 0.004674999974668025970458984375, _180 - (-sqrt(fast::max(1.0 - (_200 * _200), 0.0))))) * fast::max(dot(_175, u_fragParams.u_sunDirection.xyz), 0.0), float3(0.001000000047497451305389404296875))) + ((_193.xyz * (1.0 + (dot(_175, _174) / _178))) * 0.5))) * _421) + ((_727 * (0.0596831031143665313720703125 * _750)) + ((_746 * smoothstep(0.0, 0.00999999977648258209228515625, _281)) * ((0.01627720706164836883544921875 * _750) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _282), 1.5))));
+        float _788 = 1.0 + (_320 * _320);
+        _802 = (((_175.xyz * 0.3183098733425140380859375) * ((float3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * fast::max((_278.xyz * smoothstep(_242 * (-0.004674999974668025970458984375), _242 * 0.004674999974668025970458984375, _222 - (-sqrt(fast::max(1.0 - (_242 * _242), 0.0))))) * fast::max(dot(_213, u_fragParams.u_sunDirection.xyz), 0.0), float3(0.001000000047497451305389404296875))) + ((_235.xyz * (1.0 + (dot(_213, _217) / _220))) * 0.5))) * _459) + (((_765 * (0.0596831031143665313720703125 * _788)) + ((_784 * smoothstep(0.0, 0.00999999977648258209228515625, _319)) * ((0.01627720706164836883544921875 * _788) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _320), 1.5)))) * mix(0.5, 1.0, fast::min(1.0, pow(_144, 6.0) * 6.0)));
     }
     else
     {
-        _762 = float3(0.0);
+        _802 = float3(0.0);
     }
-    float3 _764 = u_fragParams.u_camera.xyz - u_fragParams.u_earthCenter.xyz;
-    float _765 = dot(_764, _130);
-    float _767 = _765 * _765;
-    float _769 = -_765;
-    float _770 = u_fragParams.u_earthCenter.w * u_fragParams.u_earthCenter.w;
-    float _773 = _769 - sqrt(_770 - (dot(_764, _764) - _767));
-    bool _774 = _773 > 0.0;
-    float3 _1253;
-    if (_774)
+    float3 _1278;
+    if (_194)
     {
-        float3 _779 = (u_fragParams.u_camera.xyz + (_130 * _773)) - u_fragParams.u_earthCenter.xyz;
-        float3 _780 = normalize(_779);
-        float _783 = length(_779);
-        float _785 = dot(_779, u_fragParams.u_sunDirection.xyz) / _783;
-        float _787 = _117 - u_fragParams.u_earthCenter.w;
-        float4 _798 = irradianceTexture.sample(irradianceSampler, float2(0.0078125 + (((_785 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_783 - u_fragParams.u_earthCenter.w) / _787) * 0.9375)));
-        float _805 = u_fragParams.u_earthCenter.w / _783;
-        float _811 = _117 * _117;
-        float _813 = sqrt(_811 - _770);
-        float _814 = _783 * _783;
-        float _817 = sqrt(fast::max(_814 - _770, 0.0));
-        float _828 = _117 - _783;
-        float4 _841 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_783) * _785) + sqrt(fast::max((_814 * ((_785 * _785) - 1.0)) + _811, 0.0)), 0.0) - _828) / ((_817 + _813) - _828)) * 0.99609375), 0.0078125 + ((_817 / _813) * 0.984375)));
-        float3 _859 = normalize(_779 - _764);
-        float _860 = length(_764);
-        float _861 = dot(_764, _859);
-        float _868 = (-_861) - sqrt(((_861 * _861) - (_860 * _860)) + _811);
-        bool _869 = _868 > 0.0;
-        float3 _875;
-        float _876;
-        if (_869)
+        float _808 = length(_203);
+        float _810 = dot(_203, u_fragParams.u_sunDirection.xyz) / _808;
+        float _812 = _118 - u_fragParams.u_earthCenter.w;
+        float4 _823 = irradianceTexture.sample(irradianceSampler, float2(0.0078125 + (((_810 * 0.5) + 0.5) * 0.984375), 0.03125 + (((_808 - u_fragParams.u_earthCenter.w) / _812) * 0.9375)));
+        float _830 = u_fragParams.u_earthCenter.w / _808;
+        float _836 = _118 * _118;
+        float _838 = sqrt(_836 - _190);
+        float _839 = _808 * _808;
+        float _842 = sqrt(fast::max(_839 - _190, 0.0));
+        float _853 = _118 - _808;
+        float4 _866 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_808) * _810) + sqrt(fast::max((_839 * ((_810 * _810) - 1.0)) + _836, 0.0)), 0.0) - _853) / ((_842 + _838) - _853)) * 0.99609375), 0.0078125 + ((_842 / _838) * 0.984375)));
+        float3 _884 = normalize(_203 - _184);
+        float _885 = length(_184);
+        float _886 = dot(_184, _884);
+        float _893 = (-_886) - sqrt(((_886 * _886) - (_885 * _885)) + _836);
+        bool _894 = _893 > 0.0;
+        float3 _900;
+        float _901;
+        if (_894)
         {
-            _875 = _764 + (_859 * _868);
-            _876 = _861 + _868;
+            _900 = _184 + (_884 * _893);
+            _901 = _886 + _893;
         }
         else
         {
-            _875 = _764;
-            _876 = _861;
+            _900 = _184;
+            _901 = _886;
         }
-        float _895;
-        float _877 = _869 ? _117 : _860;
-        float _878 = _876 / _877;
-        float _879 = dot(_875, u_fragParams.u_sunDirection.xyz);
-        float _880 = _879 / _877;
-        float _881 = dot(_859, u_fragParams.u_sunDirection.xyz);
-        float _883 = length(_779 - _875);
-        float _885 = _877 * _877;
-        float _888 = _885 * ((_878 * _878) - 1.0);
-        bool _891 = (_878 < 0.0) && ((_888 + _770) >= 0.0);
-        float3 _1020;
+        float _920;
+        float _902 = _894 ? _118 : _885;
+        float _903 = _901 / _902;
+        float _904 = dot(_900, u_fragParams.u_sunDirection.xyz);
+        float _905 = _904 / _902;
+        float _906 = dot(_884, u_fragParams.u_sunDirection.xyz);
+        float _908 = length(_203 - _900);
+        float _910 = _902 * _902;
+        float _913 = _910 * ((_903 * _903) - 1.0);
+        bool _916 = (_903 < 0.0) && ((_913 + _190) >= 0.0);
+        float3 _1045;
         switch (0u)
         {
             default:
             {
-                _895 = (2.0 * _877) * _878;
-                float _900 = fast::clamp(sqrt((_883 * (_883 + _895)) + _885), u_fragParams.u_earthCenter.w, _117);
-                float _903 = fast::clamp((_876 + _883) / _900, -1.0, 1.0);
-                if (_891)
+                _920 = (2.0 * _902) * _903;
+                float _925 = fast::clamp(sqrt((_908 * (_908 + _920)) + _910), u_fragParams.u_earthCenter.w, _118);
+                float _928 = fast::clamp((_901 + _908) / _925, -1.0, 1.0);
+                if (_916)
                 {
-                    float _961 = -_903;
-                    float _962 = _900 * _900;
-                    float _965 = sqrt(fast::max(_962 - _770, 0.0));
-                    float _976 = _117 - _900;
-                    float _990 = -_878;
-                    float _993 = sqrt(fast::max(_885 - _770, 0.0));
-                    float _1004 = _117 - _877;
-                    _1020 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_900) * _961) + sqrt(fast::max((_962 * ((_961 * _961) - 1.0)) + _811, 0.0)), 0.0) - _976) / ((_965 + _813) - _976)) * 0.99609375), 0.0078125 + ((_965 / _813) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_877) * _990) + sqrt(fast::max((_885 * ((_990 * _990) - 1.0)) + _811, 0.0)), 0.0) - _1004) / ((_993 + _813) - _1004)) * 0.99609375), 0.0078125 + ((_993 / _813) * 0.984375))).xyz, float3(1.0));
+                    float _986 = -_928;
+                    float _987 = _925 * _925;
+                    float _990 = sqrt(fast::max(_987 - _190, 0.0));
+                    float _1001 = _118 - _925;
+                    float _1015 = -_903;
+                    float _1018 = sqrt(fast::max(_910 - _190, 0.0));
+                    float _1029 = _118 - _902;
+                    _1045 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_925) * _986) + sqrt(fast::max((_987 * ((_986 * _986) - 1.0)) + _836, 0.0)), 0.0) - _1001) / ((_990 + _838) - _1001)) * 0.99609375), 0.0078125 + ((_990 / _838) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_902) * _1015) + sqrt(fast::max((_910 * ((_1015 * _1015) - 1.0)) + _836, 0.0)), 0.0) - _1029) / ((_1018 + _838) - _1029)) * 0.99609375), 0.0078125 + ((_1018 / _838) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
                 else
                 {
-                    float _909 = sqrt(fast::max(_885 - _770, 0.0));
-                    float _917 = _117 - _877;
-                    float _931 = _900 * _900;
-                    float _934 = sqrt(fast::max(_931 - _770, 0.0));
-                    float _945 = _117 - _900;
-                    _1020 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_877) * _878) + sqrt(fast::max(_888 + _811, 0.0)), 0.0) - _917) / ((_909 + _813) - _917)) * 0.99609375), 0.0078125 + ((_909 / _813) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_900) * _903) + sqrt(fast::max((_931 * ((_903 * _903) - 1.0)) + _811, 0.0)), 0.0) - _945) / ((_934 + _813) - _945)) * 0.99609375), 0.0078125 + ((_934 / _813) * 0.984375))).xyz, float3(1.0));
+                    float _934 = sqrt(fast::max(_910 - _190, 0.0));
+                    float _942 = _118 - _902;
+                    float _956 = _925 * _925;
+                    float _959 = sqrt(fast::max(_956 - _190, 0.0));
+                    float _970 = _118 - _925;
+                    _1045 = fast::min(transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_902) * _903) + sqrt(fast::max(_913 + _836, 0.0)), 0.0) - _942) / ((_934 + _838) - _942)) * 0.99609375), 0.0078125 + ((_934 / _838) * 0.984375))).xyz / transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_925) * _928) + sqrt(fast::max((_956 * ((_928 * _928) - 1.0)) + _836, 0.0)), 0.0) - _970) / ((_959 + _838) - _970)) * 0.99609375), 0.0078125 + ((_959 / _838) * 0.984375))).xyz, float3(1.0));
                     break;
                 }
             }
         }
-        float _1023 = sqrt(fast::max(_885 - _770, 0.0));
-        float _1026 = 0.015625 + ((_1023 / _813) * 0.96875);
-        float _1029 = ((_876 * _876) - _885) + _770;
-        float _1062;
-        if (_891)
+        float _1048 = sqrt(fast::max(_910 - _190, 0.0));
+        float _1051 = 0.015625 + ((_1048 / _838) * 0.96875);
+        float _1054 = ((_901 * _901) - _910) + _190;
+        float _1087;
+        if (_916)
         {
-            float _1052 = _877 - u_fragParams.u_earthCenter.w;
-            _1062 = 0.5 - (0.5 * (0.0078125 + (((_1023 == _1052) ? 0.0 : ((((-_876) - sqrt(fast::max(_1029, 0.0))) - _1052) / (_1023 - _1052))) * 0.984375)));
+            float _1077 = _902 - u_fragParams.u_earthCenter.w;
+            _1087 = 0.5 - (0.5 * (0.0078125 + (((_1048 == _1077) ? 0.0 : ((((-_901) - sqrt(fast::max(_1054, 0.0))) - _1077) / (_1048 - _1077))) * 0.984375)));
         }
         else
         {
-            float _1039 = _117 - _877;
-            _1062 = 0.5 + (0.5 * (0.0078125 + (((((-_876) + sqrt(fast::max(_1029 + (_813 * _813), 0.0))) - _1039) / ((_1023 + _813) - _1039)) * 0.984375)));
+            float _1064 = _118 - _902;
+            _1087 = 0.5 + (0.5 * (0.0078125 + (((((-_901) + sqrt(fast::max(_1054 + (_838 * _838), 0.0))) - _1064) / ((_1048 + _838) - _1064)) * 0.984375)));
         }
-        float _1067 = -u_fragParams.u_earthCenter.w;
-        float _1074 = _813 - _787;
-        float _1075 = (fast::max((_1067 * _880) + sqrt(fast::max((_770 * ((_880 * _880) - 1.0)) + _811, 0.0)), 0.0) - _787) / _1074;
-        float _1077 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _1074;
-        float _1084 = 0.015625 + ((fast::max(1.0 - (_1075 / _1077), 0.0) / (1.0 + _1075)) * 0.96875);
-        float _1086 = (_881 + 1.0) * 3.5;
-        float _1087 = floor(_1086);
-        float _1088 = _1086 - _1087;
-        float _1092 = _1087 + 1.0;
-        float4 _1098 = scatteringTexture.sample(scatteringSampler, float3((_1087 + _1084) * 0.125, _1062, _1026));
-        float _1099 = 1.0 - _1088;
-        float4 _1102 = scatteringTexture.sample(scatteringSampler, float3((_1092 + _1084) * 0.125, _1062, _1026));
-        float4 _1104 = (_1098 * _1099) + (_1102 * _1088);
-        float3 _1105 = _1104.xyz;
-        float3 _1118;
+        float _1092 = -u_fragParams.u_earthCenter.w;
+        float _1099 = _838 - _812;
+        float _1100 = (fast::max((_1092 * _905) + sqrt(fast::max((_190 * ((_905 * _905) - 1.0)) + _836, 0.0)), 0.0) - _812) / _1099;
+        float _1102 = (0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _1099;
+        float _1109 = 0.015625 + ((fast::max(1.0 - (_1100 / _1102), 0.0) / (1.0 + _1100)) * 0.96875);
+        float _1111 = (_906 + 1.0) * 3.5;
+        float _1112 = floor(_1111);
+        float _1113 = _1111 - _1112;
+        float _1117 = _1112 + 1.0;
+        float4 _1123 = scatteringTexture.sample(scatteringSampler, float3((_1112 + _1109) * 0.125, _1087, _1051));
+        float _1124 = 1.0 - _1113;
+        float4 _1127 = scatteringTexture.sample(scatteringSampler, float3((_1117 + _1109) * 0.125, _1087, _1051));
+        float4 _1129 = (_1123 * _1124) + (_1127 * _1113);
+        float3 _1130 = _1129.xyz;
+        float3 _1143;
         switch (0u)
         {
             default:
             {
-                float _1108 = _1104.x;
-                if (_1108 == 0.0)
+                float _1133 = _1129.x;
+                if (_1133 == 0.0)
                 {
-                    _1118 = float3(0.0);
+                    _1143 = float3(0.0);
                     break;
                 }
-                _1118 = (((_1105 * _1104.w) / float3(_1108)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _1143 = (((_1130 * _1129.w) / float3(_1133)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float _1119 = fast::max(_883, 0.0);
-        float _1124 = fast::clamp(sqrt((_1119 * (_1119 + _895)) + _885), u_fragParams.u_earthCenter.w, _117);
-        float _1125 = _876 + _1119;
-        float _1128 = (_879 + (_1119 * _881)) / _1124;
-        float _1129 = _1124 * _1124;
-        float _1132 = sqrt(fast::max(_1129 - _770, 0.0));
-        float _1135 = 0.015625 + ((_1132 / _813) * 0.96875);
-        float _1138 = ((_1125 * _1125) - _1129) + _770;
-        float _1171;
-        if (_891)
+        float _1144 = fast::max(_908, 0.0);
+        float _1149 = fast::clamp(sqrt((_1144 * (_1144 + _920)) + _910), u_fragParams.u_earthCenter.w, _118);
+        float _1150 = _901 + _1144;
+        float _1153 = (_904 + (_1144 * _906)) / _1149;
+        float _1154 = _1149 * _1149;
+        float _1157 = sqrt(fast::max(_1154 - _190, 0.0));
+        float _1160 = 0.015625 + ((_1157 / _838) * 0.96875);
+        float _1163 = ((_1150 * _1150) - _1154) + _190;
+        float _1196;
+        if (_916)
         {
-            float _1161 = _1124 - u_fragParams.u_earthCenter.w;
-            _1171 = 0.5 - (0.5 * (0.0078125 + (((_1132 == _1161) ? 0.0 : ((((-_1125) - sqrt(fast::max(_1138, 0.0))) - _1161) / (_1132 - _1161))) * 0.984375)));
+            float _1186 = _1149 - u_fragParams.u_earthCenter.w;
+            _1196 = 0.5 - (0.5 * (0.0078125 + (((_1157 == _1186) ? 0.0 : ((((-_1150) - sqrt(fast::max(_1163, 0.0))) - _1186) / (_1157 - _1186))) * 0.984375)));
         }
         else
         {
-            float _1148 = _117 - _1124;
-            _1171 = 0.5 + (0.5 * (0.0078125 + (((((-_1125) + sqrt(fast::max(_1138 + (_813 * _813), 0.0))) - _1148) / ((_1132 + _813) - _1148)) * 0.984375)));
+            float _1173 = _118 - _1149;
+            _1196 = 0.5 + (0.5 * (0.0078125 + (((((-_1150) + sqrt(fast::max(_1163 + (_838 * _838), 0.0))) - _1173) / ((_1157 + _838) - _1173)) * 0.984375)));
         }
-        float _1182 = (fast::max((_1067 * _1128) + sqrt(fast::max((_770 * ((_1128 * _1128) - 1.0)) + _811, 0.0)), 0.0) - _787) / _1074;
-        float _1189 = 0.015625 + ((fast::max(1.0 - (_1182 / _1077), 0.0) / (1.0 + _1182)) * 0.96875);
-        float4 _1197 = scatteringTexture.sample(scatteringSampler, float3((_1087 + _1189) * 0.125, _1171, _1135));
-        float4 _1200 = scatteringTexture.sample(scatteringSampler, float3((_1092 + _1189) * 0.125, _1171, _1135));
-        float4 _1202 = (_1197 * _1099) + (_1200 * _1088);
-        float3 _1203 = _1202.xyz;
-        float3 _1216;
+        float _1207 = (fast::max((_1092 * _1153) + sqrt(fast::max((_190 * ((_1153 * _1153) - 1.0)) + _836, 0.0)), 0.0) - _812) / _1099;
+        float _1214 = 0.015625 + ((fast::max(1.0 - (_1207 / _1102), 0.0) / (1.0 + _1207)) * 0.96875);
+        float4 _1222 = scatteringTexture.sample(scatteringSampler, float3((_1112 + _1214) * 0.125, _1196, _1160));
+        float4 _1225 = scatteringTexture.sample(scatteringSampler, float3((_1117 + _1214) * 0.125, _1196, _1160));
+        float4 _1227 = (_1222 * _1124) + (_1225 * _1113);
+        float3 _1228 = _1227.xyz;
+        float3 _1241;
         switch (0u)
         {
             default:
             {
-                float _1206 = _1202.x;
-                if (_1206 == 0.0)
+                float _1231 = _1227.x;
+                if (_1231 == 0.0)
                 {
-                    _1216 = float3(0.0);
+                    _1241 = float3(0.0);
                     break;
                 }
-                _1216 = (((_1203 * _1202.w) / float3(_1206)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _1241 = (((_1228 * _1227.w) / float3(_1231)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float3 _1218 = _1105 - (_1020 * _1203);
-        float3 _1220 = _1118 - (_1020 * _1216);
-        float _1221 = _1220.x;
-        float _1222 = _1218.x;
-        float3 _1237;
+        float3 _1243 = _1130 - (_1045 * _1228);
+        float3 _1245 = _1143 - (_1045 * _1241);
+        float _1246 = _1245.x;
+        float _1247 = _1243.x;
+        float3 _1262;
         switch (0u)
         {
             default:
             {
-                if (_1222 == 0.0)
+                if (_1247 == 0.0)
                 {
-                    _1237 = float3(0.0);
+                    _1262 = float3(0.0);
                     break;
                 }
-                _1237 = (((float4(_1222, _1218.yz, _1221).xyz * _1221) / float3(_1222)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                _1262 = (((float4(_1247, _1243.yz, _1246).xyz * _1246) / float3(_1247)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                 break;
             }
         }
-        float _1241 = 1.0 + (_881 * _881);
-        _1253 = (((_162.xyz * 0.3183098733425140380859375) * ((float3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * fast::max((_841.xyz * smoothstep(_805 * (-0.004674999974668025970458984375), _805 * 0.004674999974668025970458984375, _785 - (-sqrt(fast::max(1.0 - (_805 * _805), 0.0))))) * fast::max(dot(_780, u_fragParams.u_sunDirection.xyz), 0.0), float3(0.001000000047497451305389404296875))) + ((_798.xyz * (1.0 + (dot(_780, _779) / _783))) * 0.5))) * _1020) + ((_1218 * (0.0596831031143665313720703125 * _1241)) + ((_1237 * smoothstep(0.0, 0.00999999977648258209228515625, _880)) * ((0.01627720706164836883544921875 * _1241) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _881), 1.5))));
+        float _1266 = 1.0 + (_906 * _906);
+        _1278 = (((_175.xyz * 0.3183098733425140380859375) * ((float3(1.47399997711181640625, 1.85039997100830078125, 1.91198003292083740234375) * fast::max((_866.xyz * smoothstep(_830 * (-0.004674999974668025970458984375), _830 * 0.004674999974668025970458984375, _810 - (-sqrt(fast::max(1.0 - (_830 * _830), 0.0))))) * fast::max(dot(_213, u_fragParams.u_sunDirection.xyz), 0.0), float3(0.001000000047497451305389404296875))) + ((_823.xyz * (1.0 + (dot(_213, _203) / _808))) * 0.5))) * _1045) + ((_1243 * (0.0596831031143665313720703125 * _1266)) + ((_1262 * smoothstep(0.0, 0.00999999977648258209228515625, _905)) * ((0.01627720706164836883544921875 * _1266) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _906), 1.5))));
     }
     else
     {
-        _1253 = float3(0.0);
+        _1278 = float3(0.0);
     }
-    float _1259;
-    float3 _1423;
-    float3 _1424;
+    float _1284;
+    float3 _1448;
+    float3 _1449;
     switch (0u)
     {
         default:
         {
-            _1259 = length(_764);
-            float _1262 = _117 * _117;
-            float _1265 = _769 - sqrt((_767 - (_1259 * _1259)) + _1262);
-            bool _1266 = _1265 > 0.0;
-            float3 _1276;
-            float _1277;
-            if (_1266)
+            _1284 = length(_184);
+            float _1287 = _118 * _118;
+            float _1290 = _189 - sqrt((_187 - (_1284 * _1284)) + _1287);
+            bool _1291 = _1290 > 0.0;
+            float3 _1301;
+            float _1302;
+            if (_1291)
             {
-                _1276 = _764 + (_130 * _1265);
-                _1277 = _765 + _1265;
+                _1301 = _184 + (_131 * _1290);
+                _1302 = _185 + _1290;
             }
             else
             {
-                if (_1259 > _117)
+                if (_1284 > _118)
                 {
-                    _1423 = float3(1.0);
-                    _1424 = float3(0.0);
+                    _1448 = float3(1.0);
+                    _1449 = float3(0.0);
                     break;
                 }
-                _1276 = _764;
-                _1277 = _765;
+                _1301 = _184;
+                _1302 = _185;
             }
-            float _1278 = _1266 ? _117 : _1259;
-            float _1279 = _1277 / _1278;
-            float _1281 = dot(_1276, u_fragParams.u_sunDirection.xyz) / _1278;
-            float _1282 = dot(_130, u_fragParams.u_sunDirection.xyz);
-            float _1284 = _1278 * _1278;
-            float _1287 = _1284 * ((_1279 * _1279) - 1.0);
-            bool _1290 = (_1279 < 0.0) && ((_1287 + _770) >= 0.0);
-            float _1292 = sqrt(_1262 - _770);
-            float _1295 = sqrt(fast::max(_1284 - _770, 0.0));
-            float _1303 = _117 - _1278;
-            float _1306 = (_1295 + _1292) - _1303;
-            float _1308 = _1295 / _1292;
-            float4 _1316 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_1278) * _1279) + sqrt(fast::max(_1287 + _1262, 0.0)), 0.0) - _1303) / _1306) * 0.99609375), 0.0078125 + (_1308 * 0.984375)));
-            float _1321 = 0.015625 + (_1308 * 0.96875);
-            float _1324 = ((_1277 * _1277) - _1284) + _770;
-            float _1354;
-            if (_1290)
+            float _1303 = _1291 ? _118 : _1284;
+            float _1304 = _1302 / _1303;
+            float _1306 = dot(_1301, u_fragParams.u_sunDirection.xyz) / _1303;
+            float _1307 = dot(_131, u_fragParams.u_sunDirection.xyz);
+            float _1309 = _1303 * _1303;
+            float _1312 = _1309 * ((_1304 * _1304) - 1.0);
+            bool _1315 = (_1304 < 0.0) && ((_1312 + _190) >= 0.0);
+            float _1317 = sqrt(_1287 - _190);
+            float _1320 = sqrt(fast::max(_1309 - _190, 0.0));
+            float _1328 = _118 - _1303;
+            float _1331 = (_1320 + _1317) - _1328;
+            float _1333 = _1320 / _1317;
+            float4 _1341 = transmittanceTexture.sample(transmittanceSampler, float2(0.001953125 + (((fast::max(((-_1303) * _1304) + sqrt(fast::max(_1312 + _1287, 0.0)), 0.0) - _1328) / _1331) * 0.99609375), 0.0078125 + (_1333 * 0.984375)));
+            float _1346 = 0.015625 + (_1333 * 0.96875);
+            float _1349 = ((_1302 * _1302) - _1309) + _190;
+            float _1379;
+            if (_1315)
             {
-                float _1344 = _1278 - u_fragParams.u_earthCenter.w;
-                _1354 = 0.5 - (0.5 * (0.0078125 + (((_1295 == _1344) ? 0.0 : ((((-_1277) - sqrt(fast::max(_1324, 0.0))) - _1344) / (_1295 - _1344))) * 0.984375)));
+                float _1369 = _1303 - u_fragParams.u_earthCenter.w;
+                _1379 = 0.5 - (0.5 * (0.0078125 + (((_1320 == _1369) ? 0.0 : ((((-_1302) - sqrt(fast::max(_1349, 0.0))) - _1369) / (_1320 - _1369))) * 0.984375)));
             }
             else
             {
-                _1354 = 0.5 + (0.5 * (0.0078125 + (((((-_1277) + sqrt(fast::max(_1324 + (_1292 * _1292), 0.0))) - _1303) / _1306) * 0.984375)));
+                _1379 = 0.5 + (0.5 * (0.0078125 + (((((-_1302) + sqrt(fast::max(_1349 + (_1317 * _1317), 0.0))) - _1328) / _1331) * 0.984375)));
             }
-            float _1365 = _117 - u_fragParams.u_earthCenter.w;
-            float _1367 = _1292 - _1365;
-            float _1368 = (fast::max(((-u_fragParams.u_earthCenter.w) * _1281) + sqrt(fast::max((_770 * ((_1281 * _1281) - 1.0)) + _1262, 0.0)), 0.0) - _1365) / _1367;
-            float _1377 = 0.015625 + ((fast::max(1.0 - (_1368 / ((0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _1367)), 0.0) / (1.0 + _1368)) * 0.96875);
-            float _1379 = (_1282 + 1.0) * 3.5;
-            float _1380 = floor(_1379);
-            float _1381 = _1379 - _1380;
-            float4 _1391 = scatteringTexture.sample(scatteringSampler, float3((_1380 + _1377) * 0.125, _1354, _1321));
-            float4 _1395 = scatteringTexture.sample(scatteringSampler, float3(((_1380 + 1.0) + _1377) * 0.125, _1354, _1321));
-            float4 _1397 = (_1391 * (1.0 - _1381)) + (_1395 * _1381);
-            float3 _1398 = _1397.xyz;
-            float3 _1411;
+            float _1390 = _118 - u_fragParams.u_earthCenter.w;
+            float _1392 = _1317 - _1390;
+            float _1393 = (fast::max(((-u_fragParams.u_earthCenter.w) * _1306) + sqrt(fast::max((_190 * ((_1306 * _1306) - 1.0)) + _1287, 0.0)), 0.0) - _1390) / _1392;
+            float _1402 = 0.015625 + ((fast::max(1.0 - (_1393 / ((0.415823996067047119140625 * u_fragParams.u_earthCenter.w) / _1392)), 0.0) / (1.0 + _1393)) * 0.96875);
+            float _1404 = (_1307 + 1.0) * 3.5;
+            float _1405 = floor(_1404);
+            float _1406 = _1404 - _1405;
+            float4 _1416 = scatteringTexture.sample(scatteringSampler, float3((_1405 + _1402) * 0.125, _1379, _1346));
+            float4 _1420 = scatteringTexture.sample(scatteringSampler, float3(((_1405 + 1.0) + _1402) * 0.125, _1379, _1346));
+            float4 _1422 = (_1416 * (1.0 - _1406)) + (_1420 * _1406);
+            float3 _1423 = _1422.xyz;
+            float3 _1436;
             switch (0u)
             {
                 default:
                 {
-                    float _1401 = _1397.x;
-                    if (_1401 == 0.0)
+                    float _1426 = _1422.x;
+                    if (_1426 == 0.0)
                     {
-                        _1411 = float3(0.0);
+                        _1436 = float3(0.0);
                         break;
                     }
-                    _1411 = (((_1398 * _1397.w) / float3(_1401)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
+                    _1436 = (((_1423 * _1422.w) / float3(_1426)) * 1.5) * float3(0.66666662693023681640625, 0.28571426868438720703125, 0.121212117373943328857421875);
                     break;
                 }
             }
-            float _1413 = 1.0 + (_1282 * _1282);
-            _1423 = select(_1316.xyz, float3(0.0), bool3(_1290));
-            _1424 = (_1398 * (0.0596831031143665313720703125 * _1413)) + (_1411 * ((0.01627720706164836883544921875 * _1413) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _1282), 1.5)));
+            float _1438 = 1.0 + (_1307 * _1307);
+            _1448 = select(_1341.xyz, float3(0.0), bool3(_1315));
+            _1449 = (_1423 * (0.0596831031143665313720703125 * _1438)) + (_1436 * ((0.01627720706164836883544921875 * _1438) / pow(1.6400001049041748046875 - (1.60000002384185791015625 * _1307), 1.5)));
             break;
         }
     }
-    float3 _1432;
-    if (dot(_130, u_fragParams.u_sunDirection.xyz) > u_fragParams.u_sunSize.y)
+    float3 _1457;
+    if (dot(_131, u_fragParams.u_sunDirection.xyz) > u_fragParams.u_sunSize.y)
     {
-        _1432 = _1424 + (_1423 * float3(21467.642578125, 26949.611328125, 27846.474609375));
+        _1457 = _1449 + (_1448 * float3(21467.642578125, 26949.611328125, 27846.474609375));
     }
     else
     {
-        _1432 = _1424;
+        _1457 = _1449;
     }
-    float3 _1446 = pow(abs(float3(1.0) - exp(((-mix(mix(_1432, _1253, float3(float(_774))), _762, float3(float(_171)))) / u_fragParams.u_whitePoint.xyz) * u_fragParams.u_camera.w)), float3(0.4545454680919647216796875));
-    float4 _1448 = float4(_1446.x, _1446.y, _1446.z, _109.w);
-    _1448.w = 1.0;
-    float4 _1457;
-    if ((_1259 < u_fragParams.u_earthCenter.w) && (_765 <= 0.0))
+    float3 _1475 = pow(abs(float3(1.0) - exp(((-mix(mix(_1457, _1278, float3(float(_194))), _802, float3(float(_214) * fast::min(1.0, 1.0 - smoothstep(0.64999997615814208984375, 0.75, _144))))) / u_fragParams.u_whitePoint.xyz) * u_fragParams.u_camera.w)), float3(0.4545454680919647216796875));
+    float4 _1477 = float4(_1475.x, _1475.y, _1475.z, _110.w);
+    _1477.w = 1.0;
+    float4 _1486;
+    if ((_1284 < u_fragParams.u_earthCenter.w) && (_185 <= 0.0))
     {
-        float3 _1455 = pow(_162.xyz, float3(0.5));
-        _1457 = float4(_1455.x, _1455.y, _1455.z, _1448.w);
+        float3 _1484 = pow(_175.xyz, float3(0.5));
+        _1486 = float4(_1484.x, _1484.y, _1484.z, _1477.w);
     }
     else
     {
-        _1457 = _1448;
+        _1486 = _1477;
     }
-    out.out_var_SV_Target0 = _1457;
-    out.out_var_SV_Target1 = _138;
-    out.gl_FragDepth = _143;
+    out.out_var_SV_Target0 = _1486;
+    out.out_var_SV_Target1 = _139;
+    out.gl_FragDepth = _144;
     return out;
 }
 
