@@ -35,7 +35,6 @@ private:
   bool HasLine();
   void ClearPoints();
   void UpdateSetting(vcState *pProgramState);
-  void ResetLabelText();
 
 private:
   bool m_done;

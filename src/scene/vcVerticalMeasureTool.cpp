@@ -108,7 +108,9 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
       pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
     }
 
-    ResetLabelText();
+    for (auto &label : m_labelList)
+      udFree(label.pText);
+
     m_labelList[0].worldPosition = (m_points[0] + m_points[1]) / 2;
     m_labelList[1].worldPosition = (m_points[1] + m_points[2]) / 2;
 
@@ -198,18 +200,6 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 }
 
-void vcVerticalMeasureTool::ResetLabelText()
-{
-  for (auto &label : m_labelList)
-  {
-    if (label.pText)
-    {
-      udFree(label.pText);
-      label.pText = nullptr;
-    }
-  }
-}
-
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
 {
   ClearPoints();
@@ -220,7 +210,9 @@ void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
     m_pLineInstance = nullptr;
   }
 
-  ResetLabelText();
+  for (auto &label : m_labelList)
+    udFree(label.pText);
+
   pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
 }
 
