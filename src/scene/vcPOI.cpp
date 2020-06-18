@@ -87,8 +87,8 @@ public:
 
     if (m_pParent->m_pPolyModel != nullptr)
     {
-      if ((m_pParent->m_pPolyModel->pMeshes[0].numVertices - 1) != m_pParent->m_line.numPoints)
-        m_pParent->GenerateLineFillPolygon();
+      //if ((m_pParent->m_pPolyModel->pMeshes[0].numVertices - 1) != m_pParent->m_line.numPoints)
+      //  m_pParent->GenerateLineFillPolygon();
       m_pParent->AddFillPolygonToScene(pRenderData);
     }
 
@@ -699,6 +699,13 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
     pLabel->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
     pLabel->textSize = m_namePt;
   }
+
+  // Update Polygon Model
+  if (m_pPolyModel != nullptr)
+  {
+    // TODO: THIS IS FLICKERING, DUNNO WHY
+    GenerateLineFillPolygon();
+  }
 }
 
 void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
@@ -1214,7 +1221,7 @@ void vcPOI::GenerateLineFillPolygon()
         max[xyz] = udMax(max[xyz], m_line.pPoints[pointIndex][xyz]);
       }
 
-    udFloat3 center = udFloat3::create((min + max) / 2.0);
+    udFloat3 center = udFloat3::create((min + max) / 2.0 - m_line.pPoints[0]);
 
     // Add triangle(s)
     int numVerts = m_line.numPoints + 1;
@@ -1228,7 +1235,7 @@ void vcPOI::GenerateLineFillPolygon()
 
     pVerts[0] = { center, defaultNormal, defaultUV };
     for (int i = 0; i < m_line.numPoints; ++i)
-      pVerts[i + 1] = { udFloat3::create(m_line.pPoints[i]), defaultNormal, defaultUV };
+      pVerts[i + 1] = { udFloat3::create(m_line.pPoints[i] - m_line.pPoints[0]), defaultNormal, defaultUV };
 
     for (int i = 0; i < m_line.numPoints; ++i)
     {
@@ -1243,6 +1250,8 @@ void vcPOI::GenerateLineFillPolygon()
 
     vcPolygonModel_Destroy(&m_pPolyModel);
     vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numVerts, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), pIndices, numIndices);
+
+    m_pPolyModel->modelOffset = udDouble4x4::translation(m_line.pPoints[0]);
 
     /*
     udFloat4 argb = vcIGSW_BGRAToImGui(m_line.colourPrimary);
