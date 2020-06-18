@@ -79,32 +79,18 @@ float getNormalizedPosition(float v, float min, float max)
 // note: an adjusted depth is packed into the returned .w component
 // this is to show the edge highlights against the skybox
 float4 edgeHighlight(PS_INPUT input, float3 col, float depth, float logDepth, float4 outlineColour, float edgeOutlineThreshold)
-{
-  float4 eyePosition = mul(u_inverseProjection, float4(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0, linearDepthToClipZ(depth), 1.0));
-  eyePosition /= eyePosition.w;
-
+{  
   float sampleDepth0 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV0).x;
   float sampleDepth1 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV1).x;
   float sampleDepth2 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV2).x;
   float sampleDepth3 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV3).x;
-
-  float4 eyePosition0 = mul(u_inverseProjection, float4(input.edgeSampleUV0.x * 2.0 - 1.0, input.edgeSampleUV0.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth0)), 1.0));
-  float4 eyePosition1 = mul(u_inverseProjection, float4(input.edgeSampleUV1.x * 2.0 - 1.0, input.edgeSampleUV1.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth1)), 1.0));
-  float4 eyePosition2 = mul(u_inverseProjection, float4(input.edgeSampleUV2.x * 2.0 - 1.0, input.edgeSampleUV2.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth2)), 1.0));
-  float4 eyePosition3 = mul(u_inverseProjection, float4(input.edgeSampleUV3.x * 2.0 - 1.0, input.edgeSampleUV3.y * 2.0 - 1.0, linearDepthToClipZ(logToLinearDepth(sampleDepth3)), 1.0));
-
-  eyePosition0 /= eyePosition0.w;
-  eyePosition1 /= eyePosition1.w;
-  eyePosition2 /= eyePosition2.w;
-  eyePosition3 /= eyePosition3.w;
-
-  float3 diff0 = eyePosition.xyz - eyePosition0.xyz;
-  float3 diff1 = eyePosition.xyz - eyePosition1.xyz;
-  float3 diff2 = eyePosition.xyz - eyePosition2.xyz;
-  float3 diff3 = eyePosition.xyz - eyePosition3.xyz;
-
-  float isEdge = 1.0 - step(length(diff0), edgeOutlineThreshold) * step(length(diff1), edgeOutlineThreshold) * step(length(diff2), edgeOutlineThreshold) * step(length(diff3), edgeOutlineThreshold);
-
+  
+  float minEdgeThreshold = 0.0005;
+  float scalarEdgeThreshold = 0.001; // this is to keep exisiting `edgeOutlineThreshold` values looking (roughly) the same
+  float scaledEdgeOutlineThreshold = minEdgeThreshold + (edgeOutlineThreshold * logDepth * scalarEdgeThreshold);
+  
+  float isEdge = 1.0 - step(abs(sampleDepth0 - logDepth), scaledEdgeOutlineThreshold) * step(abs(sampleDepth1 - logDepth), scaledEdgeOutlineThreshold) * step(abs(sampleDepth2 - logDepth), scaledEdgeOutlineThreshold) * step(abs(sampleDepth3 - logDepth), scaledEdgeOutlineThreshold);
+  
   float3 edgeColour = lerp(col.xyz, u_outlineColour.xyz, u_outlineColour.w);
   float edgeLogDepth = min(min(min(sampleDepth0, sampleDepth1), sampleDepth2), sampleDepth3);
   return lerp(float4(col.xyz, logDepth), float4(edgeColour, edgeLogDepth), isEdge);
