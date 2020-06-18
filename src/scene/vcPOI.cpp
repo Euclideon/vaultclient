@@ -89,7 +89,7 @@ public:
     {
       //if ((m_pParent->m_pPolyModel->pMeshes[0].numVertices - 1) != m_pParent->m_line.numPoints)
       //  m_pParent->GenerateLineFillPolygon();
-      m_pParent->AddFillPolygonToScene(pRenderData);
+      m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
     }
 
     m_pParent->AddFenceToScene(pRenderData);
@@ -321,7 +321,7 @@ public:
     m_pParent->AddLabelsToScene(pRenderData);
 
     m_pParent->GenerateLineFillPolygon();
-    m_pParent->AddFillPolygonToScene(pRenderData);
+    m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
   }
 
   vcPOIState_General *ChangeState(vcState *pProgramState) override;
@@ -1189,14 +1189,13 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
   }
 }
 
-void vcPOI::AddFillPolygonToScene(vcRenderData *pRenderData)
+void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   if (m_pPolyModel == nullptr)
     return;
 
   // This colour conversion is odd
-  udFloat4 argb = vcIGSW_BGRAToImGui(m_line.colourPrimary);
-  m_pPolyModel->pMeshes[0].material.colour = vcIGSW_ImGuiToBGRA(udFloat4::create(argb[1], argb[0], argb[3], argb[2]));
+  udFloat4 rgba = vcIGSW_BGRAToImGui(m_line.colourPrimary);
 
   vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
   pInstance->pModel = m_pPolyModel;
@@ -1204,7 +1203,9 @@ void vcPOI::AddFillPolygonToScene(vcRenderData *pRenderData)
   pInstance->worldMat = udDouble4x4::identity();
   pInstance->sceneItemInternalId = (uint64_t)0;
   pInstance->cullFace = vcGLSCM_None;
-  //pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+  pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+  pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
+  pInstance->tint = rgba;
 }
 
 void vcPOI::GenerateLineFillPolygon()

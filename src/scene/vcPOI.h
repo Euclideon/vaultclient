@@ -135,7 +135,7 @@ private:
   bool IsVisible(vcState *pProgramState);
   void AddFenceToScene(vcRenderData *pRenderData);
   void AddLabelsToScene(vcRenderData *pRenderData);
-  void AddFillPolygonToScene(vcRenderData *pRenderData);
+  void AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void DoFlythrough(vcState *pProgramState);
   bool LoadAttachedModel(const char *pNewPath);
