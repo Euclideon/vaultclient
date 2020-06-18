@@ -115,13 +115,11 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     m_labelList[1].worldPosition = (m_points[1] + m_points[2]) / 2;
 
     char labelBuf[128] = {};
-    udStrcat(labelBuf, m_pNode->pName);
-    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2])));
-    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2])));
+    udSprintf(labelBuf, "%s\n%s: %.3f\n%s: %.3f", m_pNode->pName, vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2]), vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2]));
     m_labelList[0].pText = udStrdup(labelBuf);
 
     char labelBufVertical[128] = {};
-    udStrcat(labelBufVertical, udTempStr("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z)));
+    udSprintf(labelBufVertical, "%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
     m_labelList[1].pText = udStrdup(labelBufVertical);
 
     for (auto &label : m_labelList)
@@ -193,9 +191,9 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
     if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
       vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
 
-    ImGui::Text("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
-    ImGui::Text("%s: %.3f", vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2]));
     ImGui::Text("%s: %.3f", vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2]));
+    ImGui::Text("%s: %.3f", vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2]));
+    ImGui::Text("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
 
   }
 }
