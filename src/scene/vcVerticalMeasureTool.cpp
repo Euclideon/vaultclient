@@ -28,10 +28,14 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode
 
   vcLineRenderer_CreateLine(&m_pLineInstance);
 
-  m_labelInfo.pText = nullptr;
-  m_labelInfo.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
-  m_labelInfo.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
-  m_labelInfo.textSize = (vcLabelFontSize)pProgramState->settings.tools.label.textSize;
+  for (auto &label: m_labelList)
+  {
+    label.pText = nullptr;
+    label.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
+    label.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
+    label.textSize = (vcLabelFontSize)pProgramState->settings.tools.label.textSize;
+  }
+  
 
   OnNodeUpdate(pProgramState);
   m_loadStatus = vcSLS_Loaded;
@@ -104,14 +108,22 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
       pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
     }
 
-    m_labelInfo.worldPosition = m_points[1];
+    ResetLabelText();
+    m_labelList[0].worldPosition = (m_points[0] + m_points[1]) / 2;
+    m_labelList[1].worldPosition = (m_points[1] + m_points[2]) / 2;
+
     char labelBuf[128] = {};
     udStrcat(labelBuf, m_pNode->pName);
-    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z)));
-    if(m_labelInfo.pText)
-      udFree(m_labelInfo.pText);
-    m_labelInfo.pText = udStrdup(labelBuf);
-    pRenderData->labels.PushBack(&m_labelInfo);
+    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2])));
+    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2])));
+    m_labelList[0].pText = udStrdup(labelBuf);
+
+    char labelBufVertical[128] = {};
+    udStrcat(labelBufVertical, udTempStr("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z)));
+    m_labelList[1].pText = udStrdup(labelBufVertical);
+
+    for (auto &label : m_labelList)
+      pRenderData->labels.PushBack(&label);
 
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
     vcLineRenderer_UpdatePoints(m_pLineInstance, m_points, 3, vcIGSW_BGRAToImGui(m_lineColour), m_lineWidth, false);
@@ -155,21 +167,24 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLabelColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_textColourBGRA, ImGuiColorEditFlags_None))
     {
-      m_labelInfo.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textColourBGRA);
+      for (auto &label : m_labelList)
+        label.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textColourBGRA);
       vdkProjectNode_SetMetadataUint(m_pNode, "nameColour", m_textColourBGRA);
     }
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLabelBackgroundColour%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_textBackgroundBGRA, ImGuiColorEditFlags_None))
     {
-      m_labelInfo.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
+      for (auto &label : m_labelList)
+        label.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
       vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_textBackgroundBGRA);
     }
 
     const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
-    int32_t size = m_labelInfo.textSize;
+    int32_t size = m_labelList[0].textSize;
     if (ImGui::Combo(udTempStr("%s##VerticalLabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), &size, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
     {
-      m_labelInfo.textSize = (vcLabelFontSize)size;
+      for (auto &label : m_labelList)
+        label.textSize = (vcLabelFontSize)size;
       vdkProjectNode_SetMetadataInt(m_pNode, "textSize", size);
     }
 
@@ -183,6 +198,18 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
   }
 }
 
+void vcVerticalMeasureTool::ResetLabelText()
+{
+  for (auto &label : m_labelList)
+  {
+    if (label.pText)
+    {
+      udFree(label.pText);
+      label.pText = nullptr;
+    }
+  }
+}
+
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
 {
   ClearPoints();
@@ -193,11 +220,7 @@ void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
     m_pLineInstance = nullptr;
   }
 
-  if (m_labelInfo.pText)
-  {
-    udFree(m_labelInfo.pText);
-    m_labelInfo.pText = nullptr;
-  }
+  ResetLabelText();
   pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
 }
 
@@ -248,7 +271,7 @@ bool vcVerticalMeasureTool::HasLine()
 
 void vcVerticalMeasureTool::ClearPoints()
 {
-  for (size_t i = 0; i < POINTSIZE; i++)
+  for (size_t i = 0; i < udLengthOf(m_points); i++)
     m_points[i] = udDouble3::zero();
 }
 
@@ -256,13 +279,17 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
 {
   int32_t size = vcLFS_Medium;
   vdkProjectNode_GetMetadataInt(m_pNode, "textSize", &size, pProgramState->settings.tools.label.textSize);
-  m_labelInfo.textSize = (vcLabelFontSize)size;
-
   vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_textColourBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
-  m_labelInfo.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textColourBGRA);
-
   vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_textBackgroundBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
-  m_labelInfo.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
+
+  uint32_t textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textColourBGRA);
+  uint32_t backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
+  for (auto &label : m_labelList)
+  {
+    label.textColourRGBA = textColourRGBA;
+    label.backColourRGBA = backColourRGBA;
+    label.textSize = (vcLabelFontSize)size;
+  }
 
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColour", &m_lineColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
 

@@ -35,17 +35,16 @@ private:
   bool HasLine();
   void ClearPoints();
   void UpdateSetting(vcState *pProgramState);
+  void ResetLabelText();
 
 private:
-  static const int POINTSIZE = 3;
   bool m_done;
   bool m_pickStart;
   bool m_pickEnd;
   bool m_markDelete;
+  udDouble3 m_points[3];
 
-  udDouble3 m_points[POINTSIZE];
-
-  vcLabelInfo m_labelInfo;
+  vcLabelInfo m_labelList[2];
   vcLineInstance *m_pLineInstance;
 
   uint32_t m_textColourBGRA;
