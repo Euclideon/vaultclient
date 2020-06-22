@@ -1138,7 +1138,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
       if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
         continue;
 
-      udFloat4 *pTintOverride = nullptr;
+      udFloat4 *pTintOverride = &pInstance->tint;
       if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_IgnoreTint))
         pTintOverride = &whiteColour;
 
@@ -1232,7 +1232,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
 
   // Transparent polygons
   uint32_t modelId = vcObjectId_PolygonModels;
-  udFloat4 transparentColour = udFloat4::create(1, 1, 1, 0.65f);
+  udFloat4 whiteColour = udFloat4::one();
   for (size_t i = 0; i < renderData.polyModels.length; ++i)
   {
     vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
@@ -1240,10 +1240,14 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
     if (!pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
       continue;
 
+    udFloat4 *pTintOverride = &pInstance->tint;
+    if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_IgnoreTint))
+      pTintOverride = &whiteColour;
+
     vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
     if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-      vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, &transparentColour);
+      vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pTintOverride);
     else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
       vcSceneLayerRenderer_Render(pInstance->pSceneLayer, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution);
   }

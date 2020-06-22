@@ -992,6 +992,7 @@ vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRende
   pInstance->pSceneItem = this;
   pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
   pInstance->sceneItemInternalId = (uint64_t)i + 1;
+  pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
   return pInstance;
 }
 
