@@ -2240,69 +2240,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         if (ImGui::BeginMenu(vcString::Get("sceneAddMenu")))
         {
           vdkProjectNode *pNode = nullptr;
-
-          if (ImGui::MenuItem(vcString::Get("sceneAddPOI")))
-          {
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIDefaultName"), nullptr, nullptr) == vE_Success)
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &mousePosCartesian, 1);
-
-            ImGui::CloseCurrentPopup();
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneAddAOI")))
-          {
-            vcProject_ClearSelection(pProgramState);
-
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &mousePosCartesian, 1);
-              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
-            }
-
-            ImGui::CloseCurrentPopup();
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneBeginAreaMeasure")))
-          {
-            vcProject_ClearSelection(pProgramState);
-
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &mousePosCartesian, 1);
-              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
-              vdkProjectNode_SetMetadataBool(pNode, "showArea", true);
-            }
-
-            ImGui::CloseCurrentPopup();
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneAddLine")))
-          {
-            vcProject_ClearSelection(pProgramState);
-
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_LineString, &mousePosCartesian, 1);
-              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
-            }
-
-            ImGui::CloseCurrentPopup();
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneBeginLineMeasure")))
-          {
-            vcProject_ClearSelection(pProgramState);
-
-            if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == vE_Success)
-            {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_LineString, &mousePosCartesian, 1);
-              udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
-              vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
-            }
-
-            ImGui::CloseCurrentPopup();
-          }
-
+          
           if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
           {
             vcProject_ClearSelection(pProgramState);
