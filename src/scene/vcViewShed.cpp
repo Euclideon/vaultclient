@@ -42,6 +42,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   {
     vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
     pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+    pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
 
     udDouble3 linearDistance = (pProgramState->camera.position - m_position);
 
