@@ -774,7 +774,7 @@ void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderC
   if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_None)
     return;
 
-  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour || pProgramState->settings.presentation.skybox.type == vcSkyboxType_Simple)
+  if (pProgramState->camera.cameraIsUnderSurface || pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour || pProgramState->settings.presentation.skybox.type == vcSkyboxType_Simple)
   {
     // Render simple skybox instead
     vcRenderSkybox(pProgramState, pRenderContext);

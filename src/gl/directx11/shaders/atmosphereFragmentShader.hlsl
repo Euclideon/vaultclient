@@ -1550,11 +1550,6 @@ the scene:
       pow(abs(float3(1.0, 1.0, 1.0) - exp(-radiance / u_whitePoint.xyz * exposure)), float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
   output.Color0.a = 1.0;
 
-  // if viewing underneath earth surface, cancel atmo
-  float3 earthCamera = camera - earth_center;
-  if (length(earthCamera) < u_earthCenter.w && dot(earthCamera, view_direction) <= 0.0)//earthCamera.z <= 0.0 && view_direction.z < 0.0)
-    output.Color0.rgb = pow(sceneColour.xyz, float3(1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0));
-	
   // debugging
   //output.Color0.xyz = lerp(float3(dot(sceneNormal.xyz, earthBitangent), 0, 0), output.Color0.xyz, 0.00000000001);
 	
