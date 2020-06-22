@@ -20,7 +20,7 @@ static const char *SupportedTileTypes_ConvertExport[] = { ".uds" };
 static const char *SupportedTileTypes_QueryExport[] = { ".uds", ".las" };
 static const char *SupportedFileTypes_ConvertImport[] = { ".uds", ".ssf", ".udg", ".las", ".laz", ".e57", ".txt", ".csv", ".asc", ".pts", ".ptx", ".xyz", ".obj"
 #ifdef FBXSDK_ON
-  , ".fbx"
+  , ".fbx", ".dae", ".dxf"
 #endif
 };
 
