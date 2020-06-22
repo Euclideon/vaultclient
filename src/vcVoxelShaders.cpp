@@ -146,14 +146,37 @@ uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, const vdkVoxel
   return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
+udFloat3 g_globalSunDirection;
 uint32_t vcVoxelShader_Colour(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
-  uint32_t result = 0;
-  vdkPointCloud_GetNodeColour(pPointCloud, pVoxelID, &result);
+  uint64_t color64 = 0;
+  vdkPointCloud_GetNodeColour64(pPointCloud, pVoxelID, &color64);
+  uint32_t result;
+  uint32_t encNormal = (uint32_t)(color64 >> 32);
+  if (encNormal)
+  {
+    udFloat3 normal;
+    normal.x = int16_t(encNormal >> 16) / 32767.f;
+    normal.y = int16_t(encNormal & 0xfffe) / 32767.f;
+    normal.z = 1.f - (normal.x * normal.x + normal.y * normal.y);
+    if (normal.z > 0.001)
+      normal.z = udSqrt(normal.z);
+    if (encNormal & 1)
+      normal.z = -normal.z;
 
-  return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
+    float dot = (udDot(g_globalSunDirection, normal) * 0.5f) + 0.5f;
+    result = (uint8_t(((color64 >> 16) & 0xff) * dot) << 16)
+           | (uint8_t(((color64 >> 8) & 0xff) * dot) << 8)
+           | (uint8_t(((color64 >> 0) & 0xff) * dot) << 0);
+  }
+  else
+  {
+    result = (uint32_t)color64 & 0xffffff;
+  }
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
 uint32_t vcVoxelShader_GPSTime(vdkPointCloud * pPointCloud, const vdkVoxelID *pVoxelID, const void * pUserData)
