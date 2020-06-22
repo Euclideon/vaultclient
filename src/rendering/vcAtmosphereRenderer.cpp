@@ -358,6 +358,10 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   }
 
   pAtmosphereRenderer->sunDirection = udNormalize(pAtmosphereRenderer->sunDirection);
+
+  // TEMP HACK, until atmosphere shader paras are accessible to voxel shaders
+  extern udFloat3 g_globalSunDirection;
+  g_globalSunDirection = udFloat3::create(pAtmosphereRenderer->sunDirection);
 }
 
 bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcState *pProgramState, vcTexture *pSceneColour, vcTexture *pSceneNormal, vcTexture *pSceneDepth)
