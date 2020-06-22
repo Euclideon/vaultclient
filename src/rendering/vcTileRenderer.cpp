@@ -35,7 +35,7 @@ udUUID demTileServerAddresUUID = {};
 enum
 {
   TileVertexControlPointRes = 3, // Change with caution : 'vcQuadTreeNode::worldBounds[]' and GPU structs need to match
-  TileVertexResolution = 31,
+  TileVertexResolution = 31 + 2, // +2 for skirt
   TileIndexResolution = (TileVertexResolution - 1),
 };
 
@@ -89,6 +89,7 @@ struct vcTileRenderer
   vcTexture *pEmptyNormalTexture;
 
   udDouble3 cameraPosition;
+  bool cameraIsUnderMapSurface;
 
   // cache textures
   struct vcTileCache
@@ -714,18 +715,35 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
     }
   }
 
-  float normalizeVertexPositionScale = float(TileVertexResolution) / (TileVertexResolution - 1); // ensure verts are [0, 1]
+  // account for 'skirt'
+  float normalizeVertexPositionScale = float((TileVertexResolution - 2)) / ((TileVertexResolution - 2) -1); // ensure verts are [0, 1]
+
   for (int y = 0; y < TileVertexResolution; ++y)
   {
     for (int x = 0; x < TileVertexResolution; ++x)
     {
       uint32_t index = y * TileVertexResolution + x;
-      float normX = ((float)(x) / TileVertexResolution) * normalizeVertexPositionScale;
-      float normY = ((float)(y) / TileVertexResolution) * normalizeVertexPositionScale;
+      pVerts[index].position.z = 0.0f;
+
+      // account for 'skirt'
+      float normX = ((float)udMax(0, x - 1) / (TileVertexResolution - 2)) * normalizeVertexPositionScale;
+      float normY = ((float)udMax(0, y - 1) / (TileVertexResolution - 2)) * normalizeVertexPositionScale;
+
+      // handle skirts
+      if (x == 0 || x == TileVertexResolution - 1)
+      {
+        pVerts[index].position.z = -1;
+        normX = (x == 0) ? 0.0f : 1.0f;
+      }
+
+      if (y == 0 || y == TileVertexResolution - 1)
+      {
+        pVerts[index].position.z = -1;
+        normY = (y == 0) ? 0.0f : 1.0f;
+      }
+
       pVerts[index].position.x = minUV.x + normX * (maxUV.x - minUV.x);
       pVerts[index].position.y = minUV.y + normY * (maxUV.y - minUV.y);
-      pVerts[index].position.z = (float)index;
-
     }
   }
 }
@@ -1024,11 +1042,12 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   }
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const bool cameraIsUnderMapSurface, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
   pTileRenderer->cameraPosition = cameraWorldPos;
+  pTileRenderer->cameraIsUnderMapSurface = cameraIsUnderMapSurface;
 
   vcQuadTreeViewInfo viewInfo =
   {
@@ -1249,7 +1268,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTileRenderer->presentShader.everyObject.viewMatrix = udFloat4x4::create(view);
 
-  pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(encodedObjectId, 0, 0, 0);
+  pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f), 0, 0);
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
   vcTileRenderer_RecursiveRenderNodes(pTileRenderer, view, pRootNode, nullptr, nullptr);
