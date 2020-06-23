@@ -33,23 +33,45 @@ static struct vcImageShader
 } gShaders[3];
 
 static int gRefCount = 0;
-udResult vcImageRenderer_Init()
+udResult vcImageRenderer_Init(udWorkerPool *pWorkerPool)
 {
   udResult result;
   gRefCount++;
 
+  vcImageShader *pShader = nullptr;
+
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&gShaders[0].pShader, "asset://assets/shaders/imageRendererBillboardVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&gShaders[1].pShader, "asset://assets/shaders/imageRendererMeshVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3N3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&gShaders[2].pShader, "asset://assets/shaders/imageRendererScreenVertexShader", "asset://assets/shaders/imageRendererScreenFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
+  pShader = &gShaders[0];
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pShader->pShader, pWorkerPool, "asset://assets/shaders/imageRendererBillboardVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3UV2VertexLayout,
+    [pShader](void *)
+    {
+      vcShader_Bind(pShader->pShader);
+      vcShader_GetConstantBuffer(&pShader->pEveryObjectConstantBuffer, pShader->pShader, "u_EveryObject", sizeof(pShader->everyObject));
+      vcShader_GetSamplerIndex(&pShader->pDiffuseSampler, pShader->pShader, "albedo");
+    }
+  ), udR_InternalError);
 
-  for (size_t i = 0; i < udLengthOf(gShaders); ++i)
-  {
-    UD_ERROR_IF(!vcShader_GetConstantBuffer(&gShaders[i].pEveryObjectConstantBuffer, gShaders[i].pShader, "u_EveryObject", sizeof(gShaders[i].everyObject)), udR_InternalError);
-    UD_ERROR_IF(!vcShader_GetSamplerIndex(&gShaders[i].pDiffuseSampler, gShaders[i].pShader, "albedo"), udR_InternalError);
-  }
+  pShader = &gShaders[1];
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pShader->pShader, pWorkerPool, "asset://assets/shaders/imageRendererMeshVertexShader", "asset://assets/shaders/imageRendererFragmentShader", vcP3N3UV2VertexLayout,
+    [pShader](void *)
+    {
+      vcShader_Bind(pShader->pShader);
+      vcShader_GetConstantBuffer(&pShader->pEveryObjectConstantBuffer, pShader->pShader, "u_EveryObject", sizeof(pShader->everyObject));
+      vcShader_GetSamplerIndex(&pShader->pDiffuseSampler, pShader->pShader, "albedo");
+    }
+  ), udR_InternalError);
 
+  pShader = &gShaders[2];
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pShader->pShader, pWorkerPool, "asset://assets/shaders/imageRendererScreenVertexShader", "asset://assets/shaders/imageRendererScreenFragmentShader", vcP3UV2VertexLayout,
+    [pShader](void *)
+    {
+      vcShader_Bind(pShader->pShader);
+      vcShader_GetConstantBuffer(&pShader->pEveryObjectConstantBuffer, pShader->pShader, "u_EveryObject", sizeof(pShader->everyObject));
+      vcShader_GetSamplerIndex(&pShader->pDiffuseSampler, pShader->pShader, "albedo");
+    }
+  ), udR_InternalError);
+  
   result = udR_Success;
 
 epilogue:
@@ -68,7 +90,7 @@ udResult vcImageRenderer_Destroy()
 
   for (size_t i = 0; i < udLengthOf(gShaders); ++i)
   {
-    UD_ERROR_IF(!vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer), udR_InternalError);
+    vcShader_ReleaseConstantBuffer(gShaders[i].pShader, gShaders[i].pEveryObjectConstantBuffer);
     vcShader_DestroyShader(&gShaders[i].pShader);
   }
 

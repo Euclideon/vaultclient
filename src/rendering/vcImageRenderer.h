@@ -45,7 +45,9 @@ struct vcImageRenderInfo
   udFloat4 colour;
 };
 
-udResult vcImageRenderer_Init();
+struct udWorkerPool;
+
+udResult vcImageRenderer_Init(udWorkerPool *pWorkerPool);
 udResult vcImageRenderer_Destroy();
 
 bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale);

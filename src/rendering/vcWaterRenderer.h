@@ -8,8 +8,9 @@
 
 struct vcWaterRenderer;
 struct vcTexture;
+struct udWorkerPool;
 
-udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer);
+udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer, udWorkerPool *pWorkerPool);
 udResult vcWaterRenderer_Destroy(vcWaterRenderer **ppWaterRenderer);
 
 udResult vcWaterRenderer_AddVolume(vcWaterRenderer *pWaterRenderer, const udGeoZone &zone, double altitude, udDouble3 *pPoints, size_t pointCount, const std::vector< std::pair<const udDouble3 *, size_t> > &islandPoints);

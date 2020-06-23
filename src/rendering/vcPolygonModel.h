@@ -48,7 +48,7 @@ struct vcPolygonModel
   udInterlockedBool keepLoading;
 };
 
-udResult vcPolygonModel_CreateShaders();
+udResult vcPolygonModel_CreateShaders(udWorkerPool *pWorkerPool);
 udResult vcPolygonModel_DestroyShaders();
 
 udResult vcPolygonModel_CreateFromRawVertexData(vcPolygonModel **ppPolygonModel, const void *pVerts, const uint32_t vertCount, const vcVertexLayoutTypes *pMeshLayout, const int totalTypes, const uint32_t *pIndices = nullptr, const uint32_t indexCount = 0);

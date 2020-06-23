@@ -25,8 +25,9 @@ struct vcLabelInfo
 
 struct ImDrawList;
 struct vcTexture;
+struct udWorkerPool;
 
-udResult vcLabelRenderer_Init();
+udResult vcLabelRenderer_Init(udWorkerPool *pWorkerPool);
 udResult vcLabelRenderer_Destroy();
 
 bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabel, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);

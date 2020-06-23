@@ -89,7 +89,7 @@ epilogue:
   return result;
 }
 
-udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
+udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer, udWorkerPool *pWorkerPool)
 {
   udResult result;
 
@@ -100,13 +100,18 @@ udResult vcWaterRenderer_Create(vcWaterRenderer **ppWaterRenderer)
 
   UD_ERROR_CHECK(pWaterRenderer->volumes.Init(32));
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pWaterRenderer->renderShader.pProgram, "asset://assets/shaders/waterVertexShader", "asset://assets/shaders/waterFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(pWaterRenderer->renderShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "normalMap"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "skybox"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameVert, pWaterRenderer->renderShader.pProgram, "u_EveryFrameVert", sizeof(pWaterRenderer->renderShader.everyFrameVertParams)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameFrag, pWaterRenderer->renderShader.pProgram, "u_EveryFrameFrag", sizeof(pWaterRenderer->renderShader.everyFrameFragParams)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyObject, pWaterRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pWaterRenderer->renderShader.everyObjectParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pWaterRenderer->renderShader.pProgram, pWorkerPool, "asset://assets/shaders/waterVertexShader", "asset://assets/shaders/waterFragmentShader", vcP3UV2VertexLayout,
+    [pWaterRenderer](void *)
+    {
+      vcShader_Bind(pWaterRenderer->renderShader.pProgram);
+      vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_normalMap, pWaterRenderer->renderShader.pProgram, "normalMap");
+      vcShader_GetSamplerIndex(&pWaterRenderer->renderShader.uniform_skybox, pWaterRenderer->renderShader.pProgram, "skybox");
+      vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameVert, pWaterRenderer->renderShader.pProgram, "u_EveryFrameVert", sizeof(pWaterRenderer->renderShader.everyFrameVertParams));
+      vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyFrameFrag, pWaterRenderer->renderShader.pProgram, "u_EveryFrameFrag", sizeof(pWaterRenderer->renderShader.everyFrameFragParams));
+      vcShader_GetConstantBuffer(&pWaterRenderer->renderShader.uniform_everyObject, pWaterRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pWaterRenderer->renderShader.everyObjectParams));
+    }
+  ), udR_InternalError);
+
 
   UD_ERROR_CHECK(vcWaterRenderer_Init());
 

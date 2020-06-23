@@ -16,7 +16,7 @@ vcWater::vcWater(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
   m_pWaterRenderer = nullptr;
   m_altitude = 0.0;
 
-  vcWaterRenderer_Create(&m_pWaterRenderer); // TODO: This creates a water renderer for each water node...probably don't want to do this!
+  vcWaterRenderer_Create(&m_pWaterRenderer, pProgramState->pWorkerPool); // TODO: This creates a water renderer for each water node...probably don't want to do this!
   m_loadStatus = vcSLS_Loaded;
 
   OnNodeUpdate(pProgramState);

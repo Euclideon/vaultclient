@@ -5,6 +5,9 @@
 #include "udStringUtil.h"
 #include "udFile.h"
 
+const char *pVertexFileExtension = ".vert";
+const char *pFragmentFileExtension = ".frag";
+
 GLint vcBuildShader(GLenum type, const GLchar *shaderCode)
 {
 #if !(UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID)
@@ -91,22 +94,6 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   return (pShader != nullptr);
 }
 
-bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
-{
-  const char *pVertexShaderText = nullptr;
-  const char *pFragmentShaderText = nullptr;
-
-  udFile_Load(udTempStr("%s.vert", pVertexShader), &pVertexShaderText);
-  udFile_Load(udTempStr("%s.frag", pFragmentShader), &pFragmentShaderText);
-
-  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
-
-  udFree(pFragmentShaderText);
-  udFree(pVertexShaderText);
-
-  return success;
-}
-
 void vcShader_DestroyShader(vcShader **ppShader)
 {
   if (ppShader == nullptr || *ppShader == nullptr)
@@ -145,10 +132,9 @@ bool vcShader_Bind(vcShader *pShader)
 
 bool vcShader_BindTexture(vcShader *pShader, vcTexture *pTexture, uint16_t samplerIndex, vcShaderSampler *pSampler/* = nullptr*/, vcGLSamplerShaderStage samplerStage /*= vcGLSamplerShaderStage_Fragment*/)
 {
-  if (pTexture == nullptr || pTexture->id == GL_INVALID_INDEX)
+  if (pTexture == nullptr || pTexture->id == GL_INVALID_INDEX || pShader == nullptr)
     return false;
 
-  udUnused(pShader);
   udUnused(samplerStage);
 
   glActiveTexture(GL_TEXTURE0 + samplerIndex);
