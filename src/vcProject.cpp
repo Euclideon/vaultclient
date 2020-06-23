@@ -422,7 +422,7 @@ void vcProject_SelectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkPr
   vcSceneItem *pItem = (vcSceneItem*)pNode->pUserData;
 
   // If we're doing range selection, else normal selection
-  if (pItem != nullptr && pProgramState->sceneExplorer.selectStartItem.pItem != nullptr)
+  if (pItem != nullptr && pProgramState->sceneExplorer.selectStartItem.pItem != nullptr && pProgramState->sceneExplorer.selectStartItem.pItem != pNode)
   {
     vdkProjectNode *pSelectNode = pProgramState->sceneExplorer.selectStartItem.pItem;
     vcProject_SelectRange(pProgramState, pNode, pSelectNode);
