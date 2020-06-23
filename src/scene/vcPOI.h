@@ -57,7 +57,7 @@ private:
   double m_totalLength;
   double m_area;
   udDouble3 m_centroid;
-  
+
   udChunkedArray<vcLabelInfo> m_lengthLabels;
 
   vcPolygonModel *m_pPolyModel;

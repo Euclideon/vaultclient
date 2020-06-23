@@ -44,7 +44,6 @@ struct vcRenderPolyInstance
   };
 
   udDouble4x4 worldMat; // will be converted to eye internally
-
   vcTexture *pDiffuseOverride; // optionally override diffuse texture. Only available on RenderType_Polygon
   udFloat4 tint; // RGB. Alpha will control transparency for transparent instances 
 

@@ -86,11 +86,7 @@ public:
     }
 
     if (m_pParent->m_pPolyModel != nullptr)
-    {
-      //if ((m_pParent->m_pPolyModel->pMeshes[0].numVertices - 1) != m_pParent->m_line.numPoints)
-      //  m_pParent->GenerateLineFillPolygon();
       m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
-    }
 
     m_pParent->AddFenceToScene(pRenderData);
     m_pParent->AddLabelsToScene(pRenderData);
@@ -702,10 +698,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
 
   // Update Polygon Model
   if (m_pPolyModel != nullptr)
-  {
-    // TODO: THIS IS FLICKERING, DUNNO WHY
     GenerateLineFillPolygon();
-  }
 }
 
 void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
@@ -1193,10 +1186,7 @@ void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderD
 {
   if (m_pPolyModel == nullptr)
     return;
-
-  // This colour conversion is odd
-  udFloat4 rgba = vcIGSW_BGRAToImGui(m_line.colourPrimary);
-
+  
   vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
   pInstance->pModel = m_pPolyModel;
   pInstance->pSceneItem = this;
@@ -1205,7 +1195,7 @@ void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderD
   pInstance->cullFace = vcGLSCM_None;
   pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
   pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
-  pInstance->tint = rgba;
+  pInstance->tint = vcIGSW_BGRAToImGui(m_line.colourPrimary);
 }
 
 void vcPOI::GenerateLineFillPolygon()
@@ -1253,19 +1243,6 @@ void vcPOI::GenerateLineFillPolygon()
     vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numVerts, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), pIndices, numIndices);
 
     m_pPolyModel->modelOffset = udDouble4x4::translation(m_line.pPoints[0]);
-
-    /*
-    udFloat4 argb = vcIGSW_BGRAToImGui(m_line.colourPrimary);
-    m_pParent->m_pPolyModel->pMeshes[0].material.colour = vcIGSW_ImGuiToBGRA(udFloat4::create(argb[1], argb[0], argb[3], argb[2]));
-
-    vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
-    pInstance->pModel = m_pParent->m_pPolyModel;
-    pInstance->pSceneItem = m_pParent;
-    pInstance->worldMat = udDouble4x4::identity();
-    pInstance->sceneItemInternalId = (uint64_t)0;
-    pInstance->cullFace = vcGLSCM_None;
-    */
-    //m_pParent->m_pLine->colour;
 
     udFree(pVerts);
     udFree(pIndices);
