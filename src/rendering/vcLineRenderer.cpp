@@ -31,14 +31,14 @@ struct vcLineRenderer
   } renderShader;
 };
 
-udResult vcLineRenderer_Create(vcLineRenderer **ppLineRenderer)
+udResult vcLineRenderer_Create(vcLineRenderer **ppLineRenderer, udWorkerPool *pWorkerPool)
 {
   udResult result;
 
   vcLineRenderer *pLineRenderer = udAllocType(vcLineRenderer, 1, udAF_Zero);
   UD_ERROR_NULL(pLineRenderer, udR_MemoryAllocationFailure);
 
-  vcLineRenderer_ReloadShaders(pLineRenderer);
+  vcLineRenderer_ReloadShaders(pLineRenderer, pWorkerPool);
 
   *ppLineRenderer = pLineRenderer;
   pLineRenderer = nullptr;
@@ -66,15 +66,19 @@ udResult vcLineRenderer_Destroy(vcLineRenderer **ppLineRenderer)
   return udR_Success;
 }
 
-udResult vcLineRenderer_ReloadShaders(vcLineRenderer *pLineRenderer)
+udResult vcLineRenderer_ReloadShaders(vcLineRenderer *pLineRenderer, udWorkerPool *pWorkerPool)
 {
   udResult result;
 
   vcLineRenderer_DestroyShaders(pLineRenderer);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pLineRenderer->renderShader.pProgram, "asset://assets/shaders/lineVertexShader", "asset://assets/shaders/lineFragmentShader", vcLineVertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(pLineRenderer->renderShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pLineRenderer->renderShader.uniform_everyObject, pLineRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pLineRenderer->renderShader.everyObjectParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pLineRenderer->renderShader.pProgram, pWorkerPool, "asset://assets/shaders/lineVertexShader", "asset://assets/shaders/lineFragmentShader", vcLineVertexLayout,
+    [pLineRenderer](void  *)
+    {
+      vcShader_Bind(pLineRenderer->renderShader.pProgram);
+      vcShader_GetConstantBuffer(&pLineRenderer->renderShader.uniform_everyObject, pLineRenderer->renderShader.pProgram, "u_EveryObject", sizeof(pLineRenderer->renderShader.everyObjectParams));
+    }
+  ), udR_InternalError);
 
   result = udR_Success;
 epilogue:

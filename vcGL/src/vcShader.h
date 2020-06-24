@@ -2,6 +2,7 @@
 #define vcShader_h__
 
 #include "udMath.h"
+#include "udWorkerPool.h"
 #include "vcLayout.h"
 
 #include "vcGLState.h"
@@ -11,10 +12,15 @@ struct vcShaderSampler;
 struct vcShaderConstantBuffer;
 struct vcTexture;
 
+extern const char *pVertexFileExtension;
+extern const char *pFragmentFileExtension;
+
 bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs);
 template <size_t N> inline bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes (&inputTypes)[N]) { return vcShader_CreateFromText(ppShader, pVertexShader, pFragmentShader, inputTypes, (uint32_t)N); }
 bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs);
-template <size_t N> inline bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes (&inputTypes)[N]) { return vcShader_CreateFromFile(ppShader, pVertexShader, pFragmentShader, inputTypes, (uint32_t)N); }
+template <size_t N> inline bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes(&inputTypes)[N]) { return vcShader_CreateFromFile(ppShader, pVertexShader, pFragmentShader, inputTypes, (uint32_t)N); }
+bool vcShader_CreateFromFileAsync(vcShader **ppShader, udWorkerPool *pWorkerPool, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs, udWorkerPoolCallback pOnLoadedCallback);
+template <size_t N> inline bool vcShader_CreateFromFileAsync(vcShader **ppShader, udWorkerPool *pWorkerPool, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes (&inputTypes)[N], udWorkerPoolCallback pOnLoadedCallback) { return vcShader_CreateFromFileAsync(ppShader, pWorkerPool, pVertexShader, pFragmentShader, inputTypes, (uint32_t)N, pOnLoadedCallback); }
 void vcShader_DestroyShader(vcShader **ppShader);
 
 bool vcShader_Bind(vcShader *pShader); // nullptr to unbind shader

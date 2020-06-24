@@ -654,7 +654,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
     if (m_line.fenceMode != vcRRVM_ScreenLine)
     {
       if (m_pFence == nullptr)
-        vcFenceRenderer_Create(&m_pFence);
+        vcFenceRenderer_Create(&m_pFence, pProgramState->pWorkerPool);
 
       vcFenceRendererConfig config;
       config.visualMode = m_line.fenceMode;

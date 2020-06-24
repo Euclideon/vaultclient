@@ -22,17 +22,23 @@ static struct vcLabelShader
 vcMesh *g_LabelMesh = nullptr;
 
 static int gRefCount = 0;
-udResult vcLabelRenderer_Init()
+udResult vcLabelRenderer_Init(udWorkerPool *pWorkerPool)
 {
   udResult result;
   ++gRefCount;
+  vcLabelShader *pShader = nullptr;
 
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&gShader.pShader, "asset://assets/shaders/imgui3DVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(gShader.pShader), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&gShader.pEveryObjectConstantBuffer, gShader.pShader, "u_EveryObject", sizeof(gShader.everyObject)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&gShader.pDiffuseSampler, gShader.pShader, "Texture"), udR_InternalError);
+  pShader = &gShader;
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&gShader.pShader, pWorkerPool, "asset://assets/shaders/imgui3DVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout,
+    [pShader](void *)
+    {
+      vcShader_Bind(pShader->pShader);
+      vcShader_GetConstantBuffer(&pShader->pEveryObjectConstantBuffer, pShader->pShader, "u_EveryObject", sizeof(pShader->everyObject));
+      vcShader_GetSamplerIndex(&pShader->pDiffuseSampler, pShader->pShader, "Texture");
+    }
+  ), udR_InternalError);
 
   if (g_LabelMesh == nullptr)
   {

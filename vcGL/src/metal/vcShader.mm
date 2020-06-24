@@ -7,6 +7,9 @@
 #import "udStringUtil.h"
 #import "udFile.h"
 
+const char *pVertexFileExtension = ".metal";
+const char *pFragmentFileExtension = ".metal";
+
 void vcShader_CreatePipelineDesc(vcShader *pShader, int pipelineIndex, id<MTLFunction> vFunc, id<MTLFunction> fFunc, MTLVertexDescriptor *vertexDesc)
 {
   @autoreleasepool {
@@ -258,22 +261,6 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
 
     return (*ppShader != nullptr);
   }
-}
-
-bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
-{
-  char *pVertexShaderText = nullptr;
-  char *pFragmentShaderText = nullptr;
-
-  udFile_Load(udTempStr("%s.metal", pVertexShader), &pVertexShaderText);
-  udFile_Load(udTempStr("%s.metal", pFragmentShader), &pFragmentShaderText);
-
-  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
-
-  udFree(pFragmentShaderText);
-  udFree(pVertexShaderText);
-
-  return success;
 }
 
 void vcShader_DestroyShader(vcShader **ppShader)

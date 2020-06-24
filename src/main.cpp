@@ -316,7 +316,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
 #ifndef GIT_BUILD
   if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_P))
-    vcRender_ReloadShaders(pProgramState->pRenderContext);
+    vcRender_ReloadShaders(pProgramState->pRenderContext, pProgramState->pWorkerPool);
 #endif
 
   ImGuiGL_NewFrame(pProgramState->pWindow);

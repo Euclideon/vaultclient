@@ -8,13 +8,14 @@ enum { MaxVisibleTileLevel = 19 };
 
 struct vcSettings;
 struct udGeoZone;
+struct udWorkerPool;
 
 struct vcTileRenderer;
 
-udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSettings);
+udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, udWorkerPool *pWorkerPool, vcSettings *pSettings);
 udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer);
 
-udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer);
+udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer, udWorkerPool *pWorkerPool);
 
 void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const bool cameraIsUnderMapSurface, const udDouble3 &cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix);
 void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, const float encodedObjectId);

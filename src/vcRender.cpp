@@ -275,7 +275,7 @@ struct vcRenderContext
   } watermarkShader;
 };
 
-udResult vcRender_LoadShaders(vcRenderContext *pRenderContext);
+udResult vcRender_LoadShaders(vcRenderContext *pRenderContext, udWorkerPool *pWorkerPool);
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
 udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData, bool doPick);
 void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWatermark);
@@ -308,11 +308,12 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
 
   UD_ERROR_CHECK(vcTexture_AsyncCreateFromFilename(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture, pWorkerPool, "asset://assets/skyboxes/WaterClouds.jpg", vcTFM_Linear));
 
-  UD_ERROR_CHECK(vcAtmosphereRenderer_Create(&pRenderContext->pAtmosphereRenderer));
-  UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, &pProgramState->settings));
-  UD_ERROR_CHECK(vcLineRenderer_Create(&pRenderContext->pLineRenderer));
+  UD_ERROR_CHECK(vcAtmosphereRenderer_Create(&pRenderContext->pAtmosphereRenderer, pWorkerPool));
+  UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pWorkerPool, &pProgramState->settings));
+  UD_ERROR_CHECK(vcLineRenderer_Create(&pRenderContext->pLineRenderer, pWorkerPool));
+  UD_ERROR_CHECK(vcPinRenderer_Create(&pRenderContext->pPinRenderer));
 
-  UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
+  UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext, pProgramState->pWorkerPool));
   UD_ERROR_CHECK(vcRender_ResizeScene(pProgramState, pRenderContext, sceneResolution.x, sceneResolution.y));
 
   *ppRenderContext = pRenderContext;
@@ -326,70 +327,108 @@ epilogue:
   return result;
 }
 
-udResult vcRender_LoadShaders(vcRenderContext *pRenderContext)
+udResult vcRender_LoadShaders(vcRenderContext *pRenderContext, udWorkerPool *pWorkerPool)
 {
   udResult result;
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->udRenderContext.presentShader.pProgram, "asset://assets/shaders/udVertexShader", "asset://assets/shaders/udFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->visualizationShader.pProgram, "asset://assets/shaders/visualizationVertexShader", "asset://assets/shaders/visualizationFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->shadowShader.pProgram, "asset://assets/shaders/viewShedVertexShader", "asset://assets/shaders/viewShedFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->skyboxShaderPanorama.pProgram, "asset://assets/shaders/panoramaSkyboxVertexShader", "asset://assets/shaders/panoramaSkyboxFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->skyboxShaderTintImage.pProgram, "asset://assets/shaders/imageColourSkyboxVertexShader", "asset://assets/shaders/imageColourSkyboxFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->udRenderContext.splatIdShader.pProgram, "asset://assets/shaders/udVertexShader", "asset://assets/shaders/udSplatIdFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->postEffectsShader.pProgram, "asset://assets/shaders/postEffectsVertexShader", "asset://assets/shaders/postEffectsFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->udRenderContext.presentShader.pProgram, pWorkerPool, "asset://assets/shaders/udVertexShader", "asset://assets/shaders/udFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "sceneColour");
+      vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_depth, pRenderContext->udRenderContext.presentShader.pProgram, "sceneDepth");
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->visualizationShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_texture, pRenderContext->visualizationShader.pProgram, "sceneColour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_normal, pRenderContext->visualizationShader.pProgram, "sceneNormal"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_depth, pRenderContext->visualizationShader.pProgram, "sceneDepth"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_vertParams, pRenderContext->visualizationShader.pProgram, "u_vertParams", sizeof(pRenderContext->visualizationShader.vertParams)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_fragParams, pRenderContext->visualizationShader.pProgram, "u_fragParams", sizeof(pRenderContext->visualizationShader.fragParams)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->visualizationShader.pProgram, pWorkerPool, "asset://assets/shaders/visualizationVertexShader", "asset://assets/shaders/visualizationFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->visualizationShader.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_texture, pRenderContext->visualizationShader.pProgram, "sceneColour");
+      vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_normal, pRenderContext->visualizationShader.pProgram, "sceneNormal");
+      vcShader_GetSamplerIndex(&pRenderContext->visualizationShader.uniform_depth, pRenderContext->visualizationShader.pProgram, "sceneDepth");
+      vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_vertParams, pRenderContext->visualizationShader.pProgram, "u_vertParams", sizeof(pRenderContext->visualizationShader.vertParams));
+      vcShader_GetConstantBuffer(&pRenderContext->visualizationShader.uniform_fragParams, pRenderContext->visualizationShader.pProgram, "u_fragParams", sizeof(pRenderContext->visualizationShader.fragParams));
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->shadowShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_depth, pRenderContext->shadowShader.pProgram, "sceneDepth"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_shadowMapAtlas, pRenderContext->shadowShader.pProgram, "shadowMapAtlas"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->shadowShader.uniform_params, pRenderContext->shadowShader.pProgram, "u_params", sizeof(pRenderContext->shadowShader.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->shadowShader.pProgram, pWorkerPool, "asset://assets/shaders/viewShedVertexShader", "asset://assets/shaders/viewShedFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->shadowShader.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_depth, pRenderContext->shadowShader.pProgram, "sceneDepth");
+      vcShader_GetSamplerIndex(&pRenderContext->shadowShader.uniform_shadowMapAtlas, pRenderContext->shadowShader.pProgram, "shadowMapAtlas");
+      vcShader_GetConstantBuffer(&pRenderContext->shadowShader.uniform_params, pRenderContext->shadowShader.pProgram, "u_params", sizeof(pRenderContext->shadowShader.params));
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->skyboxShaderPanorama.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderPanorama.uniform_texture, pRenderContext->skyboxShaderPanorama.pProgram, "albedo"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->skyboxShaderPanorama.uniform_MatrixBlock, pRenderContext->skyboxShaderPanorama.pProgram, "u_EveryFrame", sizeof(udFloat4x4)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->skyboxShaderPanorama.pProgram, pWorkerPool, "asset://assets/shaders/panoramaSkyboxVertexShader", "asset://assets/shaders/panoramaSkyboxFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->skyboxShaderPanorama.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderPanorama.uniform_texture, pRenderContext->skyboxShaderPanorama.pProgram, "albedo");
+      vcShader_GetConstantBuffer(&pRenderContext->skyboxShaderPanorama.uniform_MatrixBlock, pRenderContext->skyboxShaderPanorama.pProgram, "u_EveryFrame", sizeof(udFloat4x4));
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->skyboxShaderTintImage.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderTintImage.uniform_texture, pRenderContext->skyboxShaderTintImage.pProgram, "albedo"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->skyboxShaderTintImage.uniform_params, pRenderContext->skyboxShaderTintImage.pProgram, "u_EveryFrame", sizeof(pRenderContext->skyboxShaderTintImage.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->skyboxShaderTintImage.pProgram, pWorkerPool, "asset://assets/shaders/imageColourSkyboxVertexShader", "asset://assets/shaders/imageColourSkyboxFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->skyboxShaderTintImage.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->skyboxShaderTintImage.uniform_texture, pRenderContext->skyboxShaderTintImage.pProgram, "albedo");
+      vcShader_GetConstantBuffer(&pRenderContext->skyboxShaderTintImage.uniform_params, pRenderContext->skyboxShaderTintImage.pProgram, "u_EveryFrame", sizeof(pRenderContext->skyboxShaderTintImage.params));
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->udRenderContext.presentShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_texture, pRenderContext->udRenderContext.presentShader.pProgram, "sceneColour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.presentShader.uniform_depth, pRenderContext->udRenderContext.presentShader.pProgram, "sceneDepth"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->udRenderContext.splatIdShader.pProgram, pWorkerPool, "asset://assets/shaders/udVertexShader", "asset://assets/shaders/udSplatIdFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->udRenderContext.splatIdShader.pProgram);
+      vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.splatIdShader.uniform_params, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.splatIdShader.params));
+      vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_texture, pRenderContext->udRenderContext.splatIdShader.pProgram, "sceneColour");
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->udRenderContext.splatIdShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->udRenderContext.splatIdShader.uniform_params, pRenderContext->udRenderContext.splatIdShader.pProgram, "u_params", sizeof(pRenderContext->udRenderContext.splatIdShader.params)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->udRenderContext.splatIdShader.uniform_texture, pRenderContext->udRenderContext.splatIdShader.pProgram, "sceneColour"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->postEffectsShader.pProgram, pWorkerPool, "asset://assets/shaders/postEffectsVertexShader", "asset://assets/shaders/postEffectsFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_texture, pRenderContext->postEffectsShader.pProgram, "sceneColour");
+      vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_depth, pRenderContext->postEffectsShader.pProgram, "sceneDepth");
+      vcShader_GetConstantBuffer(&pRenderContext->postEffectsShader.uniform_params, pRenderContext->postEffectsShader.pProgram, "u_params", sizeof(pRenderContext->postEffectsShader.params));
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->postEffectsShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_texture, pRenderContext->postEffectsShader.pProgram, "sceneColour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_depth, pRenderContext->postEffectsShader.pProgram, "sceneDepth"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->postEffectsShader.uniform_params, pRenderContext->postEffectsShader.pProgram, "u_params", sizeof(pRenderContext->postEffectsShader.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->blurShader.pProgram, pWorkerPool, "asset://assets/shaders/blurVertexShader", "asset://assets/shaders/blurFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->blurShader.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->blurShader.uniform_texture, pRenderContext->blurShader.pProgram, "colour");
+      vcShader_GetConstantBuffer(&pRenderContext->blurShader.uniform_params, pRenderContext->blurShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->blurShader.params));
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->blurShader.pProgram, "asset://assets/shaders/blurVertexShader", "asset://assets/shaders/blurFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->blurShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->blurShader.uniform_texture, pRenderContext->blurShader.pProgram, "colour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->blurShader.uniform_params, pRenderContext->blurShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->blurShader.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->selectionShader.pProgram, pWorkerPool, "asset://assets/shaders/highlightVertexShader", "asset://assets/shaders/highlightFragmentShader", vcP3UV2VertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->selectionShader.pProgram);
+      vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "colour");
+      vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params));
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->selectionShader.pProgram, "asset://assets/shaders/highlightVertexShader", "asset://assets/shaders/highlightFragmentShader", vcP3UV2VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->selectionShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->selectionShader.uniform_texture, pRenderContext->selectionShader.pProgram, "colour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->selectionShader.uniform_params, pRenderContext->selectionShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->selectionShader.params)), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pRenderContext->watermarkShader.pProgram, pWorkerPool, "asset://assets/shaders/imguiVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout,
+    [pRenderContext](void *)
+    {
+      vcShader_Bind(pRenderContext->watermarkShader.pProgram);
+      vcShader_GetConstantBuffer(&pRenderContext->watermarkShader.uniform_params, pRenderContext->watermarkShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->watermarkShader.params));
+      vcShader_GetSamplerIndex(&pRenderContext->watermarkShader.uniform_texture, pRenderContext->watermarkShader.pProgram, "Texture");
+    }
+  ), udR_InternalError);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pRenderContext->watermarkShader.pProgram, "asset://assets/shaders/imguiVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(pRenderContext->watermarkShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pRenderContext->watermarkShader.uniform_params, pRenderContext->watermarkShader.pProgram, "u_EveryFrame", sizeof(pRenderContext->watermarkShader.params)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pRenderContext->watermarkShader.uniform_texture, pRenderContext->watermarkShader.pProgram, "Texture"), udR_InternalError);
-
-  UD_ERROR_CHECK(vcPolygonModel_CreateShaders());
-  UD_ERROR_CHECK(vcImageRenderer_Init());
-  UD_ERROR_CHECK(vcLabelRenderer_Init());
-  UD_ERROR_CHECK(vcPinRenderer_Create(&pRenderContext->pPinRenderer));
+  UD_ERROR_CHECK(vcPolygonModel_CreateShaders(pWorkerPool));
+  UD_ERROR_CHECK(vcImageRenderer_Init(pWorkerPool));
+  UD_ERROR_CHECK(vcLabelRenderer_Init(pWorkerPool));
 
   UD_ERROR_IF(!vcShader_Bind(nullptr), udR_InternalError);
 
@@ -417,17 +456,17 @@ void vcRender_DestroyShaders(vcRenderContext *pRenderContext)
   vcLabelRenderer_Destroy();
 }
 
-udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext)
+udResult vcRender_ReloadShaders(vcRenderContext *pRenderContext, udWorkerPool *pWorkerPool)
 {
   udResult result;
 
   vcRender_DestroyShaders(pRenderContext);
 
-  UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pRenderContext->pAtmosphereRenderer));
-  UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pRenderContext->pTileRenderer));
-  UD_ERROR_CHECK(vcLineRenderer_ReloadShaders(pRenderContext->pLineRenderer));
+  UD_ERROR_CHECK(vcAtmosphereRenderer_ReloadShaders(pRenderContext->pAtmosphereRenderer, pWorkerPool));
+  UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pRenderContext->pTileRenderer, pWorkerPool));
+  UD_ERROR_CHECK(vcLineRenderer_ReloadShaders(pRenderContext->pLineRenderer, pWorkerPool));
 
-  UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext));
+  UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext, pWorkerPool));
 
   result = udR_Success;
 epilogue:

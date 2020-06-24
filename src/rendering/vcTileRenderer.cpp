@@ -748,7 +748,7 @@ void vcTileRenderer_BuildMeshVertices(vcP3Vertex *pVerts, int *pIndicies, udFloa
   }
 }
 
-udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSettings)
+udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, udWorkerPool *pWorkerPool, vcSettings *pSettings)
 {
   udResult result;
   vcTileRenderer *pTileRenderer = nullptr;
@@ -778,7 +778,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, vcSettings *pSet
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
     UD_ERROR_CHECK(udThread_Create(&pTileRenderer->cache.pThreads[i], vcTileRenderer_LoadThread, pTileRenderer));
 
-  UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pTileRenderer));
+  UD_ERROR_CHECK(vcTileRenderer_ReloadShaders(pTileRenderer, pWorkerPool));
 
   // build mesh variants
   for (size_t i = 0; i < udLengthOf(MeshConfigurations); ++i)
@@ -846,18 +846,22 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   return udR_Success;
 }
 
-udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer)
+udResult vcTileRenderer_ReloadShaders(vcTileRenderer *pTileRenderer, udWorkerPool *pWorkerPool)
 {
   udResult result;
 
   vcTileRenderer_DestroyShaders(pTileRenderer);
 
-  UD_ERROR_IF(!vcShader_CreateFromFile(&pTileRenderer->presentShader.pProgram, "asset://assets/shaders/tileVertexShader", "asset://assets/shaders/tileFragmentShader", vcP3VertexLayout), udR_InternalError);
-  UD_ERROR_IF(!vcShader_Bind(pTileRenderer->presentShader.pProgram), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject)), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "colour"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_normal, pTileRenderer->presentShader.pProgram, "normal"), udR_InternalError);
-  UD_ERROR_IF(!vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_dem, pTileRenderer->presentShader.pProgram, "dem"), udR_InternalError);
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&pTileRenderer->presentShader.pProgram, pWorkerPool, "asset://assets/shaders/tileVertexShader", "asset://assets/shaders/tileFragmentShader", vcP3VertexLayout,
+    [pTileRenderer](void *)
+    {
+      vcShader_Bind(pTileRenderer->presentShader.pProgram);
+      vcShader_GetConstantBuffer(&pTileRenderer->presentShader.pConstantBuffer, pTileRenderer->presentShader.pProgram, "u_EveryObject", sizeof(pTileRenderer->presentShader.everyObject));
+      vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_texture, pTileRenderer->presentShader.pProgram, "colour");
+      vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_normal, pTileRenderer->presentShader.pProgram, "normal");
+      vcShader_GetSamplerIndex(&pTileRenderer->presentShader.uniform_dem, pTileRenderer->presentShader.pProgram, "dem");
+    }
+  ), udR_InternalError);
 
   result = udR_Success;
 epilogue:

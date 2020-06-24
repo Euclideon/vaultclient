@@ -8,6 +8,9 @@
 #include <d3dcompiler.h>
 #include <D3D11Shader.h>
 
+const char *pVertexFileExtension = ".hlsl";
+const char *pFragmentFileExtension = ".hlsl";
+
 template <size_t N>
 bool vsShader_InternalReflectShaderConstantBuffers(ID3D10Blob *pBlob, int type, vcShaderConstantBuffer (&buffers)[N], int *pNextBuffer)
 {
@@ -182,22 +185,6 @@ bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, con
   *ppShader = pShader;
 
   return (pShader != nullptr);
-}
-
-bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
-{
-  const char *pVertexShaderText = nullptr;
-  const char *pFragmentShaderText = nullptr;
-
-  udFile_Load(udTempStr("%s.hlsl", pVertexShader), &pVertexShaderText);
-  udFile_Load(udTempStr("%s.hlsl", pFragmentShader), &pFragmentShaderText);
-
-  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
-
-  udFree(pFragmentShaderText);
-  udFree(pVertexShaderText);
-
-  return success;
 }
 
 void vcShader_DestroyShader(vcShader **ppShader)

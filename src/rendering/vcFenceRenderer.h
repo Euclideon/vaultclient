@@ -4,6 +4,7 @@
 #include "udMath.h"
 
 struct vcFenceRenderer;
+struct udWorkerPool;
 
 enum vcFenceRendererCurveType
 {
@@ -43,10 +44,10 @@ struct vcFenceRendererConfig
   float textureScrollSpeed;
 };
 
-udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer);
+udResult vcFenceRenderer_Create(vcFenceRenderer **ppFenceRenderer, udWorkerPool *pWorkerPool);
 udResult vcFenceRenderer_Destroy(vcFenceRenderer **ppFenceRenderer);
 
-udResult vcFenceRenderer_ReloadShaders(vcFenceRenderer *pFenceRenderer);
+udResult vcFenceRenderer_ReloadShaders(vcFenceRenderer *pFenceRenderer, udWorkerPool *pWorkerPool);
 
 udResult vcFenceRenderer_AddPoints(vcFenceRenderer *pFenceRenderer, udDouble3 *pPoints, size_t pointCount, bool closed = false);
 void vcFenceRenderer_ClearPoints(vcFenceRenderer *pFenceRenderer);
