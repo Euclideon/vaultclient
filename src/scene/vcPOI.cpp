@@ -752,6 +752,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
   m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
   m_pLabelInfo->textSize = m_namePt;
+  m_pLabelInfo->pSceneItem = this;
 
   for (size_t i = 0; i < m_lengthLabels.length; ++i)
   {
@@ -759,6 +760,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
     pLabel->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
     pLabel->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
     pLabel->textSize = m_namePt;
+    pLabel->pSceneItem = this;
   }
 
   // Update Polygon Model

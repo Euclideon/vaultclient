@@ -1794,16 +1794,12 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       }
       else if (selectPolygons)
       {
-        if (pickResult.pPolygon != nullptr)
+        if (pickResult.pSceneItem != nullptr)
         {
-          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pPolygon->pSceneItem->m_pNode->UUID);
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pSceneItem->m_pNode->UUID);
 
-          if (pickResult.pPolygon->sceneItemInternalId != 0)
-            pickResult.pPolygon->pSceneItem->SelectSubitem(pickResult.pPolygon->sceneItemInternalId);
-        }
-        else if (pickResult.pModel != nullptr)
-        {
-          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pModel->m_pNode->UUID);
+          if (pickResult.sceneItemInternalId != 0)
+            pickResult.pSceneItem->SelectSubitem(pickResult.sceneItemInternalId);
         }
         else
         {

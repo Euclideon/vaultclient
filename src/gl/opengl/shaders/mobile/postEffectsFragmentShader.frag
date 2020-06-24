@@ -2,6 +2,7 @@
 precision mediump float;
 precision highp int;
 
+uniform highp sampler2D SPIRV_Cross_CombinedsceneNormalTexturesceneNormalSampler;
 uniform highp sampler2D SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler;
 uniform highp sampler2D SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler;
 
@@ -12,521 +13,524 @@ in highp vec2 varying_TEXCOORD3;
 in highp vec2 varying_TEXCOORD4;
 in highp vec2 varying_TEXCOORD5;
 in highp float varying_TEXCOORD6;
-layout(location = 0) out highp vec4 out_var_SV_Target;
+layout(location = 0) out highp vec4 out_var_SV_Target0;
+layout(location = 1) out highp vec4 out_var_SV_Target1;
 
-float _66;
-vec2 _67;
-vec2 _68;
+float _69;
+vec2 _70;
+vec2 _71;
 
 void main()
 {
-    highp vec4 _80 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD0);
-    highp float _81 = _80.x;
-    highp vec4 _535;
-    if ((1.0 - (((step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD1).x - _81), 0.0030000000260770320892333984375) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD2).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD3).x - _81), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD4).x - _81), 0.0030000000260770320892333984375))) == 0.0)
+    highp vec4 _83 = texture(SPIRV_Cross_CombinedsceneNormalTexturesceneNormalSampler, varying_TEXCOORD0);
+    highp vec4 _87 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD0);
+    highp float _88 = _87.x;
+    highp vec4 _542;
+    if ((1.0 - (((step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD1).x - _88), 0.0030000000260770320892333984375) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD2).x - _88), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD3).x - _88), 0.0030000000260770320892333984375)) * step(abs(texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD4).x - _88), 0.0030000000260770320892333984375))) == 0.0)
     {
-        _535 = texture(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, varying_TEXCOORD0);
+        _542 = texture(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, varying_TEXCOORD0);
     }
     else
     {
-        highp vec4 _534;
+        highp vec4 _541;
         switch (0u)
         {
             case 0u:
             {
-                highp vec2 _123 = _67;
-                _123.x = varying_TEXCOORD0.x;
-                highp vec2 _125 = _123;
-                _125.y = varying_TEXCOORD0.y;
-                highp vec4 _127 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0);
-                highp vec4 _129 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(0, 1));
-                highp float _130 = _129.y;
-                highp vec4 _132 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(1, 0));
-                highp float _133 = _132.y;
-                highp vec4 _135 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(0, -1));
-                highp float _136 = _135.y;
-                highp vec4 _138 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(-1, 0));
-                highp float _139 = _138.y;
-                highp float _140 = _127.y;
-                highp float _147 = max(max(_136, _139), max(_133, max(_130, _140)));
-                highp float _150 = _147 - min(min(_136, _139), min(_133, min(_130, _140)));
-                if (_150 < max(0.0, _147 * 0.125))
+                highp vec2 _130 = _70;
+                _130.x = varying_TEXCOORD0.x;
+                highp vec2 _132 = _130;
+                _132.y = varying_TEXCOORD0.y;
+                highp vec4 _134 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0);
+                highp vec4 _136 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(0, 1));
+                highp float _137 = _136.y;
+                highp vec4 _139 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(1, 0));
+                highp float _140 = _139.y;
+                highp vec4 _142 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(0, -1));
+                highp float _143 = _142.y;
+                highp vec4 _145 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(-1, 0));
+                highp float _146 = _145.y;
+                highp float _147 = _134.y;
+                highp float _154 = max(max(_143, _146), max(_140, max(_137, _147)));
+                highp float _157 = _154 - min(min(_143, _146), min(_140, min(_137, _147)));
+                if (_157 < max(0.0, _154 * 0.125))
                 {
-                    _534 = _127;
+                    _541 = _134;
                     break;
                 }
-                highp vec4 _156 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(-1));
-                highp float _157 = _156.y;
-                highp vec4 _159 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(1));
-                highp float _160 = _159.y;
-                highp vec4 _162 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(1, -1));
-                highp float _163 = _162.y;
-                highp vec4 _165 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _125, 0.0, ivec2(-1, 1));
-                highp float _166 = _165.y;
-                highp float _167 = _136 + _130;
-                highp float _168 = _139 + _133;
-                highp float _171 = (-2.0) * _140;
-                highp float _174 = _163 + _160;
-                highp float _180 = _157 + _166;
-                bool _200 = (abs(((-2.0) * _139) + _180) + ((abs(_171 + _167) * 2.0) + abs(((-2.0) * _133) + _174))) >= (abs(((-2.0) * _130) + (_166 + _160)) + ((abs(_171 + _168) * 2.0) + abs(((-2.0) * _136) + (_157 + _163))));
-                bool _203 = !_200;
-                highp float _204 = _203 ? _139 : _136;
-                highp float _205 = _203 ? _133 : _130;
-                highp float _209;
-                if (_200)
+                highp vec4 _163 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(-1));
+                highp float _164 = _163.y;
+                highp vec4 _166 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(1));
+                highp float _167 = _166.y;
+                highp vec4 _169 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(1, -1));
+                highp float _170 = _169.y;
+                highp vec4 _172 = textureLodOffset(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _132, 0.0, ivec2(-1, 1));
+                highp float _173 = _172.y;
+                highp float _174 = _143 + _137;
+                highp float _175 = _146 + _140;
+                highp float _178 = (-2.0) * _147;
+                highp float _181 = _170 + _167;
+                highp float _187 = _164 + _173;
+                bool _207 = (abs(((-2.0) * _146) + _187) + ((abs(_178 + _174) * 2.0) + abs(((-2.0) * _140) + _181))) >= (abs(((-2.0) * _137) + (_173 + _167)) + ((abs(_178 + _175) * 2.0) + abs(((-2.0) * _143) + (_164 + _170))));
+                bool _210 = !_207;
+                highp float _211 = _210 ? _146 : _143;
+                highp float _212 = _210 ? _140 : _137;
+                highp float _216;
+                if (_207)
                 {
-                    _209 = varying_TEXCOORD5.y;
+                    _216 = varying_TEXCOORD5.y;
                 }
                 else
                 {
-                    _209 = varying_TEXCOORD5.x;
+                    _216 = varying_TEXCOORD5.x;
                 }
-                highp float _216 = abs(_204 - _140);
-                highp float _217 = abs(_205 - _140);
-                bool _218 = _216 >= _217;
-                highp float _223;
-                if (_218)
+                highp float _223 = abs(_211 - _147);
+                highp float _224 = abs(_212 - _147);
+                bool _225 = _223 >= _224;
+                highp float _230;
+                if (_225)
                 {
-                    _223 = -_209;
+                    _230 = -_216;
                 }
                 else
                 {
-                    _223 = _209;
+                    _230 = _216;
                 }
-                highp float _226 = clamp(abs(((((_167 + _168) * 2.0) + (_180 + _174)) * 0.083333335816860198974609375) - _140) * (1.0 / _150), 0.0, 1.0);
-                highp float _227 = _203 ? 0.0 : varying_TEXCOORD5.x;
-                highp float _229 = _200 ? 0.0 : varying_TEXCOORD5.y;
-                highp vec2 _235;
-                if (_203)
-                {
-                    highp vec2 _234 = _125;
-                    _234.x = varying_TEXCOORD0.x + (_223 * 0.5);
-                    _235 = _234;
-                }
-                else
-                {
-                    _235 = _125;
-                }
+                highp float _233 = clamp(abs(((((_174 + _175) * 2.0) + (_187 + _181)) * 0.083333335816860198974609375) - _147) * (1.0 / _157), 0.0, 1.0);
+                highp float _234 = _210 ? 0.0 : varying_TEXCOORD5.x;
+                highp float _236 = _207 ? 0.0 : varying_TEXCOORD5.y;
                 highp vec2 _242;
-                if (_200)
+                if (_210)
                 {
-                    highp vec2 _241 = _235;
-                    _241.y = _235.y + (_223 * 0.5);
+                    highp vec2 _241 = _132;
+                    _241.x = varying_TEXCOORD0.x + (_230 * 0.5);
                     _242 = _241;
                 }
                 else
                 {
-                    _242 = _235;
+                    _242 = _132;
                 }
-                highp float _244 = _242.x - _227;
-                highp vec2 _245 = _67;
-                _245.x = _244;
-                highp vec2 _248 = _245;
-                _248.y = _242.y - _229;
-                highp float _249 = _242.x + _227;
-                highp vec2 _250 = _67;
-                _250.x = _249;
-                highp vec2 _252 = _250;
-                _252.y = _242.y + _229;
-                highp float _264 = max(_216, _217) * 0.25;
-                highp float _265 = ((!_218) ? (_205 + _140) : (_204 + _140)) * 0.5;
-                highp float _267 = (((-2.0) * _226) + 3.0) * (_226 * _226);
-                bool _268 = (_140 - _265) < 0.0;
-                highp float _269 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _248, 0.0).y - _265;
-                highp float _270 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _252, 0.0).y - _265;
-                bool _275 = !(abs(_269) >= _264);
-                highp vec2 _281;
-                if (_275)
+                highp vec2 _249;
+                if (_207)
                 {
-                    highp vec2 _280 = _248;
-                    _280.x = _244 - (_227 * 1.5);
-                    _281 = _280;
+                    highp vec2 _248 = _242;
+                    _248.y = _242.y + (_230 * 0.5);
+                    _249 = _248;
                 }
                 else
                 {
-                    _281 = _248;
+                    _249 = _242;
                 }
+                highp float _251 = _249.x - _234;
+                highp vec2 _252 = _70;
+                _252.x = _251;
+                highp vec2 _255 = _252;
+                _255.y = _249.y - _236;
+                highp float _256 = _249.x + _234;
+                highp vec2 _257 = _70;
+                _257.x = _256;
+                highp vec2 _259 = _257;
+                _259.y = _249.y + _236;
+                highp float _271 = max(_223, _224) * 0.25;
+                highp float _272 = ((!_225) ? (_212 + _147) : (_211 + _147)) * 0.5;
+                highp float _274 = (((-2.0) * _233) + 3.0) * (_233 * _233);
+                bool _275 = (_147 - _272) < 0.0;
+                highp float _276 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _255, 0.0).y - _272;
+                highp float _277 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _259, 0.0).y - _272;
+                bool _282 = !(abs(_276) >= _271);
                 highp vec2 _288;
-                if (_275)
+                if (_282)
                 {
-                    highp vec2 _287 = _281;
-                    _287.y = _281.y - (_229 * 1.5);
+                    highp vec2 _287 = _255;
+                    _287.x = _251 - (_234 * 1.5);
                     _288 = _287;
                 }
                 else
                 {
-                    _288 = _281;
+                    _288 = _255;
                 }
-                bool _289 = !(abs(_270) >= _264);
-                highp vec2 _296;
-                if (_289)
+                highp vec2 _295;
+                if (_282)
                 {
-                    highp vec2 _295 = _252;
-                    _295.x = _249 + (_227 * 1.5);
-                    _296 = _295;
+                    highp vec2 _294 = _288;
+                    _294.y = _288.y - (_236 * 1.5);
+                    _295 = _294;
                 }
                 else
                 {
-                    _296 = _252;
+                    _295 = _288;
                 }
+                bool _296 = !(abs(_277) >= _271);
                 highp vec2 _303;
-                if (_289)
+                if (_296)
                 {
-                    highp vec2 _302 = _296;
-                    _302.y = _296.y + (_229 * 1.5);
+                    highp vec2 _302 = _259;
+                    _302.x = _256 + (_234 * 1.5);
                     _303 = _302;
                 }
                 else
                 {
-                    _303 = _296;
+                    _303 = _259;
                 }
-                highp vec2 _482;
-                highp vec2 _483;
-                highp float _484;
-                highp float _485;
-                if (_275 || _289)
+                highp vec2 _310;
+                if (_296)
                 {
-                    highp float _311;
-                    if (_275)
+                    highp vec2 _309 = _303;
+                    _309.y = _303.y + (_236 * 1.5);
+                    _310 = _309;
+                }
+                else
+                {
+                    _310 = _303;
+                }
+                highp vec2 _489;
+                highp vec2 _490;
+                highp float _491;
+                highp float _492;
+                if (_282 || _296)
+                {
+                    highp float _318;
+                    if (_282)
                     {
-                        _311 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _288, 0.0).y;
+                        _318 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _295, 0.0).y;
                     }
                     else
                     {
-                        _311 = _269;
+                        _318 = _276;
                     }
-                    highp float _317;
-                    if (_289)
+                    highp float _324;
+                    if (_296)
                     {
-                        _317 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _303, 0.0).y;
+                        _324 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _310, 0.0).y;
                     }
                     else
                     {
-                        _317 = _270;
+                        _324 = _277;
                     }
-                    highp float _321;
-                    if (_275)
+                    highp float _328;
+                    if (_282)
                     {
-                        _321 = _311 - _265;
+                        _328 = _318 - _272;
                     }
                     else
                     {
-                        _321 = _311;
+                        _328 = _318;
                     }
-                    highp float _325;
-                    if (_289)
+                    highp float _332;
+                    if (_296)
                     {
-                        _325 = _317 - _265;
+                        _332 = _324 - _272;
                     }
                     else
                     {
-                        _325 = _317;
+                        _332 = _324;
                     }
-                    bool _330 = !(abs(_321) >= _264);
-                    highp vec2 _337;
-                    if (_330)
-                    {
-                        highp vec2 _336 = _288;
-                        _336.x = _288.x - (_227 * 2.0);
-                        _337 = _336;
-                    }
-                    else
-                    {
-                        _337 = _288;
-                    }
+                    bool _337 = !(abs(_328) >= _271);
                     highp vec2 _344;
-                    if (_330)
+                    if (_337)
                     {
-                        highp vec2 _343 = _337;
-                        _343.y = _337.y - (_229 * 2.0);
+                        highp vec2 _343 = _295;
+                        _343.x = _295.x - (_234 * 2.0);
                         _344 = _343;
                     }
                     else
                     {
-                        _344 = _337;
+                        _344 = _295;
                     }
-                    bool _345 = !(abs(_325) >= _264);
-                    highp vec2 _353;
-                    if (_345)
+                    highp vec2 _351;
+                    if (_337)
                     {
-                        highp vec2 _352 = _303;
-                        _352.x = _303.x + (_227 * 2.0);
-                        _353 = _352;
+                        highp vec2 _350 = _344;
+                        _350.y = _344.y - (_236 * 2.0);
+                        _351 = _350;
                     }
                     else
                     {
-                        _353 = _303;
+                        _351 = _344;
                     }
+                    bool _352 = !(abs(_332) >= _271);
                     highp vec2 _360;
-                    if (_345)
+                    if (_352)
                     {
-                        highp vec2 _359 = _353;
-                        _359.y = _353.y + (_229 * 2.0);
+                        highp vec2 _359 = _310;
+                        _359.x = _310.x + (_234 * 2.0);
                         _360 = _359;
                     }
                     else
                     {
-                        _360 = _353;
+                        _360 = _310;
                     }
-                    highp vec2 _478;
-                    highp vec2 _479;
-                    highp float _480;
-                    highp float _481;
-                    if (_330 || _345)
+                    highp vec2 _367;
+                    if (_352)
                     {
-                        highp float _368;
-                        if (_330)
+                        highp vec2 _366 = _360;
+                        _366.y = _360.y + (_236 * 2.0);
+                        _367 = _366;
+                    }
+                    else
+                    {
+                        _367 = _360;
+                    }
+                    highp vec2 _485;
+                    highp vec2 _486;
+                    highp float _487;
+                    highp float _488;
+                    if (_337 || _352)
+                    {
+                        highp float _375;
+                        if (_337)
                         {
-                            _368 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _344, 0.0).y;
+                            _375 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _351, 0.0).y;
                         }
                         else
                         {
-                            _368 = _321;
+                            _375 = _328;
                         }
-                        highp float _374;
-                        if (_345)
+                        highp float _381;
+                        if (_352)
                         {
-                            _374 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _360, 0.0).y;
+                            _381 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _367, 0.0).y;
                         }
                         else
                         {
-                            _374 = _325;
+                            _381 = _332;
                         }
-                        highp float _378;
-                        if (_330)
+                        highp float _385;
+                        if (_337)
                         {
-                            _378 = _368 - _265;
+                            _385 = _375 - _272;
                         }
                         else
                         {
-                            _378 = _368;
+                            _385 = _375;
                         }
-                        highp float _382;
-                        if (_345)
+                        highp float _389;
+                        if (_352)
                         {
-                            _382 = _374 - _265;
+                            _389 = _381 - _272;
                         }
                         else
                         {
-                            _382 = _374;
+                            _389 = _381;
                         }
-                        bool _387 = !(abs(_378) >= _264);
-                        highp vec2 _394;
-                        if (_387)
-                        {
-                            highp vec2 _393 = _344;
-                            _393.x = _344.x - (_227 * 4.0);
-                            _394 = _393;
-                        }
-                        else
-                        {
-                            _394 = _344;
-                        }
+                        bool _394 = !(abs(_385) >= _271);
                         highp vec2 _401;
-                        if (_387)
+                        if (_394)
                         {
-                            highp vec2 _400 = _394;
-                            _400.y = _394.y - (_229 * 4.0);
+                            highp vec2 _400 = _351;
+                            _400.x = _351.x - (_234 * 4.0);
                             _401 = _400;
                         }
                         else
                         {
-                            _401 = _394;
+                            _401 = _351;
                         }
-                        bool _402 = !(abs(_382) >= _264);
-                        highp vec2 _410;
-                        if (_402)
+                        highp vec2 _408;
+                        if (_394)
                         {
-                            highp vec2 _409 = _360;
-                            _409.x = _360.x + (_227 * 4.0);
-                            _410 = _409;
+                            highp vec2 _407 = _401;
+                            _407.y = _401.y - (_236 * 4.0);
+                            _408 = _407;
                         }
                         else
                         {
-                            _410 = _360;
+                            _408 = _401;
                         }
+                        bool _409 = !(abs(_389) >= _271);
                         highp vec2 _417;
-                        if (_402)
+                        if (_409)
                         {
-                            highp vec2 _416 = _410;
-                            _416.y = _410.y + (_229 * 4.0);
+                            highp vec2 _416 = _367;
+                            _416.x = _367.x + (_234 * 4.0);
                             _417 = _416;
                         }
                         else
                         {
-                            _417 = _410;
+                            _417 = _367;
                         }
-                        highp vec2 _474;
-                        highp vec2 _475;
-                        highp float _476;
-                        highp float _477;
-                        if (_387 || _402)
+                        highp vec2 _424;
+                        if (_409)
                         {
-                            highp float _425;
-                            if (_387)
+                            highp vec2 _423 = _417;
+                            _423.y = _417.y + (_236 * 4.0);
+                            _424 = _423;
+                        }
+                        else
+                        {
+                            _424 = _417;
+                        }
+                        highp vec2 _481;
+                        highp vec2 _482;
+                        highp float _483;
+                        highp float _484;
+                        if (_394 || _409)
+                        {
+                            highp float _432;
+                            if (_394)
                             {
-                                _425 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _401, 0.0).y;
+                                _432 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _408, 0.0).y;
                             }
                             else
                             {
-                                _425 = _378;
+                                _432 = _385;
                             }
-                            highp float _431;
-                            if (_402)
+                            highp float _438;
+                            if (_409)
                             {
-                                _431 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _417, 0.0).y;
+                                _438 = textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _424, 0.0).y;
                             }
                             else
                             {
-                                _431 = _382;
+                                _438 = _389;
                             }
-                            highp float _435;
-                            if (_387)
+                            highp float _442;
+                            if (_394)
                             {
-                                _435 = _425 - _265;
+                                _442 = _432 - _272;
                             }
                             else
                             {
-                                _435 = _425;
+                                _442 = _432;
                             }
-                            highp float _439;
-                            if (_402)
+                            highp float _446;
+                            if (_409)
                             {
-                                _439 = _431 - _265;
+                                _446 = _438 - _272;
                             }
                             else
                             {
-                                _439 = _431;
+                                _446 = _438;
                             }
-                            bool _444 = !(abs(_435) >= _264);
-                            highp vec2 _451;
-                            if (_444)
-                            {
-                                highp vec2 _450 = _401;
-                                _450.x = _401.x - (_227 * 12.0);
-                                _451 = _450;
-                            }
-                            else
-                            {
-                                _451 = _401;
-                            }
+                            bool _451 = !(abs(_442) >= _271);
                             highp vec2 _458;
-                            if (_444)
+                            if (_451)
                             {
-                                highp vec2 _457 = _451;
-                                _457.y = _451.y - (_229 * 12.0);
+                                highp vec2 _457 = _408;
+                                _457.x = _408.x - (_234 * 12.0);
                                 _458 = _457;
                             }
                             else
                             {
-                                _458 = _451;
+                                _458 = _408;
                             }
-                            bool _459 = !(abs(_439) >= _264);
-                            highp vec2 _466;
-                            if (_459)
+                            highp vec2 _465;
+                            if (_451)
                             {
-                                highp vec2 _465 = _417;
-                                _465.x = _417.x + (_227 * 12.0);
-                                _466 = _465;
+                                highp vec2 _464 = _458;
+                                _464.y = _458.y - (_236 * 12.0);
+                                _465 = _464;
                             }
                             else
                             {
-                                _466 = _417;
+                                _465 = _458;
                             }
+                            bool _466 = !(abs(_446) >= _271);
                             highp vec2 _473;
-                            if (_459)
+                            if (_466)
                             {
-                                highp vec2 _472 = _466;
-                                _472.y = _466.y + (_229 * 12.0);
+                                highp vec2 _472 = _424;
+                                _472.x = _424.x + (_234 * 12.0);
                                 _473 = _472;
                             }
                             else
                             {
-                                _473 = _466;
+                                _473 = _424;
                             }
-                            _474 = _473;
-                            _475 = _458;
-                            _476 = _439;
-                            _477 = _435;
+                            highp vec2 _480;
+                            if (_466)
+                            {
+                                highp vec2 _479 = _473;
+                                _479.y = _473.y + (_236 * 12.0);
+                                _480 = _479;
+                            }
+                            else
+                            {
+                                _480 = _473;
+                            }
+                            _481 = _480;
+                            _482 = _465;
+                            _483 = _446;
+                            _484 = _442;
                         }
                         else
                         {
-                            _474 = _417;
-                            _475 = _401;
-                            _476 = _382;
-                            _477 = _378;
+                            _481 = _424;
+                            _482 = _408;
+                            _483 = _389;
+                            _484 = _385;
                         }
-                        _478 = _474;
-                        _479 = _475;
-                        _480 = _476;
-                        _481 = _477;
+                        _485 = _481;
+                        _486 = _482;
+                        _487 = _483;
+                        _488 = _484;
                     }
                     else
                     {
-                        _478 = _360;
-                        _479 = _344;
-                        _480 = _325;
-                        _481 = _321;
+                        _485 = _367;
+                        _486 = _351;
+                        _487 = _332;
+                        _488 = _328;
                     }
-                    _482 = _478;
-                    _483 = _479;
-                    _484 = _480;
-                    _485 = _481;
+                    _489 = _485;
+                    _490 = _486;
+                    _491 = _487;
+                    _492 = _488;
                 }
                 else
                 {
-                    _482 = _303;
-                    _483 = _288;
-                    _484 = _270;
-                    _485 = _269;
+                    _489 = _310;
+                    _490 = _295;
+                    _491 = _277;
+                    _492 = _276;
                 }
-                highp float _494;
-                if (_203)
+                highp float _501;
+                if (_210)
                 {
-                    _494 = varying_TEXCOORD0.y - _483.y;
+                    _501 = varying_TEXCOORD0.y - _490.y;
                 }
                 else
                 {
-                    _494 = varying_TEXCOORD0.x - _483.x;
+                    _501 = varying_TEXCOORD0.x - _490.x;
                 }
-                highp float _499;
-                if (_203)
+                highp float _506;
+                if (_210)
                 {
-                    _499 = _482.y - varying_TEXCOORD0.y;
+                    _506 = _489.y - varying_TEXCOORD0.y;
                 }
                 else
                 {
-                    _499 = _482.x - varying_TEXCOORD0.x;
+                    _506 = _489.x - varying_TEXCOORD0.x;
                 }
-                highp float _514 = max(((_494 < _499) ? ((_485 < 0.0) != _268) : ((_484 < 0.0) != _268)) ? ((min(_494, _499) * ((-1.0) / (_499 + _494))) + 0.5) : 0.0, (_267 * _267) * 0.75);
-                highp vec2 _520;
-                if (_203)
-                {
-                    highp vec2 _519 = _125;
-                    _519.x = varying_TEXCOORD0.x + (_514 * _223);
-                    _520 = _519;
-                }
-                else
-                {
-                    _520 = _125;
-                }
+                highp float _521 = max(((_501 < _506) ? ((_492 < 0.0) != _275) : ((_491 < 0.0) != _275)) ? ((min(_501, _506) * ((-1.0) / (_506 + _501))) + 0.5) : 0.0, (_274 * _274) * 0.75);
                 highp vec2 _527;
-                if (_200)
+                if (_210)
                 {
-                    highp vec2 _526 = _520;
-                    _526.y = _520.y + (_514 * _223);
+                    highp vec2 _526 = _132;
+                    _526.x = varying_TEXCOORD0.x + (_521 * _230);
                     _527 = _526;
                 }
                 else
                 {
-                    _527 = _520;
+                    _527 = _132;
                 }
-                _534 = vec4(textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _527, 0.0).xyz, _66);
+                highp vec2 _534;
+                if (_207)
+                {
+                    highp vec2 _533 = _527;
+                    _533.y = _527.y + (_521 * _230);
+                    _534 = _533;
+                }
+                else
+                {
+                    _534 = _527;
+                }
+                _541 = vec4(textureLod(SPIRV_Cross_CombinedsceneColourTexturesceneColourSampler, _534, 0.0).xyz, _69);
                 break;
             }
         }
-        _535 = _534;
+        _542 = _541;
     }
-    out_var_SV_Target = vec4(mix(vec3(dot(_535.xyz, vec3(0.2125000059604644775390625, 0.7153999805450439453125, 0.07209999859333038330078125))), _535.xyz, vec3(varying_TEXCOORD6)), 1.0);
+    out_var_SV_Target0 = vec4(mix(vec3(dot(_542.xyz, vec3(0.2125000059604644775390625, 0.7153999805450439453125, 0.07209999859333038330078125))), _542.xyz, vec3(varying_TEXCOORD6)), 1.0);
+    out_var_SV_Target1 = _83;
 }
 

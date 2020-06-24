@@ -13,6 +13,8 @@ enum vcLabelFontSize
   vcLFS_Count,
 };
 
+class vcSceneItem;
+
 struct vcLabelInfo
 {
   udDouble3 worldPosition;
@@ -21,6 +23,9 @@ struct vcLabelInfo
   vcLabelFontSize textSize;
   uint32_t textColourRGBA;
   uint32_t backColourRGBA;
+
+  vcSceneItem *pSceneItem;
+  uint64_t sceneItemInternalId; // 0 is entire model; for most systems this will be +1 compared to internal arrays
 };
 
 struct ImDrawList;
@@ -30,5 +35,5 @@ struct udWorkerPool;
 udResult vcLabelRenderer_Init(udWorkerPool *pWorkerPool);
 udResult vcLabelRenderer_Destroy();
 
-bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabel, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
+bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabel, float encodedObjectId, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize);
 #endif//vcLabelRenderer_h__
