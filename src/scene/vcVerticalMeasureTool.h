@@ -29,6 +29,7 @@ public:
   virtual void ChangeProjection(const udGeoZone &newZone);
   virtual udDouble3 GetLocalSpacePivot();
   virtual bool IsValid() const { return !m_markDelete; }
+  virtual void HandleToolUI(vcState *pProgramState);
 
 private:
   void UpdateIntersectionPosition(vcState *pProgramState);

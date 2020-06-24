@@ -708,6 +708,11 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
     ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg);
     fontCfg.MergeMode = true;
 
+    const float BigFontSize = 36.f;
+    ImFontConfig bigFontCfg = ImFontConfig();
+    bigFontCfg.FontDataOwnedByAtlas = false;
+    bigFontCfg.MergeMode = false;
+
 #if UD_RELEASE // Load all glyphs for supported languages
     static ImWchar characterRanges[] =
     {
@@ -744,6 +749,20 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
 
     ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, characterRanges);
 #endif
+
+    static ImWchar bigFontCharacterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0x2010, 0x205E, // Punctuations
+      0x25A0, 0x25FF, // Geometric Shapes
+      0x26A0, 0x26A1, // Exclamation in Triangle
+      0x2713, 0x2714, // Checkmark
+      0
+    };
+
+    
+    pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, bigFontCharacterRanges);
+
   }
 
   udFree(pLoadInfo->pData);
@@ -1273,6 +1292,20 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         {
           ImGui::Separator();
           ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
+          vdkProjectNode* pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+          if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "MHeight") && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+          {
+            vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+
+            char bufferA[128];
+            char bufferB[128];
+            vcHotkey::GetKeyName(vcB_Cancel, bufferB);
+            ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+
+            ImGui::Separator();
+
+            pSceneItem->HandleToolUI(pProgramState);
+          }
           ImGui::Separator();
         }
         break;
