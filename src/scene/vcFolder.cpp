@@ -69,6 +69,10 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       vcSceneItem *pSceneItem = (vcSceneItem *)pNode->pUserData;
 
+      if (pSceneItem->m_lastUpdateTime < pSceneItem->m_pNode->lastUpdate)
+        pSceneItem->UpdateNode(pProgramState);
+
+      pSceneItem->AddToScene(pProgramState, pRenderData);
       if (!pSceneItem->IsValid())
       {
         pSceneItem->Cleanup(pProgramState);
@@ -77,11 +81,6 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode = nextNode;
         continue;
       }
-
-      if (pSceneItem->m_lastUpdateTime < pSceneItem->m_pNode->lastUpdate)
-        pSceneItem->UpdateNode(pProgramState);
-
-      pSceneItem->AddToScene(pProgramState, pRenderData);
 
       if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
       {
