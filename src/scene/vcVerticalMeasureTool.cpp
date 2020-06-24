@@ -218,13 +218,11 @@ void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
 
 void vcVerticalMeasureTool::ChangeProjection(const udGeoZone &newZone)
 {
-  ClearPoints();
-
   udDouble3 *pPoints = nullptr;
   int number = 0;
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &pPoints, &number);
-  for(int i = 0; i < number; i ++)
-    m_points[i] = pPoints[i];
+  if(number > 0)
+    m_points[0] = pPoints[0];
 
   udFree(pPoints);
   pPoints = nullptr;
