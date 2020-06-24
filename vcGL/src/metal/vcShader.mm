@@ -127,7 +127,7 @@ void vcShader_UpdatePipeline(vcShader *pShader)
 #endif
 }
 
-bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexShaderFilename, const char *pVertexShader, const char *pFragmentShaderFilename, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
+bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
 {
   @autoreleasepool {
     if (ppShader == nullptr || pVertexShader == nullptr || pFragmentShader == nullptr)
@@ -191,21 +191,12 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
     vertexDesc.layouts[30].stepFunction = MTLVertexStepFunctionPerVertex;
     vertexDesc.layouts[30].stepRate = 1;
 
-    id<MTLFunction> vFunc = nil;
-    id<MTLFunction> fFunc = nil;
-
-    if (pVertexShaderFilename != nullptr && udStrchr(pVertexShader, "\n") != nullptr)
-    {
-      pShader->vertexLibrary = [g_device newLibraryWithSource:[NSString stringWithUTF8String:pVertexShader] options: {} error:nil];
-      pShader->fragmentLibrary = [g_device newLibraryWithSource:[NSString stringWithUTF8String:pFragmentShader] options: {} error:nil];
-      
-      vFunc = [pShader->vertexLibrary newFunctionWithName:@"main0"];
-      fFunc = [pShader->fragmentLibrary newFunctionWithName:@"main0"];
-    }
+    pShader->vertexLibrary = [g_device newLibraryWithSource:[NSString stringWithUTF8String:pVertexShader] options: {} error:nil];
+    pShader->fragmentLibrary = [g_device newLibraryWithSource:[NSString stringWithUTF8String:pFragmentShader] options: {} error:nil];
 
     pShader->inititalised = false;
 
-    vcShader_CreatePipelineDesc(pShader, 0, vFunc, fFunc, vertexDesc);
+    vcShader_CreatePipelineDesc(pShader, 0, [pShader->vertexLibrary newFunctionWithName:@"main0"], [pShader->fragmentLibrary newFunctionWithName:@"main0"], vertexDesc);
 
     NSError *err = nil;
     MTLPipelineOption option = MTLPipelineOptionBufferTypeInfo | MTLPipelineOptionArgumentInfo;
@@ -269,11 +260,6 @@ bool vcShader_CreateFromTextInternal(vcShader **ppShader, const char *pVertexSha
   }
 }
 
-bool vcShader_CreateFromText(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pVertLayout, uint32_t totalTypes)
-{
-  return vcShader_CreateFromTextInternal(ppShader, nullptr, pVertexShader, nullptr, pFragmentShader, pVertLayout, totalTypes);
-}
-
 bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, const char *pFragmentShader, const vcVertexLayoutTypes *pInputTypes, uint32_t totalInputs)
 {
   char *pVertexShaderText = nullptr;
@@ -282,15 +268,7 @@ bool vcShader_CreateFromFile(vcShader **ppShader, const char *pVertexShader, con
   udFile_Load(udTempStr("%s.metal", pVertexShader), &pVertexShaderText);
   udFile_Load(udTempStr("%s.metal", pFragmentShader), &pFragmentShaderText);
 
-  char *pTemp = (char*)udStrchr(pVertexShaderText, "\n");
-  if (pTemp && pTemp[1] == '\0') // This file contains the name of a shader
-    *pTemp = '\0'; // Zero the new line so the shader can be found
-
-  pTemp = (char *)udStrchr(pFragmentShaderText, "\n");
-  if (pTemp && pTemp[1] == '\0') // This file contains the name of a shader
-    *pTemp = '\0'; // Zero the new line so the shader can be found
-
-  bool success = vcShader_CreateFromTextInternal(ppShader, udStrrchr(pVertexShader, "/") + 1, pVertexShaderText, udStrrchr(pFragmentShader, "/") + 1, pFragmentShaderText, pInputTypes, totalInputs);
+  bool success = vcShader_CreateFromText(ppShader, pVertexShaderText, pFragmentShaderText, pInputTypes, totalInputs);
 
   udFree(pFragmentShaderText);
   udFree(pVertexShaderText);
