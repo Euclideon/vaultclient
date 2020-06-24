@@ -91,6 +91,7 @@ struct vcState
 
   vcCamera camera;
   vcCameraInput cameraInput;
+  ImFont* pBigFont;
 
   int settingsErrors;
   struct ErrorItem
