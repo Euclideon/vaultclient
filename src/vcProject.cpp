@@ -333,6 +333,7 @@ void vcProject_RemoveSelected(vcState *pProgramState)
 {
   vcProject_RemoveSelectedFolder(pProgramState, pProgramState->activeProject.pRoot);
 
+  pProgramState->sceneExplorer.selectStartItem = {};
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
 }
