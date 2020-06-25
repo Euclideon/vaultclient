@@ -44,6 +44,7 @@ class vcPOI : public vcSceneItem
   friend class vcPOIState_MeasureArea;
 private:
   vcLineInfo m_line; // TODO: 1452
+  uint32_t m_measurementAreaFillColour;
   uint32_t m_nameColour;
   uint32_t m_backColour;
   vcLabelFontSize m_namePt;
@@ -53,6 +54,7 @@ private:
   bool m_showArea;
   bool m_showLength;
   bool m_showAllLengths;
+  bool m_showFill;
 
   double m_totalLength;
   double m_area;
