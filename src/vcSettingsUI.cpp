@@ -207,7 +207,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if(ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", 3.f))
             pProgramState->settings.presentation.imageRescaleDistance = udClamp(pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax);
           ImGui::Checkbox(vcString::Get("settingsAppearanceLimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
-          ImGui::Checkbox(vcString::Get("settingsAppearanceLoginRenderLicense"), &pProgramState->settings.presentation.loginRenderLicense);
 
 #if VC_HASNATIVEFILEPICKER
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowNativeDialogs"), &pProgramState->settings.window.useNativeUI);

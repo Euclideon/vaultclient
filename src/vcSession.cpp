@@ -115,9 +115,6 @@ void vcSession_ChangeSession(vcState *pProgramState)
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProfileInfoWT, pProgramState, false);
 
-    if (pProgramState->settings.presentation.loginRenderLicense)
-      vdkContext_RequestLicense(pProgramState->pVDKContext, vdkLT_Render);
-
     //Context Login successful
     memset(pProgramState->password, 0, sizeof(pProgramState->password));
     if (!pProgramState->settings.loginInfo.rememberServer)
