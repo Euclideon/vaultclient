@@ -599,6 +599,10 @@ void vcConvert_ShowUI(vcState *pProgramState)
           ImGui::Unindent();
         }
 
+        bool retainPrimitives = pSelectedJob->pConvertInfo->retainPrimitives;
+        if (ImGui::Checkbox(udTempStr("%s##RetainPrimitives", vcString::Get("convertRetainPrimitives")), &retainPrimitives))
+          vdkConvert_SetRetainPrimitives(pSelectedJob->pConvertContext, retainPrimitives);
+
         // Override SRID
         bool overrideSRID = pSelectedJob->pConvertInfo->overrideSRID;
         int srid = pSelectedJob->pConvertInfo->srid;
