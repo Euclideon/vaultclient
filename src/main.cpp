@@ -1414,7 +1414,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (pProgramState->settings.presentation.showDiagnosticInfo)
       {
-        int64_t currentTime = udGetEpochSecsUTCd();
         float xPosition = ImGui::GetContentRegionMax().x;
 
         vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
@@ -1476,26 +1475,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFPS"), strings, udLengthOf(strings));
           ImGui::TextUnformatted(tempData);
         }
-
-        for (int i = 0; i < vdkLT_Count; ++i)
-        {
-          vdkLicenseInfo info = {};
-          if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, (vdkLicenseType)i, &info) == vE_Success)
-          {
-            if (info.queuePosition < 0 && (uint64_t)currentTime < info.expiresTimestamp)
-              udStrcpy(tempData, udTempStr("%s %s (%" PRIu64 "%s)", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicense"), (info.expiresTimestamp - currentTime), vcString::Get("menuBarSecondsAbbreviation")));
-            else if (info.queuePosition == -1)
-              udStrcpy(tempData, udTempStr("%s %s", i == vdkLT_Render ? vcString::Get("menuBarRender") : vcString::Get("menuBarConvert"), vcString::Get("menuBarLicenseExpired")));
-            else if (info.queuePosition == -2)
-              udStrcpy(tempData, udTempStr("%s", i == vdkLT_Render ? vcString::Get("menuBarNoRenderLicense") : vcString::Get("convertNoLicense")));
-            else if (info.queuePosition == 0)
-              udStrcpy(tempData, udTempStr("%s", i == vdkLT_Render ? vcString::Get("menuBarWaitingForRenderLicense") : vcString::Get("convertAwaitingLicense")));
-            else
-              udStrcpy(tempData, udTempStr("%s (%" PRId64 " %s)", i == vdkLT_Render ? vcString::Get("menuBarWaitingForRenderLicense") : vcString::Get("convertAwaitingLicense"), info.queuePosition, vcString::Get("menuBarLicenseQueued")));
-
-            ImGui::TextUnformatted(tempData);
-          }
-        }
       }
     }
 
@@ -1536,16 +1515,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       ImGui::End();
       udFree(pBuffer);
     }
-  }
-
-  // Alert for no render license
-  vdkLicenseInfo info = {};
-  if (vdkContext_GetLicenseInfo(pProgramState->pVDKContext, vdkLT_Render, &info) == vE_Success && (info.queuePosition >= 0 || info.queuePosition == -2))
-  {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x / 2, windowPos.y + windowSize.y / 2), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    if (ImGui::Begin("waitingForRenderLicensePanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
-      ImGui::TextUnformatted((info.queuePosition == -2) ? vcString::Get("menuBarNoRenderLicense") : vcString::Get("menuBarWaitingForRenderLicense"));
-    ImGui::End();
   }
 
   // On Screen Controls Overlay

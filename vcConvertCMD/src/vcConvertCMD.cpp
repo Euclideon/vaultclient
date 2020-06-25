@@ -221,13 +221,6 @@ int main(int argc, const char **ppArgv)
     exit(3);
   }
 
-  result = vdkContext_RequestLicense(pContext, vdkLT_Convert);
-  if (result != vE_Success)
-  {
-    printf("No licenses available");
-    exit(4);
-  }
-
   vdkConvert_GetInfo(pModel, &pInfo);
 
   // Process settings
