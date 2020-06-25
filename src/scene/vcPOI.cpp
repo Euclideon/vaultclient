@@ -43,7 +43,9 @@ protected:
 public:
   vcPOIState_General(vcPOI *pParent)
     : m_pParent(pParent)
-  {}
+  {
+
+  }
 
   virtual ~vcPOIState_General()
   {
@@ -100,9 +102,8 @@ public:
       if (GetGeometryType() == vdkPGT_Polygon)
       {
         if (vcIGSW_ColorPickerU32(udTempStr("%s##POIMeasurementAreaFillColour%zu", vcString::Get("scenePOIFillColour"), itemID), &m_pParent->m_measurementAreaFillColour, ImGuiColorEditFlags_None))
-        vdkProjectNode_SetMetadataUint(m_pParent->m_pNode, "measurementAreaFillColour", m_pParent->m_measurementAreaFillColour);
+          vdkProjectNode_SetMetadataUint(m_pParent->m_pNode, "measurementAreaFillColour", m_pParent->m_measurementAreaFillColour);
       }
-      
     }
   }
 
@@ -141,6 +142,7 @@ public:
     {
       if (GetGeometryType() == vdkPGT_LineString)
         m_pParent->m_showFill = false;
+
       m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
     }
 
@@ -235,7 +237,7 @@ public:
   {
     return vdkPGT_LineString;
   }
-  
+
   void HandlePopupUI(vcState *pProgramState) override
   {
     size_t itemID = size_t(-1);
@@ -320,7 +322,7 @@ public:
   {
     return vdkPGT_Polygon;
   }
-  
+
   void HandlePopupUI(vcState * /*pProgramState*/) override
   {
     size_t itemID = size_t(-1);
@@ -561,7 +563,7 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataUint(m_pNode, "measurementAreaFillColour", &m_measurementAreaFillColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
   vdkProjectNode_GetMetadataString(m_pNode, "hyperlink", &pTemp, "");
   udStrcpy(m_hyperlink, pTemp);
-  
+
   vdkProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
   udStrcpy(m_description, pTemp);
 
