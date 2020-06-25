@@ -268,8 +268,8 @@ struct vcSettings
     bool rememberServer;
     char serverURL[vcMaxPathLength];
 
-    bool rememberUsername;
-    char username[vcMaxPathLength];
+    bool rememberEmail;
+    char email[vcMaxPathLength];
 
     char proxy[vcMaxPathLength];
     char proxyTestURL[vcMaxPathLength];

@@ -2595,11 +2595,11 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       ImGui::Checkbox(udTempStr("%s##rememberServerURL", vcString::Get("loginRememberServer")), &pProgramState->settings.loginInfo.rememberServer);
 
       // Username
-      tryLogin |= vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.username, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
-      if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberUsername)
+      tryLogin |= vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.email, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue);
+      if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && !pProgramState->settings.loginInfo.rememberEmail)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
       ImGui::SameLine();
-      ImGui::Checkbox(udTempStr("%s##rememberUser", vcString::Get("loginRememberUser")), &pProgramState->settings.loginInfo.rememberUsername);
+      ImGui::Checkbox(udTempStr("%s##rememberUser", vcString::Get("loginRememberUser")), &pProgramState->settings.loginInfo.rememberEmail);
 
       // Password
       ImVec2 buttonSize;
@@ -2625,7 +2625,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       if (!pProgramState->passwordFieldHasFocus && udStrlen(pProgramState->password) == 0)
         pProgramState->passwordFieldHasFocus = true;
 
-      if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberUsername)
+      if (pProgramState->loginStatus == vcLS_NoStatus && pProgramState->settings.loginInfo.rememberServer && pProgramState->settings.loginInfo.rememberEmail)
         ImGui::SetKeyboardFocusHere(ImGuiCond_Appearing);
 
       if (pProgramState->loginStatus == vcLS_NoStatus)

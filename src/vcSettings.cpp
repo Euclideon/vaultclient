@@ -442,9 +442,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     if (pSettings->loginInfo.rememberServer)
       udStrcpy(pSettings->loginInfo.serverURL, data.Get("login.serverURL").AsString("https://earth.vault.euclideon.com"));
 
-    pSettings->loginInfo.rememberUsername = data.Get("login.rememberUsername").AsBool(false);
-    if (pSettings->loginInfo.rememberUsername)
-      udStrcpy(pSettings->loginInfo.username, data.Get("login.username").AsString());
+    pSettings->loginInfo.rememberEmail = data.Get("login.rememberUsername").AsBool(false);
+    if (pSettings->loginInfo.rememberEmail)
+      udStrcpy(pSettings->loginInfo.email, data.Get("login.username").AsString());
 
     // Camera
     pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
@@ -567,10 +567,10 @@ bool vcSettings_Save(vcSettings *pSettings)
     data.Set(&tempNode, "login.serverURL");
   }
 
-  data.Set("login.rememberUsername = %s", pSettings->loginInfo.rememberUsername ? "true" : "false");
-  if (pSettings->loginInfo.rememberUsername)
+  data.Set("login.rememberUsername = %s", pSettings->loginInfo.rememberEmail ? "true" : "false");
+  if (pSettings->loginInfo.rememberEmail)
   {
-    tempNode.SetString(pSettings->loginInfo.username);
+    tempNode.SetString(pSettings->loginInfo.email);
     data.Set(&tempNode, "login.username");
   }
 

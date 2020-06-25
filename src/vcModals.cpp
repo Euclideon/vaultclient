@@ -602,9 +602,6 @@ void vcModals_DrawProfile(vcState* pProgramState)
     }
     else
     {
-      const char *pUsername = pProgramState->profileInfo.Get("user.username").AsString("");
-      ImGui::InputText(vcString::Get("modalProfileUsername"), (char*)pUsername, udStrlen(pUsername), ImGuiInputTextFlags_ReadOnly);
-
       ImGui::InputText(vcString::Get("modalProfileRealName"), pProgramState->sessionInfo.displayName, udLengthOf(pProgramState->sessionInfo.displayName), ImGuiInputTextFlags_ReadOnly);
 
       const char *pEmail = pProgramState->profileInfo.Get("user.email").AsString("");
@@ -684,7 +681,7 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
       
       udJSON temp;
 
-      temp.SetString(pProgramState->settings.loginInfo.username);
+      temp.SetString(pProgramState->settings.loginInfo.email);
       changePasswordData.Set(&temp, "username");
       
       temp.SetString(pProgramState->changePassword.currentPassword);
