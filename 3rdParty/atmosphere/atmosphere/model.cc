@@ -241,18 +241,33 @@ Model::~Model() {
   vcTexture_Destroy(&pTransmittance_texture_);
   vcTexture_Destroy(&pIrradiance_texture_);
   vcTexture_Destroy(&pScattering_texture_);
+
+  udFree(pTransmittancePixels);
+  udFree(pIrradiancePixels);
+  udFree(pScatteringPixels);
+}
+
+void Model::UploadPrecomputedTextures()
+{
+  vcTexture_UploadPixels(pTransmittance_texture_, pTransmittancePixels, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, 1);
+  udFree(pTransmittancePixels);
+
+  vcTexture_UploadPixels(pIrradiance_texture_, pIrradiancePixels, IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, 1);
+  udFree(pIrradiancePixels);
+
+  vcTexture_UploadPixels(pScattering_texture_, pScatteringPixels, SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH);
+  udFree(pScatteringPixels);
 }
 
 bool Model::LoadPrecomputedTextures()
 {
   // Load raw textures, and convert from RGB32F to RGBA32F where necessary
   float *pRawPixels = nullptr;
-  float *pFinalPixels = nullptr;
 
   // transmittance
   if (udFile_Load("asset://assets/data/transmittance.dat", &pRawPixels) != udR_Success)
     return false;
-  pFinalPixels = udAllocType(float, TRANSMITTANCE_TEXTURE_WIDTH * TRANSMITTANCE_TEXTURE_HEIGHT * 4, udAF_Zero);
+  pTransmittancePixels = udAllocType(float, TRANSMITTANCE_TEXTURE_WIDTH * TRANSMITTANCE_TEXTURE_HEIGHT * 4, udAF_Zero);
   // manually convert from RGB32F to RGBA32F
   for (int y = 0; y < TRANSMITTANCE_TEXTURE_HEIGHT; ++y)
   {
@@ -264,19 +279,17 @@ bool Model::LoadPrecomputedTextures()
       float g = pPixel[1];
       float b = pPixel[2];
 
-      pFinalPixels[index * 4 + 0] = r;
-      pFinalPixels[index * 4 + 1] = g;
-      pFinalPixels[index * 4 + 2] = b;
+      pTransmittancePixels[index * 4 + 0] = r;
+      pTransmittancePixels[index * 4 + 1] = g;
+      pTransmittancePixels[index * 4 + 2] = b;
     }
   }
-  vcTexture_UploadPixels(pTransmittance_texture_, pFinalPixels, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, 1);
   udFree(pRawPixels);
-  udFree(pFinalPixels);
 
   // irradiance
   if (udFile_Load("asset://assets/data/irradiance.dat", &pRawPixels) != udR_Success)
     return false;
-  pFinalPixels = udAllocType(float, IRRADIANCE_TEXTURE_WIDTH * IRRADIANCE_TEXTURE_HEIGHT * 4, udAF_Zero);
+  pIrradiancePixels = udAllocType(float, IRRADIANCE_TEXTURE_WIDTH * IRRADIANCE_TEXTURE_HEIGHT * 4, udAF_Zero);
   // manually convert from RGB32F to RGBA32F
   for (int y = 0; y < IRRADIANCE_TEXTURE_HEIGHT; ++y)
   {
@@ -288,20 +301,16 @@ bool Model::LoadPrecomputedTextures()
       float g = pPixel[1];
       float b = pPixel[2];
 
-      pFinalPixels[index * 4 + 0] = r;
-      pFinalPixels[index * 4 + 1] = g;
-      pFinalPixels[index * 4 + 2] = b;
+      pIrradiancePixels[index * 4 + 0] = r;
+      pIrradiancePixels[index * 4 + 1] = g;
+      pIrradiancePixels[index * 4 + 2] = b;
     }
   }
-  vcTexture_UploadPixels(pIrradiance_texture_, pFinalPixels, IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, 1);
   udFree(pRawPixels);
-  udFree(pFinalPixels);
 
   // scattering
-  if (udFile_Load("asset://assets/data/scattering.dat", &pRawPixels) != udR_Success)
+  if (udFile_Load("asset://assets/data/scattering.dat", &pScatteringPixels) != udR_Success)
     return false;
-  vcTexture_UploadPixels(pScattering_texture_, pRawPixels, SCATTERING_TEXTURE_WIDTH, SCATTERING_TEXTURE_HEIGHT, SCATTERING_TEXTURE_DEPTH);
-  udFree(pRawPixels);
   
   return true;
 } 
