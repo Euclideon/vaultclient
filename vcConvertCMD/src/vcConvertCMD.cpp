@@ -31,6 +31,7 @@ void vcConvertCMD_ShowOptions()
   printf("   -proxyPassword <password>   - Set the password to use with the proxy\n");
   printf("   -watermark <filename>       - Use the supplied image file as the watermark\n");
   printf("   -copyright <details>        - Adds the copyright information to the \"Copyright\" metadata field\n");
+  printf("   -quicktest                  - Does a small test to test if positioning/geolocation is correct\n");
 }
 
 struct vcConvertData
@@ -64,6 +65,7 @@ struct vcConvertCMDSettings
   bool pause;
   bool pauseOnError;
   bool autoOverwrite;
+  bool quicktest;
 
   const char *pCopyright;
 
@@ -124,6 +126,12 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
     else if (udStrEquali(ppArgv[i], "-pauseOnError"))
     {
       pSettings->pauseOnError = true;
+      ++i;
+    }
+    else if (udStrEquali(ppArgv[i], "-quicktest"))
+    {
+      printf("Quicktest!\n");
+      pSettings->quicktest = true;
       ++i;
     }
     else if (udStrEquali(ppArgv[i], "-o"))
@@ -258,6 +266,12 @@ int main(int argc, const char **ppArgv)
       cmdlineError = true;
   }
 
+  if (settings.quicktest)
+  {
+    if (vdkConvert_SetEveryNth(pModel, 1000) != vE_Success)
+      cmdlineError = true;
+  }
+
   printf("Performing Initial Preprocess...\n");
   for (size_t i = 0; i < settings.files.length; ++i)
   {
@@ -324,15 +338,24 @@ int main(int argc, const char **ppArgv)
 
     printf("\tOutput: %s\n", pInfo->pOutputName);
     printf("\tTemp: %s\n", pInfo->pTempFilesPrefix);
-    printf("\t# Inputs: %" PRIu64 "\n\n", pInfo->totalItems);
+    printf("\tTotal Input Files: %" PRIu64 "\n\n", pInfo->totalItems);
 
     udThread_Create(nullptr, vcConvertCMD_DoConvert, &convdata);
 
     vdkConvertItemInfo itemInfo = {};
 
+    uint64_t previousItem = UINT64_MAX;
+
     while (!convdata.ended)
     {
       uint64_t currentItem = pInfo->currentInputItem; // Just copying this for thread safety
+
+      if (currentItem == previousItem)
+        printf("\r");
+      else
+        printf("\n");
+
+      previousItem = currentItem;
 
       if (currentItem < pInfo->totalItems)
       {
