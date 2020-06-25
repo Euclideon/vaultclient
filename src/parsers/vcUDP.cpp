@@ -423,6 +423,7 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
 
     vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", colour);
     vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", colour);
+    //vdkProjectNode_SetMetadataUint(pNode, "measurementAreaFillColour", colour);
     vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
 
     if (vcUDP_ReadGeolocation(item.measure.geoLocation[0], temp[0], epsgCode))
