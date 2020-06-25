@@ -286,6 +286,7 @@ class Model {
   ~Model();
 
   bool LoadPrecomputedTextures();
+  void UploadPrecomputedTextures();
 
   // Utility method to convert a function of the wavelength to linear sRGB.
   // 'wavelengths' and 'spectrum' must have the same size. The integral of
@@ -311,6 +312,10 @@ class Model {
   typedef std::array<float, 9> mat3;
 
   std::function<std::string(const vec3 &)> glsl_header_factory_;
+
+  float *pTransmittancePixels;
+  float *pIrradiancePixels;
+  float *pScatteringPixels;
 };
 
 }  // namespace atmosphere

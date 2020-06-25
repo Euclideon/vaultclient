@@ -72,6 +72,18 @@ struct vcAtmosphereRenderer
 constexpr double kSunAngularRadius = 0.00935 / 2.0;
 constexpr double kLengthUnitInMeters = 1.0;
 
+void vcAtmosphere_AsyncLoadWorkerThreadWork(void *pLoadInfo)
+{
+  vcAtmosphereRenderer *pAtmosphereRenderer = (vcAtmosphereRenderer*)pLoadInfo;
+  pAtmosphereRenderer->pModel->LoadPrecomputedTextures();
+}
+
+void vcAtmosphere_AsyncLoadMainThreadWork(void *pLoadInfo)
+{
+  vcAtmosphereRenderer *pAtmosphereRenderer = (vcAtmosphereRenderer*)pLoadInfo;
+  pAtmosphereRenderer->pModel->UploadPrecomputedTextures();
+}
+
 udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer, udWorkerPool *pWorkerPool)
 {
   udResult result;
@@ -197,7 +209,8 @@ udResult vcAtmosphereRenderer_Create(vcAtmosphereRenderer **ppAtmosphereRenderer
   //  kLengthUnitInMeters, pAtmosphereRenderer->use_luminance == PRECOMPUTED ? 15 : 3,
   //  true, use_half_precision_);
 
-  UD_ERROR_IF(!pAtmosphereRenderer->pModel->LoadPrecomputedTextures(), udR_InternalError);
+
+  udWorkerPool_AddTask(pWorkerPool, vcAtmosphere_AsyncLoadWorkerThreadWork, pAtmosphereRenderer, false, vcAtmosphere_AsyncLoadMainThreadWork);
 
   if (do_white_balance_) {
     atmosphere::Model::ConvertSpectrumToLinearSrgb(wavelengths, solar_irradiance,
