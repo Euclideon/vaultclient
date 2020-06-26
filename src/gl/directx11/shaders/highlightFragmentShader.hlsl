@@ -18,16 +18,28 @@ struct PS_INPUT
   float4 stepSizeThickness : COLOR1;
 };
 
+struct PS_OUTPUT
+{
+  float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
+};
+
 sampler colourSampler;
 Texture2D colourTexture;
 
-float4 main(PS_INPUT input) : SV_Target
+PS_OUTPUT main(PS_INPUT input)
 {
+  PS_OUTPUT output;
+  output.Normal = float4(0, 0, 0, 0);
+	
   float4 middle = colourTexture.Sample(colourSampler, input.uv0);
 
   // 'outside' the geometry, just use the blurred 'distance'
   if (middle.x == 0.0)
-    return float4(input.colour.xyz, min(1.0, middle.y * input.stepSizeThickness.z * input.colour.w));
+  {
+    output.Color0 = float4(input.colour.xyz, min(1.0, middle.y * input.stepSizeThickness.z * input.colour.w));
+    return output;
+  }
   
   float result = 1.0 - middle.y;
   
@@ -39,5 +51,7 @@ float4 main(PS_INPUT input) : SV_Target
   result += softenEdge * step(colourTexture.Sample(colourSampler, input.uv4).x - middle.x, -0.00001);
   
   result = max(input.stepSizeThickness.w, result) * input.colour.w; // overlay colour
-  return float4(input.colour.xyz, result);
+  output.Color0 = float4(input.colour.xyz, result);
+  
+  return output;
 }

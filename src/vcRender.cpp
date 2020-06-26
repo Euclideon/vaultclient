@@ -1482,14 +1482,14 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 
-  if (selectionBufferActive)
-    vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
-
   vcRender_PostProcessPass(pProgramState, pRenderContext);
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
   vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);
+
+  if (selectionBufferActive)
+    vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
