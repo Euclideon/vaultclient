@@ -918,7 +918,15 @@ int main(int argc, char **args)
   ImGui::StyleColorsDark();
   ImGui::GetStyle().WindowRounding = 0.0f;
 
+  // These get loaded on the main thread
   vcMain_LoadSettings(&programState);
+  vcSettings_LoadBranding(&programState);
+
+#if UDPLATFORM_EMSCRIPTEN
+    SDL_SetWindowTitle(programState.pWindow, udTempStr("%s " VCVERSION_VERSION_STRING " - (Built: " __DATE__ ")", programState.branding.appName));
+#else
+  SDL_SetWindowTitle(programState.pWindow, udTempStr("%s " VCVERSION_PRODUCT_STRING " - (Built: " __DATE__ ")", programState.branding.appName));
+#endif
 
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
@@ -945,10 +953,10 @@ int main(int argc, char **args)
 
   // Async load everything else
   vcMain_AsyncLoad(&programState, udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode), vcMain_LoadStringTableMT);
-  vcMain_AsyncLoad(&programState, "asset://assets/icons/EuclideonClientIcon.png", vcMain_LoadIconMT);
-  vcMain_AsyncLoad(&programState, "asset://assets/fonts/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
+  vcMain_AsyncLoad(&programState, "asset://assets/branding/icon.png", vcMain_LoadIconMT);
+  vcMain_AsyncLoad(&programState, "asset://assets/data/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
 
-  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/textures/logo.png", vcTFM_Linear);
+  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/branding/logo.png", vcTFM_Linear);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png", vcTFM_Linear);
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
@@ -2496,7 +2504,7 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
 
   ImDrawList *pDrawList = ImGui::GetBackgroundDrawList();
 
-  pDrawList->AddRectFilledMultiColor(ImVec2(0, 0), size, 0xFFB5A245, 0xFFE3D9A8, 0xFFCDBC71, 0xFF998523);
+  pDrawList->AddRectFilledMultiColor(ImVec2(0, 0), size, pProgramState->branding.colours[0], pProgramState->branding.colours[1], pProgramState->branding.colours[2], pProgramState->branding.colours[3]);
 
   float amt = (float)udSin(ImGui::GetTime()) * 50.f;
   float baseY = size.y * 0.75f;
@@ -2561,11 +2569,11 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     if (ImGui::IsItemHovered())
       ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
-    const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
+    const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), pProgramState->branding.supportEmail);
     ImGui::TextUnformatted(pSupportStr);
     udFree(pSupportStr);
     if (ImGui::IsItemClicked())
-      vcWebFile_OpenBrowser("mailto:support@euclideon.com?subject=Vault%20Client%20" VCVERSION_VERSION_STRING "%20Support");
+      vcWebFile_OpenBrowser(udTempStr("mailto:%s?subject=%s", pProgramState->branding.supportEmail, "Vault%20Client%20" VCVERSION_VERSION_STRING "%20Support")); //TODO: Escape Appname and put that here as well
     if (ImGui::IsItemHovered())
       ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
   }

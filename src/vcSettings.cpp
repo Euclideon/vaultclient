@@ -1009,3 +1009,23 @@ void vcSettings_ApplyMapChange(vcSettings *pSettings)
     pSettings->maptiles.activeServer.tileServerAddressUUID = pSettings->maptiles.customServer.tileServerAddressUUID;
   }
 }
+
+void vcSettings_LoadBranding(vcState *pState)
+{
+  udJSON branding = {};
+  const char *pBrandStrings = nullptr;
+
+  if (udFile_Load("asset://assets/branding/strings.json", &pBrandStrings) == udR_Success)
+    branding.Parse(pBrandStrings);
+
+  udStrcpy(pState->branding.appName, branding.Get("appName").AsString("Euclideon Vault Client"));
+  udStrcpy(pState->branding.copyrightName, branding.Get("copyright").AsString("Euclideon Pty Ltd"));
+  udStrcpy(pState->branding.supportEmail, branding.Get("supportEmail").AsString("support@euclideon.com"));
+
+  const char* DefaultColours[] = { "B5A245", "E3D9A8", "CDBC71", "998523" };
+
+  for (size_t i = 0; i < udMin(udLengthOf(pState->branding.colours), udLengthOf(DefaultColours)); ++i)
+    pState->branding.colours[i] = 0xFF000000 | udStrAtou(branding.Get("logincolours[%zu]", i).AsString(DefaultColours[i]), nullptr, 16);
+    
+  udFree(pBrandStrings);
+}
