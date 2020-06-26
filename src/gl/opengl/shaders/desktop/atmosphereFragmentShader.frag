@@ -42,7 +42,7 @@ void main()
     vec4 _142 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, in_var_TEXCOORD0);
     float _143 = _142.x;
     float _148 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
-    vec2 _166 = _138.xy;
+    vec2 _166 = _138.zw;
     vec3 _174 = pow(abs(_134.xyz), vec3(2.2000000476837158203125));
     float _180 = ((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (((u_cameraPlaneParams.s_CameraFarPlane / _148) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _143 * log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0)) - 1.0))) * _148))) * u_cameraPlaneParams.s_CameraFarPlane;
     vec3 _182 = u_fragParams.u_camera.xyz + (_130 * _180);
@@ -64,8 +64,8 @@ void main()
     }
     vec3 _202 = _198 - u_fragParams.u_earthCenter.xyz;
     vec3 _203 = normalize(_202);
-    vec3 _211 = vec3(_138.xy, float(int(sign(_138.w))) * sqrt(1.0 - dot(_166, _166)));
-    _211.y = _138.y * (-1.0);
+    vec3 _211 = vec3(_138.zw, float(int(sign(_138.y))) * sqrt(1.0 - dot(_166, _166)));
+    _211.y = _138.w * (-1.0);
     vec3 _212 = mat3(normalize(cross(u_fragParams.u_earthNorth.xyz, _203)), u_fragParams.u_earthNorth.xyz, _203) * _211;
     bool _213 = _143 < 0.75;
     vec3 _801;

@@ -44,7 +44,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
     float3 _135 = normalize((u_EveryFrameFrag.u_inverseViewMatrix * float4(_111, 0.0)).xyz);
     float _163 = log2(in.in_var_TEXCOORD2.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
     out.out_var_SV_Target0 = (float4(mix(skyboxTexture.sample(skyboxSampler, (float2(atan2(_135.x, _135.y) + 3.1415927410125732421875, acos(_135.z)) * float2(0.15915493667125701904296875, 0.3183098733425140380859375))).xyz, in.in_var_COLOR1.xyz * mix(float3(1.0, 1.0, 0.60000002384185791015625), float3(0.3499999940395355224609375), float3(pow(fast::max(0.0, _91.z), 5.0))), float3(((dot(_109, _93) * (-0.5)) + 0.5) * 0.75)) + float3(pow(abs(dot(_111, normalize((u_EveryFrameFrag.u_eyeNormalMatrix * float4(normalize(u_EveryFrameFrag.u_specularDir.xyz), 0.0)).xyz))), 50.0) * 0.5), 1.0) * 0.300000011920928955078125) + float4(0.20000000298023223876953125, 0.4000000059604644775390625, 0.699999988079071044921875, 1.0);
-    out.out_var_SV_Target1 = float4(0.0, 0.0, 0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _163);
+    out.out_var_SV_Target1 = float4(0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _163, 0.0, 0.0);
     out.gl_FragDepth = _163;
     return out;
 }
