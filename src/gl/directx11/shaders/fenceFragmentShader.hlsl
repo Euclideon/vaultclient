@@ -29,7 +29,7 @@ Texture2D colourTexture;
 float4 packNormal(float3 normal, float objectId, float depth)
 {
   float zSign = step(0, normal.z) * 2 - 1; // signed 0
-  return float4(normal.x, normal.y, objectId, zSign * depth);
+  return float4(objectId, zSign * depth, normal.x, normal.y);
 }
 
 PS_OUTPUT main(PS_INPUT input)

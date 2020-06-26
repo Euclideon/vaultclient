@@ -21,7 +21,7 @@ fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> sceneColourT
     float4 _38 = sceneDepthTexture.sample(sceneDepthSampler, in.in_var_TEXCOORD0);
     float _39 = _38.x;
     out.out_var_SV_Target0 = float4(sceneColourTexture.sample(sceneColourSampler, in.in_var_TEXCOORD0).zyx, 1.0);
-    out.out_var_SV_Target1 = float4(0.0, 0.0, 0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _39);
+    out.out_var_SV_Target1 = float4(0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _39, 0.0, 0.0);
     out.gl_FragDepth = _39;
     return out;
 }

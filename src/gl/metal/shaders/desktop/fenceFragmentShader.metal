@@ -31,7 +31,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
     float4 _43 = colourTexture.sample(colourSampler, in.in_var_TEXCOORD0);
     float _61 = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
     out.out_var_SV_Target0 = float4(_43.xyz * in.in_var_COLOR0.xyz, _43.w * in.in_var_COLOR0.w);
-    out.out_var_SV_Target1 = float4(0.0, 0.0, 0.0, ((step(0.0, 1.0) * 2.0) - 1.0) * _61);
+    out.out_var_SV_Target1 = float4(0.0, ((step(0.0, 1.0) * 2.0) - 1.0) * _61, 0.0, 0.0);
     out.gl_FragDepth = _61;
     return out;
 }

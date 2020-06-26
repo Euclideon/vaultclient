@@ -704,8 +704,8 @@ float vcRender_EncodeModelId(uint32_t id)
 
 void vcRender_DecodeModelId(uint8_t pixelBytes[8], uint16_t *pId, float *pDepth)
 {
-  *pDepth = udAbs(Float16ToFloat32(uint16_t((pixelBytes[6] & 0xFF) | ((pixelBytes[7] & 0xFF) << 8))));
-  *pId = uint16_t((Float16ToFloat32(uint16_t((pixelBytes[4] & 0xFF) | ((pixelBytes[5] & 0xFF) << 8))) * 0xffff) + 0.5f);
+  *pDepth = udAbs(Float16ToFloat32(uint16_t((pixelBytes[2] & 0xFF) | ((pixelBytes[3] & 0xFF) << 8))));
+  *pId = uint16_t((Float16ToFloat32(uint16_t((pixelBytes[0] & 0xFF) | ((pixelBytes[1] & 0xFF) << 8))) * 0xffff) + 0.5f);
 }
 
 // Asychronously read a 1x1 region of last frames depth buffer 
