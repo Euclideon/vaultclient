@@ -11,13 +11,22 @@ layout(location = 1) in vec2 in_var_TEXCOORD0;
 layout(location = 2) in vec4 in_var_COLOR0;
 out vec4 varying_COLOR0;
 out vec2 varying_TEXCOORD0;
+out vec2 varying_TEXCOORD1;
+out vec2 varying_TEXCOORD2;
+
+vec2 _33;
 
 void main()
 {
-    vec4 _35 = vec4(0.0, 0.0, 0.0, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
-    vec2 _43 = _35.xy + ((u_EveryObject.u_screenSize.xy * in_var_POSITION) * _35.w);
-    gl_Position = vec4(_43.x, _43.y, _35.z, _35.w);
+    vec4 _40 = vec4(0.0, 0.0, 0.0, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    float _45 = _40.w;
+    vec2 _48 = _40.xy + ((u_EveryObject.u_screenSize.xy * in_var_POSITION) * _45);
+    vec2 _51 = _33;
+    _51.x = 1.0 + _45;
+    gl_Position = vec4(_48.x, _48.y, _40.z, _40.w);
     varying_COLOR0 = in_var_COLOR0;
     varying_TEXCOORD0 = in_var_TEXCOORD0;
+    varying_TEXCOORD1 = _51;
+    varying_TEXCOORD2 = vec2(u_EveryObject.u_screenSize.w);
 }
 

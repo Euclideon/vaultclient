@@ -33,6 +33,8 @@ enum vcImageType
 static const float vcISToWorldSize[] = { -1.f, 3.f, 10.f };
 UDCOMPILEASSERT(udLengthOf(vcISToWorldSize) == vcIS_Count, "ImageWorldSize not equal size");
 
+class vcSceneItem;
+
 struct vcImageRenderInfo
 {
   udDouble3 position;
@@ -43,6 +45,9 @@ struct vcImageRenderInfo
   vcImageThumbnailSize size;
   vcImageType type;
   udFloat4 colour;
+
+  vcSceneItem *pSceneItem;
+  uint64_t sceneItemInternalId; // 0 is entire model; for most systems this will be +1 compared to internal arrays
 };
 
 struct udWorkerPool;
@@ -50,6 +55,6 @@ struct udWorkerPool;
 udResult vcImageRenderer_Init(udWorkerPool *pWorkerPool);
 udResult vcImageRenderer_Destroy();
 
-bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale);
+bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, float encodedObjectId, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale);
 
 #endif//vcImageRenderer_h__

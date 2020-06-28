@@ -79,6 +79,8 @@ struct vcPins
   udDouble3 position;
   const char *pPinAddress;
   int count;
+
+  vcSceneItem *pSceneItem;
 };
 
 struct vcRenderData
@@ -127,8 +129,8 @@ struct vcRenderPickResult
   bool success;
   udDouble3 position;
 
-  vcModel *pModel;
-  vcRenderPolyInstance *pPolygon;
+  vcSceneItem *pSceneItem;
+  uint64_t sceneItemInternalId;
 };
 vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, bool doSelectRender);
 

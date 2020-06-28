@@ -156,7 +156,8 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 
         udLockMutex(pInfo->pFeed->m_pMutex);
 
-        for (size_t j = 0; j < pInfo->pFeed->m_feedItems.length; ++j)
+        size_t j = 0;
+        for (; j < pInfo->pFeed->m_feedItems.length; ++j)
         {
           vcLiveFeedItem *pCachedFeedItem = pInfo->pFeed->m_feedItems[j];
 
@@ -261,6 +262,8 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
                 lodRef.pLabelInfo->textSize = vcLFS_Medium;
 
               lodRef.pLabelInfo->pText = lodRef.pLabelText;
+              lodRef.pLabelInfo->pSceneItem = pInfo->pFeed;
+              lodRef.pLabelInfo->sceneItemInternalId = j + 1;
             }
 
             const udJSON &pinObj = pLOD->Get("pin");
@@ -477,7 +480,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       }
 
       if (lodRef.pPinIcon != nullptr)
-        pRenderData->pins.PushBack({ pFeedItem->displayPosition, lodRef.pPinIcon, 1 });
+        pRenderData->pins.PushBack({ pFeedItem->displayPosition, lodRef.pPinIcon, 1, this });
 
       break; // We got to the end so we should stop
     }

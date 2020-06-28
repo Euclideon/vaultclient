@@ -531,6 +531,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const float encodedObject
       colour = *pColourOverride;
 
     pPolygonShader->everyObject.u_objectInfo.x = encodedObjectId;
+    pPolygonShader->everyObject.u_objectInfo.y = (passType == vcPMP_Transparent) ? 1.0f : 0.0f;
     pPolygonShader->everyObject.u_colour = colour;
     pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
     pPolygonShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix * pModel->modelOffset);

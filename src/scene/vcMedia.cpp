@@ -193,6 +193,7 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         }
 
         vcImageRenderInfo *pImageInfo = &m_image;
+        pImageInfo->pSceneItem = this;
         pRenderData->images.Insert(i, &pImageInfo);
       }
       else

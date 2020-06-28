@@ -15,7 +15,7 @@ static struct vcLabelShader
   struct
   {
     udFloat4x4 u_worldViewProjectionMatrix;
-    udFloat4 u_screenSize;
+    udFloat4 u_screenSize; // objectId.w
   } everyObject;
 } gShader;
 
@@ -31,7 +31,7 @@ udResult vcLabelRenderer_Init(udWorkerPool *pWorkerPool)
   UD_ERROR_IF(gRefCount != 1, udR_Success);
 
   pShader = &gShader;
-  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&gShader.pShader, pWorkerPool, "asset://assets/shaders/imgui3DVertexShader", "asset://assets/shaders/imguiFragmentShader", vcImGuiVertexLayout,
+  UD_ERROR_IF(!vcShader_CreateFromFileAsync(&gShader.pShader, pWorkerPool, "asset://assets/shaders/imgui3DVertexShader", "asset://assets/shaders/imgui3DFragmentShader", vcImGuiVertexLayout,
     [pShader](void *)
     {
       vcShader_Bind(pShader->pShader);
@@ -73,7 +73,7 @@ epilogue:
 }
 
 
-bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
+bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, float encodedObjectId, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize)
 {
   if (!drawList || !pLabelRenderer->pText)
     return false;
@@ -98,7 +98,7 @@ bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, c
   vcShader_Bind(gShader.pShader);
 
   gShader.everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(mvp);
-  gShader.everyObject.u_screenSize = udFloat4::create(2.0f / screenSize.x, 2.0f / screenSize.y, 0.0f, 0.0f);
+  gShader.everyObject.u_screenSize = udFloat4::create(2.0f / screenSize.x, 2.0f / screenSize.y, 0.0f, encodedObjectId);
 
 #if !GRAPHICS_API_OPENGL
   // ImGui vertices are built with origin in bottom left corner
