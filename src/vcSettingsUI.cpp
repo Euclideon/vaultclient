@@ -1100,7 +1100,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   case vcVM_ReturnNumber:
   {
     for (uint32_t i = 0; i < pVisualizationSettings->s_maxReturnNumbers; ++i)
-      vcIGSW_ColorPickerU32(udTempStr("%i", i + 1), &pVisualizationSettings->returnNumberColours[i], ImGuiColorEditFlags_None);
+      retVal |= vcIGSW_ColorPickerU32(udTempStr("%i", i + 1), &pVisualizationSettings->returnNumberColours[i], ImGuiColorEditFlags_None);
     break;
   }
   case vcVM_NumberOfReturns:
