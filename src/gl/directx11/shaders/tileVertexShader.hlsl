@@ -31,7 +31,7 @@ cbuffer u_EveryObject : register(b0)
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_eyeNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
-  float4 u_objectInfo; // objectId.x, cameraInsideGround.y
+  float4 u_objectInfo; // objectId.x, skirtLength.y
   float4 u_uvOffsetScale;
   float4 u_demUVOffsetScale;
 };
@@ -88,8 +88,7 @@ PS_INPUT main(VS_INPUT input)
   float tileHeight = demHeight(demUV);
   
   // add a 'skirt' to the tile edge
-  float flipSkirt = u_objectInfo.y;
-  tileHeight += input.pos.z * flipSkirt * 3000000.0;
+  tileHeight += input.pos.z * u_objectInfo.y;
 
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
   finalClipPos.z = CalcuteLogDepth(finalClipPos);

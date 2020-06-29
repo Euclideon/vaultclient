@@ -195,9 +195,8 @@ bool vcGLState_SetBlendMode(vcGLStateBlendMode blendMode, bool force /*= false*/
     D3D11_BLEND_DESC desc;
     ZeroMemory(&desc, sizeof(desc));
 
-    // Disable all blending for other attachments
-    desc.IndependentBlendEnable = true;
-    desc.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    // Disable all blending for other attachments (match webgl 2.0 functionality)
+    desc.IndependentBlendEnable = false;
 
     desc.AlphaToCoverageEnable = false;
     desc.RenderTarget[0].BlendEnable = true;
