@@ -50,9 +50,8 @@ PS_OUTPUT main(PS_INPUT input)
 
   output.Normal = packNormal(input.normal, input.objectInfo.x, output.Depth0); 
   
-  // this is a hack - for selection of transparent polygons (MRT blending problem)
-  if (input.objectInfo.y > 0.0)
-    output.Normal.w = 1.0; // force alpha-blend value
+  // conditionally disable selection (using alpha-blend)
+  output.Normal.w = input.objectInfo.y;
   
   return output;
 }

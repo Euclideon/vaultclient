@@ -50,6 +50,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pInstance->worldMat = udDouble4x4::translation(m_position) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
     pInstance->pSceneItem = this;
     pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
+    pInstance->selectable = false;
   }
 
   vcViewShedData *pViewShed = pRenderData->viewSheds.PushBack();

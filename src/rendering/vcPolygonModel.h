@@ -8,7 +8,6 @@
 enum vcPolyModelPass
 {
   vcPMP_Standard,
-  vcPMP_Transparent,
   vcPMP_ColourOnly,
   vcPMP_Shadows, // depth only
 };

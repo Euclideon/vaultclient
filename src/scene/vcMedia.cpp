@@ -203,6 +203,7 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pPoly->renderType = vcRenderPolyInstance::RenderType_Polygon;
         pPoly->pSceneItem = this;
         pPoly->pDiffuseOverride = m_image.pTexture;
+        pPoly->selectable = true;
 
         float aspect = 1.0f;
         vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
