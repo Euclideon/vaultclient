@@ -29,7 +29,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_worldViewProjectionMatrix;
   float4x4 u_worldMatrix;
   float4 u_colour;
-  float4 u_objectInfo; // id.x, isTransparent.y, (unused).zw
+  float4 u_objectInfo; // id.x, isSelectable.y, (unused).zw
 };
 
 PS_INPUT main(VS_INPUT input)

@@ -98,6 +98,7 @@ void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     pInstance->pSceneItem = this;
     pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
     pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
+    pInstance->selectable = false;
   }
 
   if (m_pFilter != nullptr)

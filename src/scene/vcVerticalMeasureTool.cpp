@@ -90,6 +90,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     pInstance->sceneItemInternalId = 1;
     pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
     pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
+    pInstance->selectable = false;
   }
   
 
@@ -108,6 +109,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
       pInstance->sceneItemInternalId = 2;
       pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
       pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
+      pInstance->selectable = false;
     }
 
     for (auto &label : m_labelList)

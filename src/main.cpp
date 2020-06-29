@@ -1797,9 +1797,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         if (pickResult.pSceneItem != nullptr)
         {
           udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pickResult.pSceneItem->m_pNode->UUID);
-
-          if (pickResult.sceneItemInternalId != 0)
-            pickResult.pSceneItem->SelectSubitem(pickResult.sceneItemInternalId);
+          pickResult.pSceneItem->SelectSubitem(pickResult.sceneItemInternalId);
         }
         else
         {

@@ -49,6 +49,7 @@ struct vcRenderPolyInstance
 
   vcGLStateCullMode cullFace;
 
+  bool selectable;
   vcSceneItem *pSceneItem;
   uint64_t sceneItemInternalId; // 0 is entire model; for most systems this will be +1 compared to internal arrays
 

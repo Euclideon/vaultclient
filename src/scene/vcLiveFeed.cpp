@@ -469,7 +469,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
             worldTransform = udDouble4x4::rotationQuat(worldRotation, pFeedItem->displayPosition);
           }
 
-          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, worldTransform, nullptr, udFloat4::one(), vcGLSCM_Back, this, (uint64_t)(i + 1) });
+          pRenderData->polyModels.PushBack({ vcRenderPolyInstance::RenderType_Polygon, vcRenderPolyInstance::RenderFlags_None, { pModel }, worldTransform, nullptr, udFloat4::one(), vcGLSCM_Back, true, this, (uint64_t)(i + 1) });
         }
       }
 

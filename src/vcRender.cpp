@@ -1186,7 +1186,6 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
     for (uint32_t i = 0; i < renderData.polyModels.length; ++i)
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-      float objectId = vcRender_EncodeModelId(polygonIds + i);
       if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
         continue;
 
@@ -1195,6 +1194,10 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
         pTintOverride = &whiteColour;
 
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
+
+      float objectId = vcRender_EncodeModelId(polygonIds + i);
+      if (!pInstance->selectable)
+        objectId = 0.0f; // sentinel for 'not selectable'
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pTintOverride);
@@ -1306,9 +1309,11 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
     vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
     float objectId = vcRender_EncodeModelId(polygonIds + i);
+    if (!pInstance->selectable)
+      objectId = 0.0f; // sentinel for 'not selectable'
 
     if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-      vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Transparent, pInstance->pDiffuseOverride, pTintOverride);
+      vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pTintOverride);
     else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
       vcSceneLayerRenderer_Render(pInstance->pSceneLayer, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution);
   }
