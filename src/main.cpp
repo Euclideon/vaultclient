@@ -845,6 +845,7 @@ int main(int argc, char **args)
 
   programState.settings.languageOptions.Init(4);
   programState.settings.visualization.pointSourceID.colourMap.Init(32);
+  programState.settings.projectHistory.projects.Init(32);
 
   programState.passwordFieldHasFocus = true;
   programState.renaming = -1;

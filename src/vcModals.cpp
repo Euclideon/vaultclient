@@ -206,6 +206,24 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     static int zoneType = 0;
     static int zoneCustomSRID = 84;
 
+    ImGui::Columns(2);
+    ImGui::Text(vcString::Get("modalProjectPreviousProjects"));
+
+    for (size_t i = 0; i < pProgramState->settings.projectHistory.projects.length; ++i)
+    {
+      if (ImGui::Button(udTempStr("%s##projectHistoryItem%d", pProgramState->settings.projectHistory.projects[i].pName, i)))
+      {
+        vcProject_InitFromURI(pProgramState, pProgramState->settings.projectHistory.projects[i].pPath);
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::Indent();
+      ImGui::Text(pProgramState->settings.projectHistory.projects[i].pPath);
+      ImGui::Unindent();
+    }
+
+    ImGui::NextColumn();
+
     vcIGSW_InputText(vcString::Get("modalProjectNewName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
 
     if (ImGui::RadioButton(vcString::Get("modalProjectNewGeolocated"), &zoneType, 0))
@@ -235,15 +253,14 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::CloseCurrentPopup();
     }
 
-    ImGui::SameLine();
+    ImGui::EndColumns();
+    ImGui::Separator();
 
     if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
-
-    ImGui::Separator();
 
     //TODO: Additional export settings
 
