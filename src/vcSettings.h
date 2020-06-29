@@ -474,4 +474,7 @@ udResult vcSettings_RegisterAssetFileHandler();
 udResult vcSettings_UpdateLanguageOptions(vcSettings *pSettings);
 void vcSettings_ApplyMapChange(vcSettings *pSettings);
 
+// Load Branding Info
+void vcSettings_LoadBranding(vcState *pState);
+
 #endif // !vcSettings_h__

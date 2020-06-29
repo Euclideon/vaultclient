@@ -30,8 +30,10 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
 {
     main0_out out = {};
     float _56 = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    float4 _64 = float4(in.in_var_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * _56, 0.0, 0.0);
+    _64.w = in.in_var_TEXCOORD2.y;
     out.out_var_SV_Target0 = albedoTexture.sample(albedoSampler, in.in_var_TEXCOORD0) * in.in_var_COLOR0;
-    out.out_var_SV_Target1 = float4(0.0, 0.0, in.in_var_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * _56);
+    out.out_var_SV_Target1 = _64;
     out.gl_FragDepth = _56;
     return out;
 }

@@ -37,8 +37,14 @@ enum vcObjectId
   vcObjectId_Null = 0,
   vcObjectId_Terrain = 1,
 
-  // These are offsets
-  vcObjectId_PolygonModels = 2,
+  // This is an offset
+  vcObjectId_SceneItems = 2,
+  // Individual category offsets depend on active scene item counts.
+  // Ordering is:
+  //   1. Polygon Models
+  //   2. Images
+  //   3. Labels
+  //   4. TODO: Pins (images)
 };
 
 // Temp hard-coded view shed properties
@@ -111,6 +117,7 @@ struct vcRenderContext
 
   vcFramebuffer *pFinalFramebuffer;
   vcTexture *pFinalColour;
+  vcTexture *pFinalNormal;
 
   vcFramebuffer *pAuxiliaryFramebuffers[2];
   vcTexture *pAuxiliaryTextures[2];
@@ -169,7 +176,8 @@ struct vcRenderContext
   struct
   {
     vcShader *pProgram;
-    vcShaderSampler *uniform_texture;
+    vcShaderSampler *uniform_colour;
+    vcShaderSampler *uniform_normal;
     vcShaderSampler *uniform_depth;
     vcShaderConstantBuffer *uniform_params;
 
@@ -393,7 +401,8 @@ udResult vcRender_LoadShaders(vcRenderContext *pRenderContext, udWorkerPool *pWo
     [pRenderContext](void *)
     {
       vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
-      vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_texture, pRenderContext->postEffectsShader.pProgram, "sceneColour");
+      vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_colour, pRenderContext->postEffectsShader.pProgram, "sceneColour");
+      vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_normal, pRenderContext->postEffectsShader.pProgram, "sceneNormal");
       vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_depth, pRenderContext->postEffectsShader.pProgram, "sceneDepth");
       vcShader_GetConstantBuffer(&pRenderContext->postEffectsShader.uniform_params, pRenderContext->postEffectsShader.pProgram, "u_params", sizeof(pRenderContext->postEffectsShader.params));
     }
@@ -533,6 +542,7 @@ epilogue:
   }
 
   vcTexture_Destroy(&pRenderContext->pFinalColour);
+  vcTexture_Destroy(&pRenderContext->pFinalNormal);
   vcFramebuffer_Destroy(&pRenderContext->pFinalFramebuffer);
 
   for (int i = 0; i < 2; ++i)
@@ -622,6 +632,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   }
 
   vcTexture_Destroy(&pRenderContext->pFinalColour);
+  vcTexture_Destroy(&pRenderContext->pFinalNormal);
   vcFramebuffer_Destroy(&pRenderContext->pFinalFramebuffer);
 
   for (int i = 0; i < 2; ++i)
@@ -633,13 +644,14 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pColour, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pNormal, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pNormal, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget));
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pDepth, widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->gBuffer[i].pFramebuffer, pRenderContext->gBuffer[i].pColour, pRenderContext->gBuffer[i].pDepth, 0, pRenderContext->gBuffer[i].pNormal), udR_InternalError);
   }
 
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pFinalColour, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_RenderTarget));
-  UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFinalFramebuffer, pRenderContext->pFinalColour), udR_InternalError);
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pFinalColour, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget));
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pFinalNormal, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
+  UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFinalFramebuffer, pRenderContext->pFinalColour, nullptr, 0, pRenderContext->pFinalNormal), udR_InternalError);
 
   pRenderContext->effectResolution.x = widthIncr >> vcRender_OutlineEffectDownscale;
   pRenderContext->effectResolution.y = heightIncr >> vcRender_OutlineEffectDownscale;
@@ -704,8 +716,8 @@ float vcRender_EncodeModelId(uint32_t id)
 
 void vcRender_DecodeModelId(uint8_t pixelBytes[8], uint16_t *pId, float *pDepth)
 {
-  *pDepth = udAbs(Float16ToFloat32(uint16_t((pixelBytes[6] & 0xFF) | ((pixelBytes[7] & 0xFF) << 8))));
-  *pId = uint16_t((Float16ToFloat32(uint16_t((pixelBytes[4] & 0xFF) | ((pixelBytes[5] & 0xFF) << 8))) * 0xffff) + 0.5f);
+  *pDepth = udAbs(Float16ToFloat32(uint16_t((pixelBytes[2] & 0xFF) | ((pixelBytes[3] & 0xFF) << 8))));
+  *pId = uint16_t((Float16ToFloat32(uint16_t((pixelBytes[0] & 0xFF) | ((pixelBytes[1] & 0xFF) << 8))) * 0xffff) + 0.5f);
 }
 
 // Asychronously read a 1x1 region of last frames depth buffer 
@@ -725,12 +737,12 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   if (pRenderContext->asyncReadInProgress)
   {
     pRenderContext->asyncReadInProgress = false;
-    UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pNormal, lastPickLocation.x, lastPickLocation.y, 1, 1, pixelBytes), udR_InternalError); // read previous copy
+    UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pFinalNormal, lastPickLocation.x, lastPickLocation.y, 1, 1, pixelBytes), udR_InternalError); // read previous copy
     vcRender_DecodeModelId(pixelBytes, &pRenderContext->previousPickedId, &pRenderContext->previousFrameDepth);
   }
 
   pRenderContext->asyncReadInProgress = true;
-  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pFramebuffer), udR_InternalError); // begin copy for next frame read
+  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pFinalNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes, pRenderContext->pFinalFramebuffer), udR_InternalError); // begin copy for next frame read
 
   lastPickLocation = pRenderContext->picking.location;
 
@@ -939,8 +951,9 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
   vcFramebuffer_Bind(pRenderContext->pFinalFramebuffer, vcFramebufferClearOperation_All, 0xff000000);
 
   vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
-  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pColour, 0, pRenderContext->postEffectsShader.uniform_texture);
-  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pDepth, 1, pRenderContext->postEffectsShader.uniform_depth);
+  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pColour, 0, pRenderContext->postEffectsShader.uniform_colour);
+  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pNormal, 1, pRenderContext->postEffectsShader.uniform_normal);
+  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pDepth, 2, pRenderContext->postEffectsShader.uniform_depth);
 
   pRenderContext->postEffectsShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
   pRenderContext->postEffectsShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
@@ -1168,12 +1181,11 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
 
     vcSceneLayer_BeginFrame();
 
-    uint32_t modelId = vcObjectId_PolygonModels;
     udFloat4 whiteColour = udFloat4::one();
-    for (size_t i = 0; i < renderData.polyModels.length; ++i)
+    uint32_t polygonIds = vcObjectId_SceneItems;
+    for (uint32_t i = 0; i < renderData.polyModels.length; ++i)
     {
       vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-      float objectId = vcRender_EncodeModelId(modelId++);
       if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
         continue;
 
@@ -1182,6 +1194,10 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
         pTintOverride = &whiteColour;
 
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
+
+      float objectId = vcRender_EncodeModelId(polygonIds + i);
+      if (!pInstance->selectable)
+        objectId = 0.0f; // sentinel for 'not selectable'
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
         vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pTintOverride);
@@ -1209,22 +1225,28 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
 
   // screen images
-  for (size_t i = 0; i < renderData.images.length; ++i)
+  uint32_t imageIds = vcObjectId_SceneItems + (uint32_t)renderData.polyModels.length;
+  for (uint32_t i = 0; i < renderData.images.length; ++i)
   {
     vcImageRenderInfo *pImage = renderData.images[i];
     if (pImage->type != vcIT_ScreenPhoto) // too far
       continue;
 
-    vcImageRenderer_Render(pImage, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, 1.0f);
+    float encodedImageId = vcRender_EncodeModelId(imageIds + i);
+    vcImageRenderer_Render(pImage, encodedImageId, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, 1.0f);
   }
 
   // Pins
   vcPinRenderer_Render(pRenderContext->pPinRenderer, pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution, renderData.labels);
 
   // Labels
+  uint32_t labelIds = vcObjectId_SceneItems + (uint32_t)(renderData.polyModels.length + renderData.images.length);
   ImDrawList *drawList = ImGui::GetWindowDrawList();
-  for (size_t i = 0; i < renderData.labels.length; ++i)
-    vcLabelRenderer_Render(drawList, renderData.labels[i], pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
+  for (uint32_t i = 0; i < renderData.labels.length; ++i)
+  {
+    float encodedLabelId = vcRender_EncodeModelId(labelIds + i);
+    vcLabelRenderer_Render(drawList, renderData.labels[i], encodedLabelId, pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
+  }
 
   // Watermark
   if (pProgramState->settings.presentation.showEuclideonLogo || pProgramState->pSceneWatermark != nullptr)
@@ -1248,7 +1270,8 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
 
-    for (size_t i = 0; i < renderData.images.length; ++i)
+    uint32_t imageIds = vcObjectId_SceneItems + (uint32_t)(renderData.polyModels.length);
+    for (uint32_t i = 0; i < renderData.images.length; ++i)
     {
       vcImageRenderInfo *pImage = renderData.images[i];
       double distToCamera = udMag3(pProgramState->camera.position - renderData.images[i]->position);
@@ -1257,7 +1280,8 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
       if (pImage->type == vcIT_ScreenPhoto ||  zScale < 0) // too far
         continue;
 
-      vcImageRenderer_Render(pImage, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, zScale);
+      float encodedImageId = vcRender_EncodeModelId(imageIds + i);
+      vcImageRenderer_Render(pImage, encodedImageId, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, zScale);
     }
   }
 
@@ -1270,12 +1294,11 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   }
 
   // Transparent polygons
-  uint32_t modelId = vcObjectId_PolygonModels;
   udFloat4 whiteColour = udFloat4::one();
-  for (size_t i = 0; i < renderData.polyModels.length; ++i)
+  uint32_t polygonIds = vcObjectId_SceneItems;
+  for (uint32_t i = 0; i < renderData.polyModels.length; ++i)
   {
     vcRenderPolyInstance *pInstance = &renderData.polyModels[i];
-    float objectId = vcRender_EncodeModelId(modelId++);
     if (!pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
       continue;
 
@@ -1284,6 +1307,10 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
       pTintOverride = &whiteColour;
 
     vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
+
+    float objectId = vcRender_EncodeModelId(polygonIds + i);
+    if (!pInstance->selectable)
+      objectId = 0.0f; // sentinel for 'not selectable'
 
     if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
       vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pTintOverride);
@@ -1458,7 +1485,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
     vcPinRenderer_Reset(pRenderContext->pPinRenderer);
     for (size_t i = 0; i < renderData.pins.length; ++i)
-      vcPinRenderer_AddPin(pRenderContext->pPinRenderer, pProgramState, renderData.pins[i].pPinAddress, renderData.pins[i].position, renderData.pins[i].count);
+      vcPinRenderer_AddPin(pRenderContext->pPinRenderer, pProgramState, renderData.pins[i].pSceneItem, renderData.pins[i].pPinAddress, renderData.pins[i].position, renderData.pins[i].count);
   }
 
   // Render and upload UD buffers
@@ -1475,21 +1502,22 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   vcRender_OpaquePass(pProgramState, pRenderContext, renderData);
-  vcRender_AsyncReadFrameDepth(pRenderContext);
 
   vcRender_VisualizationPass(pProgramState, pRenderContext);
   vcRender_RenderAtmosphere(pProgramState, pRenderContext);
-
+  
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
+  
+  vcRender_PostProcessPass(pProgramState, pRenderContext);
+  
+  vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
+  
+  vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);
+
+  vcRender_AsyncReadFrameDepth(pRenderContext);
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
-
-  vcRender_PostProcessPass(pProgramState, pRenderContext);
-
-  vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
-
-  vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
@@ -1796,21 +1824,43 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   if (doSelectRender)
   {
     uint8_t pixelBytes[8] = {};
-    vcTexture_EndReadPixels(pRenderContext->gBuffer[0].pNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes);
+    vcTexture_EndReadPixels(pRenderContext->pFinalNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes);
     pRenderContext->asyncReadInProgress = false;
 
-    uint16_t pickedId = vcObjectId_Null;
-    vcRender_DecodeModelId(pixelBytes, &pickedId, &pickDepth);
+    uint16_t pickId = vcObjectId_Null;
+    vcRender_DecodeModelId(pixelBytes, &pickId, &pickDepth);
 
-    result.success = (pickedId != vcObjectId_Null);
-    if (pickedId == vcObjectId_Terrain)
+    result.success = (pickId != vcObjectId_Null);
+    if (pickId == vcObjectId_Terrain)
     {
       // Terrain    
     }
-    else if (pickedId >= vcObjectId_PolygonModels)
+    else if (pickId >= vcObjectId_SceneItems)
     {
-      // Polygon
-      result.pPolygon = &renderData.polyModels[pickedId - vcObjectId_PolygonModels];
+      pickId -= vcObjectId_SceneItems; // remove offset
+
+      // determine selected item type, based on index
+      if (pickId < renderData.polyModels.length)
+      {
+        // polygon
+        result.pSceneItem = renderData.polyModels[pickId].pSceneItem;
+        result.sceneItemInternalId = renderData.polyModels[pickId].sceneItemInternalId;
+      }
+      else if (pickId < renderData.polyModels.length + renderData.images.length)
+      {
+        // image
+        result.pSceneItem = renderData.images[pickId - renderData.polyModels.length]->pSceneItem;
+      }
+      else if (pickId < renderData.polyModels.length + renderData.images.length + renderData.labels.length)
+      {
+        // label
+        result.pSceneItem = renderData.labels[pickId - renderData.images.length - renderData.polyModels.length]->pSceneItem;
+        result.sceneItemInternalId = renderData.labels[pickId - renderData.images.length - renderData.polyModels.length]->sceneItemInternalId;
+      }
+      else
+      {
+        // TODO: pins
+      }
     }
   }
   else

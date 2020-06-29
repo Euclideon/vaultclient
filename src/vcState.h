@@ -101,6 +101,14 @@ struct vcState
     udResult resultCode;
   };
 
+  struct vcBranding
+  {
+    char appName[64];
+    char copyrightName[64];
+    char supportEmail[256];
+    uint32_t colours[4];
+  } branding;
+
   udChunkedArray<const char*> loadList;
   udChunkedArray<ErrorItem> errorItems;
 

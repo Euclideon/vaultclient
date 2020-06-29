@@ -25,6 +25,6 @@ void main()
 {
     highp vec3 _58 = (texture(SPIRV_Cross_CombinednormalTexturenormalSampler, varying_TEXCOORD3).xyz * vec3(2.0)) - vec3(1.0);
     out_var_SV_Target0 = vec4(texture(SPIRV_Cross_CombinedcolourTexturecolourSampler, varying_TEXCOORD0).xyz * varying_COLOR0.xyz, varying_COLOR0.w);
-    out_var_SV_Target1 = vec4(_58.xy, varying_TEXCOORD2.x, ((step(0.0, _58.z) * 2.0) - 1.0) * (((varying_TEXCOORD1.x / varying_TEXCOORD1.y) * (1.0 / (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear))) + (u_cameraPlaneParams.u_clipZNear * (-0.5))));
+    out_var_SV_Target1 = vec4(varying_TEXCOORD2.x, ((step(0.0, _58.z) * 2.0) - 1.0) * (((varying_TEXCOORD1.x / varying_TEXCOORD1.y) * (1.0 / (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear))) + (u_cameraPlaneParams.u_clipZNear * (-0.5))), _58.xy);
 }
 

@@ -1,5 +1,6 @@
 #include "vcUnitConversion.h"
 #include "vcTesting.h"
+#include "udStringUtil.h"
 
 void VerifyDistance(vcDistanceUnit sourceType, double in, vcDistanceUnit destType, double out)
 {
@@ -190,4 +191,256 @@ TEST(UnitConversion, TimeReference)
   in.GPSWeek.weeks = 0;
   out = vcUnitConversion_ConvertTimeReference(in, vcTimeReference_GPSWeek, vcTimeReference_TAI);
   EXPECT_FALSE(out.success);
+}
+
+TEST(UnitConversion, StringFormatiing)
+{
+  double value = 42.0;
+  const size_t bufSze = 64;
+  char buffer[bufSze] = {};
+  vcTimeReferenceData timeData;
+
+  {
+    timeData.GPSWeek.weeks = 42;
+    timeData.GPSWeek.secondsOfTheWeek = 13.0;
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPSWeek) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42 weeks, 13.000000s"), 0);
+
+    timeData.seconds= 42.0;
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_TAI) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_Unix) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPS) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPSAdjusted) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000s"), 0);
+
+    timeData.GPSWeek.weeks = 42;
+    timeData.GPSWeek.secondsOfTheWeek = 13.0;
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPSWeek, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42 weeks, 13s"), 0);
+
+    timeData.seconds= 42.0;
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_TAI, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_Unix, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPS, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPSAdjusted, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42s"), 0);
+  }
+
+  {
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Metres) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000m"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Kilometres) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000km"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Centimetres) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000cm"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Millimetres) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000mm"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyFeet) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000ft (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyMiles) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000mi (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyInches) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000in (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_NauticalMiles) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000nmi"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Metres, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42m"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Kilometres, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42km"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Centimetres, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42cm"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Millimetres, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42mm"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyFeet, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42ft (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyMiles, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42mi (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyInches, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42in (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_NauticalMiles, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42nmi"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_Count), -1);
+  }
+
+  {
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMetres) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000m sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareKilometers) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000km sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Hectare) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000ha"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareFoot) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000ft sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMiles) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000mi sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Acre) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000ac"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMetres, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42m sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareKilometers, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42km sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Hectare, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42ha"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareFoot, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42ft sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMiles, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42mi sq"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Acre, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42ac"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Count), -1);
+  }
+
+  {
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicMeter) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000cbm"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_MegaLiter) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000ML"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_Litre) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000L"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicInch) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000cbin"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicFoot) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000cbft"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSGallons) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000gal US"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSQuart) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000qt US"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicYard) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000cbyd"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicMeter, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42cbm"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_MegaLiter, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42ML"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_Litre, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42L"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicInch, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42cbin"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicFoot, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42cbft"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSGallons, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42gal US"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSQuart, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42qt US"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicYard, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42cbyd"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_Count), -1);
+  }
+
+  {
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_MetresPerSecond) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000m/s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_KilometresPerHour) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000km/h"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_USSurveyMilesPerHour) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000mi/h (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_FeetPerSecond) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000ft/s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_NauticalMilesPerHour) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000nmi/h"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_Mach) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000Ma"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_MetresPerSecond, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42m/s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_KilometresPerHour, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42km/h"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_USSurveyMilesPerHour, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42mi/h (U.S. Survey)"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_FeetPerSecond, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42ft/s"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_NauticalMilesPerHour, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42nmi/h"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_Mach, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42Ma"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_Count), -1);
+  }
+
+  {
+    EXPECT_TRUE(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Celcius) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000C"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Kelvin) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000K"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Farenheit) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000F"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Celcius, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42C"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Kelvin, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42K"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Farenheit, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42F"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Count), -1);
+  }
 }

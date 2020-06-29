@@ -29,7 +29,7 @@ fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlanePa
     main0_out out = {};
     float _37 = log2(in.in_var_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
     out.out_var_SV_Target0 = in.in_var_COLOR0;
-    out.out_var_SV_Target1 = float4(0.0, 0.0, 0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _37);
+    out.out_var_SV_Target1 = float4(0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _37, 0.0, 0.0);
     out.gl_FragDepth = _37;
     return out;
 }

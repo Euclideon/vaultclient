@@ -29,7 +29,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_worldViewProjectionMatrix;
   float4x4 u_worldMatrix;
   float4 u_colour;
-  float4 u_objectInfo; // id.x, (unused).yzw
+  float4 u_objectInfo; // id.x, isSelectable.y, (unused).zw
 };
 
 PS_INPUT main(VS_INPUT input)
@@ -44,7 +44,7 @@ PS_INPUT main(VS_INPUT input)
   output.normal = worldNormal;
   output.colour = u_colour;// * input.colour;
   output.fLogDepth.x = 1.0 + output.pos.w;
-  output.objectInfo.x = u_objectInfo.x;
+  output.objectInfo = u_objectInfo.xy;
 
   return output;
 }

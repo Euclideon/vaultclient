@@ -44,7 +44,7 @@ static struct vcPolygonModelShader
     udFloat4x4 u_worldViewProjectionMatrix;
     udFloat4x4 u_world;
     udFloat4 u_colour;
-    udFloat4 u_objectInfo; //id.x, (unused).yzw
+    udFloat4 u_objectInfo; //id.x, isSelectable.y, (unused).zw
   } everyObject;
 
 } gShaders[vcPMST_Count];
@@ -531,6 +531,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const float encodedObject
       colour = *pColourOverride;
 
     pPolygonShader->everyObject.u_objectInfo.x = encodedObjectId;
+    pPolygonShader->everyObject.u_objectInfo.y = (encodedObjectId != 0.0f) ? 1.0f : 0.0f;
     pPolygonShader->everyObject.u_colour = colour;
     pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
     pPolygonShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix * pModel->modelOffset);

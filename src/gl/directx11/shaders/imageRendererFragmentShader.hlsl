@@ -12,6 +12,7 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
   float4 colour : COLOR0;
   float2 fLogDepth : TEXCOORD1;
+  float2 objectInfo : TEXCOORD2;
 };
 
 sampler albedoSampler;
@@ -27,7 +28,7 @@ struct PS_OUTPUT
 float4 packNormal(float3 normal, float objectId, float depth)
 {
   float zSign = step(0, normal.z) * 2 - 1; // signed 0
-  return float4(normal.x, normal.y, objectId, zSign * depth);
+  return float4(objectId, zSign * depth, normal.x, normal.y);
 }
 
 PS_OUTPUT main(PS_INPUT input)
@@ -39,6 +40,8 @@ PS_OUTPUT main(PS_INPUT input)
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
 
-  output.Normal = packNormal(float3(0.0, 0.0, 0.0), 0.0, output.Depth0);
+  output.Normal = packNormal(float3(0.0, 0.0, 0.0), input.objectInfo.x, output.Depth0);
+  output.Normal.w = 1.0; // force alpha-blend value
+	
   return output;
 }

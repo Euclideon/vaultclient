@@ -126,7 +126,7 @@ udResult vcPinRenderer_Destroy(vcPinRenderer **ppPinRenderer)
   return udR_Success;
 }
 
-bool vcPinRenderer_AddPin(vcPinRenderer *pPinRenderer, vcState *pProgramState, const char *pPinIconURL, udDouble3 position, int count)
+bool vcPinRenderer_AddPin(vcPinRenderer *pPinRenderer, vcState *pProgramState, vcSceneItem *pSceneItem, const char *pPinIconURL, udDouble3 position, int count)
 {
   if (pPinIconURL == nullptr)
     return false;
@@ -186,6 +186,7 @@ bool vcPinRenderer_AddPin(vcPinRenderer *pPinRenderer, vcState *pProgramState, c
     pBin->label.pText = pBin->numbers;
     pBin->label.textColourRGBA = 0xFF000000;
     pBin->label.backColourRGBA = 0xC0FFFFFF;
+    pBin->label.pSceneItem = pSceneItem;
   }
 
   return true;
@@ -228,7 +229,8 @@ void vcPinRenderer_Render(vcPinRenderer *pPinRenderer, const udDouble4x4 &viewPr
     info.position = pBin->position;
     info.scale = 1.0;
     info.type = vcIT_ScreenPhoto;
-    vcImageRenderer_Render(&info, viewProjectionMatrix, screenSize, 1.0f);
+    info.pSceneItem = pBin->label.pSceneItem;
+    vcImageRenderer_Render(&info, 0.0f, viewProjectionMatrix, screenSize, 1.0f);
 
     if (pBin->count > 1)
     {

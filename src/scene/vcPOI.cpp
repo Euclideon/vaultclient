@@ -131,7 +131,9 @@ public:
     {
       for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
       {
-        m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+        vcRenderPolyInstance *pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+        pInstance->selectable = true;
+        pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.85f);
       }
     }
 
@@ -202,8 +204,7 @@ public:
 
     if (m_pParent->m_selected)
     {
-      vcRenderPolyInstance * pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, 0);
-      pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+      m_pParent->AddNodeToRenderData(pProgramState, pRenderData, 0);
     }
 
     m_pParent->AddLabelsToScene(pRenderData);
@@ -285,8 +286,7 @@ public:
     {
       for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
       {
-        vcRenderPolyInstance * pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
-        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+        m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);       
       }
     }
 
@@ -368,8 +368,7 @@ public:
     {
       for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
       {
-        vcRenderPolyInstance * pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
-        pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+        m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
       }
     }
 
@@ -752,6 +751,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
   m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
   m_pLabelInfo->textSize = m_namePt;
+  m_pLabelInfo->pSceneItem = this;
 
   for (size_t i = 0; i < m_lengthLabels.length; ++i)
   {
@@ -759,6 +759,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
     pLabel->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
     pLabel->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
     pLabel->textSize = m_namePt;
+    pLabel->pSceneItem = this;
   }
 
   // Update Polygon Model
@@ -1037,6 +1038,9 @@ vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRende
   pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
   pInstance->sceneItemInternalId = (uint64_t)i + 1;
   pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
+  pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+  pInstance->selectable = false;
+
   return pInstance;
 }
 
@@ -1228,6 +1232,7 @@ void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderD
   pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
   pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
   pInstance->tint = vcIGSW_BGRAToImGui(m_measurementAreaFillColour);
+  pInstance->selectable = true;
 }
 
 void vcPOI::GenerateLineFillPolygon()
@@ -1317,6 +1322,7 @@ void vcPOI::AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRend
     pModel->pSceneItem = this;
     pModel->worldMat = attachmentMat;
     pModel->cullFace = m_attachment.cullMode;
+    pModel->selectable = true;
 
     // Update the camera if the camera is coming along
     if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)

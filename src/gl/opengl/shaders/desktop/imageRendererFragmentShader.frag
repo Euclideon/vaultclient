@@ -14,14 +14,17 @@ uniform sampler2D SPIRV_Cross_CombinedalbedoTexturealbedoSampler;
 layout(location = 0) in vec2 in_var_TEXCOORD0;
 layout(location = 1) in vec4 in_var_COLOR0;
 layout(location = 2) in vec2 in_var_TEXCOORD1;
+layout(location = 3) in vec2 in_var_TEXCOORD2;
 layout(location = 0) out vec4 out_var_SV_Target0;
 layout(location = 1) out vec4 out_var_SV_Target1;
 
 void main()
 {
-    float _51 = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    float _53 = log2(in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    vec4 _60 = vec4(in_var_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * _53, 0.0, 0.0);
+    _60.w = 1.0;
     out_var_SV_Target0 = texture(SPIRV_Cross_CombinedalbedoTexturealbedoSampler, in_var_TEXCOORD0) * in_var_COLOR0;
-    out_var_SV_Target1 = vec4(0.0, 0.0, 0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _51);
-    gl_FragDepth = _51;
+    out_var_SV_Target1 = _60;
+    gl_FragDepth = _53;
 }
 

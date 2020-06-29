@@ -261,11 +261,15 @@ struct PS_INPUT
 
 struct PS_OUTPUT
 {
-  float4 Color0 : SV_Target;
+  float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
 };
 
 sampler sceneColourSampler;
 Texture2D sceneColourTexture;
+
+sampler sceneNormalSampler;
+Texture2D sceneNormalTexture;
 
 sampler sceneDepthSampler;
 Texture2D sceneDepthTexture;
@@ -274,8 +278,9 @@ PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
   float4 colour = float4(0.0, 0.0, 0.0, 0.0);
+  float4 packedNormal = sceneNormalTexture.Sample(sceneNormalSampler, input.uv);
   float depth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
-
+ 
   // only run FXAA on edges (simple edge detection)
   float depth0 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV0).x;
   float depth1 = sceneDepthTexture.Sample(sceneDepthSampler, input.edgeSampleUV1).x;
@@ -303,5 +308,7 @@ PS_OUTPUT main(PS_INPUT input)
   }
 
   output.Color0 = float4(saturation(colour.xyz, input.saturation), 1.0);
+  output.Normal = packedNormal;
+   
   return output;
 }
