@@ -332,8 +332,8 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
 
   for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
   {
-    vdkProjectNode_GetMetadataUint(m_pNode, "visualization.returnNumberColours[i]", &m_visualization.returnNumberColours[i], pProgramState->settings.visualization.returnNumberColours[i]);
-    vdkProjectNode_GetMetadataUint(m_pNode, "visualization.numberOfReturnsColours[i]", &m_visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
+    vdkProjectNode_GetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), &m_visualization.returnNumberColours[i], pProgramState->settings.visualization.returnNumberColours[i]);
+    vdkProjectNode_GetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), &m_visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
   }
 
   m_visualization.displacement.bounds = udFloat2::create((float)displacement.x, (float)displacement.y);
