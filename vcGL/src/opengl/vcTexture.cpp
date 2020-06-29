@@ -23,6 +23,16 @@ EM_JS(void, vcTexture_glGetBufferSubData, (GLenum target, GLintptr offset, GLsiz
 });
 #endif
 
+udResult vcTexture_GetFormat(vcTexture *pTexture, vcTextureFormat *pFormat)
+{
+  if (pTexture == nullptr || pFormat == nullptr)
+    return udR_InvalidParameter_;
+
+  *pFormat = pTexture->format;
+
+  return udR_Success;
+}
+
 void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSize = nullptr, GLint *pTextureFormat = nullptr, GLenum *pPixelType = nullptr, GLint *pPixelFormat = nullptr)
 {
   GLint textureFormat = GL_INVALID_ENUM;
