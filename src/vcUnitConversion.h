@@ -2,6 +2,7 @@
 #define vcUnitConversion_h__
 
 #include <stdint.h>
+#include "udMath.h"
 
 enum vcDistanceUnit
 {
