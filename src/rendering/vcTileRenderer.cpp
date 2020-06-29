@@ -116,7 +116,7 @@ struct vcTileRenderer
       udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 eyeNormals[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
-      udFloat4 objectInfo; // objectId.x
+      udFloat4 objectInfo; // objectId.x, tileSkirtLength
       udFloat4 uvOffsetScale;
       udFloat4 demUVOffsetScale;
     } everyObject;
@@ -1248,6 +1248,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   pTileRenderer->quadTree.metaData.visibleNodeCount = 0;
   pTileRenderer->quadTree.metaData.nodeRenderCount = 0;
 
+  float tileSkirtLength = 3000000.0f; // TODO: Read actual planet radius
+
   vcGLStateCullMode cullMode = vcGLSCM_Back;
   if (cameraInsideGround)
     cullMode = vcGLSCM_Front;
@@ -1256,23 +1258,28 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, true);
 
   if (pTileRenderer->pSettings->maptiles.transparency < 1.0f)
+  {
     vcGLState_SetBlendMode(vcGLSBM_Interpolative);
+    tileSkirtLength = 0.0f;
+  }
 
   if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Overlay)
   {
     vcGLState_SetDepthStencilMode(vcGLSDM_Always, true);
+    tileSkirtLength = 0.0f;
   }
   else if (pTileRenderer->pSettings->maptiles.blendMode == vcMTBM_Underlay)
   {
     // almost at the back, so it can still 'occlude' the skybox
     vcGLState_SetViewportDepthRange(0.999f, 0.999f);
+    tileSkirtLength = 0.0f;
   }
 
   vcShader_Bind(pTileRenderer->presentShader.pProgram);
   pTileRenderer->presentShader.everyObject.projectionMatrix = udFloat4x4::create(proj);
   pTileRenderer->presentShader.everyObject.viewMatrix = udFloat4x4::create(view);
 
-  pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f), 0, 0);
+  pTileRenderer->presentShader.everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, 0, 0);
   pTileRenderer->presentShader.everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.transparency);
 
   vcTileRenderer_RecursiveRenderNodes(pTileRenderer, view, pRootNode, nullptr, nullptr);
