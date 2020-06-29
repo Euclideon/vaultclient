@@ -1,5 +1,6 @@
 #include "vcUnitConversion.h"
 #include "udMath.h"
+#include "udStringUtil.h"
 
 double vcUnitConversion_ConvertDistance(double sourceValue, vcDistanceUnit sourceUnit, vcDistanceUnit requiredUnit)
 {
@@ -198,4 +199,90 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
 
 epilogue:
   return result;
+}
+
+int vcUnitConversion_ConvertTimeToString(char *pBuffer, size_t bufferSize, const vcTimeReferenceData &value, vcTimeReference reference, const char *pSecondsFormat)
+{
+  if (pBuffer == nullptr)
+    return -1;
+
+  if (pSecondsFormat == nullptr)
+  {
+    if (reference == vcTimeReference_GPSWeek)
+      return udSprintf(pBuffer, bufferSize, "%i weeks, %fs", value.GPSWeek.weeks, value.GPSWeek.secondsOfTheWeek);
+    else
+      return udSprintf(pBuffer, bufferSize, "%fs", value.seconds);
+  }
+  else
+  {
+    if (reference == vcTimeReference_GPSWeek)
+      return udSprintf(pBuffer, bufferSize, "%i weeks, %ss", value.GPSWeek.weeks, udTempStr(pSecondsFormat, value.GPSWeek.secondsOfTheWeek));
+    else
+      return udSprintf(pBuffer, bufferSize, "%ss", udTempStr(pSecondsFormat, value.seconds));
+  }
+}
+
+int vcUnitConversion_ConvertDistanceToString(char *pBuffer, size_t bufferSize, double value, vcDistanceUnit unit, const char *pFormat)
+{
+  static const char *Suffixes[] = {"m", "km", "cm", "mm", "ft (U.S. Survey)", "mi (U.S. Survey)", "in (U.S. Survey)", "nmi"};
+
+  if (pBuffer == nullptr || unit == vcDistance_Count)
+    return -1;
+
+  if (pFormat == nullptr)
+    return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
+  else
+    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+}
+
+int vcUnitConversion_ConvertAreaToString(char *pBuffer, size_t bufferSize, double value, vcAreaUnit unit, const char *pFormat)
+{
+  static const char *Suffixes[] = {"m sq", "km sq", "ha", "ft sq", "mi sq", "ac"};
+
+  if (pBuffer == nullptr || unit == vcArea_Count)
+    return -1;
+
+  if (pFormat == nullptr)
+    return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
+  else
+    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+}
+
+int vcUnitConversion_ConvertVolumeToString(char *pBuffer, size_t bufferSize, double value, vcVolumeUnit unit, const char *pFormat)
+{
+  static const char *Suffixes[] = {"cbm", "ML", "L", "cbin", "cbft", "gal US", "qt US", "cbyd"};
+
+  if (pBuffer == nullptr || unit == vcVolume_Count)
+    return -1;
+
+  if (pFormat == nullptr)
+    return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
+  else
+    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+}
+
+int vcUnitConversion_ConvertSpeedToString(char *pBuffer, size_t bufferSize, double value, vcSpeedUnit unit, const char *pFormat)
+{
+  static const char *Suffixes[] = {"m/s", "km/h", "mi/h (U.S. Survey)", "ft/s", "nmi/h", "Ma"};
+
+  if (pBuffer == nullptr || unit == vcSpeed_Count)
+    return -1;
+
+  if (pFormat == nullptr)
+    return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
+  else
+    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+}
+
+int vcUnitConversion_ConvertTemperatureToString(char *pBuffer, size_t bufferSize, double value, vcTemperatureUnit unit, const char *pFormat)
+{
+  static const char *Suffixes[] = {"C", "K", "F"};
+
+  if (pBuffer == nullptr || unit == vcTemperature_Count)
+    return -1;
+
+  if (pFormat == nullptr)
+    return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
+  else
+    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
 }
