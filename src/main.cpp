@@ -2176,7 +2176,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 
     size_t i = 0;
     if (pProgramState->activeProject.pFolder)
-      pProgramState->activeProject.pFolder->HandleImGui(pProgramState, &i);
+      pProgramState->activeProject.pFolder->HandleSceneExplorerUI(pProgramState, &i);
   }
   ImGui::EndChild();
 }

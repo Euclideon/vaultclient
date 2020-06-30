@@ -166,7 +166,7 @@ void vcFolder_AddInsertSeparator()
   ImGui::PopStyleColor();
 }
 
-void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   vdkProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
@@ -373,7 +373,7 @@ void vcFolder::HandleImGui(vcState *pProgramState, size_t *pItemID)
         ImGui::Indent();
         ImGui::PushID(udTempStr("SXIExpanded%zu", *pItemID));
 
-        pSceneItem->HandleImGui(pProgramState, pItemID);
+        pSceneItem->HandleSceneExplorerUI(pProgramState, pItemID);
 
         ImGui::PopID();
         ImGui::Unindent();

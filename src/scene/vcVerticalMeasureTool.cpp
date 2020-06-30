@@ -146,7 +146,7 @@ void vcVerticalMeasureTool::ApplyDelta(vcState *pProgramState, const udDouble4x4
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
 }
 
-void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   if (ImGui::Checkbox(udTempStr("%s##Select1%zu", vcString::Get("scenePOIMHeightPickStart"), *pItemID), &m_pickStart))
     vdkProjectNode_SetMetadataBool(m_pNode, "pickStart", m_pickStart);

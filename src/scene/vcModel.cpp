@@ -404,7 +404,7 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   }
 }
 
-void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
+void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pNode->pURI);
 

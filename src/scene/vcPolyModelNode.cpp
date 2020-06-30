@@ -130,7 +130,7 @@ void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delt
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale.z", scale.z);
 }
 
-void vcPolyModelNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcPolyModelNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   ImGui::TextWrapped("Path: %s", m_pNode->pURI);
 
