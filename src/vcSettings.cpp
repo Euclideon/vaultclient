@@ -491,6 +491,20 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->screenshot.resolution.y = data.Get("screenshot.resolution.height").AsInt(2160);
   }
 
+  if (group == vcSC_All)
+  {
+    // Previous projects
+    for (size_t i = 0; i < vcMaxProjectHistoryCount; i++)
+    {
+      const char *pProjectName = data.Get("previousProjects.name[%zu]", i).AsString();
+      const char *pProjectPath = data.Get("previousProjects.path[%zu]", i).AsString();
+
+      if (pProjectName != nullptr && pProjectPath != nullptr)
+        pSettings->projectHistory.projects.PushBack({ udStrdup(pProjectName), udStrdup(pProjectPath) });
+
+    }
+  }
+
   udFree(pSavedData);
   return true;
 }
@@ -761,6 +775,13 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("mouseSnap.enable = %s", pSettings->mouseSnap.enable ? "true" : "false");
   data.Set("mouseSnap.range = %d", int(pSettings->mouseSnap.range));
 
+  // previous projects
+  for (size_t i = 0; i < pSettings->projectHistory.projects.length; i++)
+  {
+    data.Set("previousProjects.name[] = '%s'", pSettings->projectHistory.projects[i].pName);
+    data.Set("previousProjects.path[] = '%s'", pSettings->projectHistory.projects[i].pPath);
+  }
+
   // Save
   const char *pSettingsStr;
 
@@ -788,7 +809,17 @@ void vcSettings_Cleanup(vcSettings *pSettings)
   pSettings->languageOptions.Deinit();
   pSettings->visualization.pointSourceID.colourMap.Deinit();
 
+  for (size_t i = 0; i < pSettings->projectHistory.projects.length; ++i)
+    vcSettings_CleanupHistoryProjectItem(&pSettings->projectHistory.projects[i]);
+  pSettings->projectHistory.projects.Deinit();
+
   vcTexture_Destroy(&pSettings->convertdefaults.watermark.pTexture);
+}
+
+void vcSettings_CleanupHistoryProjectItem(ProjectHistoryInfo *pProjectItem)
+{
+  udFree(pProjectItem->pName);
+  udFree(pProjectItem->pPath);
 }
 
 #if UDPLATFORM_EMSCRIPTEN

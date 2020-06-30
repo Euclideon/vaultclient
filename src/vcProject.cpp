@@ -8,6 +8,8 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
+void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename);
+
 void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int srid)
 {
   if (pProgramState->activeProject.pProject != nullptr)
@@ -118,6 +120,34 @@ void vcProject_ExtractCamera(vcState *pProgramState)
   vcProject_ExtractCameraRecursive(pProgramState, pProgramState->activeProject.pRoot);
 }
 
+void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename)
+{
+  // replace '\\' with '/'
+  char *pFormattedPath = udStrdup(pFilename);
+  size_t index = 0;
+  while (udStrchr(pFormattedPath, "\\", &index) != nullptr)
+    pFormattedPath[index] = '/';
+
+  for (size_t i = 0; i < pProgramState->settings.projectHistory.projects.length; ++i)
+  {
+    if (udStrEqual(pFormattedPath, pProgramState->settings.projectHistory.projects[i].pPath))
+    {
+      vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectHistory.projects[i]);
+      pProgramState->settings.projectHistory.projects.RemoveAt(i);
+      break;
+    }
+  }
+
+  while (pProgramState->settings.projectHistory.projects.length >= vcMaxProjectHistoryCount)
+  {
+    vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectHistory.projects[pProgramState->settings.projectHistory.projects.length - 1]);
+    pProgramState->settings.projectHistory.projects.PopBack();
+  }
+
+  const char *pName = udStrdup(pProgramState->activeProject.pRoot->pName);
+  pProgramState->settings.projectHistory.projects.PushFront({ pName, pFormattedPath });
+}
+
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
 {
   char *pMemory = nullptr;
@@ -174,6 +204,9 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
   {
     // TODO: Add to unsupported list in other branch
   }
+
+  if (result == udR_Success)
+    vcProject_UpdateProjectHistory(pProgramState, pFilename);
 
   return (result == udR_Success);
 }
@@ -265,6 +298,8 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
     }
 
     udCloseDir(&pDir);
+
+    vcProject_UpdateProjectHistory(pProgramState, pPath);
   }
 }
 

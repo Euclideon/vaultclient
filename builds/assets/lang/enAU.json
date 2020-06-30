@@ -687,5 +687,6 @@
   "modalProjectNewGeolocatedSpecificZone": "Geolocated (Specific Zone)",
   "modalProjectNewGeolocatedSpecificZoneID": "Zone SRID",
   "modalProjectNewCreate": "Create New Project",
+  "modalProjectPreviousProjects": "Previous Projects",
   "_last": "Last item so no one forgets the comma on the line above"
 }
