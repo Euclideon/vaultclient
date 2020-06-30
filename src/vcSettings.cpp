@@ -345,7 +345,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     //Lines
     pSettings->tools.line.minWidth = data.Get("tools.line.minWidth").AsFloat(0.1f);
     pSettings->tools.line.maxWidth = data.Get("tools.line.maxWidth").AsFloat(1000.f);
-    pSettings->tools.line.width = data.Get("tools.line.width").AsFloat(10.f);
+    pSettings->tools.line.width = data.Get("tools.line.width").AsFloat(3.f);
     pSettings->tools.line.fenceMode = data.Get("tools.line.fenceMode").AsInt(0);
     pSettings->tools.line.style = data.Get("tools.line.style").AsInt(1);
     for (int i = 0; i < 4; i++)
