@@ -304,11 +304,14 @@ udResult vcTexture_ConvertPixels(const void *pPixels, vcTextureFormat formatIn, 
       for (int e = 0; e < 4; ++e)
       {
         float temp = Float16ToFloat32(((uint16_t*)pPixels)[i * 4 + e]);
-        if (temp < 0.f)
-          temp = 0.f;
+        temp = udClamp(temp, 0.f, 1.f);
         ((uint8_t *)*ppPixelsOut)[i * 4 + e] = uint8_t(temp * 255.f);
       }
     }
+  }
+  else
+  {
+    UD_ERROR_SET(udR_Unsupported);
   }
 
   result = udR_Success;
