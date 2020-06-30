@@ -830,6 +830,8 @@ void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
 {
   char buffer[128];
 
+  ImGui::Text("%s (%s)", m_pNode->pName, m_pNode->itemtypeStr);
+
   if (m_showArea)
   {
     vcUnitConversion_ConvertAreaToString(buffer, udLengthOf(buffer), m_area, vcArea_SquareMetres);
@@ -852,6 +854,14 @@ void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
     ImGui::TextUnformatted(buffer);
     ImGui::PopFont();
     ImGui::Unindent();
+  }
+
+  if (m_hyperlink[0] != '\0' && ImGui::Button(udTempStr("%s '%s'", vcString::Get("scenePOILabelOpenHyperlink"), m_hyperlink)))
+  {
+    if (udStrEndsWithi(m_hyperlink, ".png") || udStrEndsWithi(m_hyperlink, ".jpg"))
+      pProgramState->pLoadImage = udStrdup(m_hyperlink);
+    else
+      vcWebFile_OpenBrowser(m_hyperlink);
   }
 }
 

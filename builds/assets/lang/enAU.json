@@ -363,6 +363,7 @@
   "menuBarWaitingForRenderLicense": "Waiting for Render license...",
   "menuBarNoRenderLicense": "No Render licenses are available for this user",
   "menuBarInactive": "Inactive",
+  "selectedItemInfoPanelitemsSelected": "items selected",
   "popupMenuCopy": "Copy",
   "popupMenuPaste": "Paste",
   "settingsConnection": "Connection",

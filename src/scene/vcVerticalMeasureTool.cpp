@@ -12,6 +12,7 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 #include "vcWebFile.h"
+#include "vcUnitConversion.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -190,6 +191,35 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
     ImGui::Text("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
 
   }
+}
+
+void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
+{
+  char buffer[128];
+
+  ImGui::Text("%s", vcString::Get("sceneStraightDistance"));
+  ImGui::PushFont(pProgramState->pBigFont);
+  ImGui::Indent();
+  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udMag3(m_points[0] - m_points[2]), vcDistance_Metres);
+  ImGui::Text("%s", buffer);
+  ImGui::Unindent();
+  ImGui::PopFont();
+
+  ImGui::Text("%s", vcString::Get("sceneHorizontalDistance"));
+  ImGui::PushFont(pProgramState->pBigFont);
+  ImGui::Indent();
+  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udMag2(m_points[0] - m_points[2]), vcDistance_Metres);
+  ImGui::Text("%s", buffer);
+  ImGui::Unindent();
+  ImGui::PopFont();
+
+  ImGui::Text("%s", vcString::Get("sceneVerticalDistance"));
+  ImGui::PushFont(pProgramState->pBigFont);
+  ImGui::Indent();
+  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udAbs(m_points[0].z - m_points[2].z), vcDistance_Metres);
+  ImGui::Text("%s", buffer);
+  ImGui::Unindent();
+  ImGui::PopFont();
 }
 
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)

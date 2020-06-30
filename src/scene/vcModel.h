@@ -44,6 +44,7 @@ public:
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
 
   void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
+  virtual void HandleSceneEmbeddedUI(vcState *pProgramState) override;
   void HandleContextMenu(vcState *pProgramState);
 
   void Cleanup(vcState *pProgramState);
