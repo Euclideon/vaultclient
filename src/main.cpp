@@ -966,6 +966,9 @@ int main(int argc, char **args)
 
   udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
 
+  // TODO: If no initial project specified
+  vcModals_OpenModal(&programState, vcMT_NewProject);
+
 #if UDPLATFORM_EMSCRIPTEN
   // Toggle fullscreen if it changed, most likely via pressing escape key
   emscripten_set_fullscreenchange_callback("#canvas", &programState, true, [](int /*eventType*/, const EmscriptenFullscreenChangeEvent *pEvent, void *pUserData) -> EM_BOOL {

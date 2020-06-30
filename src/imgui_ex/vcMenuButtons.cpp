@@ -7,19 +7,26 @@
 
 #include "imgui.h"
 
+static const float buttonSize = 24.f;
+static const float textureRelativeButtonSize = 240.f;
+static const float buttonUVSize = buttonSize / textureRelativeButtonSize;
+
+udFloat4 vcGetIconUV(vcMenuBarButtonIcon iconIndex)
+{
+  float buttonX = (iconIndex % (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
+  float buttonY = (iconIndex / (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
+
+  return udFloat4::create(buttonX, buttonY, buttonX + buttonUVSize, buttonY + buttonUVSize);
+}
+
 bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/, float scale /*= 1.f*/)
 {
-  const float buttonSize = 24.f;
-  const float textureRelativeButtonSize = 240.f;
-  const float buttonUVSize = buttonSize / textureRelativeButtonSize;
   const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
   const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
-
   const float MBtn_Gap = 10.f;
   const float MBtn_Padding = 2.f;
 
-  float buttonX = (buttonIndex % (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
-  float buttonY = (buttonIndex / (int)(textureRelativeButtonSize / buttonSize)) * buttonUVSize;
+  udFloat4 iconUV = vcGetIconUV(buttonIndex);
 
   bool retVal = false;
 
@@ -30,7 +37,7 @@ bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char 
 
   ImGui::PushID(pButtonName);
   if (pUITexture != nullptr)
-    retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize * scale, buttonSize * scale), ImVec2(buttonX, buttonY), ImVec2(buttonX + buttonUVSize, buttonY + buttonUVSize), 2, selected ? EnabledColor : DefaultBGColor);
+    retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize * scale, buttonSize * scale), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w), 2, selected ? EnabledColor : DefaultBGColor);
   else
     retVal = ImGui::Button(udTempStr("?###%s", pButtonName), ImVec2(buttonSize * scale, buttonSize * scale));
 

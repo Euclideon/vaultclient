@@ -1,6 +1,8 @@
 #ifndef vcMenuButtons_h__
 #define vcMenuButtons_h__
 
+#include "udMath.h"
+
 enum vcMenuBarButtonIcon
 {
   vcMBBI_Translate = 0,
@@ -55,5 +57,7 @@ enum vcMenuBarButtonGap
 struct vcTexture;
 
 bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected = false, float scale = 1.f);
+
+udFloat4 vcGetIconUV(vcMenuBarButtonIcon iconIndex);
 
 #endif //vcMenuButtons_h__
