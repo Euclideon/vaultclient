@@ -965,6 +965,8 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
       pProgramState->activeProject.pFolder->ChangeProjection(zone);
     }
   }
+
+  ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 }
 
 bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings, bool isGlobal /*= false*/)
