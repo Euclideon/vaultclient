@@ -6,11 +6,12 @@
 
 #include "vcFenceRenderer.h"
 #include "vcInternalModels.h"
+#include "vcWebFile.h"
+#include "vcUnitConversion.h"
 
 #include "udMath.h"
 #include "udFile.h"
 #include "udStringUtil.h"
-#include "vcWebFile.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -822,6 +823,35 @@ void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
     const char *optStrings[] = { "back", "front", "none" };
     if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int *)&m_attachment.cullMode, uiStrings, (int)udLengthOf(uiStrings)))
       vdkProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_attachment.cullMode]);
+  }
+}
+
+void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
+{
+  char buffer[128];
+
+  if (m_showArea)
+  {
+    vcUnitConversion_ConvertAreaToString(buffer, udLengthOf(buffer), m_area, vcArea_SquareMetres);
+
+    ImGui::TextUnformatted(vcString::Get("scenePOIArea"));
+    ImGui::Indent();
+    ImGui::PushFont(pProgramState->pBigFont);
+    ImGui::TextUnformatted(buffer);
+    ImGui::PopFont();
+    ImGui::Unindent();
+  }
+
+  if (m_showLength)
+  {
+    vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), m_totalLength, vcDistance_Metres);
+
+    ImGui::TextUnformatted(vcString::Get("scenePOILineLength"));
+    ImGui::Indent();
+    ImGui::PushFont(pProgramState->pBigFont);
+    ImGui::TextUnformatted(buffer);
+    ImGui::PopFont();
+    ImGui::Unindent();
   }
 }
 
