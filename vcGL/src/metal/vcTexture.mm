@@ -87,6 +87,16 @@ void vcTexture_GetFormatAndPixelSize(const vcTextureFormat format, int *pPixelSi
     *pPixelSize = pixelSize;
 }
 
+udResult vcTexture_GetFormat(vcTexture *pTexture, vcTextureFormat *pFormat)
+{
+  if (pTexture == nullptr || pFormat == nullptr)
+    return udR_InvalidParameter_;
+
+  *pFormat = pTexture->format;
+
+  return udR_Success;
+}
+
 udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, vcTextureCreationFlags flags /*= vcTCF_None*/)
 {
   return vcTexture_CreateAdv(ppTexture, vcTextureType_Texture2D, width, height, 1, pPixels, format, filterMode, false, vcTWM_Repeat, flags);

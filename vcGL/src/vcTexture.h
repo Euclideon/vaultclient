@@ -74,6 +74,7 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
 udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename);
 
 udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight);
+udResult vcTexture_GetFormat(vcTexture *pTexture, vcTextureFormat *pFormat);
 
 // If 'pTexture' is created with `AsynchronousRead` flag, BeginReadPixels() / EndReadPixels() will perform
 // asynchronous transfer. It is recommended to call  BeginReadPixels(), then wait an appropriate amount of
