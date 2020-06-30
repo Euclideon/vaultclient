@@ -1140,6 +1140,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   ImGuiIO &io = ImGui::GetIO();
 
   float attachmentPanelSize = 0.f;
+  const float panelPadding = 5.f;
 
   if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
   {
@@ -1159,7 +1160,26 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
     }
 
-    attachmentPanelSize = ImGui::GetWindowSize().y;
+    attachmentPanelSize = ImGui::GetWindowSize().y + panelPadding;
+    ImGui::End();
+  }
+
+  if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + attachmentPanelSize), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("selectedItemInfoPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+    {
+      if (pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData != nullptr)
+      {
+        vcSceneItem* pSceneItem = (vcSceneItem * )pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData;
+        pSceneItem->HandleSceneEmbeddedUI(pProgramState);
+      }
+    }
+
+    attachmentPanelSize += ImGui::GetWindowSize().y + panelPadding;
     ImGui::End();
   }
 
