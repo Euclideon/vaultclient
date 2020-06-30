@@ -5,20 +5,20 @@ inline uint32_t vcPCShaders_BuildAlpha(vcModel *pModel)
   return (pModel->m_selected ? 0x01000000 : 0x00000000);
 }
 
-uint32_t vcVoxelShader_Black(vdkPointCloud * /*pPointCloud*/, uint64_t /*voxelID*/, const void *pUserData)
+uint32_t vcVoxelShader_Black(vdkPointCloud * /*pPointCloud*/, const vdkVoxelID * /*pVoxelID*/, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   return vcPCShaders_BuildAlpha(pData->pModel) | 0x00000000;
 }
 
-uint32_t vcVoxelShader_Intensity(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_Intensity(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = 0;
   const uint16_t *pIntensity = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void**)&pIntensity);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void**)&pIntensity);
   if (pIntensity != nullptr)
   {
     float value = udMax(float(*pIntensity - pData->data.intensity.minIntensity) / pData->data.intensity.intensityRange, 0.f);
@@ -46,16 +46,16 @@ inline uint32_t vcVoxelShader_FadeAlpha(uint32_t firstColour, uint32_t secondCol
   return result;
 }
 
-uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t displacementColour = 0;
   uint32_t baseColour = 0;
-  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &baseColour);
+  vdkPointCloud_GetNodeColour(pPointCloud, pVoxelID, &baseColour);
 
   float *pDisplacement = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void **)&pDisplacement);
 
   if (pDisplacement != nullptr)
   {
@@ -73,21 +73,21 @@ uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud, uint64_t
   return vcPCShaders_BuildAlpha(pData->pModel) | (displacementColour & 0xFFFFFF);
 }
 
-uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t displacementColour = 0;
   uint32_t baseColour = 0;
-  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &baseColour);
+  vdkPointCloud_GetNodeColour(pPointCloud, pVoxelID, &baseColour);
 
   float *pDisplacement = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pDisplacement);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void **)&pDisplacement);
 
   float *pDisplacementDirections[3];
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[0], (const void **)&pDisplacementDirections[0]);
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[1], (const void **)&pDisplacementDirections[1]);
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->data.displacementDirection.attributeOffsets[2], (const void **)&pDisplacementDirections[2]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->data.displacementDirection.attributeOffsets[0], (const void **)&pDisplacementDirections[0]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->data.displacementDirection.attributeOffsets[1], (const void **)&pDisplacementDirections[1]);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->data.displacementDirection.attributeOffsets[2], (const void **)&pDisplacementDirections[2]);
 
   if (pDisplacement != nullptr && pDisplacementDirections[0] != nullptr && pDisplacementDirections[1] != nullptr && pDisplacementDirections[2] != nullptr)
   {
@@ -120,14 +120,14 @@ uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud, uint64_
   return vcPCShaders_BuildAlpha(pData->pModel) | (displacementColour & 0xFFFFFF);
 }
 
-uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = 0;
   uint8_t *pClassification = nullptr;
 
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pClassification);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void **)&pClassification);
   if (pClassification)
     result = pData->data.classification.pCustomClassificationColors[*pClassification];
 
@@ -146,23 +146,46 @@ uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud, uint64_t voxel
   return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
-uint32_t vcVoxelShader_Colour(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+udFloat3 g_globalSunDirection;
+uint32_t vcVoxelShader_Colour(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
-  uint32_t result = 0;
-  vdkPointCloud_GetNodeColour(pPointCloud, voxelID, &result);
+  uint64_t color64 = 0;
+  vdkPointCloud_GetNodeColour64(pPointCloud, pVoxelID, &color64);
+  uint32_t result;
+  uint32_t encNormal = (uint32_t)(color64 >> 32);
+  if (encNormal)
+  {
+    udFloat3 normal;
+    normal.x = int16_t(encNormal >> 16) / 32767.f;
+    normal.y = int16_t(encNormal & 0xfffe) / 32767.f;
+    normal.z = 1.f - (normal.x * normal.x + normal.y * normal.y);
+    if (normal.z > 0.001)
+      normal.z = udSqrt(normal.z);
+    if (encNormal & 1)
+      normal.z = -normal.z;
 
-  return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
+    float dot = (udDot(g_globalSunDirection, normal) * 0.5f) + 0.5f;
+    result = (uint8_t(((color64 >> 16) & 0xff) * dot) << 16)
+           | (uint8_t(((color64 >> 8) & 0xff) * dot) << 8)
+           | (uint8_t(((color64 >> 0) & 0xff) * dot) << 0);
+  }
+  else
+  {
+    result = (uint32_t)color64 & 0xffffff;
+  }
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
-uint32_t vcVoxelShader_GPSTime(vdkPointCloud * pPointCloud, uint64_t voxelID, const void * pUserData)
+uint32_t vcVoxelShader_GPSTime(vdkPointCloud * pPointCloud, const vdkVoxelID *pVoxelID, const void * pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = 0;
   const double *pGPSTime = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void**)&pGPSTime);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void**)&pGPSTime);
   if (pGPSTime != nullptr)
   {
     if (*pGPSTime < pData->data.GPSTime.minTime)
@@ -184,13 +207,13 @@ uint32_t vcVoxelShader_GPSTime(vdkPointCloud * pPointCloud, uint64_t voxelID, co
   return vcPCShaders_BuildAlpha(pData->pModel) | result;
 }
 
-uint32_t vcVoxelShader_ScanAngle(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_ScanAngle(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = 0;
   int16_t *pScanAngle = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pScanAngle);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void **)&pScanAngle);
 
   if (pScanAngle == nullptr)
     goto epilogue;
@@ -215,13 +238,13 @@ epilogue:
   return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
 }
 
-uint32_t vcVoxelShader_PointSourceID(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_PointSourceID(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = pData->data.pointSourceID.defaultColour;
   uint16_t *pID = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pID);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void **)&pID);
 
   if (pID != nullptr)
   {
@@ -238,13 +261,13 @@ uint32_t vcVoxelShader_PointSourceID(vdkPointCloud *pPointCloud, uint64_t voxelI
   return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
 }
 
-uint32_t vcVoxelShader_ReturnNumber(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_ReturnNumber(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = 0;
   uint8_t *pNumber = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pNumber);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void **)&pNumber);
 
   if (pNumber == nullptr || *pNumber == 0 || *pNumber > vcVisualizationSettings::s_maxReturnNumbers)
     goto epilogue;
@@ -255,13 +278,13 @@ epilogue:
   return vcPCShaders_BuildAlpha(pData->pModel) | (0xffffff & result);
 }
 
-uint32_t vcVoxelShader_NumberOfReturns(vdkPointCloud *pPointCloud, uint64_t voxelID, const void *pUserData)
+uint32_t vcVoxelShader_NumberOfReturns(vdkPointCloud *pPointCloud, const vdkVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
 
   uint32_t result = 0;
   uint8_t *pNumber = nullptr;
-  vdkPointCloud_GetAttributeAddress(pPointCloud, voxelID, pData->attributeOffset, (const void **)&pNumber);
+  vdkPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void **)&pNumber);
 
   if (pNumber == nullptr || *pNumber == 0 || *pNumber > vcVisualizationSettings::s_maxReturnNumbers)
     goto epilogue;

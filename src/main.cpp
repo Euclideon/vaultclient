@@ -1931,13 +1931,13 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       break;
 
     case vcActiveTool_Inspect:
-      if (pProgramState->udModelPickedIndex >= 0 && pProgramState->udModelPickedNode != 0)
+      if (pProgramState->udModelPickedIndex >= 0 && pProgramState->udModelPickedNode.pTrav)
       {
         uint8_t *pAttributePtr = nullptr;
         static int lastIndex = -1;
-        static uint64_t lastVoxelID = uint64_t(-1);
+        static vdkVoxelID lastNode = { 0, nullptr };
 
-        if ((lastIndex != pProgramState->udModelPickedIndex || lastVoxelID != pProgramState->udModelPickedNode) && vdkPointCloud_GetAttributeAddress(renderData.models[pProgramState->udModelPickedIndex]->m_pPointCloud, pProgramState->udModelPickedNode, 0, (const void**)&pAttributePtr) == vE_Success)
+        if ((lastIndex != pProgramState->udModelPickedIndex || memcmp(&lastNode, &pProgramState->udModelPickedNode, sizeof(lastNode))) && vdkPointCloud_GetAttributeAddress(renderData.models[pProgramState->udModelPickedIndex]->m_pPointCloud, &pProgramState->udModelPickedNode, 0, (const void**)&pAttributePtr) == vE_Success)
         {
           pProgramState->udModelNodeAttributes.SetVoid();
 
@@ -2048,7 +2048,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         }
 
         lastIndex = pProgramState->udModelPickedIndex;
-        lastVoxelID = pProgramState->udModelPickedNode;
+        lastNode = pProgramState->udModelPickedNode;
       }
       break;
 

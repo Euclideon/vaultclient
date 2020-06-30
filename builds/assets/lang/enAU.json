@@ -228,6 +228,7 @@
   "convertTempDirectory": "Temp Directory",
   "convertContinueOnCorrupt": "Continue processing after corrupt/incomplete data (where possible)",
   "convertPointResolution": "Point resolution",
+  "convertRetainPrimitives": "Retain primitives (textures, polygons, lines etc)",
   "convertInputDataRanges": "input data ranges from",
   "convertOverrideResolution": "Override Resolution",
   "convertOverrideGeolocation": "Override Geolocation",
