@@ -2526,7 +2526,7 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
   pDrawList->AddRectFilledMultiColor(ImVec2(0, 0), size, pProgramState->branding.colours[0], pProgramState->branding.colours[1], pProgramState->branding.colours[2], pProgramState->branding.colours[3]);
 
   float amt = (float)udSin(ImGui::GetTime()) * 50.f;
-  float baseY = size.y * 0.75f;
+  float baseY = size.y - vcLBS_LoginBoxY - 160;
   pDrawList->AddBezierCurve(ImVec2(0, baseY), ImVec2(size.x * 0.33f, baseY + amt), ImVec2(size.x * 0.67f, baseY - amt), ImVec2(size.x, baseY), 0xFFFFFFFF, 4.f);
 
   if (pProgramState->pCompanyLogo != nullptr)
@@ -2542,6 +2542,7 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
 
 void vcMain_ShowLoginWindow(vcState *pProgramState)
 {
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4.f);
   ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
 
   ImGuiIO io = ImGui::GetIO();
@@ -2575,7 +2576,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   }
   ImGui::End();
 
-  ImGui::SetNextWindowBgAlpha(0.1f);
+  ImGui::SetNextWindowBgAlpha(0.2f);
   ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always, ImVec2(0, 0));
   if (ImGui::Begin("LoginScreenSupportInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
   {
@@ -2598,7 +2599,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   }
   ImGui::End();
 
-  ImGui::SetNextWindowBgAlpha(0.1f);
+  ImGui::SetNextWindowBgAlpha(0.2f);
   ImGui::SetNextWindowPos(ImVec2(size.x - 10, 10), ImGuiCond_Always, ImVec2(1, 0));
   if (ImGui::Begin("LoginScreenTranslationInfo", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar))
   {
@@ -2615,6 +2616,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
   ImGui::PopStyleColor(); // Border Colour
 
+  ImGui::SetNextWindowBgAlpha(0.6f);
   ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
@@ -2720,6 +2722,8 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     }
     ImGui::End();
   }
+
+  ImGui::PopStyleVar(); // ImGuiStyleVar_WindowRounding
 }
 
 void vcMain_RenderWindow(vcState *pProgramState)
