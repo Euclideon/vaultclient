@@ -250,7 +250,7 @@ udResult vcTexture_GetPixelSize(vcTextureFormat format, size_t *pSize)
 {
   static const int ByteCount[vcTextureFormat_Count] = {-1, 4, 8, 16, 2, 4};
 
-  if (format == vcTextureFormat_Count || pSize == nullptr)
+  if (format < 0 || format >= vcTextureFormat_Count || pSize == nullptr)
     return udR_InvalidParameter_;
 
   *pSize = ByteCount[format];
@@ -289,11 +289,10 @@ udResult vcTexture_ConvertPixels(const void *pPixels, vcTextureFormat formatIn, 
 
   if (formatIn == formatOut)
   {
-    size_t formatSize;
-    UD_ERROR_CHECK(vcTexture_GetPixelSize(formatIn, &formatSize));
-    *ppPixelsOut = udAllocType(uint8_t, pixelCount * formatSize, udAF_Zero);
+    size_t pixelSize;
+    UD_ERROR_CHECK(vcTexture_GetPixelSize(formatIn, &pixelSize));
+    *ppPixelsOut = (uint8_t*)udMemDup(pPixels, pixelCount * pixelSize, 0, udAF_None);
     UD_ERROR_NULL(ppPixelsOut, udR_MemoryAllocationFailure);
-    memcpy(*ppPixelsOut, pPixels, pixelCount * formatSize);
   }
   else if (formatIn == vcTextureFormat_RGBA16F && formatOut == vcTextureFormat_RGBA8)
   {
