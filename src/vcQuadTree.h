@@ -56,6 +56,7 @@ struct vcQuadTreeNode
 {
   bool isUsed;
 
+  int serverId;
   udInt3 slippyPosition;
 
   uint32_t parentIndex;
@@ -115,6 +116,7 @@ struct vcQuadTreeMetaData
 
 struct vcQuadTree
 {
+  int serverId;
   vcSettings *pSettings;
 
   // store map height state to detect changes
