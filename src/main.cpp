@@ -849,6 +849,7 @@ int main(int argc, char **args)
 
   programState.settings.languageOptions.Init(4);
   programState.settings.visualization.pointSourceID.colourMap.Init(32);
+  programState.settings.projectHistory.projects.Init(32);
 
   programState.passwordFieldHasFocus = true;
   programState.renaming = -1;
@@ -1104,6 +1105,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   ImGuiIO &io = ImGui::GetIO();
 
   float attachmentPanelSize = 0.f;
+  const float panelPadding = 5.f;
 
   if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
   {
@@ -1123,9 +1125,29 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
     }
 
-    attachmentPanelSize = ImGui::GetWindowSize().y;
+    attachmentPanelSize = ImGui::GetWindowSize().y + panelPadding;
     ImGui::End();
   }
+
+  ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + attachmentPanelSize), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+  ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
+  ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+  if (ImGui::Begin("selectedItemInfoPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+  {
+    if ((pProgramState->sceneExplorer.selectedItems.size() == 1) && (pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData != nullptr))
+    {
+      vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData;
+      pSceneItem->HandleSceneEmbeddedUI(pProgramState);
+    }
+    else
+    {
+      ImGui::Text("%zu %s", pProgramState->sceneExplorer.selectedItems.size(), vcString::Get("selectedItemInfoPanelitemsSelected"));
+    }
+  }
+
+  attachmentPanelSize += ImGui::GetWindowSize().y + panelPadding;
+  ImGui::End();
 
   bool showToolWindow = false;
   showToolWindow |= (pProgramState->activeTool != vcActiveTool_Select);
@@ -2109,7 +2131,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 
     size_t i = 0;
     if (pProgramState->activeProject.pFolder)
-      pProgramState->activeProject.pFolder->HandleImGui(pProgramState, &i);
+      pProgramState->activeProject.pFolder->HandleSceneExplorerUI(pProgramState, &i);
   }
   ImGui::EndChild();
 }

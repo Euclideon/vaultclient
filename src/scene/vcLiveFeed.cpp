@@ -252,15 +252,6 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 
               udFree(lodRef.pLabelText);
               lodRef.pLabelText = udStrdup(labelObj.Get("text").AsString("[?]"));
-
-              const char *pTextSize = labelObj.Get("size").AsString();
-              if (udStrEquali(pTextSize, "x-small") || udStrEquali(pTextSize, "small"))
-                lodRef.pLabelInfo->textSize = vcLFS_Small;
-              else if (udStrEquali(pTextSize, "large") || udStrEquali(pTextSize, "x-large"))
-                lodRef.pLabelInfo->textSize = vcLFS_Large;
-              else
-                lodRef.pLabelInfo->textSize = vcLFS_Medium;
-
               lodRef.pLabelInfo->pText = lodRef.pLabelText;
               lodRef.pLabelInfo->pSceneItem = pInfo->pFeed;
               lodRef.pLabelInfo->sceneItemInternalId = j + 1;
@@ -495,7 +486,7 @@ void vcLiveFeed::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*d
   // Do nothing
 }
 
-void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
+void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/)
 {
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {

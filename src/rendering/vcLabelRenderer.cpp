@@ -87,7 +87,7 @@ bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, f
   };
   UDCOMPILEASSERT(udLengthOf(fontScales) == vcLFS_Count, "Font sizes count doesn't match");
 
-  ImGui::SetWindowFontScale(fontScales[pLabelRenderer->textSize]);
+  ImGui::SetWindowFontScale(fontScales[vcLFS_Medium]);
 
   ImVec2 labelSize = ImGui::CalcTextSize(pLabelRenderer->pText);
   ImVec2 halfLabelSize = ImVec2(labelSize.x * 0.5f, labelSize.y * 0.5f);

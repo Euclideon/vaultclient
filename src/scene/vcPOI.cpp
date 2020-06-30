@@ -6,11 +6,12 @@
 
 #include "vcFenceRenderer.h"
 #include "vcInternalModels.h"
+#include "vcWebFile.h"
+#include "vcUnitConversion.h"
 
 #include "udMath.h"
 #include "udFile.h"
 #include "udStringUtil.h"
-#include "vcWebFile.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -475,7 +476,6 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
 {
   m_nameColour =  0xFFFFFFFF;
   m_backColour = 0x7F000000;
-  m_namePt = vcLFS_Medium;
 
   m_showArea = false;
   m_showLength = false;
@@ -547,14 +547,6 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   }
 
   const char *pTemp;
-  vdkProjectNode_GetMetadataString(m_pNode, "textSize", &pTemp, "Medium");
-  if (udStrEquali(pTemp, "x-small") || udStrEquali(pTemp, "small"))
-    m_namePt = vcLFS_Small;
-  else if (udStrEquali(pTemp, "large") || udStrEquali(pTemp, "x-large"))
-    m_namePt = vcLFS_Large;
-  else
-    m_namePt = vcLFS_Medium;
-
   vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
   vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
@@ -750,7 +742,6 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
   m_pLabelInfo->pText = m_pLabelText;
   m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
   m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
-  m_pLabelInfo->textSize = m_namePt;
   m_pLabelInfo->pSceneItem = this;
 
   for (size_t i = 0; i < m_lengthLabels.length; ++i)
@@ -758,7 +749,6 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
     vcLabelInfo* pLabel = m_lengthLabels.GetElement(i);
     pLabel->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
     pLabel->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
-    pLabel->textSize = m_namePt;
     pLabel->pSceneItem = this;
   }
 
@@ -772,7 +762,7 @@ void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
   m_pState->HandleBasicUI(pProgramState, itemID);  
 }
 
-void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   HandleBasicUI(pProgramState, *pItemID);
 
@@ -804,28 +794,6 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_backColour);
   }
 
-  const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
-  if (ImGui::Combo(udTempStr("%s##POILabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), (int *)&m_namePt, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
-  {
-    UpdatePoints(pProgramState);
-    const char *pTemp;
-    m_pLabelInfo->textSize = m_namePt;
-    switch (m_namePt)
-    {
-    case vcLFS_Small:
-      pTemp = "small";
-      break;
-    case vcLFS_Large:
-      pTemp = "large";
-      break;
-    case vcLFS_Medium:
-    default: // Falls through
-      pTemp = "medium";
-      break;
-    }
-    vdkProjectNode_SetMetadataString(m_pNode, "textSize", pTemp);
-  }
-
   if (vcIGSW_InputText(vcString::Get("scenePOILabelHyperlink"), m_hyperlink, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
     vdkProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
 
@@ -855,6 +823,45 @@ void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
     const char *optStrings[] = { "back", "front", "none" };
     if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int *)&m_attachment.cullMode, uiStrings, (int)udLengthOf(uiStrings)))
       vdkProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_attachment.cullMode]);
+  }
+}
+
+void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
+{
+  char buffer[128];
+
+  ImGui::Text("%s (%s)", m_pNode->pName, m_pNode->itemtypeStr);
+
+  if (m_showArea)
+  {
+    vcUnitConversion_ConvertAreaToString(buffer, udLengthOf(buffer), m_area, vcArea_SquareMetres);
+
+    ImGui::TextUnformatted(vcString::Get("scenePOIArea"));
+    ImGui::Indent();
+    ImGui::PushFont(pProgramState->pBigFont);
+    ImGui::TextUnformatted(buffer);
+    ImGui::PopFont();
+    ImGui::Unindent();
+  }
+
+  if (m_showLength)
+  {
+    vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), m_totalLength, vcDistance_Metres);
+
+    ImGui::TextUnformatted(vcString::Get("scenePOILineLength"));
+    ImGui::Indent();
+    ImGui::PushFont(pProgramState->pBigFont);
+    ImGui::TextUnformatted(buffer);
+    ImGui::PopFont();
+    ImGui::Unindent();
+  }
+
+  if (m_hyperlink[0] != '\0' && ImGui::Button(udTempStr("%s '%s'", vcString::Get("scenePOILabelOpenHyperlink"), m_hyperlink)))
+  {
+    if (udStrEndsWithi(m_hyperlink, ".png") || udStrEndsWithi(m_hyperlink, ".jpg"))
+      pProgramState->pLoadImage = udStrdup(m_hyperlink);
+    else
+      vcWebFile_OpenBrowser(m_hyperlink);
   }
 }
 

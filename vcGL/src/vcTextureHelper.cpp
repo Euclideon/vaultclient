@@ -246,6 +246,79 @@ epilogue:
   return result;
 }
 
+udResult vcTexture_GetPixelSize(vcTextureFormat format, size_t *pSize)
+{
+  static const int ByteCount[vcTextureFormat_Count] = {-1, 4, 8, 16, 2, 4};
+
+  if (format < 0 || format >= vcTextureFormat_Count || pSize == nullptr)
+    return udR_InvalidParameter_;
+
+  *pSize = ByteCount[format];
+  return udR_Success;
+}
+
+// TODO: This is duplicated from vaultClient: vcRender.cpp, which is to be moved to udCore (AB#1573).
+static float Float16ToFloat32(uint16_t float16)
+{
+  uint16_t sign_bit = (float16 & 0b1000000000000000) >> 15;
+  uint16_t exponent = (float16 & 0b0111110000000000) >> 10;
+  uint16_t fraction = (float16 & 0b0000001111111111) >> 0;
+
+  float sign = (sign_bit) ? -1.0f : 1.0f;
+  float m = 1.0f;
+  uint16_t exponentBias = 15;
+
+  // The exponents '00000' and '11111' are interpreted specially
+  if (exponent == 31)
+    return sign * INFINITY;
+
+  if (exponent == 0)
+  {
+    m = 0.0f;
+    exponentBias = 14;
+  }
+
+  return sign * udPow(2.0f, float(exponent - exponentBias)) * (m + (fraction / 1024.0f));
+}
+
+udResult vcTexture_ConvertPixels(const void *pPixels, vcTextureFormat formatIn, uint8_t **ppPixelsOut, vcTextureFormat formatOut, size_t pixelCount)
+{
+  udResult result = udR_Failure_;
+
+  UD_ERROR_IF((pPixels == nullptr) || (ppPixelsOut == nullptr) || (pixelCount == 0) || (formatIn == vcTextureFormat_Unknown) || (formatIn == vcTextureFormat_Count) || (formatOut == vcTextureFormat_Unknown) || (formatOut == vcTextureFormat_Count), udR_Failure_);
+
+  if (formatIn == formatOut)
+  {
+    size_t pixelSize;
+    UD_ERROR_CHECK(vcTexture_GetPixelSize(formatIn, &pixelSize));
+    *ppPixelsOut = (uint8_t*)udMemDup(pPixels, pixelCount * pixelSize, 0, udAF_None);
+    UD_ERROR_NULL(ppPixelsOut, udR_MemoryAllocationFailure);
+  }
+  else if (formatIn == vcTextureFormat_RGBA16F && formatOut == vcTextureFormat_RGBA8)
+  {
+    *ppPixelsOut = udAllocType(uint8_t, pixelCount * 4, udAF_Zero);
+    UD_ERROR_NULL(ppPixelsOut, udR_MemoryAllocationFailure);
+    for (size_t i = 0; i < pixelCount; ++i)
+    {
+      for (int e = 0; e < 4; ++e)
+      {
+        float temp = Float16ToFloat32(((uint16_t*)pPixels)[i * 4 + e]);
+        temp = udClamp(temp, 0.f, 1.f);
+        ((uint8_t *)*ppPixelsOut)[i * 4 + e] = uint8_t(temp * 255.f);
+      }
+    }
+  }
+  else
+  {
+    UD_ERROR_SET(udR_Unsupported);
+  }
+
+  result = udR_Success;
+
+epilogue:
+  return result;
+}
+
 udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename)
 {
   if (pTexture == nullptr || pFramebuffer == nullptr || pFilename == nullptr)
@@ -254,16 +327,26 @@ udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, c
   udResult result;
   int outLen = 0;
   unsigned char *pWriteData = nullptr;
+  vcTextureFormat format;
+  size_t pixelSize;
+  uint8_t *pFrameBufferPixels = nullptr;
+  uint8_t *pPixelsOut = nullptr;
 
   udInt2 currSize = udInt2::zero();
   vcTexture_GetSize(pTexture, &currSize.x, &currSize.y);
 
-  uint8_t *pPixels = udAllocType(uint8_t, currSize.x * currSize.y * 4, udAF_Zero);
-  UD_ERROR_NULL(pPixels, udR_MemoryAllocationFailure);
+  //This assumes the framebuffer and the texture are the same format
+  UD_ERROR_CHECK(vcTexture_GetFormat(pTexture, &format));
+  UD_ERROR_CHECK(vcTexture_GetPixelSize(format, &pixelSize));
 
-  vcTexture_BeginReadPixels(pTexture, 0, 0, currSize.x, currSize.y, pPixels, pFramebuffer);
+  pFrameBufferPixels = udAllocType(uint8_t, currSize.x * currSize.y * pixelSize, udAF_Zero);
+  UD_ERROR_NULL(pFrameBufferPixels, udR_MemoryAllocationFailure);
 
-  pWriteData = stbi_write_png_to_mem(pPixels, 0, currSize.x, currSize.y, 4, &outLen);
+  vcTexture_BeginReadPixels(pTexture, 0, 0, currSize.x, currSize.y, pFrameBufferPixels, pFramebuffer);
+
+  UD_ERROR_CHECK(vcTexture_ConvertPixels(pFrameBufferPixels, format, &pPixelsOut, vcTextureFormat_RGBA8, currSize.x * currSize.y));
+
+  pWriteData = stbi_write_png_to_mem(pPixelsOut, 0, currSize.x, currSize.y, 4, &outLen);
   UD_ERROR_NULL(pWriteData, udR_InternalError);
 
   UD_ERROR_CHECK(udFile_Save(pFilename, pWriteData, outLen));
@@ -273,7 +356,8 @@ epilogue:
   if (pWriteData != nullptr)
     STBIW_FREE(pWriteData);
 
-  udFree(pPixels);
+  udFree(pFrameBufferPixels);
+  udFree(pPixelsOut);
 
   return result;
 }

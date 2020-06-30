@@ -68,7 +68,8 @@ public:
   virtual void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) = 0;
 
   // These are used to help with exposing item specific UI
-  virtual void HandleImGui(vcState *pProgramState, size_t *pItemID) = 0; // Shows expanded settings in scene explorer
+  virtual void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) = 0; // Shows expanded settings in scene explorer
+  virtual void HandleSceneEmbeddedUI(vcState *pProgramState); // Shows basic settings when selected in the scene
   virtual void HandleContextMenu(vcState *pProgramState); // Show expanded context menu settings in scene explorer
   virtual void HandleAttachmentUI(vcState *pProgramState); // Show additional settings in the scene when attached to this item
   virtual void HandleToolUI(vcState *pProgramState); // Show additional settings in the scene when this item is being used as a tool

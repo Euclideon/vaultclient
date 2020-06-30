@@ -24,17 +24,21 @@ enum vcMenuBarButtonIcon
   vcMBBI_SaveViewport = 17,
   vcMBBI_Settings = 18,
   vcMBBI_Inspect = 19,
+
   vcMBBI_MeasureHeight = 20,
 
-  // Reserved 20-29
+  // Reserved 21-29
 
   vcMBBI_Burger = 30,
   vcMBBI_Layers = 31,
   vcMBBI_Select = 32,
   vcMBBI_FullScreen = 33,
   vcMBBI_MapMode = 34,
-
-  //Reserved = 35 - 39
+  vcMBBI_Geospatial = 35,
+  vcMBBI_Grid = 36,
+  vcMBBI_ExpertGrid = 37,
+  vcMBBI_StorageCloud = 38,
+  vcMBBI_StorageLocal = 39,
 
   vcMBBI_Crosshair = 40,
 

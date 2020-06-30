@@ -51,6 +51,7 @@ enum
 {
   vcMaxPathLength = 512,
   vcMetadataMaxLength = 256,
+  vcMaxProjectHistoryCount = 5
 };
 
 enum vcWindowLayout
@@ -203,6 +204,13 @@ struct vcToolSettings
     udFloat4 backgroundColour;
     int textSize;
   } label;
+};
+
+struct ProjectHistoryInfo
+{
+  const char *pName;
+  const char *pPath;
+  // TODO: Date, etc.
 };
 
 struct vcSettings
@@ -395,6 +403,11 @@ struct vcSettings
     char outputPath[vcMaxPathLength];
   } screenshot;
 
+  struct
+  {
+    udChunkedArray<ProjectHistoryInfo> projects;
+  } projectHistory;
+
   // These are experimental features that will eventually be removed or moved to another setting.
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users
   struct
@@ -476,5 +489,7 @@ void vcSettings_ApplyMapChange(vcSettings *pSettings);
 
 // Load Branding Info
 void vcSettings_LoadBranding(vcState *pState);
+
+void vcSettings_CleanupHistoryProjectItem(ProjectHistoryInfo *pProjectItem);
 
 #endif // !vcSettings_h__

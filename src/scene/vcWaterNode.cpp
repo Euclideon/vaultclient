@@ -41,7 +41,7 @@ void vcWater::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delt
 
 }
 
-void vcWater::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+void vcWater::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pItemID)
 {
   double min = -100.0;
   double max = 3500.0;

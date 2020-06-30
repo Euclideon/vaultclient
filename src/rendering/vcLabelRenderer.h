@@ -20,7 +20,6 @@ struct vcLabelInfo
   udDouble3 worldPosition;
 
   const char *pText;
-  vcLabelFontSize textSize;
   uint32_t textColourRGBA;
   uint32_t backColourRGBA;
 

@@ -12,6 +12,7 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 #include "vcWebFile.h"
+#include "vcUnitConversion.h"
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
@@ -33,7 +34,6 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode
     label.pText = nullptr;
     label.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
     label.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
-    label.textSize = (vcLabelFontSize)pProgramState->settings.tools.label.textSize;
   }
   
 
@@ -147,7 +147,7 @@ void vcVerticalMeasureTool::ApplyDelta(vcState *pProgramState, const udDouble4x4
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
 }
 
-void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   if (ImGui::Checkbox(udTempStr("%s##Select1%zu", vcString::Get("scenePOIMHeightPickStart"), *pItemID), &m_pickStart))
     vdkProjectNode_SetMetadataBool(m_pNode, "pickStart", m_pickStart);
@@ -183,15 +183,6 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_textBackgroundBGRA);
     }
 
-    const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
-    int32_t size = m_labelList[0].textSize;
-    if (ImGui::Combo(udTempStr("%s##VerticalLabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), &size, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
-    {
-      for (auto &label : m_labelList)
-        label.textSize = (vcLabelFontSize)size;
-      vdkProjectNode_SetMetadataInt(m_pNode, "textSize", size);
-    }
-
     if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
       vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
 
@@ -200,6 +191,35 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
     ImGui::Text("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
 
   }
+}
+
+void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
+{
+  char buffer[128];
+
+  ImGui::Text("%s", vcString::Get("sceneStraightDistance"));
+  ImGui::PushFont(pProgramState->pBigFont);
+  ImGui::Indent();
+  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udMag3(m_points[0] - m_points[2]), vcDistance_Metres);
+  ImGui::Text("%s", buffer);
+  ImGui::Unindent();
+  ImGui::PopFont();
+
+  ImGui::Text("%s", vcString::Get("sceneHorizontalDistance"));
+  ImGui::PushFont(pProgramState->pBigFont);
+  ImGui::Indent();
+  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udMag2(m_points[0] - m_points[2]), vcDistance_Metres);
+  ImGui::Text("%s", buffer);
+  ImGui::Unindent();
+  ImGui::PopFont();
+
+  ImGui::Text("%s", vcString::Get("sceneVerticalDistance"));
+  ImGui::PushFont(pProgramState->pBigFont);
+  ImGui::Indent();
+  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udAbs(m_points[0].z - m_points[2].z), vcDistance_Metres);
+  ImGui::Text("%s", buffer);
+  ImGui::Unindent();
+  ImGui::PopFont();
 }
 
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
@@ -280,7 +300,6 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
   {
     label.textColourRGBA = textColourRGBA;
     label.backColourRGBA = backColourRGBA;
-    label.textSize = (vcLabelFontSize)size;
   }
 
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColour", &m_lineColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
@@ -292,7 +311,6 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
   const char *pTemp;
   vdkProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
   udStrcpy(m_description, pTemp);
-  
 }
 
 void vcVerticalMeasureTool::HandleToolUI(vcState * pProgramState)

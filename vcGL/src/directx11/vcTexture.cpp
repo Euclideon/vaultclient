@@ -389,6 +389,16 @@ udResult vcTexture_GetSize(vcTexture *pTexture, int *pWidth, int *pHeight)
   return udR_Success;
 }
 
+udResult vcTexture_GetFormat(vcTexture *pTexture, vcTextureFormat *pFormat)
+{
+  if (pTexture == nullptr || pFormat == nullptr)
+    return udR_InvalidParameter_;
+
+  *pFormat = pTexture->format;
+
+  return udR_Success;
+}
+
 bool vcTexture_BeginReadPixels(vcTexture *pTexture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, void *pPixels, vcFramebuffer *pFramebuffer)
 {
   udUnused(pFramebuffer);

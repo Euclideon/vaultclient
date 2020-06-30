@@ -46,6 +46,11 @@ vcSceneItem::~vcSceneItem()
   udFree(m_pPreferredProjection);
 }
 
+void vcSceneItem::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+{
+  ImGui::Text("%s (%s)", m_pNode->pName, m_pNode->itemtypeStr);
+}
+
 void vcSceneItem::HandleContextMenu(vcState * /*pProgramState*/)
 {
   // No additional items

@@ -404,7 +404,7 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   }
 }
 
-void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
+void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/)
 {
   ImGui::TextWrapped("Path: %s", m_pNode->pURI);
 
@@ -566,6 +566,34 @@ void vcModel::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
   }
 
   vcImGuiValueTreeObject(&m_metadata);
+}
+
+void vcModel::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+{
+  if (vcSettingsUI_VisualizationSettings(&m_visualization))
+  {
+    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
+    //Set all here
+    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.minIntensity", m_visualization.minIntensity);
+    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.maxIntensity", m_visualization.maxIntensity);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.x", m_visualization.displacement.bounds.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.y", m_visualization.displacement.bounds.y);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.minColour", m_visualization.displacement.min);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.maxColour", m_visualization.displacement.max);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.errorColour", m_visualization.displacement.error);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.midColour", m_visualization.displacement.mid);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", m_visualization.GPSTime.minTime);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", m_visualization.GPSTime.maxTime);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", m_visualization.scanAngle.minAngle);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", m_visualization.scanAngle.maxAngle);
+    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", m_visualization.pointSourceID.defaultColour);
+
+    for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
+    {
+      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), m_visualization.returnNumberColours[i]);
+      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), m_visualization.numberOfReturnsColours[i]);
+    }
+  }
 }
 
 void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty)

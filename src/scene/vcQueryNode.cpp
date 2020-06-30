@@ -124,7 +124,7 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 }
 
-void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   bool changed = false;
 
@@ -179,6 +179,12 @@ void vcQueryNode::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
     //TODO: Save extents and rotation
   }
+}
+
+void vcQueryNode::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+{
+  if (ImGui::Checkbox(udTempStr("%s##EmbeddedUI", vcString::Get("sceneFilterInverted")), &m_inverted))
+    vdkQueryFilter_SetInverted(m_pFilter, m_inverted);
 }
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)

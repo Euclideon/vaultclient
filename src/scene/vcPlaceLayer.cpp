@@ -110,7 +110,7 @@ void vcPlaceLayer::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /
   // Does nothing
 }
 
-void vcPlaceLayer::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+void vcPlaceLayer::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pItemID)
 {
   double min = 0;
   double maxLabel = 50000;

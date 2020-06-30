@@ -49,7 +49,7 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
 }
 
-void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   bool changed = false;
 
@@ -68,6 +68,20 @@ void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
 
   if (changed)
   {
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
+
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
+    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);
+  }
+}
+
+void vcViewpoint::HandleSceneEmbeddedUI(vcState *pProgramState)
+{
+  if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
+  {
+    m_CameraHeadingPitch = pProgramState->camera.headingPitch;
+    m_CameraPosition = pProgramState->camera.position;
+
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
 
     vdkProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);

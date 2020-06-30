@@ -47,7 +47,6 @@ private:
   uint32_t m_measurementAreaFillColour;
   uint32_t m_nameColour;
   uint32_t m_backColour;
-  vcLabelFontSize m_namePt;
   char m_hyperlink[vcMaxPathLength];
   char m_description[vcMaxPathLength];
 
@@ -107,7 +106,8 @@ public:
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
 
-  void HandleImGui(vcState *pProgramState, size_t *pItemID);
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
+  void HandleSceneEmbeddedUI(vcState *pProgramState);
   void HandleContextMenu(vcState *pProgramState);
   void HandleAttachmentUI(vcState *pProgramState);
   void HandleToolUI(vcState *pProgramState);
