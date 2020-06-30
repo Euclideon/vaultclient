@@ -204,7 +204,6 @@ void vcModals_DrawNewProject(vcState *pProgramState)
   {
     pProgramState->modalOpen = true;
 
-    static int zoneType = 0;
     static int zoneCustomSRID = 84;
     static int creatingNewProjectType = -1;
 
@@ -214,12 +213,14 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       vcString::Get("modalProjectNewNonGeolocated"),
       vcString::Get("modalProjectNewGeolocatedSpecificZone")
     };
+
     const char *pNewProjectDescriptions[] =
     {
       vcString::Get("modalProjectGeolocatedDescription"),
       vcString::Get("modalProjectNonGeolocatedDescription"),
       vcString::Get("modalProjectSpecificZoneDescription")
     };
+
     vcMenuBarButtonIcon projectIcons[] =
     {
       vcMBBI_Geospatial,
@@ -276,25 +277,18 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
 
-      vcMenuBarButtonIcon projectIcons[] =
-      {
-        vcMBBI_Geospatial,
-        vcMBBI_Grid,
-        vcMBBI_ExpertGrid
-      };
       UDCOMPILEASSERT(udLengthOf(pNewProjectTypes) == udLengthOf(projectIcons), "Invalid matching sizes");
 
-      for (int i = 0; i < udLengthOf(pNewProjectTypes); ++i)
+      for (size_t i = 0; i < udLengthOf(pNewProjectTypes); ++i)
       {
         bool selected = false;
         if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
         {
-          creatingNewProjectType = i;
+          creatingNewProjectType = (int)i;
           udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
 
           if (i == 0) // Geolocated
             zoneCustomSRID = 84;
-
         }
 
         float prevPosY = ImGui::GetCursorPosY();
@@ -308,7 +302,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
 
         float textAlignPosX = ImGui::GetCursorPosX();
-        ImGui::Text(pNewProjectTypes[i]);
+        ImGui::TextUnformatted(pNewProjectTypes[i]);
 
         // Manually align details text with title text
         ImGui::SetCursorPosX(textAlignPosX);
@@ -317,7 +311,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
         col.w *= 0.65f;
         ImGui::PushStyleColor(ImGuiCol_Text, col);
-        ImGui::Text(pNewProjectDescriptions[i]);
+        ImGui::TextUnformatted(pNewProjectDescriptions[i]);
         ImGui::PopStyleColor();
 
         ImGui::SetCursorPosY(prevPosY);
@@ -328,7 +322,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     }
     else
     {
-      ImGui::Text(pNewProjectTypes[creatingNewProjectType]);
+      ImGui::TextUnformatted(pNewProjectTypes[creatingNewProjectType]);
 
       vcIGSW_InputText(vcString::Get("modalProjectNewName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
       

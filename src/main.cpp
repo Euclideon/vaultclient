@@ -1061,13 +1061,13 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 
     // Projects (temp)
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (ImGui::MenuItem(vcString::Get("menuNewProject"), nullptr, nullptr))
+    if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_NewProject);
 
-    if (ImGui::MenuItem(vcString::Get("menuProjectExportProject"), nullptr, nullptr))
+    if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_ExportProject);
 
-    if (ImGui::MenuItem(vcString::Get("menuProjectImportProject"), nullptr, nullptr))
+    if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_ImportProject);
 
     ImGui::Separator();
