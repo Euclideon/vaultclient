@@ -1178,7 +1178,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     }
     else
     {
-      ImGui::Text("%i %s", pProgramState->sceneExplorer.selectedItems.size(), vcString::Get("selectedItemInfoPanelitemsSelected"));
+      ImGui::Text("%zu %s", pProgramState->sceneExplorer.selectedItems.size(), vcString::Get("selectedItemInfoPanelitemsSelected"));
     }
   }
 
