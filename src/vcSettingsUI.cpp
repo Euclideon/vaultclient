@@ -186,6 +186,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         change |= ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
         change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
         change |= ImGui::RadioButton(udTempStr("%s##Tools", vcString::Get("Tools")), &pProgramState->activeSetting, vcSR_Tools);
+        change |= ImGui::RadioButton(udTempStr("%s##UnitsOfMeasurement", vcString::Get("settingsUnitsOfMeasurement")), &pProgramState->activeSetting, vcSR_UnitsOfMeasurement);
         change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
         change |= ImGui::RadioButton(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")), &pProgramState->activeSetting, vcSR_Screenshot);
         change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
@@ -366,6 +367,22 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
           const char *labelSizeOptions[] = { vcString::Get("Small"), vcString::Get("Medium"), vcString::Get("Large") };
           ImGui::Combo(vcString::Get("scenePOILabelSize"), &pProgramState->settings.tools.label.textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions));
+        }
+
+        if (pProgramState->activeSetting == vcSR_UnitsOfMeasurement)
+        {
+          static char unitTextBuffer[128] = {};
+          if (ImGui::Button(vcString::Get("settingsSetMeasurementSystemMetric")))
+          {
+            vcUnitConversion_SetMetric(&pProgramState->settings.unitConversionData);
+            udStrcpy(unitTextBuffer, vcString::Get("settingsUnitsOfMeasurementUsingMetric")); //Temp feedback for the user until we implement per unit options
+          }
+          if (ImGui::Button(vcString::Get("settingsSetMeasurementSystemImperial")))
+          {
+            vcUnitConversion_SetImperial(&pProgramState->settings.unitConversionData);
+            udStrcpy(unitTextBuffer, vcString::Get("settingsUnitsOfMeasurementUsingImperial")); //Temp feedback for the user until we implement per unit options
+          }
+          ImGui::Text(unitTextBuffer);
         }
 
         if (pProgramState->activeSetting == vcSR_KeyBindings)

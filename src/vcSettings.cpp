@@ -268,6 +268,30 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       }
     }
 
+    //Units of measurement
+    vcUnitConversion_SetMetric(&pSettings->unitConversionData); //set some defaults.
+    for (uint32_t i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
+    {
+      pSettings->unitConversionData.distanceUnit[i].unit = (vcDistanceUnit)data.Get("unitConversion.distanceUnit[%d].unit", i).AsInt(pSettings->unitConversionData.distanceUnit[i].unit);
+      pSettings->unitConversionData.areaUnit[i].unit = (vcAreaUnit)data.Get("unitConversion.areaUnit[%d].unit", i).AsInt(pSettings->unitConversionData.areaUnit[i].unit);
+      pSettings->unitConversionData.volumeUnit[i].unit = (vcVolumeUnit)data.Get("unitConversion.volumeUnit[%d].unit", i).AsInt(pSettings->unitConversionData.volumeUnit[i].unit);
+
+      pSettings->unitConversionData.distanceUnit[i].upperLimit = data.Get("unitConversion.distanceUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.distanceUnit[i].upperLimit);
+      pSettings->unitConversionData.areaUnit[i].upperLimit = data.Get("unitConversion.areaUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.areaUnit[i].upperLimit);
+      pSettings->unitConversionData.volumeUnit[i].upperLimit = data.Get("unitConversion.volumeUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.volumeUnit[i].upperLimit);
+    }
+
+    pSettings->unitConversionData.speedUnit = (vcSpeedUnit)data.Get("unitConversion.speedUnit").AsInt(pSettings->unitConversionData.speedUnit);
+    pSettings->unitConversionData.temperatureUnit = (vcTemperatureUnit)data.Get("unitConversion.temperatureUnit").AsInt(pSettings->unitConversionData.temperatureUnit);
+    pSettings->unitConversionData.timeReference = (vcTimeReference)data.Get("unitConversion.timeUnit").AsInt(pSettings->unitConversionData.timeReference);
+
+    pSettings->unitConversionData.distanceSigFigs = data.Get("unitConversion.distanceSigFigs").AsInt(pSettings->unitConversionData.distanceSigFigs);
+    pSettings->unitConversionData.areaSigFigs = data.Get("unitConversion.areaSigFigs").AsInt(pSettings->unitConversionData.areaSigFigs);
+    pSettings->unitConversionData.volumeSigFigs = data.Get("unitConversion.volumeSigFigs").AsInt(pSettings->unitConversionData.volumeSigFigs);
+    pSettings->unitConversionData.speedSigFigs = data.Get("unitConversion.speedSigFigs").AsInt(pSettings->unitConversionData.speedSigFigs);
+    pSettings->unitConversionData.temperatureSigFigs = data.Get("unitConversion.temperatureSigFigs").AsInt(pSettings->unitConversionData.temperatureSigFigs);
+    pSettings->unitConversionData.timeSigFigs = data.Get("unitConversion.timeSigFigs").AsInt(pSettings->unitConversionData.timeSigFigs);
+
     //GPSTime
     pSettings->visualization.GPSTime.minTime = data.Get("visualization.GPSTime.minTime").AsDouble(0.0);
     pSettings->visualization.GPSTime.maxTime = data.Get("visualization.GPSTime.maxTime").AsDouble(0.0);
@@ -620,6 +644,29 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
   data.Set("camera.keepAboveSurface = %s", pSettings->camera.keepAboveSurface ? "true" : "false");
+
+  //Units of measurement
+  for (uint32_t i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
+  {
+    data.Set("unitConversion.distanceUnit[%u].unit = %u", i, pSettings->unitConversionData.distanceUnit[i].unit);
+    data.Set("unitConversion.areaUnit[%u].unit = %u", i, pSettings->unitConversionData.areaUnit[i].unit);
+    data.Set("unitConversion.volumeUnit[%u].unit = %u", i, pSettings->unitConversionData.volumeUnit[i].unit);
+
+    data.Set("unitConversion.distanceUnit[%u].upperLimit = %f", i, pSettings->unitConversionData.distanceUnit[i].upperLimit);
+    data.Set("unitConversion.areaUnit[%u].upperLimit = %f", i, pSettings->unitConversionData.areaUnit[i].upperLimit);
+    data.Set("unitConversion.volumeUnit[%u].upperLimit = %f", i, pSettings->unitConversionData.volumeUnit[i].upperLimit);
+  }
+
+  data.Set("unitConversion.speedUnit = %u", pSettings->unitConversionData.speedUnit);
+  data.Set("unitConversion.temperatureUnit = %u", pSettings->unitConversionData.temperatureUnit);
+  data.Set("unitConversion.timeReference = %u", pSettings->unitConversionData.timeReference);
+
+  data.Set("unitConversion.distanceSigFigs = %u", pSettings->unitConversionData.distanceSigFigs);
+  data.Set("unitConversion.areaSigFigs = %u", pSettings->unitConversionData.areaSigFigs);
+  data.Set("unitConversion.volumeSigFigs = %u", pSettings->unitConversionData.volumeSigFigs);
+  data.Set("unitConversion.speedSigFigs = %u", pSettings->unitConversionData.speedSigFigs);
+  data.Set("unitConversion.temperatureSigFigs = %u", pSettings->unitConversionData.temperatureSigFigs);
+  data.Set("unitConversion.timeSigFigs = %u", pSettings->unitConversionData.timeSigFigs);
 
   // Visualization
   data.Set("visualization.mode = %d", pSettings->visualization.mode - 1);
