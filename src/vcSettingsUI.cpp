@@ -307,8 +307,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
               ImGui::TextWrapped("%s", vcString::Get("settingsMapsTileServerInstructions"));
 
-              changed |= vcIGSW_InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.customServer.tileServerAddress, vcMaxPathLength);
-              changed |= vcIGSW_InputText(vcString::Get("settingsMapsAttribution"), pProgramState->settings.maptiles.customServer.attribution, vcMaxPathLength);
+              changed |= vcIGSW_InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.customServer.tileServerAddress);
+              changed |= vcIGSW_InputText(vcString::Get("settingsMapsAttribution"), pProgramState->settings.maptiles.customServer.attribution);
 
               if (changed)
               {
@@ -689,7 +689,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           {
             ImGui::Separator();
 
-            if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength))
+            if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy))
             {
               vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
               pProgramState->settings.loginInfo.tested = false;
@@ -705,7 +705,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
               }
             }
 
-            if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+            if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent))
             {
               vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
               pProgramState->settings.loginInfo.tested = false;

@@ -54,6 +54,9 @@ enum vcLoginStatus
   vcLS_ProxyAuthFailed,
   vcLS_OtherError,
 
+  vcLS_ForgotPassword,
+  vcLS_Register,
+
   vcLS_Count
 };
 
