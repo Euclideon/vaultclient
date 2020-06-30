@@ -24,7 +24,7 @@ public:
   virtual void OnNodeUpdate(vcState *pProgramState);
   virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
   virtual void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-  virtual void HandleImGui(vcState *pProgramState, size_t *pItemID);
+  virtual void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
   virtual void Cleanup(vcState *pProgramState);
   virtual void ChangeProjection(const udGeoZone &newZone);
   virtual udDouble3 GetLocalSpacePivot();

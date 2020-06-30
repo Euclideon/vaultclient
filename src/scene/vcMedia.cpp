@@ -270,7 +270,7 @@ void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
 }
 
-void vcMedia::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcMedia::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   // Handle imageurl
   if (m_pNode->pURI != nullptr)

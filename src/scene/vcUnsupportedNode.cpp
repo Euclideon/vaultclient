@@ -26,7 +26,7 @@ void vcUnsupportedNode::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x
   // Does nothing
 }
 
-void vcUnsupportedNode::HandleImGui(vcState * /*pProgramState*/, size_t * /*pItemID*/)
+void vcUnsupportedNode::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t * /*pItemID*/)
 {
   ImGui::TextUnformatted(vcString::Get("sceneExplorerUnknownCustomNode"));
 }

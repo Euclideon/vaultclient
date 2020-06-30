@@ -49,7 +49,7 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
 }
 
-void vcViewpoint::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   bool changed = false;
 

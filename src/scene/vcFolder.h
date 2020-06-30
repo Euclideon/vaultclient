@@ -18,7 +18,7 @@ public:
   bool Is3DSceneObject() const override { return false; }
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
-  void HandleImGui(vcState *pProgramState, size_t *pItemID) override;
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
   void Cleanup(vcState *pProgramState) override;
 };
 

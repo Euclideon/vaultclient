@@ -495,7 +495,7 @@ void vcLiveFeed::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*d
   // Do nothing
 }
 
-void vcLiveFeed::HandleImGui(vcState *pProgramState, size_t * /*pItemID*/)
+void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/)
 {
   if (pProgramState->settings.presentation.showDiagnosticInfo)
   {

@@ -67,7 +67,7 @@ void vcViewShed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_position, 1);
 }
 
-void vcViewShed::HandleImGui(vcState * /*pProgramState*/, size_t *pItemID)
+void vcViewShed::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pItemID)
 {
   if (ImGui::SliderScalarN(udTempStr("%s##viewShedHiddenColor%zu", vcString::Get("viewShedDistance"), *pItemID), ImGuiDataType_Double, &m_distance, 1, &DistMin, &DistMax))
     vdkProjectNode_SetMetadataDouble(m_pNode, "distance", m_distance);

@@ -772,7 +772,7 @@ void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
   m_pState->HandleBasicUI(pProgramState, itemID);  
 }
 
-void vcPOI::HandleImGui(vcState *pProgramState, size_t *pItemID)
+void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   HandleBasicUI(pProgramState, *pItemID);
 
