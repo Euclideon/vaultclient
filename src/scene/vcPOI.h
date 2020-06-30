@@ -47,7 +47,6 @@ private:
   uint32_t m_measurementAreaFillColour;
   uint32_t m_nameColour;
   uint32_t m_backColour;
-  vcLabelFontSize m_namePt;
   char m_hyperlink[vcMaxPathLength];
   char m_description[vcMaxPathLength];
 

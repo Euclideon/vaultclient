@@ -33,7 +33,6 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode
     label.pText = nullptr;
     label.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
     label.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
-    label.textSize = (vcLabelFontSize)pProgramState->settings.tools.label.textSize;
   }
   
 
@@ -183,15 +182,6 @@ void vcVerticalMeasureTool::HandleImGui(vcState *pProgramState, size_t *pItemID)
       vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_textBackgroundBGRA);
     }
 
-    const char *labelSizeOptions[] = { vcString::Get("scenePOILabelSizeNormal"), vcString::Get("scenePOILabelSizeSmall"), vcString::Get("scenePOILabelSizeLarge") };
-    int32_t size = m_labelList[0].textSize;
-    if (ImGui::Combo(udTempStr("%s##VerticalLabelSize%zu", vcString::Get("scenePOILabelSize"), *pItemID), &size, labelSizeOptions, (int)udLengthOf(labelSizeOptions)))
-    {
-      for (auto &label : m_labelList)
-        label.textSize = (vcLabelFontSize)size;
-      vdkProjectNode_SetMetadataInt(m_pNode, "textSize", size);
-    }
-
     if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
       vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
 
@@ -280,7 +270,6 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
   {
     label.textColourRGBA = textColourRGBA;
     label.backColourRGBA = backColourRGBA;
-    label.textSize = (vcLabelFontSize)size;
   }
 
   vdkProjectNode_GetMetadataUint(m_pNode, "lineColour", &m_lineColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
@@ -292,7 +281,6 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
   const char *pTemp;
   vdkProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
   udStrcpy(m_description, pTemp);
-  
 }
 
 void vcVerticalMeasureTool::HandleToolUI(vcState * pProgramState)
