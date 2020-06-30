@@ -181,6 +181,12 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   }
 }
 
+void vcQueryNode::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+{
+  if (ImGui::Checkbox(udTempStr("%s##EmbeddedUI", vcString::Get("sceneFilterInverted")), &m_inverted))
+    vdkQueryFilter_SetInverted(m_pFilter, m_inverted);
+}
+
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 *pPoint = nullptr;

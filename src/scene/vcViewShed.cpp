@@ -79,6 +79,18 @@ void vcViewShed::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pIte
     vdkProjectNode_SetMetadataUint(m_pNode, "hiddenColour", m_hiddenColour);
 }
 
+void vcViewShed::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+{
+  if (ImGui::SliderScalarN(udTempStr("%s##EmbeddedUIViewShed", vcString::Get("viewShedDistance")), ImGuiDataType_Double, &m_distance, 1, &DistMin, &DistMax))
+    vdkProjectNode_SetMetadataDouble(m_pNode, "distance", m_distance);
+
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##EmbeddedUIViewShed", vcString::Get("viewShedVisibleColour")), &m_visibleColour, ImGuiColorEditFlags_None))
+    vdkProjectNode_SetMetadataUint(m_pNode, "visibleColour", m_visibleColour);
+
+  if (vcIGSW_ColorPickerU32(udTempStr("%s##EmbeddedUIViewShed", vcString::Get("viewShedHiddenColour")), &m_hiddenColour, ImGuiColorEditFlags_None))
+    vdkProjectNode_SetMetadataUint(m_pNode, "hiddenColour", m_hiddenColour);
+}
+
 void vcViewShed::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 *pPoints = nullptr;

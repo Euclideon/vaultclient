@@ -310,6 +310,14 @@ void vcMedia::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   }
 }
 
+void vcMedia::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+{
+  const char *imageTypeNames[] = {vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypeOriented"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere"), vcString::Get("scenePOILabelImageTypeScreen")};
+  UDCOMPILEASSERT(udLengthOf(imageTypeNames) == vcIT_Count, "Update image names");
+  if (ImGui::Combo(udTempStr("%s##ImageEmbeddedUI", vcString::Get("scenePOILabelImageType")), (int *)&m_image.type, imageTypeNames, (int)udLengthOf(imageTypeNames)))
+    vdkProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
+}
+
 void vcMedia::HandleContextMenu(vcState *pProgramState)
 {
   ImGui::Separator();
