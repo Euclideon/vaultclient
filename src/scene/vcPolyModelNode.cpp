@@ -104,6 +104,7 @@ void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRen
   pModel->worldMat = m_matrix;
   pModel->cullFace = m_cullFace;
   pModel->selectable = true;
+  pModel->tint = udFloat4::one();
   if (m_ignoreTint)
     pModel->renderFlags = vcRenderPolyInstance::RenderFlags_IgnoreTint;
 }
