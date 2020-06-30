@@ -132,7 +132,7 @@ void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilenam
   {
     if (udStrEqual(pFormattedPath, pProgramState->settings.projectHistory.projects[i].pPath))
     {
-      vcSettings_CleanupProjectHistoryItem(&pProgramState->settings.projectHistory.projects[i]);
+      vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectHistory.projects[i]);
       pProgramState->settings.projectHistory.projects.RemoveAt(i);
       break;
     }
@@ -140,12 +140,12 @@ void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilenam
 
   while (pProgramState->settings.projectHistory.projects.length >= vcMaxProjectHistoryCount)
   {
-    vcSettings_CleanupProjectHistoryItem(&pProgramState->settings.projectHistory.projects[pProgramState->settings.projectHistory.projects.length - 1]);
+    vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectHistory.projects[pProgramState->settings.projectHistory.projects.length - 1]);
     pProgramState->settings.projectHistory.projects.PopBack();
   }
 
   const char *pName = udStrdup(pProgramState->activeProject.pRoot->pName);
-  pProgramState->settings.projectHistory.projects.PushFront({ pName, pFormattedPath, 0 });
+  pProgramState->settings.projectHistory.projects.PushFront({ pName, pFormattedPath });
 }
 
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)

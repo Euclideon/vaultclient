@@ -207,18 +207,18 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     static int zoneCustomSRID = 84;
 
     ImGui::Columns(2);
-    ImGui::Text(vcString::Get("modalProjectPreviousProjects"));
+    ImGui::Text("%s", vcString::Get("modalProjectPreviousProjects"));
 
     for (size_t i = 0; i < pProgramState->settings.projectHistory.projects.length; ++i)
     {
-      if (ImGui::Button(udTempStr("%s##projectHistoryItem%d", pProgramState->settings.projectHistory.projects[i].pName, i)))
+      if (ImGui::Button(udTempStr("%s##projectHistoryItem%zu", pProgramState->settings.projectHistory.projects[i].pName, i)))
       {
         vcProject_InitFromURI(pProgramState, pProgramState->settings.projectHistory.projects[i].pPath);
         ImGui::CloseCurrentPopup();
       }
 
       ImGui::Indent();
-      ImGui::Text(pProgramState->settings.projectHistory.projects[i].pPath);
+      ImGui::Text("%s", pProgramState->settings.projectHistory.projects[i].pPath);
       ImGui::Unindent();
     }
 

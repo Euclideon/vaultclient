@@ -498,10 +498,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     {
       const char *pProjectName = data.Get("previousProjects.name[%zu]", i).AsString();
       const char *pProjectPath = data.Get("previousProjects.path[%zu]", i).AsString();
-      double projectDate = data.Get("previousProjects.date[%zu]", i).AsDouble();
 
       if (pProjectName != nullptr && pProjectPath != nullptr)
-        pSettings->projectHistory.projects.PushBack({ udStrdup(pProjectName), udStrdup(pProjectPath), projectDate });
+        pSettings->projectHistory.projects.PushBack({ udStrdup(pProjectName), udStrdup(pProjectPath) });
 
     }
   }
@@ -781,7 +780,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   {
     data.Set("previousProjects.name[] = '%s'", pSettings->projectHistory.projects[i].pName);
     data.Set("previousProjects.path[] = '%s'", pSettings->projectHistory.projects[i].pPath);
-    data.Set("previousProjects.date[] = %f", pSettings->projectHistory.projects[i].date);
   }
 
   // Save
@@ -812,13 +810,13 @@ void vcSettings_Cleanup(vcSettings *pSettings)
   pSettings->visualization.pointSourceID.colourMap.Deinit();
 
   for (size_t i = 0; i < pSettings->projectHistory.projects.length; ++i)
-    vcSettings_CleanupProjectHistoryItem(&pSettings->projectHistory.projects[i]);
+    vcSettings_CleanupHistoryProjectItem(&pSettings->projectHistory.projects[i]);
   pSettings->projectHistory.projects.Deinit();
 
   vcTexture_Destroy(&pSettings->convertdefaults.watermark.pTexture);
 }
 
-void vcSettings_CleanupProjectHistoryItem(HistoryProjectInfo *pProjectItem)
+void vcSettings_CleanupHistoryProjectItem(ProjectHistoryInfo *pProjectItem)
 {
   udFree(pProjectItem->pName);
   udFree(pProjectItem->pPath);
