@@ -966,6 +966,9 @@ int main(int argc, char **args)
 
   udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
 
+  // TODO: If no initial project specified
+  vcModals_OpenModal(&programState, vcMT_NewProject);
+
 #if UDPLATFORM_EMSCRIPTEN
   // Toggle fullscreen if it changed, most likely via pressing escape key
   emscripten_set_fullscreenchange_callback("#canvas", &programState, true, [](int /*eventType*/, const EmscriptenFullscreenChangeEvent *pEvent, void *pUserData) -> EM_BOOL {
@@ -1058,13 +1061,13 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 
     // Projects (temp)
     udJSONArray *pProjectList = pProgramState->projects.Get("projects").AsArray();
-    if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
+    if (ImGui::MenuItem(vcString::Get("menuNewProject"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_NewProject);
 
-    if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
+    if (ImGui::MenuItem(vcString::Get("menuProjectExportProject"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_ExportProject);
 
-    if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
+    if (ImGui::MenuItem(vcString::Get("menuProjectImportProject"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_ImportProject);
 
     ImGui::Separator();
