@@ -90,7 +90,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     pInstance->sceneItemInternalId = 1;
     pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
     pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
-    pInstance->selectable = false;
+    pInstance->selectable = m_done;
   }
   
 
@@ -109,7 +109,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
       pInstance->sceneItemInternalId = 2;
       pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
       pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
-      pInstance->selectable = false;
+      pInstance->selectable = m_done;
     }
 
     for (auto &label : m_labelList)
@@ -127,7 +127,10 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     m_labelList[1].pText = udStrdup(labelBufVertical);
 
     for (auto &label : m_labelList)
+    {
+      label.pSceneItem = this;
       pRenderData->labels.PushBack(&label);
+    }
 
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
     vcLineRenderer_UpdatePoints(m_pLineInstance, m_points, 3, vcIGSW_BGRAToImGui(m_lineColour), m_lineWidth, false);
