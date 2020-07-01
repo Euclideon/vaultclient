@@ -1398,7 +1398,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
     }
 
   }
-
+ 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
   return active;
