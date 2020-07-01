@@ -1011,38 +1011,6 @@ epilogue:
   return result;
 }
 
-void vcSettings_ApplyMapChange(vcSettings *pSettings)
-{
-  // 'custom', 'euc-osm-base', 'euc-az-aerial', 'euc-az-roads'
-
-  if (udStrEqual(pSettings->maptiles.mapType, "euc-osm-base"))
-  {
-    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, "https://slippy.vault.euclideon.com/{0}/{1}/{2}.png");
-    udStrcpy(pSettings->maptiles.activeServer.attribution, "\xC2\xA9 OpenStreetMap contributors");
-    udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, "https://slippy.vault.euclideon.com");
-  }
-  else if (udStrEqual(pSettings->maptiles.mapType, "euc-az-aerial"))
-  {
-    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, "https://slippy.vault.euclideon.com/aerial/{0}/{1}/{2}.png");
-    udStrcpy(pSettings->maptiles.activeServer.attribution, "\xC2\xA9 1992 - 2020 TomTom");
-    udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, "https://slippy.vault.euclideon.com/aerial");
-  }
-  else if (udStrEqual(pSettings->maptiles.mapType, "euc-az-roads"))
-  {
-    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, "https://slippy.vault.euclideon.com/roads/{0}/{1}/{2}.png");
-    udStrcpy(pSettings->maptiles.activeServer.attribution, "\xC2\xA9 1992 - 2020 TomTom");
-    udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, "https://slippy.vault.euclideon.com/roads");
-  }
-  else // `custom` or not supported
-  {
-    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, pSettings->maptiles.customServer.tileServerAddress);
-    udStrcpy(pSettings->maptiles.activeServer.attribution, pSettings->maptiles.customServer.attribution);
-    udUUID_GenerateFromString(&pSettings->maptiles.customServer.tileServerAddressUUID, pSettings->maptiles.customServer.tileServerAddress);
-
-    pSettings->maptiles.activeServer.tileServerAddressUUID = pSettings->maptiles.customServer.tileServerAddressUUID;
-  }
-}
-
 void vcSettings_LoadBranding(vcState *pState)
 {
   udJSON branding = {};

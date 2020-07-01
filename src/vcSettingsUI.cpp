@@ -23,6 +23,25 @@
 
 #define MAX_DISPLACEMENT 10000.f
 
+static struct
+{
+  const char *pMode;
+  const char *pModeStr;
+  const char *pServerAddr;
+  const char *pCopyright;
+  const char *pTileAddressUUID;
+  vcTexture *pPreviewTexture;
+} s_mapTiles[]{
+  { "Open Street Maps", "euc-osm-base", "https://slippy.vault.euclideon.com/{0}/{1}/{2}.png", "\xC2\xA9 OpenStreetMap contributors", "https://slippy.vault.euclideon.com", nullptr },
+  { "Azure Aerial", "euc-az-aerial", "https://slippy.vault.euclideon.com/aerial/{0}/{1}/{2}.png", "\xC2\xA9 1992 - 2020 TomTom", "https://slippy.vault.euclideon.com/aerial",  nullptr },
+  { "Azure Roads", "euc-az-roads", "https://slippy.vault.euclideon.com/roads/{0}/{1}/{2}.png", "\xC2\xA9 1992 - 2020 TomTom", "https://slippy.vault.euclideon.com/roads", nullptr },
+  { "Stamen Toner", "stamen-toner", "https://stamen-tiles.a.ssl.fastly.net/toner/{0}/{1}/{2}.png", "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL", nullptr, nullptr },
+  { "Stamen Terrain", "stamen-terrain", "https://stamen-tiles.a.ssl.fastly.net/terrain/{0}/{1}/{2}.png", "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL", nullptr, nullptr },
+  { "Stamen Terrain", "stamen-watercolor", "https://stamen-tiles.a.ssl.fastly.net/watercolor/{0}/{1}/{2}.png", "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under CC BY SA", nullptr, nullptr },
+  { "Esri WorldImagery", "esri-worldimagery", "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{0}/{2}/{1}", "Tiles \xC2\xA9 Esri - Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community", nullptr, nullptr },
+  { "Custom", "custom", nullptr, nullptr, nullptr, nullptr },
+};
+
 enum vcLASClassifications
 {
   vcLASClassifications_FirstReserved = 19,
@@ -920,28 +939,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
 {
   ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
 
-  int selectedMode = 0;
-  const char *modes[] = { vcString::Get("settingsMapTypeEucOSM"), vcString::Get("settingsMapTypeEucAzAerial"), vcString::Get("settingsMapTypeEucAzRoads"), vcString::Get("settingsMapTypeCustom") };
-  const char *modeStrs[] = { "euc-osm-base", "euc-az-aerial", "euc-az-roads", "custom" };
-
-  UDCOMPILEASSERT(udLengthOf(modes) == udLengthOf(modeStrs), "Update Tables!");
-
-  for (size_t mi = 0; mi < udLengthOf(modes); ++mi)
-  {
-    if (udStrEqual(pProgramState->settings.maptiles.mapType, modeStrs[mi]))
-    {
-      selectedMode = (int)mi;
-      break;
-    }
-  }
-
-  if (ImGui::Combo(vcString::Get("settingsMapType"), &selectedMode, modes, (int)udLengthOf(modes)))
-  {
-    udStrcpy(pProgramState->settings.maptiles.mapType, modeStrs[selectedMode]);
-    vcSettings_ApplyMapChange(&pProgramState->settings);
-    vcRender_ClearTiles(pProgramState->pRenderContext);
-  }
-
+  ImGui::SameLine();
   if (ImGui::Button(vcString::Get("settingsMapECEFMode")))
   {
     int32_t newSRID = -1;
@@ -963,6 +961,81 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
       vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
       pProgramState->activeProject.pFolder->ChangeProjection(zone);
     }
+  }
+
+  ImGui::TextUnformatted(vcString::Get("settingsMapType"));
+
+  ImGui::BeginChild("mapSelection", ImVec2(512, 300));
+
+  ImGuiStyle& style = ImGui::GetStyle();
+  ImVec2 button_sz(128, 128);
+  float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+
+  for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
+  {
+    ImGui::PushID((int)i);
+
+    bool pop = udStrEqual(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
+
+    if (pop)
+      ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+
+    if (s_mapTiles[i].pPreviewTexture == nullptr)
+    {
+      s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
+      vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
+    }
+
+    if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
+    {
+      udStrcpy(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
+      vcSettings_ApplyMapChange(&pProgramState->settings);
+      vcRender_ClearTiles(pProgramState->pRenderContext);
+    }
+
+    if (pop)
+      ImGui::PopStyleColor();
+
+    float last_button_x2 = ImGui::GetItemRectMax().x;
+    float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
+
+    if (i + 1 < udLengthOf(s_mapTiles) && next_button_x2 < window_visible_x2)
+      ImGui::SameLine();
+
+    ImGui::PopID();
+  }
+
+  ImGui::EndChild();
+}
+
+void vcSettings_ApplyMapChange(vcSettings *pSettings)
+{
+  bool found = false;
+
+  for (size_t i = 0; i < udLengthOf(s_mapTiles); ++i)
+  {
+    if (udStrEqual(pSettings->maptiles.mapType, s_mapTiles[i].pModeStr))
+    {
+      udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, s_mapTiles[i].pServerAddr);
+      udStrcpy(pSettings->maptiles.activeServer.attribution, s_mapTiles[i].pCopyright);
+
+      if (s_mapTiles[i].pTileAddressUUID != nullptr)
+        udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, s_mapTiles[i].pTileAddressUUID);
+      else
+        udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, s_mapTiles[i].pServerAddr);
+
+      found = true;
+      break;
+    }
+  }
+
+  if (!found)// `custom` or not supported
+  {
+    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, pSettings->maptiles.customServer.tileServerAddress);
+    udStrcpy(pSettings->maptiles.activeServer.attribution, pSettings->maptiles.customServer.attribution);
+    udUUID_GenerateFromString(&pSettings->maptiles.customServer.tileServerAddressUUID, pSettings->maptiles.customServer.tileServerAddress);
+
+    pSettings->maptiles.activeServer.tileServerAddressUUID = pSettings->maptiles.customServer.tileServerAddressUUID;
   }
 }
 
