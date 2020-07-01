@@ -1131,28 +1131,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
-  ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y + attachmentPanelSize), ImGuiCond_Always, ImVec2(1.0f, 0.0f));
-  ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
-  ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
-
-  if (ImGui::Begin("selectedItemInfoPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
-  {
-    if ((pProgramState->sceneExplorer.selectedItems.size() == 1) && (pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData != nullptr))
-    {
-      vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData;
-      pSceneItem->HandleSceneEmbeddedUI(pProgramState);
-    }
-    else
-    {
-      ImGui::Text("%zu %s", pProgramState->sceneExplorer.selectedItems.size(), vcString::Get("selectedItemInfoPanelitemsSelected"));
-    }
-  }
-
-  attachmentPanelSize += ImGui::GetWindowSize().y + panelPadding;
-  ImGui::End();
-
   bool showToolWindow = false;
-  showToolWindow |= (pProgramState->activeTool != vcActiveTool_Select);
+  showToolWindow |= (pProgramState->activeTool != vcActiveTool_Select || pProgramState->sceneExplorer.selectedItems.size() > 0);
   showToolWindow |= pProgramState->gizmo.inUse;
   showToolWindow |= (pProgramState->backgroundWork.exportsRunning.Get() > 0);
 
@@ -1222,9 +1202,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         }
       }
 
-      if (pProgramState->activeTool != vcActiveTool_Select)
       {
-        if (!pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
+        if (pProgramState->activeTool != vcActiveTool_Select && !pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
           pProgramState->activeTool = vcActiveTool_Select;
 
         switch (pProgramState->activeTool)
@@ -1307,6 +1286,19 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         break;
 
         case vcActiveTool_Select:
+
+          if ((pProgramState->sceneExplorer.selectedItems.size() == 1) && (pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData != nullptr))
+          {
+            vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData;
+            pSceneItem->HandleSceneEmbeddedUI(pProgramState);
+          }
+          else
+          {
+            ImGui::Text("%zu %s", pProgramState->sceneExplorer.selectedItems.size(), vcString::Get("selectedItemInfoPanelitemsSelected"));
+          }
+
+          break;
+
         case vcActiveTool_Count:
           // Does nothing
           break;

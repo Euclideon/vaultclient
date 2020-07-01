@@ -944,6 +944,7 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
 void vcPOI::HandleToolUI(vcState *pProgramState)
 {
   m_pState->HandlePopupUI(pProgramState);
+  HandleSceneEmbeddedUI(pProgramState);
 }
 
 void vcPOI::InsertPoint(const udDouble3 &position)
