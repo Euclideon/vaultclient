@@ -1390,6 +1390,10 @@ PS_OUTPUT main(PS_INPUT input)
   float sceneDepth = logToLinearDepth(sceneLogDepth);
   float3 sceneNormal = unpackNormal(sceneNormalPacked);
   sceneColour.xyz = pow(abs(sceneColour.xyz), float3(2.2, 2.2, 2.2));
+  
+  // not all geometry has normals yet
+  if (length(sceneNormal) == 0.0)
+    sceneNormal = float3(0, 0, 1);
 
   output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
@@ -1551,8 +1555,9 @@ the scene:
   output.Color0.a = 1.0;
 
   // debugging
-  //output.Color0.xyz = lerp(float3(dot(sceneNormal.xyz, earthBitangent), 0, 0), output.Color0.xyz, 0.00000000001);
+  //output.Color0.xyz = lerp(float3(abs(sceneNormal.xyz)), output.Color0.xyz, 0.00000000001);
 	
+  
   return output;
 }
 
