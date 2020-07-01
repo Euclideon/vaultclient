@@ -279,7 +279,7 @@ struct vcRenderContext
     {
       udFloat4x4 u_worldViewProjectionMatrix;
     } params;
-    
+
   } watermarkShader;
 };
 
@@ -575,7 +575,7 @@ udResult vcRender_RemoveVaultContext(vcRenderContext *pRenderContext)
   udResult result = udR_Success;
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
-  
+
   if (vdkRenderView_Destroy(&pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
     UD_ERROR_SET(udR_InternalError);
 
@@ -1265,7 +1265,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   udDouble4 nearPlane = vcCamera_GetNearPlane(pProgramState->camera, pProgramState->settings.camera);
   for (size_t i = 0; i < renderData.lines.length; ++i)
     vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution, nearPlane);
-  
+
   // Images
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
@@ -1277,7 +1277,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
       double distToCamera = udMag3(pProgramState->camera.position - renderData.images[i]->position);
       double zScale = 1.0 - distToCamera / pProgramState->settings.presentation.imageRescaleDistance;
 
-      if (pImage->type == vcIT_ScreenPhoto ||  zScale < 0) // too far
+      if (pImage->type == vcIT_ScreenPhoto || zScale < 0) // too far
         continue;
 
       float encodedImageId = vcRender_EncodeModelId(imageIds + i);
@@ -1398,7 +1398,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
     }
 
   }
- 
+
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 
   return active;
@@ -1505,13 +1505,13 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_VisualizationPass(pProgramState, pRenderContext);
   vcRender_RenderAtmosphere(pProgramState, pRenderContext);
-  
+
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
-  
+
   vcRender_PostProcessPass(pProgramState, pRenderContext);
-  
+
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
-  
+
   vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);
 
   vcRender_AsyncReadFrameDepth(pRenderContext);
@@ -1553,7 +1553,7 @@ bool vcRender_FindSnapPoint(vcState *pProgramState, vcRenderContext *pRenderCont
 
   bool bFind = false;
   int lastOffset = 2 * pProgramState->settings.mouseSnap.range * pProgramState->settings.mouseSnap.range;
-  for (int offsety = udMax(0, renderData.mouse.position.y-pProgramState->settings.mouseSnap.range); offsety < udMin(renderData.mouse.position.y + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.y-1); offsety++)
+  for (int offsety = udMax(0, renderData.mouse.position.y - pProgramState->settings.mouseSnap.range); offsety < udMin(renderData.mouse.position.y + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.y - 1); offsety++)
     for (int offsetx = udMax(0, renderData.mouse.position.x - pProgramState->settings.mouseSnap.range); offsetx < udMin(renderData.mouse.position.x + pProgramState->settings.mouseSnap.range, (int)pRenderContext->originalSceneResolution.x - 1); offsetx++)
     {
       uint32_t pickingX = (uint32_t)((float)offsetx / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
