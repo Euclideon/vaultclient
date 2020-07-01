@@ -237,19 +237,21 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
 
-      for (size_t i = 0; i < pProgramState->settings.projectHistory.projects.length; ++i)
+      for (size_t i = 0; i < pProgramState->settings.projectsHistory.projects.length; ++i)
       {
+        vcProjectHistoryInfo *pProjectInfo = &pProgramState->settings.projectsHistory.projects[i];
+
         bool selected = false;
         if (ImGui::Selectable(udTempStr("##projectHistoryItem%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40)))
         {
-          vcProject_InitFromURI(pProgramState, pProgramState->settings.projectHistory.projects[i].pPath);
+          vcProject_InitFromURI(pProgramState, pProjectInfo->pPath);
           ImGui::CloseCurrentPopup();
         }
 
         float prevPosY = ImGui::GetCursorPosY();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 37);
 
-        udFloat4 iconUV = vcGetIconUV(vcMBBI_StorageLocal);
+        udFloat4 iconUV = vcGetIconUV(pProjectInfo->isServerProject ? vcMBBI_StorageCloud : vcMBBI_StorageLocal);
         ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
         ImGui::SameLine();
 
@@ -257,14 +259,14 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
 
         float textAlignPosX = ImGui::GetCursorPosX();
-        ImGui::Text("%s", pProgramState->settings.projectHistory.projects[i].pName);
+        ImGui::Text("%s", pProjectInfo->pName);
 
         // Manually align details text with title text
         ImGui::SetCursorPosX(textAlignPosX);
         ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
         col.w *= 0.65f;
         ImGui::PushStyleColor(ImGuiCol_Text, col);
-        ImGui::Text("%s", pProgramState->settings.projectHistory.projects[i].pPath);
+        ImGui::Text("%s", pProjectInfo->pPath);
 
         ImGui::PopStyleColor();
         ImGui::SetCursorPosY(prevPosY);
@@ -292,7 +294,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         }
 
         float prevPosY = ImGui::GetCursorPosY();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 45);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 46);
 
         udFloat4 iconUV = vcGetIconUV(projectIcons[i]);
         ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
@@ -306,7 +308,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
 
         // Manually align details text with title text
         ImGui::SetCursorPosX(textAlignPosX);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 8);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
 
         ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
         col.w *= 0.65f;

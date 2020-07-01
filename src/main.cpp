@@ -851,7 +851,7 @@ int main(int argc, char **args)
 
   programState.settings.languageOptions.Init(4);
   programState.settings.visualization.pointSourceID.colourMap.Init(32);
-  programState.settings.projectHistory.projects.Init(32);
+  programState.settings.projectsHistory.projects.Init(32);
 
   programState.passwordFieldHasFocus = true;
   programState.renaming = -1;
@@ -971,9 +971,6 @@ int main(int argc, char **args)
   vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize, nullptr, nullptr, vcTFM_Linear);
 
   udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
-
-  // TODO: If no initial project specified
-  vcModals_OpenModal(&programState, vcMT_NewProject);
 
 #if UDPLATFORM_EMSCRIPTEN
   // Toggle fullscreen if it changed, most likely via pressing escape key
