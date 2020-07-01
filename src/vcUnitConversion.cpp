@@ -2,6 +2,11 @@
 #include "udMath.h"
 #include "udStringUtil.h"
 
+
+//I think we need this so we are using static strings. Otherwise the vcUnitConversion_Convert* API will need to change to allow for a significant figure param.
+static const char *gSigFigsFormats[] = {"%0.0f", "%0.1f", "%0.2f", "%0.3f", "%0.4f", "%0.5f", "%0.6f", "%0.7f", "%0.8f", "%0.9f", "%0.10f"};
+static const uint32_t gSigFigCount = (uint32_t)udLengthOf(gSigFigsFormats);
+
 double vcUnitConversion_ConvertDistance(double sourceValue, vcDistanceUnit sourceUnit, vcDistanceUnit requiredUnit)
 {
   if (sourceUnit == requiredUnit)
@@ -379,9 +384,6 @@ epilogue:
   return result;
 }
 
-//I think we need this so we are using static strings. Otherwise the vcUnitConversion_Convert* API will need to change to allow for a significant figure param.
-static const char *SigFigsFormats[11] = {"%0.0f", "%0.1f", "%0.2f", "%0.3f", "%0.4f", "%0.5f", "%0.6f", "%0.7f", "%0.8f", "%0.9f", "%0.10f"};
-
 udResult vcUnitConversion_ConvertAndFormatDistance(char *pBuffer, size_t bufferSize, double value, vcDistanceUnit unit, const vcUnitConversionData *pData)
 {
   udResult result = udR_Failure_;
@@ -401,10 +403,8 @@ udResult vcUnitConversion_ConvertAndFormatDistance(char *pBuffer, size_t bufferS
       break;
   }
 
-  sigFigs = pData->distanceSigFigs;
-  if (sigFigs > 10) sigFigs = 10;
-
-  result = vcUnitConversion_ConvertDistanceToString(pBuffer, bufferSize, finalValue, finalUnit, SigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
+  sigFigs = udClamp<uint32_t>(pData->distanceSigFigs, 0, gSigFigCount - 1);
+  result = vcUnitConversion_ConvertDistanceToString(pBuffer, bufferSize, finalValue, finalUnit, gSigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
 
 epilogue:
   return result;
@@ -430,10 +430,8 @@ udResult vcUnitConversion_ConvertAndFormatArea(char *pBuffer, size_t bufferSize,
       break;
   }
 
-  sigFigs = pData->areaSigFigs;
-  if (sigFigs > 10) sigFigs = 10;
-
-  result = vcUnitConversion_ConvertAreaToString(pBuffer, bufferSize, finalValue, finalUnit, SigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
+  sigFigs = udClamp<uint32_t>(pData->areaSigFigs, 0, gSigFigCount - 1);
+  result = vcUnitConversion_ConvertAreaToString(pBuffer, bufferSize, finalValue, finalUnit, gSigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
 
 epilogue:
   return result;
@@ -458,10 +456,8 @@ udResult vcUnitConversion_ConvertAndFormatVolume(char *pBuffer, size_t bufferSiz
       break;
   }
 
-  sigFigs = pData->volumeSigFigs;
-  if (sigFigs > 10) sigFigs = 10;
-
-  result = vcUnitConversion_ConvertVolumeToString(pBuffer, bufferSize, finalValue, finalUnit, SigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
+  sigFigs = udClamp<uint32_t>(pData->volumeSigFigs, 0, gSigFigCount - 1);
+  result = vcUnitConversion_ConvertVolumeToString(pBuffer, bufferSize, finalValue, finalUnit, gSigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
 
 epilogue:
   return result;
@@ -479,10 +475,8 @@ udResult vcUnitConversion_ConvertAndFormatSpeed(char *pBuffer, size_t bufferSize
 
   finalValue = vcUnitConversion_ConvertSpeed(value, unit, pData->speedUnit);
 
-  sigFigs = pData->speedSigFigs;
-  if (sigFigs > 10) sigFigs = 10;
-
-  convertResult = vcUnitConversion_ConvertSpeedToString(pBuffer, bufferSize, finalValue, pData->speedUnit, SigFigsFormats[sigFigs]);
+  sigFigs = udClamp<uint32_t>(pData->speedSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertSpeedToString(pBuffer, bufferSize, finalValue, pData->speedUnit, gSigFigsFormats[sigFigs]);
 
   result = convertResult < 0 ? udR_WriteFailure : udR_Success;
 
@@ -502,10 +496,8 @@ udResult vcUnitConversion_ConvertAndFormatTemperature(char *pBuffer, size_t buff
 
   finalValue = vcUnitConversion_ConvertTemperature(value, unit, pData->temperatureUnit);
 
-  sigFigs = pData->temperatureSigFigs;
-  if (sigFigs > 10) sigFigs = 10;
-
-  convertResult = vcUnitConversion_ConvertTemperatureToString(pBuffer, bufferSize, finalValue, pData->temperatureUnit, SigFigsFormats[sigFigs]);
+  sigFigs = udClamp<uint32_t>(pData->temperatureSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertTemperatureToString(pBuffer, bufferSize, finalValue, pData->temperatureUnit, gSigFigsFormats[sigFigs]);
 
   result = convertResult < 0 ? udR_WriteFailure : udR_Success;
 
@@ -525,68 +517,11 @@ udResult vcUnitConversion_ConvertAndFormatTimeReference(char *pBuffer, size_t bu
 
   finalValue = vcUnitConversion_ConvertTimeReference(timeRefData, unit, pData->timeReference);
 
-  sigFigs = pData->timeSigFigs;
-  if (sigFigs > 10) sigFigs = 10;
-
-  convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, SigFigsFormats[sigFigs]);
+  sigFigs = udClamp<uint32_t>(pData->timeSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, gSigFigsFormats[sigFigs]);
 
   result = convertResult < 0 ? udR_WriteFailure : udR_Success;
 
 epilogue:
   return result;
 }
-
-//These should be translatable
-//const char *vcUnitConversion_DistanceUnitAsString(vcDistanceUnit unit)
-//{
-//  static const char *Descriptors[vcDistance_Count + 1] = {"Metres", "Kilometres", "Centimetres", "Millimetres", "Feet (US Survey)", "Miles (US Survey)", "Inches (US Survey)", "Nautical Miles", "Unknown"};
-//
-//  if (unit < 0 || unit > vcDistance_Count)
-//    return Descriptors[vcDistance_Count];
-//  return Descriptors[unit];
-//}
-//
-//const char *vcUnitConversion_AreaUnitAsString(vcAreaUnit unit)
-//{
-//  static const char *Descriptors[vcArea_Count + 1] = {"Square Metres", "Square Kilometres", "Hectare", "Square Feet (US Survey)", "Square Miles (US Survey)", "Acre", "Unknown"};
-//
-//  if (unit < 0 || unit > vcArea_Count)
-//    return Descriptors[vcArea_Count];
-//  return Descriptors[unit];
-//}
-//
-//const char *vcUnitConversion_VolumeUnitAsString(vcVolumeUnit unit)
-//{
-//  static const char *Descriptors[vcVolume_Count + 1] = {"Cubic Metre", "Mega Litre", "Litre", "Cubic Inches (US Survey)", "Cubic Feet (US Survey)", "Gallon (US)", "Quart (US)", "Cubic Yard (US Survey)", "Unknown"};
-//
-//  if (unit < 0 || unit > vcArea_Count)
-//    return Descriptors[vcArea_Count];
-//  return Descriptors[unit];
-//}
-//
-//const char *vcUnitConversion_SpeedUnitAsString(vcSpeedUnit unit)
-//{
-//  static const char *Descriptors[vcSpeed_Count + 1] = {"Metres/Second", "Kilometres/hour", "Miles/hour (US Survey)", "Feet/Second (US Survey)", "Nautical Miles/hour", "Mach", "Unknown"};
-//
-//  if (unit < 0 || unit > vcSpeed_Count)
-//    return Descriptors[vcSpeed_Count];
-//  return Descriptors[unit];
-//}
-//
-//const char *vcUnitConversion_TemperatureUnitAsString(vcTemperatureUnit unit)
-//{
-//  static const char *Descriptors[vcTemperature_Count + 1] = {"Celcius", "Kelvins", "Farenheit", "Unknown"};
-//
-//  if (unit < 0 || unit > vcTemperature_Count)
-//    return Descriptors[vcTemperature_Count];
-//  return Descriptors[unit];
-//}
-//
-//const char *vcUnitConversion_TimeReferenceAsString(vcTimeReference unit)
-//{
-//  static const char *Descriptors[vcTimeReference_Count + 1] = {"International Atomic Time", "Unix Time", "GPS", "GPS Adjusted", "GPS week", "Unknown"};
-//
-//  if (unit < 0 || unit > vcTimeReference_Count)
-//    return Descriptors[vcTimeReference_Count];
-//  return Descriptors[unit];
-//}
