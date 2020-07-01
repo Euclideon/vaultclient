@@ -1,6 +1,6 @@
 [
   {
-    "localname": "Australian English (enAU)",
+    "localname": "English (enAU)",
     "filename": "enAU"
   },
   {
@@ -18,5 +18,9 @@
   {
     "localname": "简体中文 (zhCN)",
     "filename": "zhCN"
+  },
+  {
+    "localname": "Español (esPR)",
+    "filename": "esPR"
   }
 ]
