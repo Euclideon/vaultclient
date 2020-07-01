@@ -140,8 +140,7 @@ enum vcLoginBackgroundSettings
 {
   vcLBS_LoginBoxY = 40,
   vcLBS_LoginBoxH = 280,
-  vcLBS_LogoW = 375,
-  vcLBS_LogoH = 577,
+  vcLBS_LogoAreaSize = 500,
 };
 
 const float ProfileTextureSize = 50.f;
@@ -2467,9 +2466,27 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
     logoFade += pProgramState->deltaTime * 10; // Fade in really fast
     uint32_t fadeIn = (0xFFFFFF | (udMin(uint32_t(logoFade * 255), 255U) << 24));
 
-    float scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / vcLBS_LogoH, 1.f);
-    float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
-    pDrawList->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - vcLBS_LogoW * scaling) / 2.f, yOff - (vcLBS_LogoH * scaling * 0.5f)), ImVec2((size.x + vcLBS_LogoW * scaling) / 2, yOff + (vcLBS_LogoH * scaling * 0.5f)), ImVec2(0, 0), ImVec2(1, 1), fadeIn);
+    int sizeX = 0;
+    int sizeY = 0;
+
+    vcTexture_GetSize(pProgramState->pCompanyLogo, &sizeX, &sizeY);
+
+    if (sizeX > 0 && sizeY > 0)
+    {
+      float ratio = (float)sizeX / sizeY;
+
+      float scaling = 1.0;
+      if (ratio >= 1.0)
+        scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / udMax(vcLBS_LogoAreaSize, sizeX), 1.f);
+      else
+        scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / udMax(vcLBS_LogoAreaSize, sizeY), 1.f);
+
+      float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
+      pDrawList->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - sizeX * scaling) / 2.f, yOff - (scaling * sizeY * 0.5f)), ImVec2((size.x + sizeX * scaling) / 2, yOff + (sizeY * scaling * 0.5f)), ImVec2(0, 0), ImVec2(1, 1), fadeIn);
+
+      //Leaving this here for when someone inevitably needs to fix the scaling issues
+      //pDrawList->AddRect(ImVec2((size.x - sizeX * scaling) / 2.f, yOff - (scaling * sizeY * 0.5f)), ImVec2((size.x + sizeX * scaling) / 2, yOff + (sizeY * scaling * 0.5f)), 0xFF00FFFF);
+    }
   }
 }
 
