@@ -44,7 +44,9 @@ enum vcMenuBarButtonIcon
 
   vcMBBI_Crosshair = 40,
 
-  //Reserved = 41+
+  vcMBBI_Visualization = 41,
+
+  //Reserved = 42+
 };
 
 enum vcMenuBarButtonGap

@@ -237,38 +237,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowNativeDialogs"), &pProgramState->settings.window.useNativeUI);
 #endif
 
-          const char *skyboxOptions[] = { vcString::Get("settingsAppearanceSkyboxTypeNone"), vcString::Get("settingsAppearanceSkyboxTypeColour"), vcString::Get("settingsAppearanceSkyboxTypeSimple"), vcString::Get("settingsAppearanceSkyboxTypeAtmosphere") };
-          ImGui::Combo(vcString::Get("settingsAppearanceSkyboxType"), (int*)&pProgramState->settings.presentation.skybox.type, skyboxOptions, (int)udLengthOf(skyboxOptions));
-          if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour)
-          {
-            ImGui::Indent();
-            ImGui::ColorEdit3(vcString::Get("settingsAppearanceSkyboxColour"), &pProgramState->settings.presentation.skybox.colour.x);
-            ImGui::Unindent();
-          }
-          else if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Atmosphere)
-          {
-            ImGui::Indent();
-            ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxUseLiveTime"), &pProgramState->settings.presentation.skybox.useLiveTime);
-
-            if (!pProgramState->settings.presentation.skybox.useLiveTime)
-            {
-              ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxLockSunPosition"), &pProgramState->settings.presentation.skybox.keepSameTime);
-              ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
-              ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 0, 12);
-            }
-
-            ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);
-
-            ImGui::Unindent();
-          }
-
-          // limit the value between 0-5.
-          if (ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f))
-            pProgramState->settings.presentation.saturation = udClamp(pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
-
-          const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
-          ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
-
           const char *layoutOptions[] = { vcString::Get("settingsAppearanceWindowLayoutScSx"), vcString::Get("settingsAppearanceWindowLayoutSxSc") };
           if (ImGui::Combo(vcString::Get("settingsAppearanceWindowLayout"), (int*)&pProgramState->settings.presentation.layout, layoutOptions, (int)udLengthOf(layoutOptions)))
             pProgramState->settings.presentation.columnSizeCorrect = false;
@@ -377,116 +345,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization, true);
           vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
 
-          const char *lensNameArray[] = {
-            vcString::Get("settingsViewportCameraLensCustom"),
-            vcString::Get("settingsViewportCameraLens15mm"),
-            vcString::Get("settingsViewportCameraLens24mm"),
-            vcString::Get("settingsViewportCameraLens30mm"),
-            vcString::Get("settingsViewportCameraLens50mm"),
-            vcString::Get("settingsViewportCameraLens70mm"),
-            vcString::Get("settingsViewportCameraLens100mm"),
-          };
-          UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
-
-          if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, lensNameArray, (int)udLengthOf(lensNameArray)))
-          {
-            switch (pProgramState->settings.camera.lensIndex)
-            {
-            case vcLS_Custom:
-              /*Custom FoV*/
-              break;
-            case vcLS_15mm:
-              pProgramState->settings.camera.fieldOfView = vcLens15mm;
-              break;
-            case vcLS_24mm:
-              pProgramState->settings.camera.fieldOfView = vcLens24mm;
-              break;
-            case vcLS_30mm:
-              pProgramState->settings.camera.fieldOfView = vcLens30mm;
-              break;
-            case vcLS_50mm:
-              pProgramState->settings.camera.fieldOfView = vcLens50mm;
-              break;
-            case vcLS_70mm:
-              pProgramState->settings.camera.fieldOfView = vcLens70mm;
-              break;
-            case vcLS_100mm:
-              pProgramState->settings.camera.fieldOfView = vcLens100mm;
-              break;
-            }
-          }
-
-          if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
-          {
-            float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-            if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
-              pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
-          }
-
-          // Selected Object Highlighting
-          ImGui::Checkbox(vcString::Get("settingsVisObjectHighlight"), &pProgramState->settings.objectHighlighting.enable);
-          if (pProgramState->settings.objectHighlighting.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
-            ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
-          }
-
-          // Post visualization - Edge Highlighting
-          ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
-          if (pProgramState->settings.postVisualization.edgeOutlines.enable)
-          {
-            if (ImGui::SliderInt(vcString::Get("settingsVisEdgeWidth"), &pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax))
-              pProgramState->settings.postVisualization.edgeOutlines.width = udClamp(pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax);
-
-            // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
-            if (ImGui::SliderFloat(vcString::Get("settingsVisEdgeThreshold"), &pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.edgeOutlines.threshold = udClamp(pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax);
-            ImGui::ColorEdit4(vcString::Get("settingsVisEdgeColour"), &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
-          }
-
-          // Post visualization - Colour by Height
-          ImGui::Checkbox(vcString::Get("settingsVisHeight"), &pProgramState->settings.postVisualization.colourByHeight.enable);
-          if (pProgramState->settings.postVisualization.colourByHeight.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisHeightStartColour"), &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
-            ImGui::ColorEdit4(vcString::Get("settingsVisHeightEndColour"), &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
-
-            // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
-            if (ImGui::SliderFloat(vcString::Get("settingsVisHeightStart"), &pProgramState->settings.postVisualization.colourByHeight.startHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByHeight.startHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.startHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisHeightEnd"), &pProgramState->settings.postVisualization.colourByHeight.endHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByHeight.endHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.endHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-          }
-
-          // Post visualization - Colour by Depth
-          ImGui::Checkbox(vcString::Get("settingsVisDepth"), &pProgramState->settings.postVisualization.colourByDepth.enable);
-          if (pProgramState->settings.postVisualization.colourByDepth.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisDepthColour"), &pProgramState->settings.postVisualization.colourByDepth.colour.x);
-
-            // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-            if (ImGui::SliderFloat(vcString::Get("settingsVisDepthStart"), &pProgramState->settings.postVisualization.colourByDepth.startDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByDepth.startDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.startDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisDepthEnd"), &pProgramState->settings.postVisualization.colourByDepth.endDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByDepth.endDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.endDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-          }
-
-          // Post visualization - Contours
-          ImGui::Checkbox(vcString::Get("settingsVisContours"), &pProgramState->settings.postVisualization.contours.enable);
-          if (pProgramState->settings.postVisualization.contours.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisContoursColour"), &pProgramState->settings.postVisualization.contours.colour.x);
-
-            // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursDistances"), &pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.distances = udClamp(pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_GlobalLimitSmallf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_ContourBandHeightMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimitSmallf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowRepeatRate"), &pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.rainbowRepeat = udClamp(pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowIntensity"), &pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.rainbowIntensity = udClamp(pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f);
-          }
+          vcSettingsUI_SceneVisualizationSettings(pProgramState);
         }
 
         if (pProgramState->activeSetting == vcSR_Tools)
@@ -1012,6 +871,153 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
   }
 
   ImGui::EndChild();
+}
+
+void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
+{
+  const char *lensNameArray[] = {
+    vcString::Get("settingsViewportCameraLensCustom"),
+    vcString::Get("settingsViewportCameraLens15mm"),
+    vcString::Get("settingsViewportCameraLens24mm"),
+    vcString::Get("settingsViewportCameraLens30mm"),
+    vcString::Get("settingsViewportCameraLens50mm"),
+    vcString::Get("settingsViewportCameraLens70mm"),
+    vcString::Get("settingsViewportCameraLens100mm"),
+  };
+  UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
+
+  if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, lensNameArray, (int)udLengthOf(lensNameArray)))
+  {
+    switch (pProgramState->settings.camera.lensIndex)
+    {
+    case vcLS_Custom:
+      /*Custom FoV*/
+      break;
+    case vcLS_15mm:
+      pProgramState->settings.camera.fieldOfView = vcLens15mm;
+      break;
+    case vcLS_24mm:
+      pProgramState->settings.camera.fieldOfView = vcLens24mm;
+      break;
+    case vcLS_30mm:
+      pProgramState->settings.camera.fieldOfView = vcLens30mm;
+      break;
+    case vcLS_50mm:
+      pProgramState->settings.camera.fieldOfView = vcLens50mm;
+      break;
+    case vcLS_70mm:
+      pProgramState->settings.camera.fieldOfView = vcLens70mm;
+      break;
+    case vcLS_100mm:
+      pProgramState->settings.camera.fieldOfView = vcLens100mm;
+      break;
+    }
+  }
+
+  if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
+  {
+    float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+    if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
+      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
+  }
+
+  const char *skyboxOptions[] = { vcString::Get("settingsAppearanceSkyboxTypeNone"), vcString::Get("settingsAppearanceSkyboxTypeColour"), vcString::Get("settingsAppearanceSkyboxTypeSimple"), vcString::Get("settingsAppearanceSkyboxTypeAtmosphere") };
+  ImGui::Combo(vcString::Get("settingsAppearanceSkyboxType"), (int*)&pProgramState->settings.presentation.skybox.type, skyboxOptions, (int)udLengthOf(skyboxOptions));
+  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour)
+  {
+    ImGui::Indent();
+    ImGui::ColorEdit3(vcString::Get("settingsAppearanceSkyboxColour"), &pProgramState->settings.presentation.skybox.colour.x);
+    ImGui::Unindent();
+  }
+  else if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Atmosphere)
+  {
+    ImGui::Indent();
+    ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxUseLiveTime"), &pProgramState->settings.presentation.skybox.useLiveTime);
+
+    if (!pProgramState->settings.presentation.skybox.useLiveTime)
+    {
+      ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxLockSunPosition"), &pProgramState->settings.presentation.skybox.keepSameTime);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 0, 12);
+    }
+
+    ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);
+
+    ImGui::Unindent();
+  }
+
+  // limit the value between 0-5.
+  if (ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f))
+    pProgramState->settings.presentation.saturation = udClamp(pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
+
+  const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
+  ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
+
+
+  // Selected Object Highlighting
+  ImGui::Checkbox(vcString::Get("settingsVisObjectHighlight"), &pProgramState->settings.objectHighlighting.enable);
+  if (pProgramState->settings.objectHighlighting.enable)
+  {
+    ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
+    ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
+  }
+
+  // Post visualization - Edge Highlighting
+  ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
+  if (pProgramState->settings.postVisualization.edgeOutlines.enable)
+  {
+    if (ImGui::SliderInt(vcString::Get("settingsVisEdgeWidth"), &pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax))
+      pProgramState->settings.postVisualization.edgeOutlines.width = udClamp(pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax);
+
+    // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
+    if (ImGui::SliderFloat(vcString::Get("settingsVisEdgeThreshold"), &pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.edgeOutlines.threshold = udClamp(pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax);
+    ImGui::ColorEdit4(vcString::Get("settingsVisEdgeColour"), &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
+  }
+
+  // Post visualization - Colour by Height
+  ImGui::Checkbox(vcString::Get("settingsVisHeight"), &pProgramState->settings.postVisualization.colourByHeight.enable);
+  if (pProgramState->settings.postVisualization.colourByHeight.enable)
+  {
+    ImGui::ColorEdit4(vcString::Get("settingsVisHeightStartColour"), &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
+    ImGui::ColorEdit4(vcString::Get("settingsVisHeightEndColour"), &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
+
+    // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
+    if (ImGui::SliderFloat(vcString::Get("settingsVisHeightStart"), &pProgramState->settings.postVisualization.colourByHeight.startHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByHeight.startHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.startHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisHeightEnd"), &pProgramState->settings.postVisualization.colourByHeight.endHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByHeight.endHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.endHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+  }
+
+  // Post visualization - Colour by Depth
+  ImGui::Checkbox(vcString::Get("settingsVisDepth"), &pProgramState->settings.postVisualization.colourByDepth.enable);
+  if (pProgramState->settings.postVisualization.colourByDepth.enable)
+  {
+    ImGui::ColorEdit4(vcString::Get("settingsVisDepthColour"), &pProgramState->settings.postVisualization.colourByDepth.colour.x);
+
+    // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
+    if (ImGui::SliderFloat(vcString::Get("settingsVisDepthStart"), &pProgramState->settings.postVisualization.colourByDepth.startDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByDepth.startDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.startDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisDepthEnd"), &pProgramState->settings.postVisualization.colourByDepth.endDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByDepth.endDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.endDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+  }
+
+  // Post visualization - Contours
+  ImGui::Checkbox(vcString::Get("settingsVisContours"), &pProgramState->settings.postVisualization.contours.enable);
+  if (pProgramState->settings.postVisualization.contours.enable)
+  {
+    ImGui::ColorEdit4(vcString::Get("settingsVisContoursColour"), &pProgramState->settings.postVisualization.contours.colour.x);
+
+    // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursDistances"), &pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.distances = udClamp(pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_GlobalLimitSmallf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_ContourBandHeightMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimitSmallf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowRepeatRate"), &pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.rainbowRepeat = udClamp(pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowIntensity"), &pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.rainbowIntensity = udClamp(pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f);
+  }
 }
 
 void vcSettings_ApplyMapChange(vcSettings *pSettings)

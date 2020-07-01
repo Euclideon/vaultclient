@@ -1689,9 +1689,20 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       // Map Settings
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem);
-      if (ImGui::BeginPopupContextItem(nullptr, 0))
+      if (ImGui::BeginPopupContextItem("##mapSettingsPopup", 0))
       {
         vcSettingsUI_BasicMapSettings(pProgramState);
+
+        ImGui::EndPopup();
+      }
+
+      // Visualizations
+      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("settingsVis"), nullptr, vcMBBI_Visualization, vcMBBG_FirstItem);
+      if (ImGui::BeginPopupContextItem("##visualizationsPopup", 0))
+      {
+        ImGui::BeginChild("mapSelection", ImVec2(500, 400));
+        vcSettingsUI_SceneVisualizationSettings(pProgramState);
+        ImGui::EndChild();
 
         ImGui::EndPopup();
       }
