@@ -14,4 +14,6 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState);
 
 const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t classification);
 
+void vcSettingsUI_Cleanup(vcState *pProgramState);
+
 #endif

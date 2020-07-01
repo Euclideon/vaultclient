@@ -997,6 +997,7 @@ epilogue:
   programState.projects.Destroy();
   programState.profileInfo.Destroy();
 
+  vcSettingsUI_Cleanup(&programState);
   vcSettings_Cleanup(&programState.settings);
 
   ImGuiGL_DestroyDeviceObjects();
