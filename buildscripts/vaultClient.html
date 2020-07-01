@@ -124,10 +124,10 @@
 					text = m[1];
 				}
 
-				if (text == "Running...")
-					document.getElementById("statusLoading").hidden = true;
-
 				console.log(text);
+			},
+			onMainLoopStart: function() {
+				document.getElementById("statusLoading").hidden = true;
 			}
 		};
 
