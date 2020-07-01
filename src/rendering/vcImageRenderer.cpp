@@ -100,7 +100,7 @@ epilogue:
   return result;
 }
 
-bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, float encodedObjectId, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale)
+bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, float encodedObjectId, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale, vcTexture *pTextureOverride /*= nullptr*/)
 {
   // get aspect ratio
   udInt2 imageSize = {};
@@ -133,7 +133,7 @@ bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, float encodedObjectId
     pShader->everyObject.u_screenSize = udFloat4::create(vcISToPixelSize[pImageInfo->size] / screenSize.x, vcISToPixelSize[pImageInfo->size] / screenSize.y * aspect, float(zScale), encodedObjectId);
 
   vcShader_BindConstantBuffer(pShader->pShader, pShader->pEveryObjectConstantBuffer, &pShader->everyObject, sizeof(pShader->everyObject));
-  vcShader_BindTexture(pShader->pShader, pImageInfo->pTexture, 0, pShader->pDiffuseSampler);
+  vcShader_BindTexture(pShader->pShader, pTextureOverride != nullptr ? pTextureOverride : pImageInfo->pTexture, 0, pShader->pDiffuseSampler);
 
   vcMesh_Render(gInternalMeshes[vcITToMeshType[pImageInfo->type]]);
 

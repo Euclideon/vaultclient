@@ -1396,7 +1396,30 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
 
       active = true;
     }
+  }
 
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
+  // screen images
+  for (uint32_t i = 0; i < renderData.images.length; ++i)
+  {
+    vcImageRenderInfo *pImage = renderData.images[i];
+    if ((pImage->sceneItemInternalId == 0 && pImage->pSceneItem->m_selected) || (pImage->sceneItemInternalId != 0 && pImage->pSceneItem->IsSubitemSelected(pImage->sceneItemInternalId)))
+    {
+      double zScale = 1.0f;
+      if (pImage->type != vcIT_ScreenPhoto)
+      {
+        // code duplication
+        double distToCamera = udMag3(pProgramState->camera.position - renderData.images[i]->position);
+        zScale = 1.0 - distToCamera / pProgramState->settings.presentation.imageRescaleDistance;
+        if (zScale < 0) // too far
+          continue;
+      }
+
+      vcImageRenderer_Render(pImage, selectionMask, pProgramState->camera.matrices.viewProjection, pRenderContext->sceneResolution, zScale, pProgramState->pWhiteTexture);
+
+      active = true;
+    }
   }
 
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
