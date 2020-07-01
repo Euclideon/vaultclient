@@ -396,6 +396,13 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
     {
       pFBX->lastTouchedMesh = pFBX->currMesh;
       pFBX->pNode = pFBX->pScene->GetGeometry(pFBX->currMesh)->GetNode();
+      
+      if (pFBX->pNode == nullptr)
+      {
+        ++pFBX->currMesh;
+        continue;
+      }
+
       pFBX->pMesh = pFBX->pNode->GetMesh();
 
       if (pFBX->pMesh == nullptr)
