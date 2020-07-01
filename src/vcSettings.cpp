@@ -495,11 +495,12 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Previous projects
     for (size_t i = 0; i < vcMaxProjectHistoryCount; i++)
     {
-      const char *pProjectName = data.Get("previousProjects.name[%zu]", i).AsString();
-      const char *pProjectPath = data.Get("previousProjects.path[%zu]", i).AsString();
+      bool isServerProject = data.Get("projectsHistory.isServerProject[%zu]", i).AsBool(false);
+      const char *pProjectName = data.Get("projectsHistory.name[%zu]", i).AsString();
+      const char *pProjectPath = data.Get("projectsHistory.path[%zu]", i).AsString();
 
       if (pProjectName != nullptr && pProjectPath != nullptr)
-        pSettings->projectHistory.projects.PushBack({ udStrdup(pProjectName), udStrdup(pProjectPath) });
+        pSettings->projectsHistory.projects.PushBack({ isServerProject, udStrdup(pProjectName), udStrdup(pProjectPath) });
 
     }
   }
@@ -774,10 +775,13 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("mouseSnap.range = %d", int(pSettings->mouseSnap.range));
 
   // previous projects
-  for (size_t i = 0; i < pSettings->projectHistory.projects.length; i++)
+  for (size_t i = 0; i < pSettings->projectsHistory.projects.length; i++)
   {
-    data.Set("previousProjects.name[] = '%s'", pSettings->projectHistory.projects[i].pName);
-    data.Set("previousProjects.path[] = '%s'", pSettings->projectHistory.projects[i].pPath);
+    vcProjectHistoryInfo *pProjectHistory = &pSettings->projectsHistory.projects[i];
+
+    data.Set("projectsHistory.isServerProject[] = %s", pProjectHistory->isServerProject ? "true" : "false");
+    data.Set("projectsHistory.name[] = '%s'", pProjectHistory->pName);
+    data.Set("projectsHistory.path[] = '%s'", pProjectHistory->pPath);
   }
 
   // Save
@@ -807,14 +811,14 @@ void vcSettings_Cleanup(vcSettings *pSettings)
   pSettings->languageOptions.Deinit();
   pSettings->visualization.pointSourceID.colourMap.Deinit();
 
-  for (size_t i = 0; i < pSettings->projectHistory.projects.length; ++i)
-    vcSettings_CleanupHistoryProjectItem(&pSettings->projectHistory.projects[i]);
-  pSettings->projectHistory.projects.Deinit();
+  for (size_t i = 0; i < pSettings->projectsHistory.projects.length; ++i)
+    vcSettings_CleanupHistoryProjectItem(&pSettings->projectsHistory.projects[i]);
+  pSettings->projectsHistory.projects.Deinit();
 
   vcTexture_Destroy(&pSettings->convertdefaults.watermark.pTexture);
 }
 
-void vcSettings_CleanupHistoryProjectItem(ProjectHistoryInfo *pProjectItem)
+void vcSettings_CleanupHistoryProjectItem(vcProjectHistoryInfo *pProjectItem)
 {
   udFree(pProjectItem->pName);
   udFree(pProjectItem->pPath);

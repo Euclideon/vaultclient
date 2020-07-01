@@ -8,7 +8,7 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
-void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename);
+void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename, bool isServerProject);
 
 void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int srid)
 {
@@ -120,7 +120,7 @@ void vcProject_ExtractCamera(vcState *pProgramState)
   vcProject_ExtractCameraRecursive(pProgramState, pProgramState->activeProject.pRoot);
 }
 
-void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename)
+void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename, bool isServerProject)
 {
   // replace '\\' with '/'
   char *pFormattedPath = udStrdup(pFilename);
@@ -128,24 +128,24 @@ void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilenam
   while (udStrchr(pFormattedPath, "\\", &index) != nullptr)
     pFormattedPath[index] = '/';
 
-  for (size_t i = 0; i < pProgramState->settings.projectHistory.projects.length; ++i)
+  for (size_t i = 0; i < pProgramState->settings.projectsHistory.projects.length; ++i)
   {
-    if (udStrEqual(pFormattedPath, pProgramState->settings.projectHistory.projects[i].pPath))
+    if (udStrEqual(pFormattedPath, pProgramState->settings.projectsHistory.projects[i].pPath))
     {
-      vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectHistory.projects[i]);
-      pProgramState->settings.projectHistory.projects.RemoveAt(i);
+      vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectsHistory.projects[i]);
+      pProgramState->settings.projectsHistory.projects.RemoveAt(i);
       break;
     }
   }
 
-  while (pProgramState->settings.projectHistory.projects.length >= vcMaxProjectHistoryCount)
+  while (pProgramState->settings.projectsHistory.projects.length >= vcMaxProjectHistoryCount)
   {
-    vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectHistory.projects[pProgramState->settings.projectHistory.projects.length - 1]);
-    pProgramState->settings.projectHistory.projects.PopBack();
+    vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectsHistory.projects[pProgramState->settings.projectsHistory.projects.length - 1]);
+    pProgramState->settings.projectsHistory.projects.PopBack();
   }
 
-  const char *pName = udStrdup(pProgramState->activeProject.pRoot->pName);
-  pProgramState->settings.projectHistory.projects.PushFront({ pName, pFormattedPath });
+  const char *pProjectName = udStrdup(pProgramState->activeProject.pRoot->pName);
+  pProgramState->settings.projectsHistory.projects.PushFront({ isServerProject, pProjectName, pFormattedPath });
 }
 
 bool vcProject_InitFromServer(vcState *pProgramState, const char *pProjectID)
@@ -176,6 +176,7 @@ bool vcProject_InitFromServer(vcState *pProgramState, const char *pProjectID)
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
     vcProject_ExtractCamera(pProgramState);
+    vcProject_UpdateProjectHistory(pProgramState, pProjectID, true);
   }
   else
   {
@@ -250,7 +251,7 @@ bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
   }
 
   if (result == udR_Success)
-    vcProject_UpdateProjectHistory(pProgramState, pFilename);
+    vcProject_UpdateProjectHistory(pProgramState, pFilename, false);
 
   return (result == udR_Success);
 }
@@ -343,7 +344,7 @@ void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverrid
 
     udCloseDir(&pDir);
 
-    vcProject_UpdateProjectHistory(pProgramState, pPath);
+    vcProject_UpdateProjectHistory(pProgramState, pPath, false);
   }
 }
 

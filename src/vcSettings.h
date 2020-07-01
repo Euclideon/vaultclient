@@ -206,11 +206,12 @@ struct vcToolSettings
   } label;
 };
 
-struct ProjectHistoryInfo
+struct vcProjectHistoryInfo
 {
+  bool isServerProject; // or local
   const char *pName;
   const char *pPath;
-  // TODO: Date, etc.
+  // TODO: Local timestamp
 };
 
 struct vcSettings
@@ -405,8 +406,8 @@ struct vcSettings
 
   struct
   {
-    udChunkedArray<ProjectHistoryInfo> projects;
-  } projectHistory;
+    udChunkedArray<vcProjectHistoryInfo> projects;
+  } projectsHistory;
 
   // These are experimental features that will eventually be removed or moved to another setting.
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users
@@ -490,6 +491,6 @@ void vcSettings_ApplyMapChange(vcSettings *pSettings);
 // Load Branding Info
 void vcSettings_LoadBranding(vcState *pState);
 
-void vcSettings_CleanupHistoryProjectItem(ProjectHistoryInfo *pProjectItem);
+void vcSettings_CleanupHistoryProjectItem(vcProjectHistoryInfo *pProjectItem);
 
 #endif // !vcSettings_h__
