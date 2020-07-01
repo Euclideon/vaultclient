@@ -243,6 +243,21 @@ void vcMain_LoadSettings(vcState *pProgramState)
 #if UDPLATFORM_EMSCRIPTEN
 void vcMain_MainLoop(void *pArgs)
 {
+  static int hideLoadingStatus = 0;
+  if (hideLoadingStatus >= 0)
+  {
+    if (hideLoadingStatus == 2)
+    {
+      MAIN_THREAD_EM_ASM(
+        if (typeof(Module["onMainLoopStart"]) !== 'undefined') {
+          Module["onMainLoopStart"]();
+        }
+      );
+      hideLoadingStatus = -1;
+    }
+    ++hideLoadingStatus;
+  }
+
   vcState *pProgramState = (vcState*)pArgs;
 #else
 void vcMain_MainLoop(vcState *pProgramState)
