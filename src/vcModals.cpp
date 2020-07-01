@@ -243,7 +243,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     {
       ImGui::Columns(2);
 
-      ImGui::Text("%s", vcString::Get("modalProjectOpenRecent"));
+      ImGui::Text("%s", vcString::Get("modalProjectPreviousProjects"));
       ImGui::Spacing();
       ImGui::Spacing();
 

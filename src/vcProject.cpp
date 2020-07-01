@@ -195,65 +195,54 @@ bool vcProject_InitFromServer(vcState *pProgramState, const char *pProjectID)
 
 bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
 {
-  char *pMemory = nullptr;
-  udResult result = udFile_Load(pFilename, (void**)&pMemory);
-
-  if (result == udR_Success)
+  bool success = false;
+  vdkProject *pProject = nullptr;
+  if (vdkProject_LoadFromFile(&pProject, pFilename) == vE_Success)
   {
-    vdkProject *pProject = nullptr;
-    if (vdkProject_LoadFromMemory(&pProject, pMemory) == vE_Success)
-    {
-      vcProject_Deinit(pProgramState, &pProgramState->activeProject);
+    vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
-      udGeoZone zone = {};
+    udGeoZone zone = {};
+    vcGIS_ChangeSpace(&pProgramState->geozone, zone);
+
+    pProgramState->sceneExplorer.selectedItems.clear();
+    pProgramState->sceneExplorer.clickedItem = {};
+
+    pProgramState->activeProject.pProject = pProject;
+    vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
+    pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
+    pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+
+    udFilename temp(pFilename);
+    temp.SetFilenameWithExt("");
+    pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
+
+    int32_t projectZone = 84; // LongLat
+    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, 84);
+    if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
+      udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, 84);
+
+    int32_t recommendedSRID = -1;
+    if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
-      pProgramState->sceneExplorer.selectedItems.clear();
-      pProgramState->sceneExplorer.clickedItem = {};
+    vcProject_ExtractCamera(pProgramState);
+    vcProject_UpdateProjectHistory(pProgramState, pFilename, false);
 
-      pProgramState->activeProject.pProject = pProject;
-      vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
-      pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
-      pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
-
-      udFilename temp(pFilename);
-      temp.SetFilenameWithExt("");
-      pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
-
-      int32_t projectZone = 84; // LongLat
-      vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, 84);
-      if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
-        udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, 84);
-
-      int32_t recommendedSRID = -1;
-      if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
-        vcGIS_ChangeSpace(&pProgramState->geozone, zone);
-
-      vcProject_ExtractCamera(pProgramState);
-    }
-    else
-    {
-      vcState::ErrorItem projectError;
-      projectError.source = vcES_ProjectChange;
-      projectError.pData = udStrdup(pFilename);
-      projectError.resultCode = udR_ParseError;
-
-      pProgramState->errorItems.PushBack(projectError);
-
-      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-    }
-
-    udFree(pMemory);
+    success = true;
   }
   else
   {
-    // TODO: Add to unsupported list in other branch
+    vcState::ErrorItem projectError;
+    projectError.source = vcES_ProjectChange;
+    projectError.pData = udStrdup(pFilename);
+    projectError.resultCode = udR_ParseError;
+
+    pProgramState->errorItems.PushBack(projectError);
+
+    vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   }
 
-  if (result == udR_Success)
-    vcProject_UpdateProjectHistory(pProgramState, pFilename, false);
-
-  return (result == udR_Success);
+  return success;
 }
 
 // This won't be required after destroy list works in vdkProject
