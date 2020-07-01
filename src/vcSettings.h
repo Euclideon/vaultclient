@@ -12,6 +12,7 @@
 #include "vcCamera.h"
 #include "vcGLState.h"
 #include "vcTexture.h"
+#include "vcUnitConversion.h"
 
 #include "imgui.h"
 
@@ -67,6 +68,7 @@ enum vcSettingsUIRegions
   vcSR_Maps,
   vcSR_Visualisations,
   vcSR_Tools,
+  vcSR_UnitsOfMeasurement,
   vcSR_KeyBindings,
   vcSR_ConvertDefaults,
   vcSR_Screenshot,
@@ -221,6 +223,8 @@ struct vcSettings
   char cacheAssetPath[vcMaxPathLength];
 
   bool onScreenControls;
+
+  vcUnitConversionData unitConversionData;
 
   struct
   {

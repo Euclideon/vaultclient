@@ -203,7 +203,7 @@ void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s", vcString::Get("sceneStraightDistance"));
   ImGui::PushFont(pProgramState->pBigFont);
   ImGui::Indent();
-  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udMag3(m_points[0] - m_points[2]), vcDistance_Metres);
+  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), udMag3(m_points[0] - m_points[2]), vcDistance_Metres, &pProgramState->settings.unitConversionData);
   ImGui::Text("%s", buffer);
   ImGui::Unindent();
   ImGui::PopFont();
@@ -211,7 +211,7 @@ void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s", vcString::Get("sceneHorizontalDistance"));
   ImGui::PushFont(pProgramState->pBigFont);
   ImGui::Indent();
-  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udMag2(m_points[0] - m_points[2]), vcDistance_Metres);
+  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), udMag2(m_points[0] - m_points[2]), vcDistance_Metres, &pProgramState->settings.unitConversionData);
   ImGui::Text("%s", buffer);
   ImGui::Unindent();
   ImGui::PopFont();
@@ -219,7 +219,7 @@ void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s", vcString::Get("sceneVerticalDistance"));
   ImGui::PushFont(pProgramState->pBigFont);
   ImGui::Indent();
-  vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), udAbs(m_points[0].z - m_points[2].z), vcDistance_Metres);
+  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), udAbs(m_points[0].z - m_points[2].z), vcDistance_Metres, &pProgramState->settings.unitConversionData);
   ImGui::Text("%s", buffer);
   ImGui::Unindent();
   ImGui::PopFont();

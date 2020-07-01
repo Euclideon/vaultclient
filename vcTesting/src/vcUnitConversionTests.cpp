@@ -193,7 +193,7 @@ TEST(UnitConversion, TimeReference)
   EXPECT_FALSE(out.success);
 }
 
-TEST(UnitConversion, StringFormatiing)
+TEST(UnitConversion, StringFormating)
 {
   double value = 42.0;
   const size_t bufSze = 64;
@@ -252,13 +252,13 @@ TEST(UnitConversion, StringFormatiing)
     EXPECT_EQ(udStrcmp(buffer, "42.000000mm"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyFeet) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000ft (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000ft"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyMiles) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000mi (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000mi"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyInches) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000in (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000in"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_NauticalMiles) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000nmi"), 0);
@@ -276,13 +276,13 @@ TEST(UnitConversion, StringFormatiing)
     EXPECT_EQ(udStrcmp(buffer, "42mm"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyFeet, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42ft (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42ft"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyMiles, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42mi (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42mi"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_USSurveyInches, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42in (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42in"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertDistanceToString(buffer, bufSze, value, vcDistance_NauticalMiles, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42nmi"), 0);
@@ -390,7 +390,7 @@ TEST(UnitConversion, StringFormatiing)
     EXPECT_EQ(udStrcmp(buffer, "42.000000km/h"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_USSurveyMilesPerHour) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000mi/h (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000mi/h"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_FeetPerSecond) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000ft/s"), 0);
@@ -399,7 +399,7 @@ TEST(UnitConversion, StringFormatiing)
     EXPECT_EQ(udStrcmp(buffer, "42.000000nmi/h"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_Mach) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000Ma"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "Mach 42.000000"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_MetresPerSecond, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42m/s"), 0);
@@ -408,7 +408,7 @@ TEST(UnitConversion, StringFormatiing)
     EXPECT_EQ(udStrcmp(buffer, "42km/h"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_USSurveyMilesPerHour, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42mi/h (U.S. Survey)"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42mi/h"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_FeetPerSecond, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42ft/s"), 0);
@@ -417,7 +417,7 @@ TEST(UnitConversion, StringFormatiing)
     EXPECT_EQ(udStrcmp(buffer, "42nmi/h"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_Mach, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42Ma"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "Mach 42"), 0);
 
     EXPECT_EQ(vcUnitConversion_ConvertSpeedToString(buffer, bufSze, value, vcSpeed_Count), -1);
   }
@@ -442,5 +442,200 @@ TEST(UnitConversion, StringFormatiing)
     EXPECT_EQ(udStrcmp(buffer, "42F"), 0);
 
     EXPECT_EQ(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Count), -1);
+  }
+}
+
+TEST(UnitConversion, ConvertAndStringifyMetric)
+{
+  const size_t bufSze = 64;
+  char buffer[bufSze] = {};
+  double metricVal = 5.732987423;
+
+  vcUnitConversionData conversionData;
+
+  vcUnitConversion_SetMetric(&conversionData);
+  {
+    vcTimeReferenceData timeData;
+    timeData.GPSWeek.weeks = 0;
+    timeData.GPSWeek.secondsOfTheWeek = 0.0;
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatTimeReference(buffer, bufSze, timeData, vcTimeReference_GPSWeek, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "315964791.0s"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal, vcDistance_Millimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal * 10.0, vcDistance_Millimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733cm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal * 10.0 * 100.0, vcDistance_Millimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal * 10.0 * 100.0 * 1000.0, vcDistance_Millimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733km"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal / 10.0, vcDistance_Centimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal, vcDistance_Centimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733cm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal * 100.0, vcDistance_Centimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal * 100.0 * 1000.0, vcDistance_Centimetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733km"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal / 100.0 / 10.0, vcDistance_Metres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal / 100.0, vcDistance_Metres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733cm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal, vcDistance_Metres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal * 1000.0, vcDistance_Metres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733km"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal / 1000.0 / 100.0 / 10.0, vcDistance_Kilometres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal / 1000.0 / 100.0, vcDistance_Kilometres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733cm"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal / 1000.0, vcDistance_Kilometres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, metricVal, vcDistance_Kilometres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733km"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal, vcArea_SquareMetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m sq"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal * 1000.0 * 1000.0, vcArea_SquareMetres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733km sq"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal / 1000.0 / 1000.0, vcArea_SquareKilometers, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m sq"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal, vcArea_SquareKilometers, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733km sq"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal, vcVolume_Litre, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733L"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal * 1000.0 * 1000.0, vcVolume_Litre, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ML"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal / 1000.0 / 1000.0, vcVolume_MegaLiter, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733L"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal, vcVolume_MegaLiter, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ML"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatSpeed(buffer, bufSze, metricVal, vcSpeed_MetresPerSecond, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m/s"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatSpeed(buffer, bufSze, metricVal / 1000.0 * 3600.0, vcSpeed_KilometresPerHour, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733m/s"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatTemperature(buffer, bufSze, metricVal, vcTemperature_Celcius, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733C"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatTemperature(buffer, bufSze, metricVal + 273.15, vcTemperature_Kelvin, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733C"), 0);
+  }
+}
+
+TEST(UnitConversion, ConvertAndStringifyImperial)
+{
+  const size_t bufSze = 64;
+  char buffer[bufSze] = {};
+  double imperialVal = 5.732987423;
+
+  vcUnitConversionData conversionData;
+
+  vcUnitConversion_SetImperial(&conversionData);
+  {
+    vcTimeReferenceData timeData;
+    timeData.GPSWeek.weeks = 0;
+    timeData.GPSWeek.secondsOfTheWeek = 0.0;
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatTimeReference(buffer, bufSze, timeData, vcTimeReference_GPSWeek, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "315964791.0s"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal, vcDistance_USSurveyInches, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733in"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal * 12.0, vcDistance_USSurveyInches, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ft"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal * 12.0 * 5280.0, vcDistance_USSurveyInches, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mi"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal / 12.0, vcDistance_USSurveyFeet, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733in"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal, vcDistance_USSurveyFeet, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ft"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal * 5280.0, vcDistance_USSurveyFeet, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mi"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal / 12.0 / 5280.0, vcDistance_USSurveyMiles, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733in"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal / 5280.0, vcDistance_USSurveyMiles, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ft"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatDistance(buffer, bufSze, imperialVal, vcDistance_USSurveyMiles, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mi"), 0);
+
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal, vcArea_SquareFoot, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ft sq"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal * 5280.0 * 5280.0, vcArea_SquareFoot, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mi sq"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal / 5280.0 / 5280.0, vcArea_SquareMiles, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ft sq"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal, vcArea_SquareMiles, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733mi sq"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, imperialVal, vcVolume_USSGallons, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733gal US"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatSpeed(buffer, bufSze, imperialVal, vcSpeed_FeetPerSecond, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ft/s"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatSpeed(buffer, bufSze, imperialVal / 5280.0 * 3600.0, vcSpeed_USSurveyMilesPerHour, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733ft/s"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatTemperature(buffer, bufSze, imperialVal, vcTemperature_Farenheit, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733F"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatTemperature(buffer, bufSze, (imperialVal - 32.0) * 5.0/9.0 + 273.15, vcTemperature_Kelvin, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733F"), 0);
   }
 }

@@ -834,7 +834,7 @@ void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_showArea)
   {
-    vcUnitConversion_ConvertAreaToString(buffer, udLengthOf(buffer), m_area, vcArea_SquareMetres);
+    vcUnitConversion_ConvertAndFormatArea(buffer, udLengthOf(buffer), m_area, vcArea_SquareMetres, &pProgramState->settings.unitConversionData);
 
     ImGui::TextUnformatted(vcString::Get("scenePOIArea"));
     ImGui::Indent();
@@ -846,7 +846,7 @@ void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_showLength)
   {
-    vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), m_totalLength, vcDistance_Metres);
+    vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), m_totalLength, vcDistance_Metres, &pProgramState->settings.unitConversionData);
 
     ImGui::TextUnformatted(vcString::Get("scenePOILineLength"));
     ImGui::Indent();
