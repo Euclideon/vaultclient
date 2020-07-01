@@ -49,11 +49,10 @@ enum vcLASClassifications
   vcLASClassifications_LastClassification = 255 // Because they are always stored in a uint8
 };
 
-void vcSettingsUI_Cleanup(vcState *pProgramState)
+void vcSettingsUI_Cleanup(vcState * /*pProgramState*/)
 {
   for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
     vcTexture_Destroy(&s_mapTiles[i].pPreviewTexture);
-
 }
 
 void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, vcSettingCategory category = vcSC_All)
