@@ -5,6 +5,8 @@
 #include "vdkConfig.h"
 #include "vdkPointCloud.h"
 #include "vdkVersion.h"
+#include "vdkWeb.h"
+#include "vdkUserUtil.h"
 
 #include <chrono>
 #include <ctime>
@@ -2553,7 +2555,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther" };
+  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther", "loginForgot", "loginRegister" };
   UDCOMPILEASSERT(vcLS_Count == udLengthOf(loginStatusKeys), "Status Keys Updated, Update string table");
 
   if (pProgramState->loginStatus == vcLS_Pending)
@@ -2562,6 +2564,35 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     {
       vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
       ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
+    }
+    ImGui::End();
+  }
+  else if (pProgramState->loginStatus == vcLS_ForgotPassword || pProgramState->loginStatus == vcLS_Register)
+  {
+    if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
+    {
+      if (ImGui::SmallButton(vcString::Get("loginBackToLogin")))
+        pProgramState->loginStatus = vcLS_EnterCredentials;
+
+      ImGui::SameLine();
+
+      ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
+
+      vcIGSW_InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL);
+
+      if (pProgramState->loginStatus == vcLS_Register)
+        vcIGSW_InputText(vcString::Get("loginRealname"), pProgramState->modelPath, ImGuiInputTextFlags_EnterReturnsTrue);
+
+      vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.email, ImGuiInputTextFlags_EnterReturnsTrue);
+
+      if (ImGui::Button(vcString::Get(loginStatusKeys[pProgramState->loginStatus])))
+      {
+        if (pProgramState->loginStatus == vcLS_Register)
+          vdkUserUtil_Register(pProgramState->settings.loginInfo.serverURL, pProgramState->modelPath, pProgramState->settings.loginInfo.email);
+        else
+          vdkUserUtil_ForgotPassword(pProgramState->settings.loginInfo.serverURL, pProgramState->settings.loginInfo.email);
+      }
+
     }
     ImGui::End();
   }
@@ -2633,6 +2664,14 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         pProgramState->settings.loginInfo.testStatus = vcLS_ProxyAuthRequired;
       }
 
+      if (ImGui::Button(vcString::Get("loginRegister")))
+        pProgramState->loginStatus = vcLS_Register;
+
+      ImGui::SameLine();
+      if (ImGui::Button(vcString::Get("loginForgot")))
+        pProgramState->loginStatus = vcLS_ForgotPassword;
+
+      ImGui::SameLine();
       if (ImGui::Button(vcString::Get("loginButton")) || tryLogin)
       {
         if (*pProgramState->settings.loginInfo.serverURL == '\0')

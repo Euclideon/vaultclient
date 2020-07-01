@@ -7,6 +7,11 @@
 #include "vcFileDialog.h"
 
 bool vcIGSW_InputText(const char *pLabel, char *pBuffer, size_t bufferSize, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None);
+template <size_t N> inline bool vcIGSW_InputText(const char *pLabel, char(&buffer)[N], ImGuiInputTextFlags flags = ImGuiInputTextFlags_None)
+{
+  return vcIGSW_InputText(pLabel, buffer, N, flags);
+}
+
 bool vcIGSW_InputTextWithResize(const char *pLabel, char **ppBuffer, size_t *pBufferSize, ImGuiInputTextFlags flags = ImGuiInputTextFlags_None);
 
 void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer, size_t bufferSize, const char **ppExtensions, size_t numExtensions, vcFileDialogType dialogType, vcFileDialogCallback onChange);
