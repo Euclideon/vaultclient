@@ -382,7 +382,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
             vcUnitConversion_SetImperial(&pProgramState->settings.unitConversionData);
             udStrcpy(unitTextBuffer, vcString::Get("settingsUnitsOfMeasurementUsingImperial")); //Temp feedback for the user until we implement per unit options
           }
-          ImGui::Text(unitTextBuffer);
+          ImGui::Text("%s", unitTextBuffer);
         }
 
         if (pProgramState->activeSetting == vcSR_KeyBindings)

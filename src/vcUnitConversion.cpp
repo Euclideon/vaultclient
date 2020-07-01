@@ -147,6 +147,10 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       TAI_seconds = s_secondsBetweenEpochs_TAI_GPS + s_weekSeconds * double(sourceValue.GPSWeek.weeks) + sourceValue.GPSWeek.secondsOfTheWeek;
       break;
     }
+    default:
+    {
+      goto epilogue;
+    }
   }
 
   //Required Reference
@@ -192,6 +196,10 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       result.GPSWeek.weeks = (uint32_t)udFloor(TAI_seconds / s_weekSeconds);
       result.GPSWeek.secondsOfTheWeek = TAI_seconds - (s_weekSeconds * result.GPSWeek.weeks);
       break;
+    }
+    default:
+    {
+      goto epilogue;
     }
   }
 
