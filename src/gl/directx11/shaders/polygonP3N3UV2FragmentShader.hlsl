@@ -48,10 +48,12 @@ PS_OUTPUT main(PS_INPUT input)
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
 
-  output.Normal = packNormal(input.normal, input.objectInfo.x, output.Depth0); 
+  // Some Polygon models have normals, some do not - disable for now
+  output.Normal = packNormal(float3(0,0,0), input.objectInfo.x, output.Depth0); 
   
+  // DISABLED FOR opaque geometry
   // conditionally disable selection (using alpha-blend)
-  output.Normal.w = input.objectInfo.y;
+  //output.Normal.w = input.objectInfo.y;
   
   return output;
 }
