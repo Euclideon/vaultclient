@@ -1187,7 +1187,7 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
 
 void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
-  if (m_pPolyModel == nullptr)
+  if (m_pPolyModel == nullptr || m_line.numPoints < 3)
     return;
   
   vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
