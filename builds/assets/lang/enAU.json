@@ -692,7 +692,7 @@
   "modalProjectNewGeolocatedSpecificZone": "Geolocated (Specific Zone)",
   "modalProjectNewGeolocatedSpecificZoneID": "Zone SRID",
   "modalProjectNewCreate": "Create New Project",
-  "modalProjectPreviousProjects": "Open recent",
+  "modalProjectOpenRecent": "Open recent",
   "modalProjectGetStarted": "Get started",
   "modalProjectGeolocatedDescription": "Creates a geolocated project",
   "modalProjectNonGeolocatedDescription": "Creates a non-geolocated project",
