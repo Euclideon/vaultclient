@@ -409,14 +409,17 @@ void vcMain_MainLoop(vcState *pProgramState)
         if (udStrBeginsWith(pNextLoad, "euclideon:project/"))
         {
           vcProject_InitFromServer(pProgramState, &pNextLoad[18]);
+          vcModals_CloseModal(pProgramState, vcMT_NewProject);
         }
         else if (udStrEquali(pExt, ".json"))
         {
           vcProject_InitFromURI(pProgramState, pNextLoad);
+          vcModals_CloseModal(pProgramState, vcMT_NewProject);
         }
         else if (udStrEquali(pExt, ".udp"))
         {
           vcProject_InitBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
+          vcModals_CloseModal(pProgramState, vcMT_NewProject);
 
           vcUDP_Load(pProgramState, pNextLoad);
         }
@@ -451,6 +454,8 @@ void vcMain_MainLoop(vcState *pProgramState)
             {
               if (firstLoad) // Was successful
                 udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+
+              vcModals_CloseModal(pProgramState, vcMT_NewProject);
 
               // Let is know about the mouse position- using bounding box currently
               //TODO: Don't use the boundingBox
@@ -491,6 +496,8 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               if (firstLoad)
                 udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+
+              vcModals_CloseModal(pProgramState, vcMT_NewProject);
             }
           }
           else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
@@ -582,6 +589,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             else if (firstLoad) // Was successful
             {
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+              vcModals_CloseModal(pProgramState, vcMT_NewProject);
             }
           }
           else // This file isn't supported in the scene
