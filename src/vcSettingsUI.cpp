@@ -302,12 +302,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsMaps"), vcSC_MapsElevation);
 
-          ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
-
+          vcSettingsUI_BasicMapSettings(pProgramState);
+            
           if (pProgramState->settings.maptiles.mapEnabled)
           {
-            vcSettingsUI_BasicMapSettings(pProgramState);
-            
             if (udStrEqual(pProgramState->settings.maptiles.mapType, "custom"))
             {
               ImGui::Indent();
@@ -816,77 +814,82 @@ const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t c
   }
 }
 
-void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
+void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOptions /*= false*/)
 {
-  ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
+  ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 
-  ImGui::SameLine();
-  if (ImGui::Button(vcString::Get("settingsMapECEFMode")))
+  if (alwaysShowOptions || pProgramState->settings.maptiles.mapEnabled)
   {
-    int32_t newSRID = -1;
+    ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
 
-    if (pProgramState->geozone.srid == vcPSZ_WGS84ECEF)
+    ImGui::SameLine();
+    if (ImGui::Button(vcString::Get("settingsMapECEFMode")))
     {
-      newSRID = pProgramState->previousSRID;
-    }
-    else
-    {
-      pProgramState->previousSRID = pProgramState->geozone.srid;
-      newSRID = vcPSZ_WGS84ECEF;
+      int32_t newSRID = -1;
+
+      if (pProgramState->geozone.srid == vcPSZ_WGS84ECEF)
+      {
+        newSRID = pProgramState->previousSRID;
+      }
+      else
+      {
+        pProgramState->previousSRID = pProgramState->geozone.srid;
+        newSRID = vcPSZ_WGS84ECEF;
+      }
+
+      if (newSRID != -1)
+      {
+        udGeoZone zone = {};
+        udGeoZone_SetFromSRID(&zone, newSRID);
+        vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
+        pProgramState->activeProject.pFolder->ChangeProjection(zone);
+      }
     }
 
-    if (newSRID != -1)
+    ImGui::TextUnformatted(vcString::Get("settingsMapType"));
+
+    ImGui::BeginChild("mapSelection", ImVec2(512, 300));
+
+    ImGuiStyle &style = ImGui::GetStyle();
+    ImVec2 button_sz(128, 128);
+    float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+
+    for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
     {
-      udGeoZone zone = {};
-      udGeoZone_SetFromSRID(&zone, newSRID);
-      vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
-      pProgramState->activeProject.pFolder->ChangeProjection(zone);
+      ImGui::PushID((int)i);
+
+      bool pop = udStrEqual(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
+
+      if (pop)
+        ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+
+      if (s_mapTiles[i].pPreviewTexture == nullptr)
+      {
+        s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
+        vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
+      }
+
+      if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
+      {
+        udStrcpy(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
+        vcSettings_ApplyMapChange(&pProgramState->settings);
+        vcRender_ClearTiles(pProgramState->pRenderContext);
+      }
+
+      if (pop)
+        ImGui::PopStyleColor();
+
+      float last_button_x2 = ImGui::GetItemRectMax().x;
+      float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
+
+      if (i + 1 < udLengthOf(s_mapTiles) && next_button_x2 < window_visible_x2)
+        ImGui::SameLine();
+
+      ImGui::PopID();
     }
+
+    ImGui::EndChild();
   }
-
-  ImGui::TextUnformatted(vcString::Get("settingsMapType"));
-
-  ImGui::BeginChild("mapSelection", ImVec2(512, 300));
-
-  ImGuiStyle& style = ImGui::GetStyle();
-  ImVec2 button_sz(128, 128);
-  float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-
-  for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
-  {
-    ImGui::PushID((int)i);
-
-    bool pop = udStrEqual(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
-
-    if (pop)
-      ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-
-    if (s_mapTiles[i].pPreviewTexture == nullptr)
-    {
-      s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
-      vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
-    }
-
-    if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
-    {
-      udStrcpy(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
-      vcSettings_ApplyMapChange(&pProgramState->settings);
-      vcRender_ClearTiles(pProgramState->pRenderContext);
-    }
-
-    if (pop)
-      ImGui::PopStyleColor();
-
-    float last_button_x2 = ImGui::GetItemRectMax().x;
-    float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
-
-    if (i + 1 < udLengthOf(s_mapTiles) && next_button_x2 < window_visible_x2)
-      ImGui::SameLine();
-
-    ImGui::PopID();
-  }
-
-  ImGui::EndChild();
 }
 
 void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
