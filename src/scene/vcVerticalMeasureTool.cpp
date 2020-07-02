@@ -246,8 +246,13 @@ void vcVerticalMeasureTool::ChangeProjection(const udGeoZone &newZone)
   udDouble3 *pPoints = nullptr;
   int number = 0;
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &pPoints, &number);
-  if(number > 0)
-    m_points[0] = pPoints[0];
+
+  // If still previewing only override the first point, if any
+  if (!m_done)
+    number = udMin(1, number);
+
+  for (int i = 0; i < number; ++i)
+    m_points[i] = pPoints[i];
 
   udFree(pPoints);
   pPoints = nullptr;
