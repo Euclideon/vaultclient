@@ -319,9 +319,5 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
 void vcVerticalMeasureTool::HandleToolUI(vcState * pProgramState)
 {
   if (HasLine())
-  {
-    ImGui::PushFont(pProgramState->pBigFont);
-    ImGui::Text("%s: %.3f", vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2]));
-    ImGui::PopFont();
-  }  
+    HandleSceneEmbeddedUI(pProgramState);
 }
