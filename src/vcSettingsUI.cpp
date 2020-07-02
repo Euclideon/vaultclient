@@ -480,9 +480,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::ColorEdit4(vcString::Get("scenePOILineColour1"), &pProgramState->settings.tools.line.colour[0], ImGuiColorEditFlags_None);
           ImGui::ColorEdit4(vcString::Get("scenePOILabelColour"), &pProgramState->settings.tools.label.textColour[0], ImGuiColorEditFlags_None);
           ImGui::ColorEdit4(vcString::Get("scenePOILabelBackgroundColour"), &pProgramState->settings.tools.label.backgroundColour[0], ImGuiColorEditFlags_None);
-
-          const char *labelSizeOptions[] = { vcString::Get("Small"), vcString::Get("Medium"), vcString::Get("Large") };
-          ImGui::Combo(vcString::Get("scenePOILabelSize"), &pProgramState->settings.tools.label.textSize, labelSizeOptions, (int)udLengthOf(labelSizeOptions));
         }
 
         if (pProgramState->activeSetting == vcSR_KeyBindings)
