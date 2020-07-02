@@ -34,7 +34,11 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal(vcString::Get("menuLogoutTitle"), nullptr, ImGuiWindowFlags_NoResize))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_LoggedOut))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
     ImGui::TextUnformatted(vcString::Get("menuLogoutMessage"));
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
@@ -165,7 +169,10 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerAddSceneItemTitle")))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_AddSceneItem))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
 
     vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, nullptr);
 
@@ -202,7 +209,10 @@ void vcModals_DrawNewProject(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(1000, 400), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("modalProjectNewTitle")))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_NewProject))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
 
     static int zoneCustomSRID = 84;
     static int creatingNewProjectType = -1;
@@ -384,7 +394,10 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_ExportProject))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
     
     vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
 
@@ -421,7 +434,10 @@ void vcModals_DrawImportProject(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectImportTitle")))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_ImportProject))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
 
     vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, nullptr);
 
@@ -457,7 +473,10 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal("###ProjectChange", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_ProjectChange))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
 
     for (uint32_t i = 0; i < pProgramState->errorItems.length; ++i)
     {
@@ -517,7 +536,11 @@ void vcModals_DrawProjectReadOnly(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerProjectReadOnlyTitle"), nullptr, ImGuiWindowFlags_NoResize))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_ProjectReadOnly))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
     ImGui::TextUnformatted(vcString::Get("sceneExplorerProjectReadOnlyMessage"));
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
@@ -535,7 +558,11 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerUnsupportedFilesTitle"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_UnsupportedFile))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
     ImGui::TextUnformatted(vcString::Get("sceneExplorerUnsupportedFilesMessage"));
 
     // Clear and close buttons
@@ -633,7 +660,11 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2((float)pProgramState->image.width + 25, (float)pProgramState->image.height + 50), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("sceneImageViewerTitle"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_ImageViewer))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
@@ -717,7 +748,10 @@ void vcModals_DrawProfile(vcState* pProgramState)
 
   if (ImGui::BeginPopupModal(profile, nullptr, ImGuiWindowFlags_NoResize))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_Profile))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
 
     if (pProgramState->sessionInfo.isOffline)
     {
@@ -759,7 +793,10 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
 
   if (ImGui::BeginPopupModal(pProfile, nullptr, ImGuiWindowFlags_NoResize))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_ChangePassword))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
 
     if (pProgramState->sessionInfo.isOffline)
     {
@@ -883,7 +920,10 @@ void vcModals_DrawConvert(vcState* pProgramState)
 
   if (ImGui::BeginPopupModal(pModalName))
   {
-    pProgramState->modalOpen = true;
+    if (pProgramState->closeModals & (1 << vcMT_Convert))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
 
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
@@ -916,6 +956,11 @@ void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
   pProgramState->openModals |= (1 << type);
 }
 
+void vcModals_CloseModal(vcState *pProgramState, vcModalTypes type)
+{
+  pProgramState->closeModals |= (1 << type);
+}
+
 void vcModals_DrawModals(vcState *pProgramState)
 {
   pProgramState->modalOpen = false;
@@ -933,4 +978,5 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawConvert(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut));
+  pProgramState->closeModals = 0;
 }

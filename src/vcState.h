@@ -90,6 +90,7 @@ struct vcState
   int activeSetting;
 
   int openModals; // This is controlled inside vcModals.cpp
+  int closeModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
   vcCamera camera;
