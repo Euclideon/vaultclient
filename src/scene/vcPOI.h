@@ -21,6 +21,7 @@ struct vcTexture;
 struct vcState;
 struct vcFenceRenderer;
 struct vcPolygonModel;
+struct vcUnitConversionData;
 
 struct vcLineInfo
 {
@@ -130,13 +131,13 @@ private:
   void CalculateArea();
   void CalculateTotalLength();
   void CalculateCentroid();
-  void AddLengths();
+  void AddLengths(const vcUnitConversionData *pConversionData);
   void UpdateState(vcState *pProgramState);
   double DistanceToPoint(udDouble3 const &point);
   vcRenderPolyInstance *AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i);
   bool IsVisible(vcState *pProgramState);
   void AddFenceToScene(vcRenderData *pRenderData);
-  void AddLabelsToScene(vcRenderData *pRenderData);
+  void AddLabelsToScene(vcRenderData *pRenderData, const vcUnitConversionData *pConversionData);
   void AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void DoFlythrough(vcState *pProgramState);

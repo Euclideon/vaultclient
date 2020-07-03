@@ -150,7 +150,7 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
     
     m_pParent->AddAttachedModelsToScene(pProgramState, pRenderData);
     m_pParent->DoFlythrough(pProgramState);
@@ -208,7 +208,7 @@ public:
       m_pParent->AddNodeToRenderData(pProgramState, pRenderData, 0);
     }
 
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
   }
 
   vcPOIState_General *ChangeState(vcState *pProgramState) override;
@@ -292,7 +292,7 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
   }
 
   vcPOIState_General *ChangeState(vcState *pProgramState) override;
@@ -374,7 +374,7 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
 
     if (m_pParent->m_showFill)
     {
@@ -694,12 +694,21 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
   m_pLabelInfo->worldPosition = m_centroid;
 
   char labelBuf[128] = {};
+  char tempBuf[128] = {};
   udStrcat(labelBuf, m_pNode->pName);
 
   if (m_showLength)
-    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("scenePOILineLength"), m_totalLength));
+  {
+    udStrcat(labelBuf, "\n");
+    vcUnitConversion_ConvertAndFormatDistance(tempBuf, 128, m_totalLength, vcDistance_Metres, &pProgramState->settings.unitConversionData);
+    udStrcat(labelBuf, tempBuf);
+  }
   if (m_showArea)
-    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("scenePOIArea"), m_area));
+  {
+    udStrcat(labelBuf, "\n");
+    vcUnitConversion_ConvertAndFormatArea(tempBuf, 128, m_area, vcArea_SquareMetres, &pProgramState->settings.unitConversionData);
+    udStrcat(labelBuf, tempBuf);
+  }
 
   udFree(m_pLabelText);
   m_pLabelText = udStrdup(labelBuf);
@@ -1102,7 +1111,7 @@ void vcPOI::CalculateCentroid()
   m_centroid = (aabbMin + aabbMax) * 0.5;
 }
 
-void vcPOI::AddLengths()
+void vcPOI::AddLengths(const vcUnitConversionData *pConversionData)
 {
   // j = previous, i = current
   int j = udMax(0, m_line.numPoints - 1);
@@ -1128,7 +1137,10 @@ void vcPOI::AddLengths()
 
       vcLabelInfo* pLabel = m_lengthLabels.GetElement(i);
       pLabel->worldPosition = (m_line.pPoints[j] + m_line.pPoints[i]) / 2;
-      udSprintf(&pLabel->pText, "%.3f", lineLength);
+
+      char buffer[128] = {};
+      vcUnitConversion_ConvertAndFormatDistance(buffer, 128, lineLength, vcDistance_Metres, pConversionData);
+      udSprintf(&pLabel->pText, "%s", buffer);
     }
 
     j = i;
@@ -1202,13 +1214,13 @@ void vcPOI::AddFenceToScene(vcRenderData *pRenderData)
     pRenderData->lines.PushBack(m_pLine);
 }
 
-void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
+void vcPOI::AddLabelsToScene(vcRenderData *pRenderData, const vcUnitConversionData *pConversionData)
 {
   if (m_pLabelInfo != nullptr)
   {
     if (m_showAllLengths && m_line.numPoints > 1)
     {
-      AddLengths();
+      AddLengths(pConversionData);
 
       for (size_t i = 0; i < m_lengthLabels.length; ++i)
       {

@@ -119,11 +119,21 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     m_labelList[1].worldPosition = (m_points[1] + m_points[2]) / 2;
 
     char labelBuf[128] = {};
-    udSprintf(labelBuf, "%s\n%s: %.3f\n%s: %.3f", m_pNode->pName, vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2]), vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2]));
+    char tempBuffer1[128] = {};
+    char tempBuffer2[128] = {};
+
+    double straight, horizontal, vertical;
+    GetMeasurements(&straight, &horizontal, &vertical);
+
+    vcUnitConversion_ConvertAndFormatDistance(tempBuffer1, 128, straight, vcDistance_Metres, &pProgramState->settings.unitConversionData);
+    vcUnitConversion_ConvertAndFormatDistance(tempBuffer2, 128, horizontal, vcDistance_Metres, &pProgramState->settings.unitConversionData);
+
+    udSprintf(labelBuf, "%s\n%s: %s\n%s: %s", m_pNode->pName, vcString::Get("sceneStraightDistance"), tempBuffer1, vcString::Get("sceneHorizontalDistance"), tempBuffer2);
     m_labelList[0].pText = udStrdup(labelBuf);
 
     char labelBufVertical[128] = {};
-    udSprintf(labelBufVertical, "%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
+    vcUnitConversion_ConvertAndFormatDistance(tempBuffer1, 128, vertical, vcDistance_Metres, &pProgramState->settings.unitConversionData);
+    udSprintf(labelBufVertical, "%s: %s", vcString::Get("sceneVerticalDistance"), tempBuffer1);
     m_labelList[1].pText = udStrdup(labelBufVertical);
 
     for (auto &label : m_labelList)
@@ -189,10 +199,19 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
     if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
       vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
 
-    ImGui::Text("%s: %.3f", vcString::Get("sceneStraightDistance"), udMag3(m_points[0] - m_points[2]));
-    ImGui::Text("%s: %.3f", vcString::Get("sceneHorizontalDistance"), udMag2(m_points[0] - m_points[2]));
-    ImGui::Text("%s: %.3f", vcString::Get("sceneVerticalDistance"), udAbs(m_points[0].z - m_points[2].z));
+    double straight, horizontal, vertical;
+    GetMeasurements(&straight, &horizontal, &vertical);
 
+    char mBuffer[128] = {};
+
+    vcUnitConversion_ConvertAndFormatDistance(mBuffer, 128, straight, vcDistance_Metres, &pProgramState->settings.unitConversionData);
+    ImGui::Text("%s: %s", vcString::Get("sceneStraightDistance"), mBuffer);
+
+    vcUnitConversion_ConvertAndFormatDistance(mBuffer, 128, horizontal, vcDistance_Metres, &pProgramState->settings.unitConversionData);
+    ImGui::Text("%s: %s", vcString::Get("sceneHorizontalDistance"), mBuffer);
+
+    vcUnitConversion_ConvertAndFormatDistance(mBuffer, 128, vertical, vcDistance_Metres, &pProgramState->settings.unitConversionData);
+    ImGui::Text("%s: %s", vcString::Get("sceneVerticalDistance"), mBuffer);
   }
 }
 
@@ -200,10 +219,13 @@ void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
 {
   char buffer[128];
 
+  double straight, horizontal, vertical;
+  GetMeasurements(&straight, &horizontal, &vertical);
+
   ImGui::Text("%s", vcString::Get("sceneStraightDistance"));
   ImGui::PushFont(pProgramState->pBigFont);
   ImGui::Indent();
-  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), udMag3(m_points[0] - m_points[2]), vcDistance_Metres, &pProgramState->settings.unitConversionData);
+  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), straight, vcDistance_Metres, &pProgramState->settings.unitConversionData);
   ImGui::Text("%s", buffer);
   ImGui::Unindent();
   ImGui::PopFont();
@@ -211,7 +233,7 @@ void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s", vcString::Get("sceneHorizontalDistance"));
   ImGui::PushFont(pProgramState->pBigFont);
   ImGui::Indent();
-  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), udMag2(m_points[0] - m_points[2]), vcDistance_Metres, &pProgramState->settings.unitConversionData);
+  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), horizontal, vcDistance_Metres, &pProgramState->settings.unitConversionData);
   ImGui::Text("%s", buffer);
   ImGui::Unindent();
   ImGui::PopFont();
@@ -219,7 +241,7 @@ void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s", vcString::Get("sceneVerticalDistance"));
   ImGui::PushFont(pProgramState->pBigFont);
   ImGui::Indent();
-  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), udAbs(m_points[0].z - m_points[2].z), vcDistance_Metres, &pProgramState->settings.unitConversionData);
+  vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), vertical, vcDistance_Metres, &pProgramState->settings.unitConversionData);
   ImGui::Text("%s", buffer);
   ImGui::Unindent();
   ImGui::PopFont();
@@ -325,4 +347,16 @@ void vcVerticalMeasureTool::HandleToolUI(vcState * pProgramState)
 {
   if (HasLine())
     HandleSceneEmbeddedUI(pProgramState);
+}
+
+void vcVerticalMeasureTool::GetMeasurements(double *pStraight, double *pHorizontal, double *pVertical)
+{
+  if (pStraight != nullptr)
+    *pStraight = udMag3(m_points[0] - m_points[2]);
+
+  if (pHorizontal != nullptr)
+    *pHorizontal = udMag2(m_points[0] - m_points[2]);
+
+  if (pVertical != nullptr)
+    *pVertical = udAbs(m_points[0].z - m_points[2].z);
 }

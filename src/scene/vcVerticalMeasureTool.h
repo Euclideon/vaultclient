@@ -37,6 +37,7 @@ private:
   bool HasLine();
   void ClearPoints();
   void UpdateSetting(vcState *pProgramState);
+  void GetMeasurements(double *pStraight, double *pHorizontal, double *pVertical);
 
 private:
   bool m_done;
