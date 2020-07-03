@@ -69,6 +69,60 @@ double vcUnitConversion_ConvertTemperature(double sourceValue, vcTemperatureUnit
   return celciusVal;
 }
 
+// Algorithm: http: //howardhinnant.github.io/date_algorithms.html
+static int vcUnitConversion_DaysFromCivil(int y, int m, int d)
+{
+  y -= m <= 2 ? 1 : 0;
+  int era = y / 400;
+  int yoe = y - era * 400;                                   // [0, 399]
+  int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;  // [0, 365]
+  int doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;           // [0, 146096]
+  return era * 146097 + doe - 719468;
+}
+
+// Algorithm: http: //howardhinnant.github.io/date_algorithms.html
+static vcTimeReferenceData vcUnitConversion_UnixToUTC(double unixTime)
+{
+  vcTimeReferenceData result = {};
+  int days = (int)unixTime / (60 * 60 * 24);
+  double rem = unixTime - ((double)days * 60.0 * 60.0 * 24.0);
+  result.UTC.hour = (uint8_t)(rem / (60.0 * 60.0));
+  rem -= 60.0 * 60.0 * result.UTC.hour;
+  result.UTC.minute = (uint8_t)(rem / (60.0));
+  rem -= 60.0 * result.UTC.minute;
+  result.UTC.seconds = rem;
+
+  days += 719468;
+  int era = (days >= 0 ? days : days - 146096) / 146097;
+  uint32_t doe = (uint32_t)(days - era * 146097);                         // [0, 146096]
+  uint32_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;   // [0, 399]
+  int y = (int)(yoe)+era * 400;
+  uint32_t doy = doe - (365 * yoe + yoe / 4 - yoe / 100);                 // [0, 365]
+  uint32_t mp = (5 * doy + 2) / 153;                                      // [0, 11]
+  uint32_t d = doy - (153 * mp + 2) / 5 + 1;                              // [1, 31]
+  uint32_t m = mp + (mp < 10 ? 3 : -9);                                   // [1, 12]
+
+  result.UTC.year = (uint16_t)y + (m <= 2 ? 1 : 0);
+  result.UTC.month = (uint8_t)m;
+  result.UTC.day = (uint8_t)d;
+
+  return result;
+}
+
+static double vcUnitConversion_ConvertUTCtoUNIX(vcTimeReferenceData timeData)
+{
+  int year = (int)timeData.UTC.year;
+  uint16_t month = (uint16_t)timeData.UTC.month;          // 0-11
+  if (month > 11)
+  {
+    year += month / 12;
+    month %= 12;
+  }
+  int days_since_1970 = vcUnitConversion_DaysFromCivil(year, month, (int)timeData.UTC.day);
+
+  return (double)60 * (60 * (24L * days_since_1970 + (int)timeData.UTC.hour) + (int)timeData.UTC.minute) + timeData.UTC.seconds;
+}
+
 vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData sourceValue, vcTimeReference sourceReference, vcTimeReference requiredReference)
 {
   vcTimeReferenceData result = {false, {0.0}};
@@ -152,6 +206,14 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       TAI_seconds = s_secondsBetweenEpochs_TAI_GPS + s_weekSeconds * double(sourceValue.GPSWeek.weeks) + sourceValue.GPSWeek.secondsOfTheWeek;
       break;
     }
+    case vcTimeReference_UTC:
+    {
+      vcTimeReferenceData tempIn;
+      tempIn.seconds = vcUnitConversion_ConvertUTCtoUNIX(sourceValue);
+      vcTimeReferenceData tempOut = vcUnitConversion_ConvertTimeReference(tempIn, vcTimeReference_Unix, vcTimeReference_TAI);
+      TAI_seconds = tempOut.seconds;
+      break;
+    }
     default:
     {
       goto epilogue;
@@ -200,6 +262,14 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       TAI_seconds -= s_secondsBetweenEpochs_TAI_GPS;
       result.GPSWeek.weeks = (uint32_t)udFloor(TAI_seconds / s_weekSeconds);
       result.GPSWeek.secondsOfTheWeek = TAI_seconds - (s_weekSeconds * result.GPSWeek.weeks);
+      break;
+    }
+    case vcTimeReference_UTC:
+    {
+      vcTimeReferenceData tempIn;
+      tempIn.seconds = TAI_seconds;
+      vcTimeReferenceData tempOut = vcUnitConversion_ConvertTimeReference(tempIn, vcTimeReference_TAI, vcTimeReference_Unix);
+      result = vcUnitConversion_UnixToUTC(tempOut.seconds);
       break;
     }
     default:
@@ -524,4 +594,17 @@ udResult vcUnitConversion_ConvertAndFormatTimeReference(char *pBuffer, size_t bu
 
 epilogue:
   return result;
+}
+
+void vcUnitConversion_SetUTC(vcTimeReferenceData *pData, uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double seconds)
+{
+  if (pData == nullptr)
+    return;
+
+  pData->UTC.year = year;
+  pData->UTC.month = month;
+  pData->UTC.day = day;
+  pData->UTC.hour = hour;
+  pData->UTC.minute = minute;
+  pData->UTC.seconds = seconds;
 }

@@ -154,6 +154,25 @@ void VerifyTimeReferenceWeek(double seconds, unsigned weeks, double out)
   EXPECT_EQ(outData.GPSWeek.secondsOfTheWeek, seconds) << "back-" << vcTimeReference_GPSWeek << " to " << vcTimeReference_TAI;;
 }
 
+void VerifyTimeReferenceUTC(double seconds, vcTimeReference reference, const vcTimeReferenceData &UTC)
+{
+  vcTimeReferenceData inData, outData;
+  inData.seconds = seconds;
+
+  outData = vcUnitConversion_ConvertTimeReference(inData, reference, vcTimeReference_UTC);
+  EXPECT_TRUE(outData.success) << "fwd-" << reference << " to " << vcTimeReference_UTC;
+  EXPECT_EQ(outData.UTC.year, UTC.UTC.year) << "fwd-" << reference << " to " << vcTimeReference_UTC;
+  EXPECT_EQ(outData.UTC.month, UTC.UTC.month) << "fwd-" << reference << " to " << vcTimeReference_UTC;
+  EXPECT_EQ(outData.UTC.day, UTC.UTC.day) << "fwd-" << reference << " to " << vcTimeReference_UTC;
+  EXPECT_EQ(outData.UTC.hour, UTC.UTC.hour) << "fwd-" << reference << " to " << vcTimeReference_UTC;
+  EXPECT_EQ(outData.UTC.minute, UTC.UTC.minute) << "fwd-" << reference << " to " << vcTimeReference_UTC;
+  EXPECT_NEAR(outData.UTC.seconds, UTC.UTC.seconds, 0.0001) << "fwd-" << reference << " to " << vcTimeReference_UTC;
+
+  outData = vcUnitConversion_ConvertTimeReference(UTC, vcTimeReference_UTC, reference);
+  EXPECT_TRUE(outData.success) << "back-" << vcTimeReference_UTC << " to " << reference;
+  EXPECT_NEAR(outData.seconds, seconds, 0.0001) << "back-" << vcTimeReference_UTC << " to " << reference;
+}
+
 TEST(UnitConversion, TimeReference)
 {
   static double const s_seconds_TAI_Unix_epoch = 378691200.0;
@@ -191,6 +210,17 @@ TEST(UnitConversion, TimeReference)
   in.GPSWeek.weeks = 0;
   out = vcUnitConversion_ConvertTimeReference(in, vcTimeReference_GPSWeek, vcTimeReference_TAI);
   EXPECT_FALSE(out.success);
+
+  //Unix, UTC
+  vcTimeReferenceData utcData;
+  vcUnitConversion_SetUTC(&utcData, 1970, 1, 1, 0, 0, 0.0);
+  VerifyTimeReferenceUTC(0.0, vcTimeReference_Unix, utcData);
+
+  vcUnitConversion_SetUTC(&utcData, 1970, 1, 1, 2, 42, 34.567);
+  VerifyTimeReferenceUTC(3600.0 * 2 + 42.0 * 60 + 34.567, vcTimeReference_Unix, utcData);
+
+  vcUnitConversion_SetUTC(&utcData, 2020, 7, 3, 0, 4, 13.7);
+  VerifyTimeReferenceUTC(1593734653.7, vcTimeReference_Unix, utcData); //Retrieved from https: //www.epochconverter.com
 }
 
 TEST(UnitConversion, StringFormating)
