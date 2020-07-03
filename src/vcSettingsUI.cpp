@@ -876,6 +876,16 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
       if (pop)
         ImGui::PopStyleColor();
 
+      if (ImGui::IsItemHovered())
+      {
+        ImGui::BeginTooltip();
+        if (udStrEqual(s_mapTiles[i].pMode, "Custom"))
+          ImGui::TextUnformatted(vcString::Get("settingsMapTypeCustom"));
+        else
+          ImGui::TextUnformatted(s_mapTiles[i].pMode);
+        ImGui::EndTooltip();
+      }
+
       float last_button_x2 = ImGui::GetItemRectMax().x;
       float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
 
