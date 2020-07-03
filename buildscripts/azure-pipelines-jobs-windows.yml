@@ -48,11 +48,11 @@ jobs:
   - ${{ if eq(parameters.gfxapi, 'opengl') }}:
     - template: azure-pipelines-steps-codesign.yml
       parameters:
-        file: builds\udStream.exe
+        file: builds\udStream_opengl.exe
   - ${{ if eq(parameters.gfxapi, 'd3d11') }}:
     - template: azure-pipelines-steps-codesign.yml
       parameters:
-        file: builds\udStream_d3d11.exe
+        file: builds\udStream.exe
   - template: azure-pipelines-steps-codesign.yml
     parameters:
       file: builds\udStreamConvertCMD.exe
