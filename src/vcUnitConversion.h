@@ -79,6 +79,7 @@ enum vcTimeReference
   vcTimeReference_GPS,          //seconds since UTC 00:00:00, 6/1/1980
   vcTimeReference_GPSAdjusted,  //seconds since UTC 00:00:00, 6/1/1980 - 1'000'000'000
   vcTimeReference_GPSWeek,      //seconds of the week + week number since UTC 00:00:00, 6/1/1980 (sunday)
+  vcTimeReference_UTC,
 
   vcTimeReference_Count
 };
@@ -94,6 +95,15 @@ struct vcTimeReferenceData
       double secondsOfTheWeek;
       uint32_t weeks;
     } GPSWeek;
+    struct
+    {
+      double seconds;
+      uint16_t year;
+      uint8_t month;
+      uint8_t day;
+      uint8_t hour;
+      uint8_t minute;
+    } UTC;
   };
 };
 
@@ -122,6 +132,7 @@ struct vcUnitConversionData
   uint32_t timeSigFigs;
 };
 
+void vcUnitConversion_SetUTC(vcTimeReferenceData *pData, uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double seconds);
 
 // Trying to convert to or from a Unix time before the 1970 epoch will fail.
 // Trying to convert to or from GPSWeek time using a negative value of seconds will fail.
@@ -149,5 +160,4 @@ udResult vcUnitConversion_ConvertAndFormatVolume(char *pBuffer, size_t bufferSiz
 udResult vcUnitConversion_ConvertAndFormatSpeed(char *pBuffer, size_t bufferSize, double value, vcSpeedUnit unit, const vcUnitConversionData *pData);
 udResult vcUnitConversion_ConvertAndFormatTemperature(char *pBuffer, size_t bufferSize, double value, vcTemperatureUnit unit, const vcUnitConversionData *pData);
 udResult vcUnitConversion_ConvertAndFormatTimeReference(char *pBuffer, size_t bufferSize, vcTimeReferenceData timeRefData, vcTimeReference unit, const vcUnitConversionData *pData);
-
 #endif //vcUnitConversion_h__
