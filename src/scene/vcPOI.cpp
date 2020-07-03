@@ -237,7 +237,7 @@ public:
 
   vdkProjectGeometryType GetGeometryType() const override
   {
-    return vdkPGT_LineString;
+    return m_pParent->m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString;
   }
 
   void HandlePopupUI(vcState *pProgramState) override
@@ -252,7 +252,10 @@ public:
         vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOICloseAndExit"), itemID), &m_pParent->m_line.closed))
+      {
         vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, vdkPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+        pProgramState->activeTool = vcActiveTool_Select;
+      }
     }
   }
 
