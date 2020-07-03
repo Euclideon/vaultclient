@@ -254,7 +254,11 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         bool selected = false;
         if (ImGui::Selectable(udTempStr("##projectHistoryItem%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40)))
         {
-          vcProject_InitFromURI(pProgramState, pProjectInfo->pPath);
+          if (pProjectInfo->isServerProject)
+            vcProject_InitFromServer(pProgramState, pProjectInfo->pPath);
+          else
+            vcProject_InitFromURI(pProgramState, pProjectInfo->pPath);
+
           ImGui::CloseCurrentPopup();
         }
 
