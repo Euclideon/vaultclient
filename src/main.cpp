@@ -1706,7 +1706,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), nullptr, vcMBBI_MapMode, vcMBBG_FirstItem);
       if (ImGui::BeginPopupContextItem("##mapSettingsPopup", 0))
       {
-        vcSettingsUI_BasicMapSettings(pProgramState);
+        vcSettingsUI_BasicMapSettings(pProgramState, true);
 
         ImGui::EndPopup();
       }
