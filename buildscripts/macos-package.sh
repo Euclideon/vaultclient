@@ -10,8 +10,8 @@ function CreateDMG {
 	cp icons/dmgBackground.png builds/packaging/.background/background.png
 
 	# See https://stackoverflow.com/a/1513578 for reference
-	hdiutil create builds/vaultClient.temp.dmg -volname "udStream" -srcfolder builds/packaging -format UDRW -fs HFS+ -fsargs "-c c=64,a=16,e=16"
-	device=$(hdiutil attach -readwrite -noverify -noautoopen "builds/vaultClient.temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
+	hdiutil create builds/udStream.temp.dmg -volname "udStream" -srcfolder builds/packaging -format UDRW -fs HFS+ -fsargs "-c c=64,a=16,e=16"
+	device=$(hdiutil attach -readwrite -noverify -noautoopen "builds/udStream.temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
 
 	# Delay 10 to give the disk time to mount - otherwise builds fail
 	echo '
@@ -59,16 +59,16 @@ function CreateDMG {
 
 function UpdateDMG {
 	# Resize the DMG
-	hdiutil resize -size 100m builds/vaultClient.temp.dmg
+	hdiutil resize -size 100m builds/udStream.temp.dmg
 
 	# Mount the DMG
-	device=$(hdiutil attach -readwrite -noverify -noautoopen "builds/vaultClient.temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
+	device=$(hdiutil attach -readwrite -noverify -noautoopen "builds/udStream.temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
 
 	# Change permissions
 	chmod -Rf go-w /Volumes/udStream
 
 	# Update the build
-	cp -af builds/vaultClient.app /Volumes/udStream/
+	cp -af builds/udStream.app /Volumes/udStream/
 
 	# Sync changes - people have reported that it needs to be done twice
 	sync
@@ -79,10 +79,10 @@ function UpdateDMG {
 	hdiutil detach ${device} -force
 
 	# Convert DMG to compressed and read-only format
-	hdiutil convert "builds/vaultClient.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "builds/udStream.dmg"
+	hdiutil convert "builds/udStream.temp.dmg" -format UDZO -imagekey zlib-level=9 -o "builds/udStream.dmg"
 
 	# Cleanup temporary DMG
-	rm -f builds/vaultClient.temp.dmg
+	rm -f builds/udStream.temp.dmg
 }
 
 if [ "$1" == "create" ]; then
