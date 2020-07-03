@@ -235,7 +235,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
             if (measurementSystem == 0)
               vcUnitConversion_SetMetric(&pProgramState->settings.unitConversionData);
             else if (measurementSystem == 1)
-              vcUnitConversion_SetImperial(&pProgramState->settings.unitConversionData);
+              vcUnitConversion_SetUSSurvey(&pProgramState->settings.unitConversionData);
           }
 
           ImGui::Checkbox(vcString::Get("sceneCameraInfo"), &pProgramState->settings.presentation.showCameraInfo);
@@ -1123,8 +1123,18 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   }
   case vcVM_GPSTime:
   {
+    vcTimeReference GPSTimeInIntToEnum[] = {vcTimeReference_GPS, vcTimeReference_GPSAdjusted};
+    int GPSTimeInEnumToInt[] = {0, 0, 0, 1, 0, 0};
+
+    static int GPSTimeFormatIn = GPSTimeInEnumToInt[pVisualizationSettings->GPSTime.inputFormat];
+    const char *GPSTimeFormatInOptions[] = {"GPS", "GPS Adjusted"};
+
+    retVal |= ImGui::Combo("Input GPS Time format", &GPSTimeFormatIn, GPSTimeFormatInOptions, (int)udLengthOf(GPSTimeFormatInOptions));
+
     bool minEdited = ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMin"), &pVisualizationSettings->GPSTime.minTime, 0.0, 0.0, "%.1f");
     bool maxEdited = ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMax"), &pVisualizationSettings->GPSTime.maxTime, 0.0, 0.0, "%.1f");
+
+    pVisualizationSettings->GPSTime.inputFormat = GPSTimeInIntToEnum[GPSTimeFormatIn];
 
     retVal |= (minEdited || maxEdited);
 

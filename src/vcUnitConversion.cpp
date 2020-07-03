@@ -5,14 +5,19 @@
 
 //I think we need this so we are using static strings. Otherwise the vcUnitConversion_Convert* API will need to change to allow for a significant figure param.
 static const char *gSigFigsFormats[] = {"%0.0f", "%0.1f", "%0.2f", "%0.3f", "%0.4f", "%0.5f", "%0.6f", "%0.7f", "%0.8f", "%0.9f", "%0.10f"};
+static const char *gTimeSigFigsFormats[] = {"%02.0f", "%04.1f", "%05.2f", "%06.3f", "%07.4f", "%08.5f", "%09.6f", "%010.7f", "%011.8f", "%012.9f", "%013.10f"};
 static const uint32_t gSigFigCount = (uint32_t)udLengthOf(gSigFigsFormats);
+
+#define USSINCHES_IN_METRE      39.37
+#define USSINCHES_IN_METRE_SQ  (39.37 * 39.37)
+#define USSINCHES_IN_METRE_CB  (39.37 * 39.37 * 39.37)
 
 double vcUnitConversion_ConvertDistance(double sourceValue, vcDistanceUnit sourceUnit, vcDistanceUnit requiredUnit)
 {
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  const double metreTable[vcDistance_Count] = { 1.0, 1000.0, 0.01, 0.001, 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0, 1.0 / 39.37, 1852.0 };
+  const double metreTable[vcDistance_Count] = { 0.001, 0.01, 1.0, 1000.0, 1.0 / USSINCHES_IN_METRE, 1.0 / USSINCHES_IN_METRE * 12.0, 1.0 / USSINCHES_IN_METRE *12.0 * 5280.0, 1852.0};
 
   return sourceValue * metreTable[sourceUnit] / metreTable[requiredUnit];
 }
@@ -22,7 +27,7 @@ double vcUnitConversion_ConvertArea(double sourceValue, vcAreaUnit sourceUnit, v
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  const double sqmTable[vcArea_Count] = { 1.0, 1000000.0, 10000.0, 1200.0 / 3937.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0 * 1.0 / 640.0 };
+  const double sqmTable[vcArea_Count] = { 1.0, 1000.0 * 1000.0, 100.0 * 100.0, 1200.0 / 3937.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0 * 1.0 / 640.0 };
 
   return sourceValue * sqmTable[sourceUnit] / sqmTable[requiredUnit];
 }
@@ -32,7 +37,7 @@ double vcUnitConversion_ConvertVolume(double sourceValue, vcVolumeUnit sourceUni
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  const double m3Table[vcVolume_Count] = { 1.0, 1000.0, 1.0 / 1000.0, 1.0 / 61023.744094732297526, 1 / 35.31466621266132221, 1 / 264.17203728418462560, 1 / 1056.6882607957347, 1 / 1.30795061586555094734 };
+  const double m3Table[vcVolume_Count] = { 1.0, 1.0 / 1000.0, 1000.0, 1.0 / USSINCHES_IN_METRE_CB, 1 / (USSINCHES_IN_METRE_CB / 1728), 1 / (USSINCHES_IN_METRE_CB / 1728.0 / 27.0), 1.0 / 1056.6882607957347, 1.0 / 264.17203728418462560};
 
   return sourceValue * m3Table[sourceUnit] / m3Table[requiredUnit];
 }
@@ -131,7 +136,7 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
 
   static const double s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
   static const double s_secondsBetweenEpochs_TAI_Unix = 378691200.0;
-  static const double s_secondsBetweenEpochs_TAI_GPS = 694656000.0;
+  static const double s_secondsBetweenEpochs_TAI_GPS = 694656009.0;
 
   //TODO this will have to be updated every time a leap second is introduced.
   //The next leap second date may be December 2020.
@@ -293,6 +298,8 @@ int vcUnitConversion_ConvertTimeToString(char *pBuffer, size_t bufferSize, const
   {
     if (reference == vcTimeReference_GPSWeek)
       return udSprintf(pBuffer, bufferSize, "%i weeks, %fs", value.GPSWeek.weeks, value.GPSWeek.secondsOfTheWeek);
+    else if (reference == vcTimeReference_UTC)
+      return udSprintf(pBuffer, bufferSize, "%04u-%02u-%02uT%02u:%02u:%02uZ", value.UTC.year, value.UTC.month, value.UTC.day, value.UTC.hour, value.UTC.minute, (uint32_t)value.UTC.seconds);
     else
       return udSprintf(pBuffer, bufferSize, "%fs", value.seconds);
   }
@@ -300,6 +307,8 @@ int vcUnitConversion_ConvertTimeToString(char *pBuffer, size_t bufferSize, const
   {
     if (reference == vcTimeReference_GPSWeek)
       return udSprintf(pBuffer, bufferSize, "%i weeks, %ss", value.GPSWeek.weeks, udTempStr(pSecondsFormat, value.GPSWeek.secondsOfTheWeek));
+    else if (reference == vcTimeReference_UTC)
+      return udSprintf(pBuffer, bufferSize, "%04u-%02u-%02uT%02u:%02u:%sZ", value.UTC.year, value.UTC.month, value.UTC.day, value.UTC.hour, value.UTC.minute, udTempStr(pSecondsFormat, value.UTC.seconds));
     else
       return udSprintf(pBuffer, bufferSize, "%ss", udTempStr(pSecondsFormat, value.seconds));
   }
@@ -307,7 +316,7 @@ int vcUnitConversion_ConvertTimeToString(char *pBuffer, size_t bufferSize, const
 
 int vcUnitConversion_ConvertDistanceToString(char *pBuffer, size_t bufferSize, double value, vcDistanceUnit unit, const char *pFormat)
 {
-  static const char *Suffixes[] = {"m", "km", "cm", "mm", "ft", "mi", "in", "nmi"};
+  static const char *Suffixes[] = {"mm", "cm", "m", "km", "in", "ft", "mi", "nmi"};
 
   if (pBuffer == nullptr || unit == vcDistance_Count)
     return -1;
@@ -320,7 +329,7 @@ int vcUnitConversion_ConvertDistanceToString(char *pBuffer, size_t bufferSize, d
 
 int vcUnitConversion_ConvertAreaToString(char *pBuffer, size_t bufferSize, double value, vcAreaUnit unit, const char *pFormat)
 {
-  static const char *Suffixes[] = {"m sq", "km sq", "ha", "ft sq", "mi sq", "ac"};
+  static const char *Suffixes[] = {"sqm", "sqkm", "ha", "sqft", "sqmi", "ac"};
 
   if (pBuffer == nullptr || unit == vcArea_Count)
     return -1;
@@ -333,7 +342,7 @@ int vcUnitConversion_ConvertAreaToString(char *pBuffer, size_t bufferSize, doubl
 
 int vcUnitConversion_ConvertVolumeToString(char *pBuffer, size_t bufferSize, double value, vcVolumeUnit unit, const char *pFormat)
 {
-  static const char *Suffixes[] = {"cbm", "ML", "L", "cbin", "cbft", "gal US", "qt US", "cbyd"};
+  static const char *Suffixes[] = {"cbm", "L", "ML", "cbin", "cbft", "cbyd", "qt US", "gal US"};
 
   if (pBuffer == nullptr || unit == vcVolume_Count)
     return -1;
@@ -389,25 +398,25 @@ udResult vcUnitConversion_SetMetric(vcUnitConversionData *pData)
   pData->distanceUnit[3] = {vcDistance_Kilometres, 0.0};
 
   pData->areaUnit[0] = {vcArea_SquareMetres, 1'000'000.0};
-  pData->areaUnit[1] = {vcArea_SquareKilometers, 0.0};
-  pData->areaUnit[2] = {vcArea_SquareKilometers, 0.0};
-  pData->areaUnit[3] = {vcArea_SquareKilometers, 0.0};
+  pData->areaUnit[1] = {vcArea_SquareKilometres, 0.0};
+  pData->areaUnit[2] = {vcArea_SquareKilometres, 0.0};
+  pData->areaUnit[3] = {vcArea_SquareKilometres, 0.0};
 
   pData->volumeUnit[0] = {vcVolume_Litre, 1'000'000.0};
-  pData->volumeUnit[1] = {vcVolume_MegaLiter, 0.0};
-  pData->volumeUnit[2] = {vcVolume_MegaLiter, 0.0};
-  pData->volumeUnit[3] = {vcVolume_MegaLiter, 0.0};
+  pData->volumeUnit[1] = {vcVolume_MegaLitre, 0.0};
+  pData->volumeUnit[2] = {vcVolume_MegaLitre, 0.0};
+  pData->volumeUnit[3] = {vcVolume_MegaLitre, 0.0};
 
   pData->speedUnit = vcSpeed_MetresPerSecond;
   pData->temperatureUnit = vcTemperature_Celcius;
-  pData->timeReference = vcTimeReference_Unix;
+  pData->timeReference = vcTimeReference_UTC;
 
   pData->distanceSigFigs = 3;
   pData->areaSigFigs = 3;
   pData->volumeSigFigs = 3;
   pData->speedSigFigs = 3;
   pData->temperatureSigFigs = 3;
-  pData->timeSigFigs = 1;
+  pData->timeSigFigs = 0;
 
   result = udR_Success;
 
@@ -415,7 +424,7 @@ epilogue:
   return result;
 }
 
-udResult vcUnitConversion_SetImperial(vcUnitConversionData *pData)
+udResult vcUnitConversion_SetUSSurvey(vcUnitConversionData *pData)
 {
   udResult result = udR_Failure_;
 
@@ -432,21 +441,21 @@ udResult vcUnitConversion_SetImperial(vcUnitConversionData *pData)
   pData->areaUnit[2] = {vcArea_SquareMiles, 0.0};
   pData->areaUnit[3] = {vcArea_SquareMiles, 0.0};
 
-  pData->volumeUnit[0] = {vcVolume_USSGallons, 0.0};
-  pData->volumeUnit[1] = {vcVolume_USSGallons, 0.0};
-  pData->volumeUnit[2] = {vcVolume_USSGallons, 0.0};
-  pData->volumeUnit[3] = {vcVolume_USSGallons, 0.0};
+  pData->volumeUnit[0] = {vcVolume_USGallons, 0.0};
+  pData->volumeUnit[1] = {vcVolume_USGallons, 0.0};
+  pData->volumeUnit[2] = {vcVolume_USGallons, 0.0};
+  pData->volumeUnit[3] = {vcVolume_USGallons, 0.0};
 
   pData->speedUnit = vcSpeed_FeetPerSecond;
   pData->temperatureUnit = vcTemperature_Farenheit;
-  pData->timeReference = vcTimeReference_Unix;
+  pData->timeReference = vcTimeReference_UTC;
 
   pData->distanceSigFigs = 3;
   pData->areaSigFigs = 3;
   pData->volumeSigFigs = 3;
   pData->speedSigFigs = 3;
   pData->temperatureSigFigs = 3;
-  pData->timeSigFigs = 1;
+  pData->timeSigFigs = 0;
 
   result = udR_Success;
 
@@ -588,7 +597,7 @@ udResult vcUnitConversion_ConvertAndFormatTimeReference(char *pBuffer, size_t bu
   finalValue = vcUnitConversion_ConvertTimeReference(timeRefData, unit, pData->timeReference);
 
   sigFigs = udClamp<uint32_t>(pData->timeSigFigs, 0, gSigFigCount - 1);
-  convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, gSigFigsFormats[sigFigs]);
+  convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, "%02.0f");
 
   result = convertResult < 0 ? udR_WriteFailure : udR_Success;
 
