@@ -55,7 +55,14 @@ enum vcLoginStatus
   vcLS_OtherError,
 
   vcLS_ForgotPassword,
+  vcLS_ForgotPasswordPending,
+  vcLS_ForgotPasswordCheckEmail,
+  vcLS_ForgotPasswordTryPortal,
+
   vcLS_Register,
+  vcLS_RegisterPending,
+  vcLS_RegisterCheckEmail,
+  vcLS_RegisterTryPortal,
 
   vcLS_Count
 };

@@ -2516,6 +2516,24 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
   }
 }
 
+void vcMain_RegisterUser(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+  if (vdkUserUtil_Register(pProgramState->settings.loginInfo.serverURL, pProgramState->modelPath, pProgramState->settings.loginInfo.email) == vE_Success)
+    pProgramState->loginStatus = vcLS_RegisterCheckEmail;
+  else
+    pProgramState->loginStatus = vcLS_RegisterTryPortal;
+}
+
+void vcMain_ForgotPassword(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+  if (vdkUserUtil_ForgotPassword(pProgramState->settings.loginInfo.serverURL, pProgramState->settings.loginInfo.email) == vE_Success)
+    pProgramState->loginStatus = vcLS_ForgotPasswordCheckEmail;
+  else
+    pProgramState->loginStatus = vcLS_ForgotPasswordTryPortal;
+}
+
 void vcMain_ShowLoginWindow(vcState *pProgramState)
 {
   ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4.f);
@@ -2596,19 +2614,19 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginPending", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther", "loginForgot", "loginRegister" };
+  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginMessageChecking", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther", "loginForgot", "loginForgotPending", "loginForgotCheckEmail", "loginForgotTryPortal", "loginRegister", "loginRegisterPending", "loginRegisterCheckEmail", "loginRegisterTryPortal" };
   UDCOMPILEASSERT(vcLS_Count == udLengthOf(loginStatusKeys), "Status Keys Updated, Update string table");
 
-  if (pProgramState->loginStatus == vcLS_Pending)
+  if (pProgramState->loginStatus == vcLS_Pending || pProgramState->loginStatus == vcLS_RegisterPending || pProgramState->loginStatus == vcLS_ForgotPasswordPending)
   {
     if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
     {
       vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
-      ImGui::TextUnformatted(vcString::Get("loginMessageChecking"));
+      ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
     }
     ImGui::End();
   }
-  else if (pProgramState->loginStatus == vcLS_ForgotPassword || pProgramState->loginStatus == vcLS_Register)
+  else if (pProgramState->loginStatus == vcLS_ForgotPassword || pProgramState->loginStatus == vcLS_ForgotPasswordTryPortal || pProgramState->loginStatus == vcLS_Register || pProgramState->loginStatus == vcLS_RegisterTryPortal)
   {
     if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
     {
@@ -2629,9 +2647,15 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       if (ImGui::Button(vcString::Get(loginStatusKeys[pProgramState->loginStatus])))
       {
         if (pProgramState->loginStatus == vcLS_Register)
-          vdkUserUtil_Register(pProgramState->settings.loginInfo.serverURL, pProgramState->modelPath, pProgramState->settings.loginInfo.email);
+        {
+          pProgramState->loginStatus = vcLS_RegisterPending;
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_RegisterUser, pProgramState, false);
+        }
         else
-          vdkUserUtil_ForgotPassword(pProgramState->settings.loginInfo.serverURL, pProgramState->settings.loginInfo.email);
+        {
+          pProgramState->loginStatus = vcLS_ForgotPasswordPending;
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_ForgotPassword, pProgramState, false);
+        }
       }
 
     }
