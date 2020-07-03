@@ -3,8 +3,8 @@ function CreateDMG {
 	mkdir -p builds/packaging/.background
 
 	# Create app
-	mkdir builds/packaging/vaultClient_metal.app
-	export APPNAME=vaultClient_metal
+	mkdir builds/packaging/udStream.app
+	export APPNAME=udStream
 
 	# Copy background file
 	cp icons/dmgBackground.png builds/packaging/.background/background.png
@@ -68,7 +68,7 @@ function UpdateDMG {
 	chmod -Rf go-w /Volumes/udStream
 
 	# Update the build
-	cp -af builds/vaultClient_metal.app /Volumes/udStream/
+	cp -af builds/vaultClient.app /Volumes/udStream/
 
 	# Sync changes - people have reported that it needs to be done twice
 	sync

@@ -13,7 +13,7 @@
 #  define VCVERSION_BUILD_NUMBER 0
 #endif
 
-// This is the standard version number string [Major].[Minor].[Revision].[BuildID]
+// This is the standard version number string [Major].[Minor].[BuildID]
 #define VCVERSION_VERSION_ARRAY_PARTIAL 1.0
 #define VCVERSION_VERSION_ARRAY_WIN 1,0,VCVERSION_BUILD_NUMBER
 #define VCVERSION_VERSION_ARRAY_MAC VCVERSION_VERSION_ARRAY_PARTIAL
