@@ -243,8 +243,9 @@ project "udStream"
 	filter { "files:3rdParty/**" }
 		warnings "Off"
 
-	objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
-	targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
+	filter { "not options:gfxapi=" .. gfxDefault }
+		objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
+		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
 
