@@ -58,7 +58,7 @@ jobs:
       secureFile: vaultClient.temp.dmg
   - script: cp $(packageDMG.secureFilePath) builds/vaultClient.temp.dmg
   - script: buildscripts/macos-package.sh
-  - publish: builds/vaultClient.dmg
+  - publish: builds/udStream.dmg
     displayName: 'Publish Artifacts'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)
