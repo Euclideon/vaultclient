@@ -243,12 +243,11 @@ project "udStream"
 	filter { "files:3rdParty/**" }
 		warnings "Off"
 
-	filter { "not options:gfxapi=opengl" }
-		objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
-		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
+	objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
+	targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
-	
+
 	symbols "On"
 	targetdir "builds"
 	debugdir "builds"
