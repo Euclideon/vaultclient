@@ -2,7 +2,7 @@ parameters:
   file: ''
 
 steps:
-- script: '"C:\Program Files (x86)\Windows Kits\10\App Certification Kit\signtool.exe" sign /v /d "Euclideon Vault Client" /f $(codeSignCert.secureFilePath) /t http://timestamp.digicert.com /p %PFXKEY% ${{ parameters.file }}'
+- script: '"C:\Program Files (x86)\Windows Kits\10\App Certification Kit\signtool.exe" sign /v /d "Euclideon udStream" /f $(codeSignCert.secureFilePath) /t http://timestamp.digicert.com /p %PFXKEY% ${{ parameters.file }}'
   displayName: 'Sign ${{ parameters.file }}'
   condition: and(succeeded(), eq(variables['configuration'], 'Release'))
   env:

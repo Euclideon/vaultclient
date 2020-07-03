@@ -1,4 +1,4 @@
-project "vaultClient"
+project "udStream"
 	--Settings
 	kind "WindowedApp"
 
@@ -243,12 +243,12 @@ project "vaultClient"
 	filter { "files:3rdParty/**" }
 		warnings "Off"
 
-	filter { "not options:gfxapi=opengl" }
+	filter { "not options:gfxapi=" .. gfxDefault }
 		objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
-	
+
 	symbols "On"
 	targetdir "builds"
 	debugdir "builds"

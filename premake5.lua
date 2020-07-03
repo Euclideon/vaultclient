@@ -11,7 +11,7 @@ end
 
 filter { "system:ios", "action:xcode4" }
 	xcodebuildsettings {
-		['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Vault Client',
+		['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon udStream',
 		["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "iPhone Developer",
 		['IPHONEOS_DEPLOYMENT_TARGET'] = '10.3',
 		['SDKROOT'] = 'iphoneos',
@@ -198,7 +198,7 @@ if _ACTION == "xcode4" and os.target() == premake.MACOSX then
 	_OPTIONS["fbxsdk"] = _OPTIONS["fbxsdk"]:gsub(" ", "\\ ")
 end
 
-solution "vaultClient"
+solution "udStream"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if (_ACTION == "gmake" or _ACTION == "gmake2") and os.target() == "linux" then
 		configurations { "Release", "Debug", "ReleaseClang", "DebugClang" }
@@ -234,7 +234,7 @@ solution "vaultClient"
 	end
 
 	editorintegration "on"
-	startproject "vaultClient"
+	startproject "udStream"
 	cppdialect "C++14"
 	pic "On"
 	editandcontinue "Off"

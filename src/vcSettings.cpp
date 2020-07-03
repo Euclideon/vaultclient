@@ -1067,7 +1067,7 @@ void vcSettings_LoadBranding(vcState *pState)
   if (udFile_Load("asset://assets/branding/strings.json", &pBrandStrings) == udR_Success)
     branding.Parse(pBrandStrings);
 
-  udStrcpy(pState->branding.appName, branding.Get("appName").AsString("Euclideon Vault Client"));
+  udStrcpy(pState->branding.appName, branding.Get("appName").AsString("udStream"));
   udStrcpy(pState->branding.copyrightName, branding.Get("copyright").AsString("Euclideon Pty Ltd"));
   udStrcpy(pState->branding.supportEmail, branding.Get("supportEmail").AsString("support@euclideon.com"));
 

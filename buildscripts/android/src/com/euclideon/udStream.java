@@ -6,7 +6,7 @@ import android.util.*;
 
 import org.libsdl.app.SDLActivity;
 
-public class VaultClient extends SDLActivity
+public class udStream extends SDLActivity
 {
   @Override
   protected String[] getLibraries() {
@@ -14,7 +14,7 @@ public class VaultClient extends SDLActivity
 //            "hidapi",
             "SDL2",
             "vaultSDK",
-            "vaultClient"
+            "udStream"
         };
     }
 

@@ -34,7 +34,7 @@ jobs:
   - task: MSBuild@1
     displayName: 'Build Projects'
     inputs:
-      solution: vaultClient.sln
+      solution: udStream.sln
       platform: $(platform)
       configuration: $(configuration)
       maximumCpuCount: true
@@ -48,14 +48,14 @@ jobs:
   - ${{ if eq(parameters.gfxapi, 'opengl') }}:
     - template: azure-pipelines-steps-codesign.yml
       parameters:
-        file: builds\vaultClient.exe
+        file: builds\udStream_opengl.exe
   - ${{ if eq(parameters.gfxapi, 'd3d11') }}:
     - template: azure-pipelines-steps-codesign.yml
       parameters:
-        file: builds\vaultClient_d3d11.exe
+        file: builds\udStream.exe
   - template: azure-pipelines-steps-codesign.yml
     parameters:
-      file: builds\vaultConvertCMD.exe
+      file: builds\udStreamConvertCMD.exe
   - script: builds\tests\vcTesting.exe --gtest_shuffle --gtest_output=xml
     displayName: 'Run Tests'
   - task: PublishTestResults@2

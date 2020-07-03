@@ -903,7 +903,7 @@ int main(int argc, char **args)
       programState.loadList.PushBack(udStrdup(args[i]));
   }
 
-  udWorkerPool_Create(&programState.pWorkerPool, 4, "VaultClientWorker");
+  udWorkerPool_Create(&programState.pWorkerPool, 4, "udStreamClientWorker");
   vcConvert_Init(&programState);
 
   // Setup SDL
@@ -985,7 +985,7 @@ int main(int argc, char **args)
   vcMain_AsyncLoad(&programState, "asset://assets/branding/icon.png", vcMain_LoadIconMT);
   vcMain_AsyncLoad(&programState, "asset://assets/data/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
 
-  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/branding/logo.png", vcTFM_Linear);
+  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/branding/logo.png", vcTFM_Linear, true, vcTWM_Clamp);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png", vcTFM_Linear);
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
@@ -2587,7 +2587,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     ImGui::TextUnformatted(pSupportStr);
     udFree(pSupportStr);
     if (ImGui::IsItemClicked())
-      vcWebFile_OpenBrowser(udTempStr("mailto:%s?subject=%s", pProgramState->branding.supportEmail, "Vault%20Client%20" VCVERSION_VERSION_STRING "%20Support")); //TODO: Escape Appname and put that here as well
+      vcWebFile_OpenBrowser(udTempStr("mailto:%s?subject=%s", pProgramState->branding.supportEmail, "udStream%20" VCVERSION_VERSION_STRING "%20Support")); //TODO: Escape Appname and put that here as well
     if (ImGui::IsItemHovered())
       ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
   }

@@ -1,6 +1,6 @@
 VAULTSDK_HOME = path.translate(_OPTIONS["vaultsdk"] or '')
 
-project "EuclideonVaultClient"
+project "udStreamApp"
 	-- Settings
 	kind "packaging"
 	system "android"
@@ -27,7 +27,7 @@ project "EuclideonVaultClient"
 	files { "project.properties" }
 
 	libdirs { "../../3rdParty/SDL2-2.0.8/lib/android/arm64" }
-	links { "vaultClient", "SDL2", "main" }
+	links { "udStream", "SDL2", "main" }
 
 	filter { "options:force-vaultsdk" }
 		files { "../../../vault/buildscripts/android/src/**" }

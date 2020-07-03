@@ -6,7 +6,7 @@
     "englishname": "Australian English",
     "translationby": "Euclideon Pty Ltd",
     "contactemail": "support@euclideon.com",
-    "targetVersion": "0.7.0"
+    "targetVersion": "1.0"
   },
   "popupClose": "Close",
   "popupConfirmYes": "Yes",
@@ -357,7 +357,7 @@
   "menuAboutPackageUpdate": "Package Update",
   "menuNewVersionAvailableTitle": "New Version Available",
   "menuNewVersion": "New Version",
-  "menuNewVersionDownloadPrompt": "Please visit the Vault server in your browser to download the package.",
+  "menuNewVersionDownloadPrompt": "Please visit the server in your browser to download the package.",
   "menuBarUpdateAvailable": "Update Available",
   "menuBarFilesQueued": "{0} Files Queued",
   "menuBarFilesFailed": "{0} Files Failed",

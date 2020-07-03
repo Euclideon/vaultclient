@@ -23,12 +23,12 @@ jobs:
   - task: MSBuild@1
     displayName: 'Build Projects'
     inputs:
-      solution: vaultClient.sln
+      solution: udStream.sln
       platform: ${{ parameters.platform }}
       configuration: $(configuration)
       maximumCpuCount: true
       msbuildArguments: '/v:m'
-  - publish: buildscripts/android/bin/${{ parameters.platform }}/Release/EuclideonVaultClient.apk
+  - publish: buildscripts/android/bin/${{ parameters.platform }}/Release/udStreamApp.apk
     displayName: 'Public Artifacts'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)

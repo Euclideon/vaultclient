@@ -20,7 +20,7 @@
 
 void vcConvertCMD_ShowOptions()
 {
-  printf("Usage: vaultConvertCMD [vault server] [username] [password] [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
+  printf("Usage: udStreamConvertCMD [udStream server] [username] [password] [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
   printf("   -resolution <res>           - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
   printf("   -srid <sridCode>            - override the srid code for geolocation\n");
   printf("   -globalOffset <x,y,z>       - add an offset to all points, no spaces allowed in the x,y,z value\n");
@@ -184,7 +184,7 @@ int main(int argc, const char **ppArgv)
 
   settings.files.Init(256);
 
-  printf("vaultConvertCMD %s\n", CONVERTCMD_VERSION);
+  printf("udStreamConvertCMD %s\n", CONVERTCMD_VERSION);
 
   if (argc < 4)
   {
