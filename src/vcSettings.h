@@ -470,7 +470,7 @@ const float vcSL_ColourByHeightMax = 1000.f;
 const float vcSL_ColourByDepthMin = 0.f;
 const float vcSL_ColourByDepthMax = 1000.f;
 const float vcSL_ContourDistanceMin = 0.f;
-const float vcSL_ContourDistanceMax = 100.f;
+const float vcSL_ContourDistanceMax = 1000.f;
 const float vcSL_ContourBandHeightMin = 0.f;
 const float vcSL_ContourBandHeightMax = 10.f;
 
