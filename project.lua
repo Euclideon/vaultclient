@@ -1,4 +1,4 @@
-project "vaultClient"
+project "udStream"
 	--Settings
 	kind "WindowedApp"
 

@@ -1,4 +1,4 @@
-project "vaultConvertCMD"
+project "udStreamConvertCMD"
 	--Settings
 	kind "ConsoleApp"
 

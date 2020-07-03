@@ -8,9 +8,9 @@ struct vc3rdPartyLicenseText
 };
 
 const vc3rdPartyLicenseText ThirdPartyLicenses[] = {
-{ "Euclideon Vault Client", R"license(MIT License
+{ "Euclideon udStream", R"license(MIT License
 
-Copyright (c) 2019-2020 Euclideon Pty Ltd (Euclideon Vault Client)
+Copyright (c) 2019-2020 Euclideon Pty Ltd (udStream)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

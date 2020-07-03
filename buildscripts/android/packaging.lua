@@ -1,6 +1,6 @@
 VAULTSDK_HOME = path.translate(_OPTIONS["vaultsdk"] or '')
 
-project "EuclideonVaultClient"
+project "udStreamApp"
 	-- Settings
 	kind "packaging"
 	system "android"

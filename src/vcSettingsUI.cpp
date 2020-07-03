@@ -151,7 +151,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
-    ImGui::Text("Euclideon Vault Client %s", VCVERSION_PRODUCT_STRING);
+    ImGui::Text("udStream %s", VCVERSION_PRODUCT_STRING);
 
     char strBuf[128];
     if (pProgramState->packageInfo.Get("success").AsBool())

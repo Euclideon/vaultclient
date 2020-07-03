@@ -31,7 +31,7 @@ jobs:
   - task: Xcode@5
     displayName: 'Build Projects'
     inputs:
-      xcWorkspacePath: 'vaultClient.xcodeproj'
+      xcWorkspacePath: 'udStream.xcodeproj'
       sdk: 'macosx'
       configuration: $(configuration)
       packageApp: false
@@ -55,10 +55,10 @@ jobs:
     name: packageDMG
     displayName: 'Download macOS Package DMG'
     inputs:
-      secureFile: vaultClient.temp.dmg
-  - script: cp $(packageDMG.secureFilePath) builds/vaultClient.temp.dmg
+      secureFile: udStream.temp.dmg
+  - script: cp $(packageDMG.secureFilePath) builds/udStream.temp.dmg
   - script: buildscripts/macos-package.sh
-  - publish: builds/vaultClient.dmg
+  - publish: builds/udStream.dmg
     displayName: 'Publish Artifacts'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)

@@ -30,7 +30,7 @@ vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState)
   else
     serverURL.SetURL(pProgramState->settings.loginInfo.serverURL);
 
-  pHttpSession = WinHttpOpen(L"VaultClient AutoProxy Request/1.0", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+  pHttpSession = WinHttpOpen(L"udStream AutoProxy Request/1.0", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
 
   if (!pHttpSession)
     goto Exit;
