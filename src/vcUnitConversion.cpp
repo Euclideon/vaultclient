@@ -597,7 +597,7 @@ udResult vcUnitConversion_ConvertAndFormatTimeReference(char *pBuffer, size_t bu
   finalValue = vcUnitConversion_ConvertTimeReference(timeRefData, unit, pData->timeReference);
 
   sigFigs = udClamp<uint32_t>(pData->timeSigFigs, 0, gSigFigCount - 1);
-  convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, "%02.0f");
+  convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, gTimeSigFigsFormats[sigFigs]);
 
   result = convertResult < 0 ? udR_WriteFailure : udR_Success;
 
