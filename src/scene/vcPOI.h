@@ -127,6 +127,7 @@ public:
   bool IsSubitemSelected(uint64_t internalId);
 
 private:
+  void RebuildSceneLabel(const vcUnitConversionData *pConversionData);
   void InsertPoint(const udDouble3 &position);
   void CalculateArea();
   void CalculateTotalLength();
