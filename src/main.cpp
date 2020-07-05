@@ -1594,7 +1594,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMain_ProfileMenu(pProgramState);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_FirstItem))
-        vcWebFile_OpenBrowser("https://www.euclideon.com/customerresourcepage/");
+        vcWebFile_OpenBrowser("https://desk.euclideon.com/");
 
       // Hide/show screen explorer
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Layers, vcMBBG_FirstItem, !pProgramState->settings.presentation.sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
