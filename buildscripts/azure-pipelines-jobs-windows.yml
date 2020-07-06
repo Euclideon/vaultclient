@@ -73,19 +73,20 @@ jobs:
     artifact: ${{ parameters.name }}$(configuration)
   - task: DownloadSecureFile@1
     name: makensis
-    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    condition: and(succeeded(), and(eq(variables['configuration'], 'Release'), eq(parameters.gfxapi, 'd3d11')))
     displayName: 'Download NSIS'
     inputs:
       secureFile: makensis.zip
   - task: ExtractFiles@1
     displayName: 'Extract NSIS'
-    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    condition: and(succeeded(), and(eq(variables['configuration'], 'Release'), eq(parameters.gfxapi, 'd3d11')))
     inputs:
       archiveFilePatterns: $(linkedVDKFile.secureFilePath)
       destinationFolder: makensis
   - bash: pushd buildscripts/installer/windows/ && ../../../makensis/makensis.exe ./vaultClient.nsi && popd
+    condition: and(succeeded(), and(eq(variables['configuration'], 'Release'), eq(parameters.gfxapi, 'd3d11')))
     displayName: 'Build Installer'
   - publish: buildscripts/installer/windows/udStreamSetup.exe
     displayName: 'Publish Installer'
-    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    condition: and(succeeded(), and(eq(variables['configuration'], 'Release'), eq(parameters.gfxapi, 'd3d11')))
     artifact: 'udStreamSetup.exe'
