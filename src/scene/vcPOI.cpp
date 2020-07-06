@@ -994,6 +994,9 @@ void vcPOI::RemovePoint(vcState *pProgramState, int index)
 
   --m_line.numPoints;
 
+  if (m_line.selectedPoint == m_line.numPoints)
+    --m_line.selectedPoint;
+
   UpdatePoints(pProgramState);
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
 
