@@ -150,6 +150,7 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
     m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
     
     m_pParent->AddAttachedModelsToScene(pProgramState, pRenderData);
@@ -208,6 +209,7 @@ public:
       m_pParent->AddNodeToRenderData(pProgramState, pRenderData, 0);
     }
 
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
     m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
   }
 
@@ -295,6 +297,7 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
     m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
   }
 
@@ -377,6 +380,7 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
     m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
 
     if (m_pParent->m_showFill)
@@ -688,6 +692,29 @@ void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
 }
 
+void vcPOI::RebuildSceneLabel(const vcUnitConversionData *pConversionData)
+{
+  char labelBuf[128] = {};
+  char tempBuf[128] = {};
+  udStrcat(labelBuf, m_pNode->pName);
+
+  if (m_showLength)
+  {
+    udStrcat(labelBuf, "\n");
+    vcUnitConversion_ConvertAndFormatDistance(tempBuf, 128, m_totalLength, vcDistance_Metres, pConversionData);
+    udStrcat(labelBuf, tempBuf);
+  }
+  if (m_showArea)
+  {
+    udStrcat(labelBuf, "\n");
+    vcUnitConversion_ConvertAndFormatArea(tempBuf, 128, m_area, vcArea_SquareMetres, pConversionData);
+    udStrcat(labelBuf, tempBuf);
+  }
+
+  udFree(m_pLabelText);
+  m_pLabelText = udStrdup(labelBuf);
+}
+
 void vcPOI::UpdatePoints(vcState *pProgramState)
 {
   CalculateArea();
@@ -696,25 +723,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
 
   m_pLabelInfo->worldPosition = m_centroid;
 
-  char labelBuf[128] = {};
-  char tempBuf[128] = {};
-  udStrcat(labelBuf, m_pNode->pName);
-
-  if (m_showLength)
-  {
-    udStrcat(labelBuf, "\n");
-    vcUnitConversion_ConvertAndFormatDistance(tempBuf, 128, m_totalLength, vcDistance_Metres, &pProgramState->settings.unitConversionData);
-    udStrcat(labelBuf, tempBuf);
-  }
-  if (m_showArea)
-  {
-    udStrcat(labelBuf, "\n");
-    vcUnitConversion_ConvertAndFormatArea(tempBuf, 128, m_area, vcArea_SquareMetres, &pProgramState->settings.unitConversionData);
-    udStrcat(labelBuf, tempBuf);
-  }
-
-  udFree(m_pLabelText);
-  m_pLabelText = udStrdup(labelBuf);
+  RebuildSceneLabel(&pProgramState->settings.unitConversionData);
 
   // update the fence renderer as well
   if (m_line.numPoints > 1)
