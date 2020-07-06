@@ -25,42 +25,44 @@ uniform highp sampler2D SPIRV_Cross_CombinedshadowMapAtlasTextureshadowMapAtlasS
 in highp vec4 varying_TEXCOORD0;
 in highp vec2 varying_TEXCOORD1;
 layout(location = 0) out highp vec4 out_var_SV_Target0;
+layout(location = 1) out highp vec4 out_var_SV_Target1;
 
 void main()
 {
-    highp vec4 _61 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD1);
-    highp float _67 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
-    highp float _73 = log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0);
-    highp vec4 _91 = vec4(varying_TEXCOORD0.xy, (((u_cameraPlaneParams.s_CameraFarPlane / _67) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _61.x * _73) - 1.0))) * (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear)) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_params.u_inverseProjection;
-    highp vec4 _100 = vec4((_91 / vec4(_91.w)).xyz, 1.0);
-    highp vec4 _101 = _100 * u_params.u_shadowMapVP[0];
-    highp vec4 _104 = _100 * u_params.u_shadowMapVP[1];
-    highp vec4 _107 = _100 * u_params.u_shadowMapVP[2];
-    highp float _109 = _101.w;
-    highp vec3 _113 = ((_101.xyz / vec3(_109)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
-    highp float _115 = _104.w;
-    highp vec3 _119 = ((_104.xyz / vec3(_115)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
-    highp float _121 = _107.w;
-    highp vec3 _125 = ((_107.xyz / vec3(_121)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
-    highp float _126 = _113.x;
-    highp float _130 = _113.y;
-    highp float _135 = _113.z;
-    highp float _141 = _119.x;
-    highp float _145 = _119.y;
-    highp float _150 = _119.z;
-    highp float _156 = _125.x;
-    highp float _160 = _125.y;
-    highp float _165 = _125.z;
-    highp vec4 _187 = mix(mix(mix(vec4(0.0), vec4(_126 * 0.3333333432674407958984375, 1.0 - _130, _135, _109), vec4(float((((((_126 >= 0.0) && (_126 <= 1.0)) && (_130 >= 0.0)) && (_130 <= 1.0)) && (_135 >= 0.0)) && (_135 <= 1.0)))), vec4(0.3333333432674407958984375 + (_141 * 0.3333333432674407958984375), 1.0 - _145, _150, _115), vec4(float((((((_141 >= 0.0) && (_141 <= 1.0)) && (_145 >= 0.0)) && (_145 <= 1.0)) && (_150 >= 0.0)) && (_150 <= 1.0)))), vec4(0.666666686534881591796875 + (_156 * 0.3333333432674407958984375), 1.0 - _160, _165, _121), vec4(float((((((_156 >= 0.0) && (_156 <= 1.0)) && (_160 >= 0.0)) && (_160 <= 1.0)) && (_165 >= 0.0)) && (_165 <= 1.0))));
-    highp vec4 _225;
-    if ((length(_187.xyz) > 0.0) && ((((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (_187.z * _67))) * u_cameraPlaneParams.s_CameraFarPlane) <= u_params.u_viewDistance.x))
+    highp vec4 _62 = texture(SPIRV_Cross_CombinedsceneDepthTexturesceneDepthSampler, varying_TEXCOORD1);
+    highp float _68 = u_cameraPlaneParams.s_CameraFarPlane - u_cameraPlaneParams.s_CameraNearPlane;
+    highp float _74 = log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0);
+    highp vec4 _92 = vec4(varying_TEXCOORD0.xy, (((u_cameraPlaneParams.s_CameraFarPlane / _68) + (((u_cameraPlaneParams.s_CameraFarPlane * u_cameraPlaneParams.s_CameraNearPlane) / (u_cameraPlaneParams.s_CameraNearPlane - u_cameraPlaneParams.s_CameraFarPlane)) / (pow(2.0, _62.x * _74) - 1.0))) * (u_cameraPlaneParams.u_clipZFar - u_cameraPlaneParams.u_clipZNear)) + u_cameraPlaneParams.u_clipZNear, 1.0) * u_params.u_inverseProjection;
+    highp vec4 _101 = vec4((_92 / vec4(_92.w)).xyz, 1.0);
+    highp vec4 _102 = _101 * u_params.u_shadowMapVP[0];
+    highp vec4 _105 = _101 * u_params.u_shadowMapVP[1];
+    highp vec4 _108 = _101 * u_params.u_shadowMapVP[2];
+    highp float _110 = _102.w;
+    highp vec3 _114 = ((_102.xyz / vec3(_110)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
+    highp float _116 = _105.w;
+    highp vec3 _120 = ((_105.xyz / vec3(_116)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
+    highp float _122 = _108.w;
+    highp vec3 _126 = ((_108.xyz / vec3(_122)) * vec3(0.5, 0.5, 1.0)) + vec3(0.5, 0.5, 0.0);
+    highp float _127 = _114.x;
+    highp float _131 = _114.y;
+    highp float _136 = _114.z;
+    highp float _142 = _120.x;
+    highp float _146 = _120.y;
+    highp float _151 = _120.z;
+    highp float _157 = _126.x;
+    highp float _161 = _126.y;
+    highp float _166 = _126.z;
+    highp vec4 _188 = mix(mix(mix(vec4(0.0), vec4(_127 * 0.3333333432674407958984375, 1.0 - _131, _136, _110), vec4(float((((((_127 >= 0.0) && (_127 <= 1.0)) && (_131 >= 0.0)) && (_131 <= 1.0)) && (_136 >= 0.0)) && (_136 <= 1.0)))), vec4(0.3333333432674407958984375 + (_142 * 0.3333333432674407958984375), 1.0 - _146, _151, _116), vec4(float((((((_142 >= 0.0) && (_142 <= 1.0)) && (_146 >= 0.0)) && (_146 <= 1.0)) && (_151 >= 0.0)) && (_151 <= 1.0)))), vec4(0.666666686534881591796875 + (_157 * 0.3333333432674407958984375), 1.0 - _161, _166, _122), vec4(float((((((_157 >= 0.0) && (_157 <= 1.0)) && (_161 >= 0.0)) && (_161 <= 1.0)) && (_166 >= 0.0)) && (_166 <= 1.0))));
+    highp vec4 _226;
+    if ((length(_188.xyz) > 0.0) && ((((2.0 * u_cameraPlaneParams.s_CameraNearPlane) / ((u_cameraPlaneParams.s_CameraFarPlane + u_cameraPlaneParams.s_CameraNearPlane) - (_188.z * _68))) * u_cameraPlaneParams.s_CameraFarPlane) <= u_params.u_viewDistance.x))
     {
-        _225 = mix(u_params.u_visibleColour, u_params.u_notVisibleColour, vec4(clamp((3.9999998989515006542205810546875e-05 * u_cameraPlaneParams.s_CameraFarPlane) * ((log2(1.0 + _187.w) * (1.0 / _73)) - texture(SPIRV_Cross_CombinedshadowMapAtlasTextureshadowMapAtlasSampler, _187.xy).x), 0.0, 1.0)));
+        _226 = mix(u_params.u_visibleColour, u_params.u_notVisibleColour, vec4(clamp((3.9999998989515006542205810546875e-05 * u_cameraPlaneParams.s_CameraFarPlane) * ((log2(1.0 + _188.w) * (1.0 / _74)) - texture(SPIRV_Cross_CombinedshadowMapAtlasTextureshadowMapAtlasSampler, _188.xy).x), 0.0, 1.0)));
     }
     else
     {
-        _225 = vec4(0.0);
+        _226 = vec4(0.0);
     }
-    out_var_SV_Target0 = vec4(_225.xyz * _225.w, 1.0);
+    out_var_SV_Target0 = vec4(_226.xyz * _226.w, 1.0);
+    out_var_SV_Target1 = vec4(0.0);
 }
 
