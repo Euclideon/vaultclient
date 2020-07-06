@@ -903,7 +903,7 @@ int main(int argc, char **args)
       programState.loadList.PushBack(udStrdup(args[i]));
   }
 
-  udWorkerPool_Create(&programState.pWorkerPool, 4, "udStreamClientWorker");
+  udWorkerPool_Create(&programState.pWorkerPool, 4, "udStreamWorker");
   vcConvert_Init(&programState);
 
   // Setup SDL

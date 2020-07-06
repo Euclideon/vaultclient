@@ -26,7 +26,7 @@ void vcSettings_InitializePrefPath(vcSettings *pSettings)
   if (pSettings->noLocalStorage)
     return;
 
-  char *pPath = SDL_GetPrefPath("euclideon", "client");
+  char *pPath = SDL_GetPrefPath("euclideon", "udstream");
 
   if (pPath != nullptr)
   {

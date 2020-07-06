@@ -73,7 +73,7 @@ void vcSession_GetPackagesWT(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
   const char *pPackageData = nullptr;
-  const char *pPostJSON = udTempStr("{ \"packagename\": \"EuclideonVaultClient\", \"packagevariant\": \"%s\" }", vcSession_GetOSName());
+  const char *pPostJSON = udTempStr("{ \"packagename\": \"udStream\", \"packagevariant\": \"%s\" }", vcSession_GetOSName());
   if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
     pProgramState->packageInfo.Parse(pPackageData);
 
