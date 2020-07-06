@@ -68,6 +68,24 @@ jobs:
   - bash: pushd builds && rm -rf tests *.pdb && popd
     displayName: 'Clean up Artifacts'
   - publish: builds/
-    displayName: 'Publish Artifacts'
+    displayName: 'Publish ThinApp'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)
+  - task: DownloadSecureFile@1
+    name: makensis
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    displayName: 'Download NSIS'
+    inputs:
+      secureFile: makensis.zip
+  - task: ExtractFiles@1
+    displayName: 'Extract NSIS'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    inputs:
+      archiveFilePatterns: $(linkedVDKFile.secureFilePath)
+      destinationFolder: makensis
+  - bash: pushd buildscripts/installer/windows/ && ../../../makensis/makensis.exe ./vaultClient.nsi && popd
+    displayName: 'Build Installer'
+  - publish: buildscripts/installer/windows/udStreamSetup.exe
+    displayName: 'Publish Installer'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    artifact: 'udStreamSetup.exe'
