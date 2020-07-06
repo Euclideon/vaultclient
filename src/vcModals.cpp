@@ -216,6 +216,8 @@ void vcModals_DrawNewProject(vcState *pProgramState)
 
     static int zoneCustomSRID = 84;
     static int creatingNewProjectType = -1;
+    static int localOrServerProject = 0;
+    static char pProjectPath[256] = {};
 
     const char *pNewProjectTypes[] =
     {
@@ -358,6 +360,20 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         ImGui::Unindent();
       }
 
+      ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
+      ImGui::Text(udTempStr("%s", vcString::Get("modalProjectLocalOrServerProject")));
+
+      ImGui::Indent();
+
+      ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectLocal")), &localOrServerProject, 0);
+      ImGui::SameLine();
+      ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectServer")), &localOrServerProject, 1);
+
+      if (localOrServerProject == 0) // local
+        vcIGSW_FilePicker(pProgramState, "Save Location", pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+
+      ImGui::Unindent();
       //TODO: Additional export settings
     }
 
@@ -385,6 +401,8 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
         ImGui::CloseCurrentPopup();
+
+        // pProjectPath, localOrServerProject
       }
     }
 
