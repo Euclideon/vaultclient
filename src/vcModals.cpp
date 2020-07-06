@@ -361,8 +361,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       }
 
       ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
-
-      ImGui::Text(udTempStr("%s", vcString::Get("modalProjectLocalOrServerProject")));
+      ImGui::TextUnformatted(vcString::Get("modalProjectLocalOrServerProject"));
 
       ImGui::Indent();
 
@@ -371,7 +370,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectServer")), &localOrServerProject, 1);
 
       if (localOrServerProject == 0) // local
-        vcIGSW_FilePicker(pProgramState, "Save Location", pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+        vcIGSW_FilePicker(pProgramState, vcString::Get("modalProjectSaveLocation"), pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
 
       ImGui::Unindent();
       //TODO: Additional export settings
@@ -397,15 +396,27 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
       {
+        bool createSucceeded = false;
         if (localOrServerProject == 0) // local
-          vcIGSW_FilePicker(pProgramState, "Save Location", pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+        {
+          // TODO: CONFIRM FILE OVERRIDE IF EXISTS
 
-        vcProject_CreateBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
+          createSucceeded = vcProject_CreateFileScene(pProgramState, pProjectPath, pProgramState->modelPath, zoneCustomSRID);
+        }
+        else // server
+        {
+          const char *pGroupUUID = nullptr; // TODO
+          createSucceeded = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, pGroupUUID, zoneCustomSRID);
+        }
+
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
         ImGui::CloseCurrentPopup();
 
-        // pProjectPath, localOrServerProject
+        if (!createSucceeded)
+        {
+          // TODO: Show popup
+        }
       }
     }
 
