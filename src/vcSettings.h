@@ -381,15 +381,6 @@ struct vcSettings
   struct
   {
     char tempDirectory[vcMaxPathLength];
-    struct
-    {
-      bool isDirty;
-      char filename[vcMaxPathLength];
-      vcTexture *pTexture;
-      int width;
-      int height;
-    } watermark;
-
     char author[vcMetadataMaxLength];
     char comment[vcMetadataMaxLength];
     char copyright[vcMetadataMaxLength];

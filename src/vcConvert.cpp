@@ -203,10 +203,6 @@ void vcConvert_RemoveJob(vcState *pProgramState, size_t index)
   udWriteUnlockRWLock(pProgramState->pConvertContext->pRWLock);
 
   //TODO: Make sure that it isn't being used, not sure if its possible that it could be getting used?
-
-  vcTexture_Destroy(&pItem->watermark.pTexture);
-  udFree(pItem->watermark.pFilename);
-
   udLockMutex(pItem->pMutex);
   while (pItem->itemsToProcess.length > 0)
   {
@@ -271,16 +267,6 @@ void vcConvert_AddEmptyJob(vcState *pProgramState, vcConvertItem **ppNextItem)
   // Update with default settings
   if (udStrlen(pProgramState->settings.convertdefaults.tempDirectory) > 0)
     vdkConvert_SetTempDirectory(pNextItem->pConvertContext, pProgramState->settings.convertdefaults.tempDirectory);
-
-  if (udStrlen(pProgramState->settings.convertdefaults.watermark.filename) > 0)
-  {
-    char buffer[vcMaxPathLength];
-    udStrcpy(buffer, pProgramState->settings.pSaveFilePath);
-    udStrcat(buffer, pProgramState->settings.convertdefaults.watermark.filename);
-    vdkConvert_AddWatermark(pNextItem->pConvertContext, buffer);
-    pNextItem->watermark.pFilename = udStrdup(buffer);
-    pNextItem->watermark.isDirty = true;
-  }
 
   if (udStrlen(pProgramState->settings.convertdefaults.author) > 0)
   {
@@ -646,57 +632,12 @@ void vcConvert_ShowUI(vcState *pProgramState)
         if (vcIGSW_InputText(vcString::Get("convertLicense"), pSelectedJob->license, udLengthOf(pSelectedJob->license)))
           vdkConvert_SetMetadata(pSelectedJob->pConvertContext, "License", pSelectedJob->license);
 
-        // Watermark
-        if (ImGui::Button(vcString::Get("convertLoadWatermark")))
-        {
-          vcFileDialog_Open(pProgramState, vcString::Get("convertLoadWatermark"), pProgramState->modelPath, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
-            vdkConvert_AddWatermark(pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext, pProgramState->modelPath);
-            pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->watermark.isDirty = true;
-          });
-        }
-
         vcFileDialog_ShowModal(pProgramState);
-
-        if (pSelectedJob->watermark.pTexture != nullptr)
-        {
-          ImGui::SameLine();
-          if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
-          {
-            vdkConvert_RemoveWatermark(pProgramState->pConvertContext->jobs[pProgramState->pConvertContext->selectedItem]->pConvertContext);
-            udFree(pSelectedJob->watermark.pFilename);
-            pSelectedJob->watermark.width = 0;
-            pSelectedJob->watermark.height = 0;
-          }
-        }
-
-        if (pSelectedJob->watermark.isDirty)
-        {
-          pSelectedJob->watermark.isDirty = false;
-          vcTexture_Destroy(&pSelectedJob->watermark.pTexture);
-          uint8_t *pData = nullptr;
-          size_t dataSize = 0;
-          if (udBase64Decode(&pData, &dataSize, pSelectedJob->pConvertInfo->pWatermark) == udR_Success)
-          {
-            int comp;
-            stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pSelectedJob->watermark.width, &pSelectedJob->watermark.height, &comp, 4);
-
-            vcTexture_Create(&pSelectedJob->watermark.pTexture, pSelectedJob->watermark.width, pSelectedJob->watermark.height, pImg);
-
-            stbi_image_free(pImg);
-          }
-
-          udFree(pData);
-        }
       }
       else
       {
         ImGui::Text("%s: %d", vcString::Get("convertSRID"), pSelectedJob->pConvertInfo->srid);
       }
-
-      if (pSelectedJob->watermark.pTexture != nullptr)
-        ImGui::Image(pSelectedJob->watermark.pTexture, ImVec2((float)pSelectedJob->watermark.width, (float)pSelectedJob->watermark.height));
-      else
-        ImGui::TextUnformatted(vcString::Get("convertNoWatermark"));
 
       ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 
@@ -942,33 +883,10 @@ void vcConvert_QueueFile(vcState *pProgramState, const char *pFilename)
 
   if (pSelectedJob != nullptr)
   {
-    // Handle watermarks now
-    if (udStrEndsWithi(pFilename, ".png") || udStrEndsWithi(pFilename, ".jpg") || udStrEndsWithi(pFilename, ".bmp"))
-    {
-      if (vdkConvert_AddWatermark(pSelectedJob->pConvertContext, pFilename) == vE_Success)
-      {
-        udFree(pSelectedJob->watermark.pFilename);
-        pSelectedJob->watermark.pFilename = udStrdup(pFilename);
-        pSelectedJob->watermark.isDirty = true;
-      }
-      else
-      {
-        //TODO: Handle the udResult properly
-        vcState::ErrorItem fileError;
-        fileError.source = vcES_File;
-        fileError.pData = udStrdup(pFilename);
-        fileError.resultCode = udR_Unsupported;
-        pProgramState->errorItems.PushBack(fileError);
-      }
-    }
-    else
-    {
-      udLockMutex(pSelectedJob->pMutex);
-      pSelectedJob->itemsToProcess.PushBack(udStrdup(pFilename));
-      udReleaseMutex(pSelectedJob->pMutex);
-
-      udIncrementSemaphore(pProgramState->pConvertContext->pProcessingSemaphore);
-    }
+    udLockMutex(pSelectedJob->pMutex);
+    pSelectedJob->itemsToProcess.PushBack(udStrdup(pFilename));
+    udReleaseMutex(pSelectedJob->pMutex);
+    udIncrementSemaphore(pProgramState->pConvertContext->pProcessingSemaphore);
   }
 }
 

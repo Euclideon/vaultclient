@@ -44,15 +44,6 @@ struct vcConvertItem
   const char *pItemProcessing;
   udChunkedArray<const char*> itemsToProcess;
   udChunkedArray<vdkConvertSourceProjection> detectedProjections;
-
-  struct
-  {
-    bool isDirty;
-    const char *pFilename;
-    vcTexture *pTexture;
-    int width;
-    int height;
-  } watermark;
 };
 
 struct vcConvertContext

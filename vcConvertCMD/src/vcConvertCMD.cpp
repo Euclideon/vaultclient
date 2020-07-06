@@ -29,7 +29,6 @@ void vcConvertCMD_ShowOptions()
   printf("   -proxyURL <url>             - Set the proxy URL\n");
   printf("   -proxyUsername <username>   - Set the username to use with the proxy\n");
   printf("   -proxyPassword <password>   - Set the password to use with the proxy\n");
-  printf("   -watermark <filename>       - Use the supplied image file as the watermark\n");
   printf("   -copyright <details>        - Adds the copyright information to the \"Copyright\" metadata field\n");
   printf("   -quicktest                  - Does a small test to test if positioning/geolocation is correct\n");
 }
@@ -55,7 +54,6 @@ uint32_t vcConvertCMD_DoConvert(void *pDataPtr)
 struct vcConvertCMDSettings
 {
   double resolution;
-  const char *pWatermark;
   const char *pOutputFilename;
   const char *pProxyURL;
   const char *pProxyUsername;
@@ -103,11 +101,6 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
         }
         pStr += charCount + 1; // +1 for , separator
       }
-      i += 2;
-    }
-    else if (udStrEquali(ppArgv[i], "-watermark"))
-    {
-      pSettings->pWatermark = ppArgv[i + 1];
       i += 2;
     }
     else if (udStrEquali(ppArgv[i], "-i"))
@@ -251,12 +244,6 @@ int main(int argc, const char **ppArgv)
       printf("Error setting global offset %1.1f,%1.1f,%1.1f\n", settings.globalOffset[0], settings.globalOffset[1], settings.globalOffset[2]);
       cmdlineError = true;
     }
-  }
-
-  if (settings.pWatermark)
-  {
-    if (vdkConvert_AddWatermark(pModel, settings.pWatermark) != vE_Success)
-      cmdlineError = true;
   }
 
   if (settings.quicktest)
