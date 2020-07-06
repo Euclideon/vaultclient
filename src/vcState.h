@@ -140,7 +140,6 @@ struct vcState
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
-  vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
   vcTexture *pWhiteTexture;
 

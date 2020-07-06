@@ -1253,8 +1253,8 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   }
 
   // Watermark
-  if (pProgramState->settings.presentation.showEuclideonLogo || pProgramState->pSceneWatermark != nullptr)
-    vcRender_RenderWatermark(pRenderContext, pProgramState->settings.presentation.showEuclideonLogo ? pProgramState->pCompanyWatermark : pProgramState->pSceneWatermark);
+  if (pProgramState->settings.presentation.showEuclideonLogo)
+    vcRender_RenderWatermark(pRenderContext, pProgramState->pCompanyWatermark);
 
   vcGLState_ResetState();
 }
@@ -1624,7 +1624,6 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   }
 
   double maxDistSqr = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane;
-  pProgramState->pSceneWatermark = nullptr;
   if (doPick)
     pProgramState->udModelPickedIndex = -1;
 
@@ -1764,8 +1763,6 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
               udFree(pImage);
             }
           }
-
-          pProgramState->pSceneWatermark = renderData.models[i]->m_pWatermark;
         }
       }
     }

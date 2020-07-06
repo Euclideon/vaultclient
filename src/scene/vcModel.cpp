@@ -846,14 +846,6 @@ void vcModel::Cleanup(vcState *pProgramState)
   vdkPointCloud_Unload(&m_pPointCloud);
   udFree(m_pCurrentZone);
 
-  if (m_pWatermark != nullptr)
-  {
-    if (pProgramState->pSceneWatermark == m_pWatermark)
-      pProgramState->pSceneWatermark = nullptr;
-
-    vcTexture_Destroy(&m_pWatermark);
-  }
-
   m_visualization.pointSourceID.colourMap.Deinit();
 }
 
