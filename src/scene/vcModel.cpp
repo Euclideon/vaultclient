@@ -841,7 +841,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 #endif //VC_HASCONVERT
 }
 
-void vcModel::Cleanup(vcState *pProgramState)
+void vcModel::Cleanup(vcState * /*pProgramState*/)
 {
   vdkPointCloud_Unload(&m_pPointCloud);
   udFree(m_pCurrentZone);
