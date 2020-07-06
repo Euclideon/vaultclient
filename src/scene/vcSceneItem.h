@@ -43,7 +43,7 @@ public:
   char *m_pName;
   size_t m_nameCapacity;
 
-  double m_lastUpdateTime; // The stored time that this node was last updated (compared with the node to see if the node updated outside of Client)
+  double m_lastUpdateTime; // The stored time that this node was last updated (compared with the node to see if the node updated outside of udStream)
 
   udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pPreferredProjection; // nullptr if there is no preferred zone
