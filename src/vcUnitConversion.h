@@ -6,14 +6,14 @@
 
 enum vcDistanceUnit
 {
+  vcDistance_Millimetres,
+  vcDistance_Centimetres,
   vcDistance_Metres,
   vcDistance_Kilometres,
-  vcDistance_Centimetres,
-  vcDistance_Millimetres,
 
+  vcDistance_USSurveyInches,
   vcDistance_USSurveyFeet,
   vcDistance_USSurveyMiles,
-  vcDistance_USSurveyInches,
 
   vcDistance_NauticalMiles,
 
@@ -23,7 +23,7 @@ enum vcDistanceUnit
 enum vcAreaUnit
 {
   vcArea_SquareMetres,
-  vcArea_SquareKilometers,
+  vcArea_SquareKilometres,
   vcArea_Hectare,
 
   vcArea_SquareFoot,
@@ -35,16 +35,16 @@ enum vcAreaUnit
 
 enum vcVolumeUnit
 {
-  vcVolume_CubicMeter,
-  vcVolume_MegaLiter,
+  vcVolume_CubicMetre,
   vcVolume_Litre,
+  vcVolume_MegaLitre,
 
-  vcVolume_CubicInch,
-  vcVolume_CubicFoot,
+  vcVolume_USSurveyCubicInch,
+  vcVolume_USSurveyCubicFoot,
+  vcVolume_USSurveyCubicYard,
 
-  vcVolume_USSGallons,
-  vcVolume_USSQuart,
-  vcVolume_CubicYard,
+  vcVolume_USQuart,
+  vcVolume_USGallons,
 
   vcVolume_Count
 };
@@ -152,7 +152,7 @@ int vcUnitConversion_ConvertTemperatureToString(char *pBuffer, size_t bufferSize
 
 //Functions to set up some quick defaults.
 udResult vcUnitConversion_SetMetric(vcUnitConversionData *pData);
-udResult vcUnitConversion_SetImperial(vcUnitConversionData *pData);
+udResult vcUnitConversion_SetUSSurvey(vcUnitConversionData *pData);
 
 udResult vcUnitConversion_ConvertAndFormatDistance(char *pBuffer, size_t bufferSize, double value, vcDistanceUnit unit, const vcUnitConversionData *pData);
 udResult vcUnitConversion_ConvertAndFormatArea(char *pBuffer, size_t bufferSize, double value, vcAreaUnit unit, const vcUnitConversionData *pData);

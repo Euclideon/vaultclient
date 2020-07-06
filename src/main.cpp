@@ -1917,6 +1917,19 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
               continue;
             }
 
+            if (pHeader->attributes.pDescriptors[i].typeInfo == vdkAttributeTypeInfo_float64 && udStrEqual(pHeader->attributes.pDescriptors[i].name, "udGPSTime"))
+            {
+              double GPSTime;
+              udReadFromPointer(&GPSTime, pAttributePtr);
+
+              char buffer[128];
+              vcTimeReferenceData timeData;
+              timeData.seconds = GPSTime;
+              vcUnitConversion_ConvertAndFormatTimeReference(buffer, 128, timeData, pProgramState->settings.visualization.GPSTime.inputFormat, &pProgramState->settings.unitConversionData);
+              pProgramState->udModelNodeAttributes.Set("%s = '%s'", pHeader->attributes.pDescriptors[i].name, buffer);
+              continue;
+            }
+
             // Do Stuff
             switch (pHeader->attributes.pDescriptors[i].typeInfo)
             {

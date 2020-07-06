@@ -296,7 +296,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     //GPSTime
     pSettings->visualization.GPSTime.minTime = data.Get("visualization.GPSTime.minTime").AsDouble(0.0);
     pSettings->visualization.GPSTime.maxTime = data.Get("visualization.GPSTime.maxTime").AsDouble(0.0);
-
+    pSettings->visualization.GPSTime.inputFormat = (vcTimeReference)data.Get("visualization.GPSTime.inputFormat").AsInt((int)vcTimeReference_GPS);
+    
     //Scan Angle
     pSettings->visualization.scanAngle.minAngle = data.Get("visualization.scanAngle.minAngle").AsDouble(-180.0);
     pSettings->visualization.scanAngle.maxAngle = data.Get("visualization.scanAngle.maxAngle").AsDouble(180.0);
@@ -707,7 +708,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   //GPS Time
   data.Set("visualization.GPSTime.minTime = %f", pSettings->visualization.GPSTime.minTime);
   data.Set("visualization.GPSTime.maxTime = %f", pSettings->visualization.GPSTime.maxTime);
-
+  data.Set("visualization.GPSTime.inputFormat = %u", pSettings->visualization.GPSTime.inputFormat);
+  
   //Scan angle
   data.Set("visualization.scanAngle.minAngle = %f", pSettings->visualization.scanAngle.minAngle);
   data.Set("visualization.scanAngle.maxAngle = %f", pSettings->visualization.scanAngle.maxAngle);

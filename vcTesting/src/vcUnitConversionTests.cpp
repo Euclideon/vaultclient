@@ -10,6 +10,20 @@ void VerifyDistance(vcDistanceUnit sourceType, double in, vcDistanceUnit destTyp
 
 TEST(UnitConversion, Distance)
 {
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_Millimetres, 1000.0);
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_Centimetres, 100.0);
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_Metres, 1.0);
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_Kilometres, 0.001);
+
+  VerifyDistance(vcDistance_Millimetres, 1.0, vcDistance_Metres, 0.001);
+  VerifyDistance(vcDistance_Centimetres, 1.0, vcDistance_Metres, 0.01);
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_Metres, 1.0);
+  VerifyDistance(vcDistance_Kilometres, 1.0, vcDistance_Metres, 1000.0);
+
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_USSurveyInches, 39.37);
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_USSurveyFeet, 39.37 / 12);
+  VerifyDistance(vcDistance_Metres, 1.0, vcDistance_USSurveyMiles, 39.37 / 12 / 5280);
+
   VerifyDistance(vcDistance_Kilometres, 100.0, vcDistance_NauticalMiles, 53.995680);
   VerifyDistance(vcDistance_Metres, 100.0, vcDistance_Centimetres, 10000.0);
   VerifyDistance(vcDistance_USSurveyFeet, 1.0, vcDistance_Millimetres, 304.800610);
@@ -35,7 +49,7 @@ void VerifyArea(vcAreaUnit sourceType, double in, vcAreaUnit destType, double ou
 
 TEST(UnitConversion, Area)
 {
-  VerifyArea(vcArea_SquareMetres, 100.0, vcArea_SquareKilometers, 0.0001);
+  VerifyArea(vcArea_SquareMetres, 100.0, vcArea_SquareKilometres, 0.0001);
   VerifyArea(vcArea_SquareMetres, 100.0, vcArea_Hectare, 0.01);
   VerifyArea(vcArea_SquareMetres, 100.0, vcArea_SquareFoot, 1076.391041670972072097356431186199188232421875);
   VerifyArea(vcArea_SquareMetres, 100.0, vcArea_SquareMiles, 0.0000386102160083283757);
@@ -59,23 +73,29 @@ void VerifyVolume(vcVolumeUnit sourceType, double in, vcVolumeUnit destType, dou
 
 TEST(UnitConversion, Volume)
 {
-  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_USSQuart, 1056.6882607957347);
-  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_USSGallons, 264.17203728418462);
-  VerifyVolume(vcVolume_CubicMeter, 159.0, vcVolume_CubicInch, 9702775.311062432825565);
-  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_CubicMeter, 1.0);
-  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_MegaLiter, 0.001);
-  VerifyVolume(vcVolume_CubicInch, 159.0, vcVolume_CubicMeter, 0.00260554317599999983);
-  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_CubicYard, 1.30795061586555);
-  VerifyVolume(vcVolume_CubicMeter, 1.0, vcVolume_CubicFoot, 35.31466621266132221990);
-  VerifyVolume(vcVolume_CubicYard, 1.0, vcVolume_CubicMeter, 0.764554859999999995);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_CubicMetre, 1.0);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_Litre, 1000.0);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_MegaLitre, 1.0 / 1000.0);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_USSurveyCubicInch, 39.37 * 39.37 * 39.37);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_USSurveyCubicFoot, 35.31466621266132221990);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_USSurveyCubicYard, 1.30795061586555);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_USQuart, 1056.6882607957347);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_USGallons, 264.17203728418462);
 
+  VerifyVolume(vcVolume_CubicMetre, 159.0, vcVolume_USSurveyCubicInch, 9702717.0945269987);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_MegaLitre, 0.001);
+  VerifyVolume(vcVolume_USSurveyCubicInch, 159.0, vcVolume_CubicMetre, 0.00260554317599999983);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_USSurveyCubicYard, 1.30795061586555);
+  VerifyVolume(vcVolume_CubicMetre, 1.0, vcVolume_USSurveyCubicFoot, 35.31466621266132221990);
+  VerifyVolume(vcVolume_USSurveyCubicYard, 1.0, vcVolume_CubicMetre, 0.764554859999999995);
+  
   for (int i = 0; i < vcVolume_Count; ++i)
   {
     // Round trips
-    EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertVolume(vcUnitConversion_ConvertVolume(10000.0, vcVolume_CubicMeter, (vcVolumeUnit)i), (vcVolumeUnit)i, vcVolume_CubicMeter));
-
+    EXPECT_DOUBLE_EQ(10000.0, vcUnitConversion_ConvertVolume(vcUnitConversion_ConvertVolume(10000.0, vcVolume_CubicMetre, (vcVolumeUnit)i), (vcVolumeUnit)i, vcVolume_CubicMetre));
+  
     // All should be 0 from 0
-    EXPECT_DOUBLE_EQ(0.0, vcUnitConversion_ConvertVolume(0.0, vcVolume_CubicMeter, (vcVolumeUnit)i));
+    EXPECT_DOUBLE_EQ(0.0, vcUnitConversion_ConvertVolume(0.0, vcVolume_CubicMetre, (vcVolumeUnit)i));
   }
 }
 
@@ -176,7 +196,7 @@ void VerifyTimeReferenceUTC(double seconds, vcTimeReference reference, const vcT
 TEST(UnitConversion, TimeReference)
 {
   static double const s_seconds_TAI_Unix_epoch = 378691200.0;
-  static double const s_seconds_TAI_GPS_epoch  = 694656000.0;
+  static double const s_seconds_TAI_GPS_epoch  = 694656009.0;
   static double const s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
 
   vcTimeReferenceData in, out;
@@ -236,6 +256,10 @@ TEST(UnitConversion, StringFormating)
     EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPSWeek) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42 weeks, 13.000000s"), 0);
 
+    vcUnitConversion_SetUTC(&timeData, 2020, 7, 3, 15, 29, 42);
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_UTC) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "2020-07-03T15:29:42Z"), 0);
+
     timeData.seconds= 42.0;
     EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_TAI) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000s"), 0);
@@ -253,6 +277,10 @@ TEST(UnitConversion, StringFormating)
     timeData.GPSWeek.secondsOfTheWeek = 13.0;
     EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_GPSWeek, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42 weeks, 13s"), 0);
+
+    vcUnitConversion_SetUTC(&timeData, 2020, 7, 3, 15, 29, 42);
+    EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_UTC, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "2020-07-03T15:29:42Z"), 0);
 
     timeData.seconds= 42.0;
     EXPECT_TRUE(vcUnitConversion_ConvertTimeToString(buffer, bufSze, timeData, vcTimeReference_TAI, "%0.0f") != -1);
@@ -322,37 +350,37 @@ TEST(UnitConversion, StringFormating)
 
   {
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMetres) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000m sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000sqm"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareKilometers) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000km sq"), 0);
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareKilometres) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000sqkm"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Hectare) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000ha"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareFoot) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000ft sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000sqft"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMiles) != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42.000000mi sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000sqmi"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Acre) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000ac"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMetres, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42m sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42sqm"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareKilometers, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42km sq"), 0);
+    EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareKilometres, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42sqkm"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Hectare, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42ha"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareFoot, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42ft sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42sqft"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_SquareMiles, "%0.0f") != -1);
-    EXPECT_EQ(udStrcmp(buffer, "42mi sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "42sqmi"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertAreaToString(buffer, bufSze, value, vcArea_Acre, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42ac"), 0);
@@ -361,52 +389,52 @@ TEST(UnitConversion, StringFormating)
   }
 
   {
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicMeter) != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicMetre) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000cbm"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_MegaLiter) != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_MegaLitre) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000ML"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_Litre) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000L"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicInch) != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSurveyCubicInch) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000cbin"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicFoot) != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSurveyCubicFoot) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000cbft"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSGallons) != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USGallons) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000gal US"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSQuart) != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USQuart) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000qt US"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicYard) != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSurveyCubicYard) != -1);
     EXPECT_EQ(udStrcmp(buffer, "42.000000cbyd"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicMeter, "%0.0f") != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicMetre, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42cbm"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_MegaLiter, "%0.0f") != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_MegaLitre, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42ML"), 0);
 
     EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_Litre, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42L"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicInch, "%0.0f") != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSurveyCubicInch, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42cbin"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicFoot, "%0.0f") != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSurveyCubicFoot, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42cbft"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSGallons, "%0.0f") != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USGallons, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42gal US"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSQuart, "%0.0f") != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USQuart, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42qt US"), 0);
 
-    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_CubicYard, "%0.0f") != -1);
+    EXPECT_TRUE(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_USSurveyCubicYard, "%0.0f") != -1);
     EXPECT_EQ(udStrcmp(buffer, "42cbyd"), 0);
 
     EXPECT_EQ(vcUnitConversion_ConvertVolumeToString(buffer, bufSze, value, vcVolume_Count), -1);
@@ -489,7 +517,7 @@ TEST(UnitConversion, ConvertAndStringifyMetric)
     timeData.GPSWeek.weeks = 0;
     timeData.GPSWeek.secondsOfTheWeek = 0.0;
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatTimeReference(buffer, bufSze, timeData, vcTimeReference_GPSWeek, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "315964791.0s"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "1980-01-06T00:00:00Z"), 0);
   }
 
   {
@@ -544,16 +572,16 @@ TEST(UnitConversion, ConvertAndStringifyMetric)
 
   {
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal, vcArea_SquareMetres, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733m sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqm"), 0);
 
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal * 1000.0 * 1000.0, vcArea_SquareMetres, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733km sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqkm"), 0);
 
-    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal / 1000.0 / 1000.0, vcArea_SquareKilometers, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733m sq"), 0);
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal / 1000.0 / 1000.0, vcArea_SquareKilometres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqm"), 0);
 
-    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal, vcArea_SquareKilometers, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733km sq"), 0);
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, metricVal, vcArea_SquareKilometres, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqkm"), 0);
   }
 
   {
@@ -563,10 +591,10 @@ TEST(UnitConversion, ConvertAndStringifyMetric)
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal * 1000.0 * 1000.0, vcVolume_Litre, &conversionData), udR_Success);
     EXPECT_EQ(udStrcmp(buffer, "5.733ML"), 0);
 
-    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal / 1000.0 / 1000.0, vcVolume_MegaLiter, &conversionData), udR_Success);
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal / 1000.0 / 1000.0, vcVolume_MegaLitre, &conversionData), udR_Success);
     EXPECT_EQ(udStrcmp(buffer, "5.733L"), 0);
 
-    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal, vcVolume_MegaLiter, &conversionData), udR_Success);
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, metricVal, vcVolume_MegaLitre, &conversionData), udR_Success);
     EXPECT_EQ(udStrcmp(buffer, "5.733ML"), 0);
   }
 
@@ -595,13 +623,13 @@ TEST(UnitConversion, ConvertAndStringifyImperial)
 
   vcUnitConversionData conversionData;
 
-  vcUnitConversion_SetImperial(&conversionData);
+  vcUnitConversion_SetUSSurvey(&conversionData);
   {
     vcTimeReferenceData timeData;
     timeData.GPSWeek.weeks = 0;
     timeData.GPSWeek.secondsOfTheWeek = 0.0;
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatTimeReference(buffer, bufSze, timeData, vcTimeReference_GPSWeek, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "315964791.0s"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "1980-01-06T00:00:00Z"), 0);
   }
 
   {
@@ -636,20 +664,20 @@ TEST(UnitConversion, ConvertAndStringifyImperial)
 
   {
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal, vcArea_SquareFoot, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733ft sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqft"), 0);
 
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal * 5280.0 * 5280.0, vcArea_SquareFoot, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733mi sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqmi"), 0);
 
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal / 5280.0 / 5280.0, vcArea_SquareMiles, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733ft sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqft"), 0);
 
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatArea(buffer, bufSze, imperialVal, vcArea_SquareMiles, &conversionData), udR_Success);
-    EXPECT_EQ(udStrcmp(buffer, "5.733mi sq"), 0);
+    EXPECT_EQ(udStrcmp(buffer, "5.733sqmi"), 0);
   }
 
   {
-    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, imperialVal, vcVolume_USSGallons, &conversionData), udR_Success);
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatVolume(buffer, bufSze, imperialVal, vcVolume_USGallons, &conversionData), udR_Success);
     EXPECT_EQ(udStrcmp(buffer, "5.733gal US"), 0);
   }
 

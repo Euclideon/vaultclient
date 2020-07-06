@@ -159,6 +159,7 @@ struct vcVisualizationSettings
   {
     double minTime;
     double maxTime;
+    vcTimeReference inputFormat; //This should ony be GPS or GPSAdjusted 
   } GPSTime;
 
   struct
