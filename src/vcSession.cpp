@@ -222,7 +222,7 @@ void vcSession_Logout(vcState *pProgramState)
     memset(&pProgramState->geozone, 0, sizeof(pProgramState->geozone));
 
     pProgramState->modelPath[0] = '\0';
-    vcProject_InitBlankScene(pProgramState, "Empty Project", vcPSZ_StandardGeoJSON);
+    vcProject_CreateBlankScene(pProgramState, "Empty Project", vcPSZ_StandardGeoJSON);
     pProgramState->projects.Destroy();
     pProgramState->profileInfo.Destroy();
 

@@ -702,5 +702,9 @@
   "modalProjectGeolocatedDescription": "Creates a geolocated project",
   "modalProjectNonGeolocatedDescription": "Creates a non-geolocated project",
   "modalProjectSpecificZoneDescription": "Creates a geolocated project, with a specific zone (advanced)",
+  "modalProjectSaveLocation": "Save Location",
+  "modalProjectLocal": "Local",
+  "modalProjectServer": "Server",
+  "modalProjectLocalOrServerProject": "Local or Server Project",
   "_last": "Last item so no one forgets the comma on the line above"
 }

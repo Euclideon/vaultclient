@@ -216,6 +216,8 @@ void vcModals_DrawNewProject(vcState *pProgramState)
 
     static int zoneCustomSRID = 84;
     static int creatingNewProjectType = -1;
+    static int localOrServerProject = 0;
+    static char pProjectPath[vcMaxPathLength] = {};
 
     const char *pNewProjectTypes[] =
     {
@@ -243,7 +245,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     {
       ImGui::Columns(2);
 
-      ImGui::Text("%s", vcString::Get("modalProjectOpenRecent"));
+      ImGui::Text("%s", vcString::Get("modalProjectPreviousProjects"));
       ImGui::Spacing();
       ImGui::Spacing();
 
@@ -255,9 +257,9 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         if (ImGui::Selectable(udTempStr("##projectHistoryItem%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40)))
         {
           if (pProjectInfo->isServerProject)
-            vcProject_InitFromServer(pProgramState, pProjectInfo->pPath);
+            vcProject_LoadFromServer(pProgramState, pProjectInfo->pPath);
           else
-            vcProject_InitFromURI(pProgramState, pProjectInfo->pPath);
+            vcProject_LoadFromURI(pProgramState, pProjectInfo->pPath);
 
           ImGui::CloseCurrentPopup();
         }
@@ -358,6 +360,19 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         ImGui::Unindent();
       }
 
+      ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+      ImGui::TextUnformatted(vcString::Get("modalProjectLocalOrServerProject"));
+
+      ImGui::Indent();
+
+      ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectLocal")), &localOrServerProject, 0);
+      ImGui::SameLine();
+      ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectServer")), &localOrServerProject, 1);
+
+      if (localOrServerProject == 0) // local
+        vcIGSW_FilePicker(pProgramState, vcString::Get("modalProjectSaveLocation"), pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+
+      ImGui::Unindent();
       //TODO: Additional export settings
     }
 
@@ -381,10 +396,27 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
       {
-        vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
+        bool createSucceeded = false;
+        if (localOrServerProject == 0) // local
+        {
+          // TODO: CONFIRM FILE OVERRIDE IF EXISTS
+
+          createSucceeded = vcProject_CreateFileScene(pProgramState, pProjectPath, pProgramState->modelPath, zoneCustomSRID);
+        }
+        else // server
+        {
+          const char *pGroupUUID = nullptr; // TODO
+          createSucceeded = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, pGroupUUID, zoneCustomSRID);
+        }
+
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
         ImGui::CloseCurrentPopup();
+
+        if (!createSucceeded)
+        {
+          // TODO: Show popup
+        }
       }
     }
 
