@@ -379,7 +379,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
       {
-        vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
+        vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, 0);
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
         ImGui::CloseCurrentPopup();
