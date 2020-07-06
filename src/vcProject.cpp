@@ -10,11 +10,8 @@
 
 void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename, bool isServerProject);
 
-void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int srid)
+void vcProject_InitScene(vcState *pProgramState, int srid)
 {
-  if (pProgramState->activeProject.pProject != nullptr)
-    vcProject_Deinit(pProgramState, &pProgramState->activeProject);
-
   udGeoZone zone = {};
   vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
@@ -23,7 +20,6 @@ void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int sri
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
 
-  vdkProject_CreateLocal(&pProgramState->activeProject.pProject, pName);
   vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
   pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
@@ -68,6 +64,33 @@ void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int sri
     pProgramState->camera.position = udDouble3::zero();
     pProgramState->camera.headingPitch = udDouble2::zero();
   }
+}
+
+void vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int srid)
+{
+  if (pProgramState->activeProject.pProject != nullptr)
+    vcProject_Deinit(pProgramState, &pProgramState->activeProject);
+
+  vdkProject_CreateInMemory(&pProgramState->activeProject.pProject, pName);
+  vcProject_InitScene(pProgramState, srid);
+}
+
+void vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const char *pName, int srid)
+{
+  if (pProgramState->activeProject.pProject != nullptr)
+    vcProject_Deinit(pProgramState, &pProgramState->activeProject);
+
+  vdkProject_CreateInFile(&pProgramState->activeProject.pProject, pName, pPath);
+  vcProject_InitScene(pProgramState, srid);
+}
+
+void vcProject_CreateServerScene(vcState *pProgramState, const char *pName, const char *pGroupUUID, int srid)
+{
+  if (pProgramState->activeProject.pProject != nullptr)
+    vcProject_Deinit(pProgramState, &pProgramState->activeProject);
+
+  vdkProject_CreateServer(pProgramState->pVDKContext, &pProgramState->activeProject.pProject, pName, pGroupUUID);
+  vcProject_InitScene(pProgramState, srid);
 }
 
 bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pParentNode)
@@ -148,7 +171,7 @@ void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilenam
   pProgramState->settings.projectsHistory.projects.PushFront({ isServerProject, pProjectName, pFormattedPath });
 }
 
-bool vcProject_InitFromServer(vcState *pProgramState, const char *pProjectID)
+bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
 {
   vdkProject *pProject = nullptr;
   if (vdkProject_LoadFromServer(pProgramState->pVDKContext, &pProject, pProjectID) == vE_Success)
@@ -193,7 +216,7 @@ bool vcProject_InitFromServer(vcState *pProgramState, const char *pProjectID)
   return (pProject != nullptr);
 }
 
-bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename)
+bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
 {
   char *pMemory = nullptr;
   udResult result = udFile_Load(pFilename, (void**)&pMemory);

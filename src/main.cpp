@@ -408,17 +408,17 @@ void vcMain_MainLoop(vcState *pProgramState)
         // Project Files
         if (udStrBeginsWith(pNextLoad, "euclideon:project/"))
         {
-          vcProject_InitFromServer(pProgramState, &pNextLoad[18]);
+          vcProject_LoadFromServer(pProgramState, &pNextLoad[18]);
           vcModals_CloseModal(pProgramState, vcMT_NewProject);
         }
         else if (udStrEquali(pExt, ".json"))
         {
-          vcProject_InitFromURI(pProgramState, pNextLoad);
+          vcProject_LoadFromURI(pProgramState, pNextLoad);
           vcModals_CloseModal(pProgramState, vcMT_NewProject);
         }
         else if (udStrEquali(pExt, ".udp"))
         {
-          vcProject_InitBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
+          vcProject_CreateBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
           vcModals_CloseModal(pProgramState, vcMT_NewProject);
 
           vcUDP_Load(pProgramState, pNextLoad);
@@ -891,7 +891,7 @@ int main(int argc, char **args)
 
   programState.previousSRID = -1;
 
-  vcProject_InitBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
+  vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -1109,7 +1109,7 @@ void vcMain_ProfileMenu(vcState *pProgramState)
           for (size_t j = 0; j < pProjectList->length; ++j)
           {
             if (ImGui::MenuItem(pProjectList->GetElement(j)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
-              vcProject_InitFromServer(pProgramState, pProjectList->GetElement(j)->Get("projectid").AsString());
+              vcProject_LoadFromServer(pProgramState, pProjectList->GetElement(j)->Get("projectid").AsString());
           }
 
           ImGui::EndMenu();

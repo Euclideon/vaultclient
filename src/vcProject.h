@@ -27,9 +27,12 @@ enum vcProjectStandardZones
   vcPSZ_WGS84ECEF = 4978
 };
 
-void vcProject_InitBlankScene(vcState *pProgramState, const char *pName, int srid);
-bool vcProject_InitFromURI(vcState *pProgramState, const char *pFilename);
-bool vcProject_InitFromServer(vcState *pProgramState, const char *pProjectID);
+void vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int srid);
+void vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const char *pName, int srid);
+void vcProject_CreateServerScene(vcState *pProgramState, const char *pName, const char *pGroupUUID, int srid);
+
+bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename);
+bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID);
 
 void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);
 

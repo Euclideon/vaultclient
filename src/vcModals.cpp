@@ -217,7 +217,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     static int zoneCustomSRID = 84;
     static int creatingNewProjectType = -1;
     static int localOrServerProject = 0;
-    static char pProjectPath[256] = {};
+    static char pProjectPath[vcMaxPathLength] = {};
 
     const char *pNewProjectTypes[] =
     {
@@ -257,9 +257,9 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         if (ImGui::Selectable(udTempStr("##projectHistoryItem%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40)))
         {
           if (pProjectInfo->isServerProject)
-            vcProject_InitFromServer(pProgramState, pProjectInfo->pPath);
+            vcProject_LoadFromServer(pProgramState, pProjectInfo->pPath);
           else
-            vcProject_InitFromURI(pProgramState, pProjectInfo->pPath);
+            vcProject_LoadFromURI(pProgramState, pProjectInfo->pPath);
 
           ImGui::CloseCurrentPopup();
         }
@@ -397,7 +397,10 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
       {
-        vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
+        if (localOrServerProject == 0) // local
+          vcIGSW_FilePicker(pProgramState, "Save Location", pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+
+        vcProject_CreateBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
         ImGui::CloseCurrentPopup();
