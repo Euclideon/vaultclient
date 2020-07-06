@@ -305,6 +305,8 @@ void vcModals_DrawNewProject(vcState *pProgramState)
 
           if (i == 0) // Geolocated
             zoneCustomSRID = 84;
+          else if (i == 1)
+            zoneCustomSRID = 0; // Non Geolocated
         }
 
         float prevPosY = ImGui::GetCursorPosY();
@@ -379,7 +381,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
       {
-        vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, 0);
+        vcProject_InitBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID);
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
         ImGui::CloseCurrentPopup();
