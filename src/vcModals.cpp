@@ -305,6 +305,8 @@ void vcModals_DrawNewProject(vcState *pProgramState)
 
           if (i == 0) // Geolocated
             zoneCustomSRID = 84;
+          else if (i == 1)
+            zoneCustomSRID = 0; // Non Geolocated
         }
 
         float prevPosY = ImGui::GetCursorPosY();
