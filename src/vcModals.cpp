@@ -95,8 +95,9 @@ bool vcModals_AllowDestructiveAction(vcState *pProgramState, const char *pTitle,
 #if UDPLATFORM_EMSCRIPTEN
   udUnused(pProgramState);
   udUnused(pTitle);
-  udUnused(pMessage);
-  return true;
+
+  int result = MAIN_THREAD_EM_ASM_INT(return (confirm(UTF8ToString($0))?1:0), pMessage);
+  return (result != 0);
 #else
   bool result = false;
 
