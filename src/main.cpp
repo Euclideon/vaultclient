@@ -1068,31 +1068,13 @@ void vcMain_ProfileMenu(vcState *pProgramState)
     if (ImGui::MenuItem(vcString::Get("modalChangePasswordTitle")))
       vcModals_OpenModal(pProgramState, vcMT_ChangePassword);
     
-    if (ImGui::MenuItem(vcString::Get("menuSettings")))
-      pProgramState->openSettings = true;
-
-    ImGui::Separator();
-
     if (ImGui::MenuItem(vcString::Get("menuLogout")) && vcModals_ConfirmEndSession(pProgramState, false))
       pProgramState->forceLogout = true;
 
-#if VC_HASCONVERT
     ImGui::Separator();
-
-    if (ImGui::MenuItem(vcString::Get("menuConvert")))
-      vcModals_OpenModal(pProgramState, vcMT_Convert);
-#endif //VC_HASCONVERT
-
-    ImGui::Separator();
-
-    if (ImGui::MenuItem(vcString::Get("menuNewScene"), nullptr, nullptr))
-      vcModals_OpenModal(pProgramState, vcMT_NewProject);
 
     if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_ExportProject);
-
-    if (ImGui::MenuItem(vcString::Get("menuProjectImport"), nullptr, nullptr))
-      vcModals_OpenModal(pProgramState, vcMT_ImportProject);
 
     ImGui::Separator();
 
@@ -1342,7 +1324,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
   if (showInfoPanel)
   {
-    ImGui::SetNextWindowPos(ImVec2(windowPos.x + 32.f, windowPos.y), ImGuiCond_Always, ImVec2(0.f, 0.f));
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + 32.f, windowPos.y + 32.f), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
     if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
@@ -1350,12 +1332,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (pProgramState->settings.presentation.showCameraInfo)
       {
-        ImGui::Separator();
-
-        ImGui::TextUnformatted(vcString::Get("sceneCameraInformation"));
-
-        ImGui::Indent();
-
         if (ImGui::InputScalarN(vcString::Get("sceneCameraPosition"), ImGuiDataType_Double, &pProgramState->camera.position.x, 3))
         {
           // limit the manual entry of camera position to +/- 40000000
@@ -1388,8 +1364,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           if (cameraLatLong.x < minBound.x || cameraLatLong.y < minBound.y || cameraLatLong.x > maxBound.x || cameraLatLong.y > maxBound.y)
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", vcString::Get("sceneCameraOutOfBounds"));
         }
-
-        ImGui::Unindent();
       }
 
       if (pProgramState->settings.presentation.showProjectionInfo)
@@ -1593,7 +1567,27 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneProfileMenu"), nullptr, vcMBBI_Burger, vcMBBG_FirstItem);
       vcMain_ProfileMenu(pProgramState);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_FirstItem))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuNewScene"), nullptr, vcMBBI_NewProject, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_NewProject);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectImport"), nullptr, vcMBBI_Open, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_ImportProject);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectSave"), nullptr, vcMBBI_Save, vcMBBG_SameGroup))
+        vcProject_Save(pProgramState, nullptr, false);
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectShare"), nullptr, vcMBBI_Share, vcMBBG_SameGroup))
+        pProgramState->openSettings = true;
+
+#if VC_HASCONVERT
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), nullptr, vcMBBI_Convert, vcMBBG_SameGroup))
+        vcModals_OpenModal(pProgramState, vcMT_Convert);
+#endif //VC_HASCONVERT
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuSettings"), nullptr, vcMBBI_Settings, vcMBBG_SameGroup))
+        pProgramState->openSettings = true;
+
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_SameGroup))
         vcWebFile_OpenBrowser("https://desk.euclideon.com/");
 
       // Hide/show screen explorer
@@ -1634,6 +1628,13 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       // Activate Measure Height
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureHeight"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureHeightTool)), vcMBBI_MeasureHeight, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureHeight)) || (vcHotkey::IsPressed(vcB_ToggleMeasureHeightTool) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_MeasureHeight;
+      }
+
+      // Activate Measure Height
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureAngle"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureHeightTool)), vcMBBI_AngleTool, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureHeight)) || (vcHotkey::IsPressed(vcB_ToggleMeasureHeightTool) && !ImGui::IsAnyItemActive()))
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_MeasureHeight;
