@@ -239,6 +239,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       vcMBBI_Grid,
       vcMBBI_ExpertGrid
     };
+
     UDCOMPILEASSERT(udLengthOf(pNewProjectTypes) == udLengthOf(pNewProjectDescriptions), "Invalid matching sizes");
 
     if (creatingNewProjectType == -1)
@@ -409,13 +410,16 @@ void vcModals_DrawNewProject(vcState *pProgramState)
           createSucceeded = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, pGroupUUID, zoneCustomSRID);
         }
 
-        pProgramState->modelPath[0] = '\0';
-        creatingNewProjectType = -1;
-        ImGui::CloseCurrentPopup();
-
-        if (!createSucceeded)
+        if (createSucceeded)
         {
-          // TODO: Show popup
+          pProgramState->modelPath[0] = '\0';
+          creatingNewProjectType = -1;
+
+          ImGui::CloseCurrentPopup();
+        }
+        else
+        {
+          // Errors!
         }
       }
     }
@@ -443,7 +447,7 @@ void vcModals_DrawExportProject(vcState *pProgramState)
 
     if (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)))
     {
-      vcProject_Save(pProgramState, pProgramState->modelPath, false);
+      vcProject_SaveAs(pProgramState, pProgramState->modelPath, false);
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
@@ -525,7 +529,9 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
 
       if (pProgramState->errorItems[i].source == vcES_ProjectChange)
       {
-        ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
+        if (pProgramState->errorItems[i].pData != nullptr)
+          ImGui::TextUnformatted(pProgramState->errorItems[i].pData);
+
         switch (pProgramState->errorItems[i].resultCode)
         {
         case udR_WriteFailure:
@@ -545,6 +551,7 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
           pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");
           break;
         }
+
         ImGui::TextUnformatted(pMessage);
       }
     }

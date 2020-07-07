@@ -1574,7 +1574,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         vcModals_OpenModal(pProgramState, vcMT_ImportProject);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectSave"), nullptr, vcMBBI_Save, vcMBBG_SameGroup))
-        vcProject_Save(pProgramState, nullptr, false);
+        vcProject_Save(pProgramState);
 
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectShare"), nullptr, vcMBBI_Share, vcMBBG_SameGroup);
       if (ImGui::BeginPopupContextItem("##shareSettingsPopup", 0))

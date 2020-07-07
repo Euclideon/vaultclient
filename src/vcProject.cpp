@@ -21,12 +21,13 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
   pProgramState->sceneExplorer.clickedItem = {};
 
   vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
+
   pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
   udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, srid);
 
-  int cameraProjection = (srid == 84) ? 4978 : srid; // use ECEF if its default, otherwise the requested zone
+  int cameraProjection = (srid == vcPSZ_StandardGeoJSON) ? vcPSZ_WGS84ECEF : srid; // use ECEF if its default, otherwise the requested zone
 
   if (cameraProjection != 0)
   {
@@ -36,7 +37,7 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
     if (vcGIS_ChangeSpace(&pProgramState->geozone, cameraZone))
       pProgramState->activeProject.pFolder->ChangeProjection(cameraZone);
 
-    if (cameraProjection == 4978 || cameraZone.latLongBoundMin == cameraZone.latLongBoundMax)
+    if (cameraProjection == vcPSZ_WGS84ECEF || cameraZone.latLongBoundMin == cameraZone.latLongBoundMax)
     {
       double locations[][5] = {
         { 309281.960926, 5640790.149293, 2977479.571028, 55.74, -32.45 }, // Mount Everest
@@ -64,6 +65,10 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
     pProgramState->camera.position = udDouble3::zero();
     pProgramState->camera.headingPitch = udDouble2::zero();
   }
+
+  vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->geozone.srid);
+  vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", srid);
+  vdkProject_Save(pProgramState->activeProject.pProject);
 }
 
 bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int srid)
@@ -80,15 +85,13 @@ bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int s
 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
+
   return true;
 }
 
 bool vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const char *pName, int srid)
 {
   if (pProgramState == nullptr || pPath == nullptr || pName == nullptr)
-    return false;
-
-  if (udFileDelete(pPath) != udR_Success)
     return false;
 
   vdkProject *pNewProject = nullptr;
@@ -100,6 +103,7 @@ bool vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const 
 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
+
   return true;
 }
 
@@ -117,6 +121,7 @@ bool vcProject_CreateServerScene(vcState *pProgramState, const char *pName, cons
 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
+
   return true;
 }
 
@@ -216,10 +221,10 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
     pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
-    int32_t projectZone = 84; // LongLat
-    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, 84);
+    int32_t projectZone = vcPSZ_StandardGeoJSON; // LongLat
+    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, vcPSZ_StandardGeoJSON);
     if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
-      udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, 84);
+      udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, vcPSZ_StandardGeoJSON);
 
     int32_t recommendedSRID = -1;
     if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
@@ -266,10 +271,10 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
     temp.SetFilenameWithExt("");
     pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
 
-    int32_t projectZone = 84; // LongLat
-    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, 84);
+    int32_t projectZone = vcPSZ_StandardGeoJSON; // LongLat
+    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, vcPSZ_StandardGeoJSON);
     if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
-      udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, 84);
+      udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, vcPSZ_StandardGeoJSON);
 
     int32_t recommendedSRID = -1;
     if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
@@ -340,17 +345,35 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
   vdkProject_Release(&pProject->pProject);
 }
 
-void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverride)
+bool vcProject_Save(vcState *pProgramState)
+{
+  if (pProgramState == nullptr)
+    return false;
+
+  vdkError status = vdkProject_Save(pProgramState->activeProject.pProject);
+
+  if (status != vE_Success)
+  {
+    vcState::ErrorItem projectError = {};
+    projectError.source = vcES_ProjectChange;
+    projectError.pData = nullptr;
+
+    if (status == vE_WriteFailure)
+      projectError.resultCode = udR_WriteFailure;
+    else
+      projectError.resultCode = udR_Failure_;
+
+    pProgramState->errorItems.PushBack(projectError);
+    vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+  }
+}
+
+void vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride)
 {
   if (pProgramState == nullptr || pPath == nullptr)
     return;
 
   const char *pOutput = nullptr;
-
-  vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->geozone.srid);
-
-  if (pProgramState->activeProject.baseZone.srid != 84)
-    vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", pProgramState->activeProject.baseZone.srid);
 
   if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
   {

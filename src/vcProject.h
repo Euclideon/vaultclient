@@ -36,7 +36,8 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID);
 
 void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);
 
-void vcProject_Save(vcState *pProgramState, const char *pPath, bool allowOverride);
+bool vcProject_Save(vcState *pProgramState);
+void vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride);
 
 bool vcProject_AbleToChange(vcState *pProgramState);
 
