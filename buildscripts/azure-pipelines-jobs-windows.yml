@@ -83,6 +83,9 @@ jobs:
       popd
     displayName: 'Build Installer'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'), eq('${{ parameters.gfxapi }}', 'opengl'))
+  - template: azure-pipelines-steps-codesign.yml
+    parameters:
+      file: buildscripts\installer\windows\udStreamSetup.exe
   - publish: buildscripts/installer/windows/udStreamSetup.exe
     displayName: 'Publish Installer'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
