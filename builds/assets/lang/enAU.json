@@ -488,7 +488,7 @@
   "sceneExplorerI3S": "I3S File",
   "scenePOIDefaultName": "Point of Interest",
   "scenePOIAreaDefaultName": "Area of Interest",
-  "sceneVerticalMeasurementTool": "Vertical Measurement",
+  "sceneVerticalMeasurementTool": "Horizontal/Vertical Measurement",
   "scenePOIAnnotateDefaultName": "New Annotation",
   "scenePOIAreaMeasureDefaultName": "Area Measurement",
   "scenePOILineDefaultName": "Line of Interest",
@@ -709,5 +709,9 @@
   "modalProjectLocal": "Local",
   "modalProjectServer": "Server",
   "modalProjectLocalOrServerProject": "Local or Server Project",
+  "shareInstructions": "Please copy the link for browser or application depending on which version you would like.",
+  "shareNotPossible": "This project cannot currently be shared.",
+  "shareLinkBrowser": "Share in Browser",
+  "shareLinkApp": "Share in App",
   "_last": "Last item so no one forgets the comma on the line above"
 }
