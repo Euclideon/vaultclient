@@ -464,7 +464,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Login Info
     pSettings->loginInfo.rememberServer = data.Get("login.rememberServer").AsBool(true);
     if (pSettings->loginInfo.rememberServer)
-      udStrcpy(pSettings->loginInfo.serverURL, data.Get("login.serverURL").AsString("https://earth.vault.euclideon.com"));
+      udStrcpy(pSettings->loginInfo.serverURL, data.Get("login.serverURL").AsString("https://udstream.euclideon.com"));
 
     pSettings->loginInfo.rememberEmail = data.Get("login.rememberUsername").AsBool(false);
     if (pSettings->loginInfo.rememberEmail)
