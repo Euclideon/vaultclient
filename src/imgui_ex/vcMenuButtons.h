@@ -28,8 +28,9 @@ enum vcMenuBarButtonIcon
   vcMBBI_Inspect = 19,
 
   vcMBBI_MeasureHeight = 20,
+  vcMBBI_AngleTool = 21,
 
-  // Reserved 21-29
+  // Reserved 22-29
 
   vcMBBI_Burger = 30,
   vcMBBI_Layers = 31,
@@ -43,10 +44,14 @@ enum vcMenuBarButtonIcon
   vcMBBI_StorageLocal = 39,
 
   vcMBBI_Crosshair = 40,
-
   vcMBBI_Visualization = 41,
+  vcMBBI_Share = 42,
+  vcMBBI_Save = 43,
+  vcMBBI_NewProject = 44,
+  vcMBBI_Convert = 45,
+  vcMBBI_Open = 46,
 
-  //Reserved = 42+
+  //Reserved = 47+
 };
 
 enum vcMenuBarButtonGap
