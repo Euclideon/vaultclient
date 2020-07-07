@@ -187,6 +187,16 @@ struct vcState
   char renameText[30];
 
   vcSettings settings;
+
+  struct vcGroupInfo
+  {
+    udUUID groupID;
+    const char *pGroupName;
+    const char *pDescription;
+    int permissionLevel;
+  };
+
+  udChunkedArray<vcGroupInfo> groups;
   udJSON projects;
   udJSON packageInfo;
   udJSON profileInfo;

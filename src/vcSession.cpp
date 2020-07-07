@@ -53,7 +53,7 @@ void vcSession_GetProjectsWT(void *pProgramStatePtr)
   {
     udSprintf(reqBuffer, "{ \"index\": %d, \"count\": 50 }", offset);
 
-    if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/projects", nullptr, &pProjData) == vE_Success)
+    if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/projects", reqBuffer, &pProjData) == vE_Success)
     {
       // This won't work if there are more than 50 projects
       pProgramState->projects.Parse(pProjData);
@@ -67,6 +67,56 @@ void vcSession_GetProjectsWT(void *pProgramStatePtr)
 
     vdkServerAPI_ReleaseResult(&pProjData);
   } while (false);
+}
+
+void vcSession_GetGroupsWT(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  const char *pProjData = nullptr;
+
+  char reqBuffer[512];
+  int offset = 0;
+
+  udJSON parsed;
+  pProgramState->groups.Init(8);
+
+  do
+  {
+    udSprintf(reqBuffer, "{ \"index\": %d, \"count\": 50, \"memberonly\": true }", offset);
+
+    if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/groups", reqBuffer, &pProjData) == vE_Success)
+    {
+      // This won't work if there are more than 50 projects
+      parsed.Parse(pProjData);
+
+      size_t arrayLen = parsed.Get("groups").ArrayLength();
+
+      if (parsed.Get("success").AsBool() && arrayLen > 0)
+      {
+        offset += parsed.Get("total").AsInt();
+
+        for (size_t i = 0; i < arrayLen; ++i)
+        {
+          vcState::vcGroupInfo groupInfo = {};
+
+          groupInfo.pGroupName = udStrdup(parsed.Get("groups[%zu].name", i).AsString());
+          groupInfo.pDescription = udStrdup(parsed.Get("groups[%zu].description", i).AsString());
+
+          groupInfo.permissionLevel = parsed.Get("groups[%zu].permissions", i).AsInt();
+          udUUID_SetFromString(&groupInfo.groupID, parsed.Get("groups[%zu].groupid", i).AsString());
+
+          pProgramState->groups.PushBack(groupInfo);
+        }
+      }
+      else
+      {
+        break;
+      }
+    }
+
+    vdkServerAPI_ReleaseResult(&pProjData);
+  } while (true);
 }
 
 void vcSession_GetPackagesWT(void *pProgramStatePtr)
@@ -132,6 +182,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
   if (!pProgramState->sessionInfo.isOffline)
   {
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProjectsWT, pProgramState, false);
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetGroupsWT, pProgramState, false);
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProfileInfoWT, pProgramState, false);
 
@@ -223,6 +274,7 @@ void vcSession_Logout(vcState *pProgramState)
 
     pProgramState->modelPath[0] = '\0';
     vcProject_CreateBlankScene(pProgramState, "Empty Project", vcPSZ_StandardGeoJSON);
+    vcSession_CleanupGroups(pProgramState);
     pProgramState->projects.Destroy();
     pProgramState->profileInfo.Destroy();
 
@@ -258,4 +310,15 @@ void vcSession_UpdateInfo(void *pProgramStatePtr)
     pProgramState->logoutReason = response;
     pProgramState->forceLogout = true;
   }
+}
+
+void vcSession_CleanupGroups(vcState *pProgramState)
+{
+  for (auto item : pProgramState->groups)
+  {
+    udFree(item.pGroupName);
+    udFree(item.pDescription);
+  }
+
+  pProgramState->groups.Deinit();
 }

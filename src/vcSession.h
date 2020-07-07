@@ -12,4 +12,6 @@ void vcSession_Resume(vcState *pProgramState);
 
 void vcSession_UpdateInfo(void *pProgramStatePtr);
 
+void vcSession_CleanupGroups(vcState *pProgramState);
+
 #endif // vcSession_h__

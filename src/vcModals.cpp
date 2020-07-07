@@ -218,6 +218,8 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     static int creatingNewProjectType = -1;
     static int localOrServerProject = 0;
     static char pProjectPath[vcMaxPathLength] = {};
+    static udUUID selectedGroup = {};
+    static bool availableGroups = true;
 
     const char *pNewProjectTypes[] =
     {
@@ -371,7 +373,35 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectServer")), &localOrServerProject, 1);
 
       if (localOrServerProject == 0) // local
+      {
         vcIGSW_FilePicker(pProgramState, vcString::Get("modalProjectSaveLocation"), pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+      }
+      else
+      {
+        if (pProgramState->groups.length > 0 && availableGroups)
+        {
+          if (ImGui::BeginCombo(vcString::Get("modalProjectsSaveGroup"), udUUID_GetAsString(selectedGroup)))
+          {
+            for (auto item : pProgramState->groups)
+            {
+              if (item.permissionLevel >= 3) // Only >Managers can load projects
+              {
+                if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID) || !udUUID_IsValid(selectedGroup))
+                  selectedGroup = item.groupID;
+              }
+            }
+
+            if (!udUUID_IsValid(selectedGroup))
+              availableGroups = false;
+
+            ImGui::EndCombo();
+          }
+        }
+        else
+        {
+          ImGui::TextUnformatted(vcString::Get("modalProjectNoGroups"));
+        }
+      }
 
       ImGui::Unindent();
       //TODO: Additional export settings
@@ -406,8 +436,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
         }
         else // server
         {
-          const char *pGroupUUID = nullptr; // TODO
-          createSucceeded = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, pGroupUUID, zoneCustomSRID);
+          createSucceeded = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, udUUID_GetAsString(selectedGroup), zoneCustomSRID);
         }
 
         if (createSucceeded)
