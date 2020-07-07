@@ -68,6 +68,22 @@ jobs:
   - bash: pushd builds && rm -rf tests *.pdb && popd
     displayName: 'Clean up Artifacts'
   - publish: builds/
-    displayName: 'Publish Artifacts'
+    displayName: 'Publish ThinApp'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)
+  - script: |
+      pushd buildscripts\installer\windows
+      "C:\Program Files (x86)\NSIS\makensis.exe" vaultClient.nsi
+      popd
+    displayName: 'Build Installer'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'), eq('${{ parameters.gfxapi }}', 'd3d11'))
+  - script: |
+      pushd buildscripts\installer\windows
+      "C:\Program Files (x86)\NSIS\makensis.exe" /DBUILD_SUFFIX=_opengl vaultClient.nsi
+      popd
+    displayName: 'Build Installer'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'), eq('${{ parameters.gfxapi }}', 'opengl'))
+  - publish: buildscripts/installer/windows/udStreamSetup.exe
+    displayName: 'Publish Installer'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    artifact: '${{ parameters.name }}_udStreamSetup'
