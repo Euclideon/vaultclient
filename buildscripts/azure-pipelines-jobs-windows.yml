@@ -71,11 +71,19 @@ jobs:
     displayName: 'Publish ThinApp'
     condition: and(succeeded(), eq(variables['configuration'], 'Release'))
     artifact: ${{ parameters.name }}$(configuration)
-    condition: and(succeeded(), and(eq(variables['configuration'], 'Release'), eq(parameters.gfxapi, 'd3d11')))
-  - bash: pushd buildscripts/installer/windows/ && "C:/Program Files (x86)/NSIS/makensis.exe" ./vaultClient.nsi && popd
-    condition: and(succeeded(), and(eq(variables['configuration'], 'Release'), eq(parameters.gfxapi, 'd3d11')))
+  - script: |
+      pushd buildscripts\installer\windows
+      "C:\Program Files (x86)\NSIS\makensis.exe" vaultClient.nsi
+      popd
     displayName: 'Build Installer'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'), eq('${{ parameters.gfxapi }}', 'd3d11'))
+  - script: |
+      pushd buildscripts\installer\windows
+      "C:\Program Files (x86)\NSIS\makensis.exe" /DBUILD_SUFFIX=_opengl vaultClient.nsi
+      popd
+    displayName: 'Build Installer'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'), eq('${{ parameters.gfxapi }}', 'opengl'))
   - publish: buildscripts/installer/windows/udStreamSetup.exe
     displayName: 'Publish Installer'
-    condition: and(succeeded(), and(eq(variables['configuration'], 'Release'), eq(parameters.gfxapi, 'd3d11')))
-    artifact: 'udStreamSetup.exe'
+    condition: and(succeeded(), eq(variables['configuration'], 'Release'))
+    artifact: '${{ parameters.name }}_udStreamSetup'
