@@ -1612,7 +1612,22 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_SameGroup))
         vcWebFile_OpenBrowser("https://desk.euclideon.com/");
+    }
 
+    ImGui::End();
+
+    buttonPanelPos.y += 32.f;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    ImGui::SetNextWindowPos(buttonPanelPos, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowBgAlpha(0.f);
+
+    panelOpen = ImGui::Begin("toolPanel2", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImGui::PopStyleVar(2);
+
+    if (panelOpen)
+    {
       // Hide/show screen explorer
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toggleSceneExplorer"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleSceneExplorer)), vcMBBI_Layers, vcMBBG_FirstItem, !pProgramState->settings.presentation.sceneExplorerCollapsed) || (vcHotkey::IsPressed(vcB_ToggleSceneExplorer) && !ImGui::IsAnyItemActive()))
       {
