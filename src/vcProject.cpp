@@ -366,6 +366,8 @@ bool vcProject_Save(vcState *pProgramState)
     pProgramState->errorItems.PushBack(projectError);
     vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   }
+
+  return (status == vE_Success);
 }
 
 void vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride)
