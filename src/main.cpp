@@ -1576,8 +1576,31 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectSave"), nullptr, vcMBBI_Save, vcMBBG_SameGroup))
         vcProject_Save(pProgramState, nullptr, false);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectShare"), nullptr, vcMBBI_Share, vcMBBG_SameGroup))
-        pProgramState->openSettings = true;
+      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectShare"), nullptr, vcMBBI_Share, vcMBBG_SameGroup);
+      if (ImGui::BeginPopupContextItem("##shareSettingsPopup", 0))
+      {
+        const char *pUUID = nullptr;
+
+        if (vdkProject_GetProjectUUID(pProgramState->activeProject.pProject, &pUUID) == vE_Success)
+        {
+          static char shareLinkBrowser[vcMaxPathLength] = {};
+          static char shareLinkApp[vcMaxPathLength] = {};
+
+          udSprintf(shareLinkBrowser, "%s/client/?f=project/%s", pProgramState->settings.loginInfo.serverURL, pUUID);
+          udSprintf(shareLinkApp, "euclideon:project/%s", pUUID);
+
+          ImGui::TextUnformatted(vcString::Get("shareInstructions"));
+
+          ImGui::InputText(vcString::Get("shareLinkBrowser"), shareLinkBrowser, udLengthOf(shareLinkBrowser), ImGuiInputTextFlags_ReadOnly);
+          ImGui::InputText(vcString::Get("shareLinkApp"), shareLinkApp, udLengthOf(shareLinkApp), ImGuiInputTextFlags_ReadOnly);
+        }
+        else
+        {
+          ImGui::TextUnformatted(vcString::Get("shareNotPossible"));
+        }
+
+        ImGui::EndPopup();
+      }
 
 #if VC_HASCONVERT
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), nullptr, vcMBBI_Convert, vcMBBG_SameGroup))
