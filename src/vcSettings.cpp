@@ -113,6 +113,49 @@ bool vcSettings_ApplyConnectionSettings(vcSettings *pSettings)
   return true;
 }
 
+void vcSettings_GetDeviceLanguage(char languageCode[3], char countryCode[3])
+{
+  const char *pUTF8 = nullptr;
+
+#if UDPLATFORM_WINDOWS
+  wchar_t locale[LOCALE_NAME_MAX_LENGTH];
+
+  if (GetUserDefaultLocaleName(locale, LOCALE_NAME_MAX_LENGTH) != 0)
+  {
+    //Decode here
+    udOSString code(locale);
+    pUTF8 = udStrdup(code);
+  }
+
+#elif UDPLATFORM_EMSCRIPTEN
+  char *pTemp = (char*)EM_ASM_INT({
+    var jsString = navigator.language;
+    var lengthBytes = lengthBytesUTF8(jsString) + 1;
+    var stringOnWasmHeap = _malloc(lengthBytes);
+    stringToUTF8(jsString, stringOnWasmHeap, lengthBytes);
+    return stringOnWasmHeap;
+  });
+  pUTF8 = udStrdup(pTemp);
+  free(pTemp);
+#endif
+
+  if (pUTF8 == nullptr)
+  {
+    udStrcpy(languageCode, 3, "en");
+    udStrcpy(countryCode, 3, "AU");
+  }
+  else
+  {
+    if (udStrlen(pUTF8) == 2 || (udStrlen(pUTF8) > 2 && pUTF8[2] == '-'))
+      udStrncpy(languageCode, 3, pUTF8, 2);
+
+    if (udStrlen(pUTF8) >= 5 && pUTF8[2] == '-')
+      udStrncpy(countryCode, 3, &pUTF8[3], 2);
+
+    udFree(pUTF8);
+  }
+}
+
 bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSettingCategory group /*= vcSC_All*/)
 {
   ImGui::GetIO().IniFilename = NULL; // Disables auto save and load
@@ -142,7 +185,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (group == vcSC_All || group == vcSC_Appearance)
   {
     pSettings->window.useNativeUI = data.Get("window.showNativeUI").AsBool(true);
-    udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString("enAU"));
+    udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString(""));
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(false);
@@ -487,6 +530,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       {
         if (languages.IsArray())
         {
+          char preferredLanguage[3];
+          char preferredCountry[3];
+
+          vcSettings_GetDeviceLanguage(preferredLanguage, preferredCountry);
+
           pSettings->languageOptions.Clear();
           pSettings->languageOptions.ReserveBack(languages.ArrayLength());
 
@@ -495,10 +543,21 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
             vcLanguageOption *pLangOption = pSettings->languageOptions.PushBack();
             udStrcpy(pLangOption->languageName, languages.Get("[%zu].localname", i).AsString());
             udStrcpy(pLangOption->filename, languages.Get("[%zu].filename", i).AsString());
+
+            if (pSettings->window.languageCode[0] == '\0')
+            {
+              if (udStrBeginsWith(pLangOption->filename, preferredLanguage))
+              {
+                udStrcpy(pSettings->window.languageCode, pLangOption->filename);
+              }
+            }
           }
         }
       }
     }
+
+    if (pSettings->window.languageCode[0] == '\0')
+      udStrcpy(pSettings->window.languageCode, "enAU");
 
     udFree(pFileContents);
   }
