@@ -714,5 +714,7 @@
   "shareNotPossible": "このプロジェクトは現在共有できません。",
   "shareLinkBrowser": "ブラウザで共有",
   "shareLinkApp": "アプリで共有",
+  "modalProjectSaveGroup": "グループ",
+  "modalProjectNoGroups": "サーバーに保存できるグループがありません。",
   "_last": "Last item so no one forgets the comma on the line above"
 }

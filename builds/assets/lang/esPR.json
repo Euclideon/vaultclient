@@ -714,5 +714,7 @@
   "shareNotPossible": "Este proyecto no se puede compartir actualmente.",
   "shareLinkBrowser": "Compartir en el navegador",
   "shareLinkApp": "Compartir en la aplicación",
+  "modalProjectSaveGroup": "Grupo",
+  "modalProjectNoGroups": "No hay grupos en el servidor en los que pueda guardar.",
   "_last": "Last item so no one forgets the comma on the line above"
 }
