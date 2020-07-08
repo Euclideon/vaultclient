@@ -281,8 +281,8 @@
   "menuNewScene": "Nouveau projet",
   "menuChangeScene": "Changer de scène",
   "menuChangeSceneConfirm": "La scène existante a des modifications non enregistrées. Continuez à changer la scène?",
-  "menuProjectExport": "Projet d'exportation",
-  "menuProjectExportTitle": "Exporter le projet sur le disque",
+  "menuProjectExport": "Sauvegarder une copie",
+  "menuProjectExportTitle": "Enregistrer une copie sur un lecteur local ou réseau",
   "menuProjectImport": "Importer un projet",
   "menuProjectImportTitle": "Importer le projet dans la scène",
   "menuProjectNone": "Aucun projet de serveur",
@@ -717,5 +717,8 @@
   "modalProjectSaveGroup": "Groupe",
   "modalProjectNoGroups": "Vous ne pouvez enregistrer aucun groupe sur le serveur.",
   "settingsMapFlatMode": "Afficher la planète comme une projection plate (SRID: {0})",
+  "menuProjectExportDisk": "Enregistrer sur le disque",
+  "menuProjectExportCloud": "Enregistrer dans le cloud",
+  "menuProjectExportButton": "Sauvegarder et continuer",
   "_last": "Last item so no one forgets the comma on the line above"
 }

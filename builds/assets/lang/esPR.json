@@ -232,11 +232,11 @@
   "endSessionExitTitle": "¿Salir?",
   "endSessionExitMessage": "¿Está Seguro que Desea Salir?",
   "menuProjectImport": "Proyecto de importación",
-  "menuProjectExport": "Proyecto de exportación",
+  "menuProjectExport": "Guardar una copia",
   "menuFileName": "Nombre de Archivo",
   "menuProjectNone": "No hay Proyectos de Servidor",
   "menuProjectImportTitle": "Importar Proyecto a Escena",
-  "menuProjectExportTitle": "Exportar Proyecto a Disco",
+  "menuProjectExportTitle": "Guardar una copia en una unidad local o de red",
   "convertSpaceCartesian": "Cartesiano",
   "convertSpaceLabel": "Fuente XY",
   "convertAllSpaceLabel": "Configurar Todas las Fuentes XY",
@@ -717,5 +717,8 @@
   "modalProjectSaveGroup": "Grupo",
   "modalProjectNoGroups": "No hay grupos en el servidor en los que pueda guardar.",
   "settingsMapFlatMode": "Mostrar planeta como una proyección plana (SRID: {0})",
+  "menuProjectExportDisk": "Guardar en el disco",
+  "menuProjectExportCloud": "Guardar en la nube",
+  "menuProjectExportButton": "Guardar y continuar",
   "_last": "Last item so no one forgets the comma on the line above"
 }
