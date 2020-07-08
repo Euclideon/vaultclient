@@ -104,6 +104,8 @@ bool vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
 
+  vcProject_UpdateProjectHistory(pProgramState, pPath, false);
+
   return true;
 }
 
@@ -121,6 +123,10 @@ bool vcProject_CreateServerScene(vcState *pProgramState, const char *pName, cons
 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
+
+  const char *pProjectUUID = nullptr;
+  vdkProject_GetProjectUUID(pNewProject, &pProjectUUID);
+  vcProject_UpdateProjectHistory(pProgramState, pProjectUUID, true);
 
   return true;
 }

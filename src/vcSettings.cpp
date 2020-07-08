@@ -884,8 +884,13 @@ bool vcSettings_Save(vcSettings *pSettings)
     vcProjectHistoryInfo *pProjectHistory = &pSettings->projectsHistory.projects[i];
 
     data.Set("projectsHistory.isServerProject[] = %s", pProjectHistory->isServerProject ? "true" : "false");
-    data.Set("projectsHistory.name[] = '%s'", pProjectHistory->pName);
-    data.Set("projectsHistory.path[] = '%s'", pProjectHistory->pPath);
+
+    udJSON temp;
+    temp.SetString(pProjectHistory->pName);
+    data.Set(&temp, "projectsHistory.name[]");
+
+    temp.SetString(pProjectHistory->pPath);
+    data.Set(&temp, "projectsHistory.path[]");
   }
 
   // Save
