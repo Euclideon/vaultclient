@@ -205,6 +205,7 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       vcRenderPolyInstance *pPoly = pRenderData->polyModels.PushBack();
       pPoly->worldMat = udDouble4x4::rotationYPR(m_image.ypr, m_image.position) * udDouble4x4::scaleUniform(m_image.scale);
       pPoly->renderType = vcRenderPolyInstance::RenderType_Polygon;
+      pPoly->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent; // so atmo doesn't affect it
       pPoly->pSceneItem = this;
       pPoly->pDiffuseOverride = m_image.pTexture;
       pPoly->selectable = true;
