@@ -314,6 +314,9 @@ void vcSession_UpdateInfo(void *pProgramStatePtr)
 
 void vcSession_CleanupGroups(vcState *pProgramState)
 {
+  if (pProgramState->groups.length == 0)
+    return;
+
   for (auto item : pProgramState->groups)
   {
     udFree(item.pGroupName);
