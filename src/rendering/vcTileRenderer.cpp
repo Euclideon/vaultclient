@@ -114,11 +114,12 @@ struct vcTileRenderer
       udFloat4x4 projectionMatrix;
       udFloat4x4 viewMatrix;
       udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
-      udFloat4 eyeNormals[TileVertexControlPointRes * TileVertexControlPointRes];
       udFloat4 colour;
       udFloat4 objectInfo; // objectId.x, tileSkirtLength
       udFloat4 uvOffsetScale;
       udFloat4 demUVOffsetScale;
+      udFloat4 worldNormals[TileVertexControlPointRes * TileVertexControlPointRes];
+      udFloat4 worldBitangents[TileVertexControlPointRes * TileVertexControlPointRes];
     } everyObject;
   } presentShader;
 };
@@ -1103,9 +1104,10 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
   {
     udDouble3 mapHeightOffset = pNode->worldNormals[t] * udDouble3::create(pTileRenderer->pSettings->maptiles.mapHeight);
     udFloat4 eyeSpacePosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t] + mapHeightOffset, 1.0));
-    udFloat4 eyeSpaceNormal = udFloat4::create(view * udDouble4::create(pNode->worldNormals[t], 0.0));
     pTileRenderer->presentShader.everyObject.eyePositions[t] = eyeSpacePosition;
-    pTileRenderer->presentShader.everyObject.eyeNormals[t] = eyeSpaceNormal;
+
+    pTileRenderer->presentShader.everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(pNode->worldNormals[t]), 0.0f);
+    pTileRenderer->presentShader.everyObject.worldBitangents[t] = udFloat4::create(udFloat3::create(pNode->worldBitangents[t]), 0.0f);
   }
 
   udFloat2 size = pNode->colourInfo.drawInfo.uvEnd - pNode->colourInfo.drawInfo.uvStart;

@@ -38,18 +38,13 @@ PS_OUTPUT main(PS_INPUT input)
   float4 col = albedoTexture.Sample(albedoSampler, input.uv);
   float4 diffuseColour = col * input.colour;
 
-  // some fixed lighting
-  float3 lightDirection = normalize(float3(0.85, 0.15, 0.5));
-  float ndotl = dot(input.normal, lightDirection) * 0.5 + 0.5;
-  float3 diffuse = diffuseColour.xyz * ndotl;
-
-  output.Color0 = float4(diffuse, diffuseColour.a);
+  output.Color0 = diffuseColour;
 
   float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
   output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
 
   // Some Polygon models have normals, some do not - disable for now
-  output.Normal = packNormal(float3(0,0,0), input.objectInfo.x, output.Depth0); 
+  output.Normal = packNormal(input.normal, input.objectInfo.x, output.Depth0); 
   
   // DISABLED FOR opaque geometry
   // conditionally disable selection (using alpha-blend)

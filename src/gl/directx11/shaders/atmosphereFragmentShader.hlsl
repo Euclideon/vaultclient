@@ -1314,7 +1314,6 @@ cbuffer u_fragParams : register(b0)
   float4 u_earthCenter; // w is radius
   float4 u_sunDirection;// w unused
   float4 u_sunSize; //zw unused
-  float4 u_earthNorth; // w unused
 };
 
 sampler sceneColourSampler;
@@ -1390,10 +1389,6 @@ PS_OUTPUT main(PS_INPUT input)
   float sceneDepth = logToLinearDepth(sceneLogDepth);
   float3 sceneNormal = unpackNormal(sceneNormalPacked);
   sceneColour.xyz = pow(abs(sceneColour.xyz), float3(2.2, 2.2, 2.2));
-  
-  // not all geometry has normals yet
-  if (length(sceneNormal) == 0.0)
-    sceneNormal = float3(0, 0, 1);
 
   output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
@@ -1421,14 +1416,11 @@ PS_OUTPUT main(PS_INPUT input)
 
   // precision issues, alter visuals based on distance
   float hack_distanceFadeScalar = min(1.0, pow(sceneLogDepth, 6.0) * 6.0);  
-  float3 earthNormal = normalize(spherePoint - earth_center);
-  float3 earthBitangent = u_earthNorth.xyz;
-  float3 earthTangent = normalize(cross(earthBitangent, earthNormal));
-	
-  float3x3 tbn = float3x3(earthTangent, earthBitangent, earthNormal);
-  sceneNormal.y *= -1; // TODO: Investigate this flip
-  sceneNormal = mul(sceneNormal, tbn);
   
+  // not all geometry has normals yet
+  if (length(sceneNormal) == 0.0)
+    sceneNormal = normalize(geometryPoint - earth_center);
+	
   // TODO: Normals
   float shadow_in = 0;
   float shadow_out = 0;
@@ -1555,7 +1547,7 @@ the scene:
   output.Color0.a = 1.0;
 
   // debugging
-  //output.Color0.xyz = lerp(float3(abs(sceneNormal.xyz)), output.Color0.xyz, 0.00000000001);
+ //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
 	
   
   return output;
