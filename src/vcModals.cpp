@@ -381,7 +381,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       {
         if (pProgramState->groups.length > 0 && availableGroups)
         {
-          if (ImGui::BeginCombo(vcString::Get("modalProjectsSaveGroup"), udUUID_GetAsString(selectedGroup)))
+          if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), udUUID_GetAsString(selectedGroup)))
           {
             for (auto item : pProgramState->groups)
             {

@@ -714,5 +714,7 @@
   "shareNotPossible": "当前无法共享该项目。",
   "shareLinkBrowser": "在浏览器中共享",
   "shareLinkApp": "分享应用程式",
+  "modalProjectSaveGroup": "组",
+  "modalProjectNoGroups": "服务器上没有可以保存到的组。",
   "_last": "Last item so no one forgets the comma on the line above"
 }

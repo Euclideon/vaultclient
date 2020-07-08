@@ -707,6 +707,8 @@
   "modalProjectNonGeolocatedDescription": "Creates a non-geolocated project",
   "modalProjectSpecificZoneDescription": "Creates a geolocated project, with a specific zone (advanced)",
   "modalProjectSaveLocation": "Save Location",
+  "modalProjectSaveGroup": "Group",
+  "modalProjectNoGroups": "There are no groups on the server that you can save to.",
   "modalProjectLocal": "Local",
   "modalProjectServer": "Server",
   "modalProjectLocalOrServerProject": "Local or Server Project",

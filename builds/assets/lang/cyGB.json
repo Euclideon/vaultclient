@@ -714,5 +714,7 @@
   "shareNotPossible": "Ni ellir rhannu'r prosiect hwn ar hyn o bryd.",
   "shareLinkBrowser": "Rhannwch y Porwr",
   "shareLinkApp": "App Rhannu",
+  "modalProjectSaveGroup": "Grŵp",
+  "modalProjectNoGroups": "Nid oes unrhyw grwpiau ar y gweinydd y gallwch arbed iddynt.",
   "_last": "Last item so no one forgets the comma on the line above"
 }
