@@ -716,5 +716,6 @@
   "shareLinkApp": "アプリで共有",
   "modalProjectSaveGroup": "グループ",
   "modalProjectNoGroups": "サーバーに保存できるグループがありません。",
+  "settingsMapFlatMode": "平面を平面投影で表示（SRID：{0}）",
   "_last": "Last item so no one forgets the comma on the line above"
 }

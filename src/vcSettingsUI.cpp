@@ -12,6 +12,7 @@
 #include "vcWebFile.h"
 #include "vcFeatures.h"
 #include "vcProxyHelper.h"
+#include "vcStringFormat.h"
 
 #include "vdkConfig.h"
 
@@ -745,27 +746,29 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
   {
     ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
 
-    ImGui::SameLine();
-    if (ImGui::Button(vcString::Get("settingsMapECEFMode")))
+    if (pProgramState->settings.presentation.showDiagnosticInfo)
     {
-      int32_t newSRID = -1;
+      if (pProgramState->geozone.srid != vcPSZ_NotGeolocated)
+      {
+        int32_t newSRID = -1;
+        char buffer[512];
 
-      if (pProgramState->geozone.srid == vcPSZ_WGS84ECEF)
-      {
-        newSRID = pProgramState->previousSRID;
-      }
-      else
-      {
-        pProgramState->previousSRID = pProgramState->geozone.srid;
-        newSRID = vcPSZ_WGS84ECEF;
-      }
+        if (pProgramState->geozone.srid != vcPSZ_WGS84ECEF && ImGui::Button(vcString::Get("settingsMapECEFMode")))
+        {
+          pProgramState->previousSRID = pProgramState->geozone.srid;
+          newSRID = vcPSZ_WGS84ECEF;
+        }
 
-      if (newSRID != -1)
-      {
-        udGeoZone zone = {};
-        udGeoZone_SetFromSRID(&zone, newSRID);
-        vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
-        pProgramState->activeProject.pFolder->ChangeProjection(zone);
+        if (pProgramState->geozone.srid == vcPSZ_WGS84ECEF && pProgramState->previousSRID != -1 && ImGui::Button(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("settingsMapFlatMode"), udTempStr("%d", pProgramState->previousSRID))))
+          newSRID = pProgramState->previousSRID;
+
+        if (newSRID != -1)
+        {
+          udGeoZone zone = {};
+          udGeoZone_SetFromSRID(&zone, newSRID);
+          vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
+          pProgramState->activeProject.pFolder->ChangeProjection(zone);
+        }
       }
     }
 

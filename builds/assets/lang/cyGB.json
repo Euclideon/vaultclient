@@ -716,5 +716,6 @@
   "shareLinkApp": "App Rhannu",
   "modalProjectSaveGroup": "Grŵp",
   "modalProjectNoGroups": "Nid oes unrhyw grwpiau ar y gweinydd y gallwch arbed iddynt.",
+  "settingsMapFlatMode": "Dangos Planet fel tafluniad gwastad (SRID: {0})",
   "_last": "Last item so no one forgets the comma on the line above"
 }

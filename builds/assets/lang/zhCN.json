@@ -716,5 +716,6 @@
   "shareLinkApp": "分享应用程式",
   "modalProjectSaveGroup": "组",
   "modalProjectNoGroups": "服务器上没有可以保存到的组。",
+  "settingsMapFlatMode": "将行星显示为平面投影（SRID：{0}）",
   "_last": "Last item so no one forgets the comma on the line above"
 }
