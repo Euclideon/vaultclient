@@ -1389,10 +1389,6 @@ PS_OUTPUT main(PS_INPUT input)
   float sceneDepth = logToLinearDepth(sceneLogDepth);
   float3 sceneNormal = unpackNormal(sceneNormalPacked);
   sceneColour.xyz = pow(abs(sceneColour.xyz), float3(2.2, 2.2, 2.2));
-  
-  // not all geometry has normals yet
-  if (length(sceneNormal) == 0.0)
-    sceneNormal = float3(0, 0, 1);
 
   output.Normal = sceneNormalPacked;
   output.Depth0 = sceneLogDepth;
@@ -1421,6 +1417,10 @@ PS_OUTPUT main(PS_INPUT input)
   // precision issues, alter visuals based on distance
   float hack_distanceFadeScalar = min(1.0, pow(sceneLogDepth, 6.0) * 6.0);  
   
+  // not all geometry has normals yet
+  if (length(sceneNormal) == 0.0)
+    sceneNormal = normalize(geometryPoint - earth_center);
+	
   // TODO: Normals
   float shadow_in = 0;
   float shadow_out = 0;
