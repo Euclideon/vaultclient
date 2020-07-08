@@ -10,8 +10,18 @@ project "udStreamApp"
 	files { "res/**.xml", "res/**.png" }
 	files { "src/**.java"}
 
+	if mergeAndroidPackage then
+		files { "libs/**.so" }
+
+		-- Create shaders folder for shaders to be copied into
+		os.mkdir("../../builds/assets/shaders")
+	end
+
 	for _, file in ipairs(os.matchfiles("../../src/gl/opengl/shaders/mobile/*")) do
 		local newfile = file:gsub("../../src/gl/opengl/shaders/mobile", "../../builds/assets/shaders")
+		if mergeAndroidPackage then
+			os.copyfile(file, newfile)
+		end
 		files(newfile)
 	end
 

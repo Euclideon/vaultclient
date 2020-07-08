@@ -1,0 +1,40 @@
+parameters:
+  name: ''
+  displayName: ''
+  platform: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  displayName: ${{ parameters.displayName }}
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+  - checkout: self
+    submodules: recursive
+  - template: azure-pipelines-steps-linkedvdk.yml
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download Android x64 SO'
+    inputs:
+      artifact: androidx64Release_SO
+      path: 'buildscripts/android/libs/x86_64/'
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download Android ARM64 SO'
+    inputs:
+      artifact: androidarm64Release_SO
+      path: 'buildscripts/android/libs/arm64-v8a/'
+  - script: |
+      cd buildscripts\android
+      ..\..\3rdParty\udcore\bin\premake-bin\premake5.exe vs2019 --os=android
+      cd ..\..
+    displayName: 'Run Premake'
+  - task: MSBuild@1
+    displayName: 'Build Projects'
+    inputs:
+      solution: buildscripts\android\udStreamPackage.sln
+      platform: ${{ parameters.platform }}
+      configuration: 'Release'
+      maximumCpuCount: true
+      msbuildArguments: '/v:m'
+  - publish: buildscripts/android/bin/${{ parameters.platform }}/Release/udStreamApp.apk
+    displayName: 'Publish Artifacts'
+    artifact: ${{ parameters.name }}
