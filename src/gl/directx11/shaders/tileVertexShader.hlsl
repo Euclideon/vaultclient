@@ -19,6 +19,8 @@ struct PS_INPUT
   float2 depth : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
   float2 normalUV : TEXCOORD3;
+  float3 normal: TEXCOORD4;
+  float3 bitangent: TEXCOORD5;
 };
 
 // This should match CPU struct size
@@ -29,11 +31,12 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_projection;
   float4x4 u_view;
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
-  float4 u_eyeNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
   float4 u_objectInfo; // objectId.x, skirtLength.y
   float4 u_uvOffsetScale;
   float4 u_demUVOffsetScale;
+  float4 u_worldNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
+  float4 u_worldBitangents[CONTROL_POINT_RES * CONTROL_POINT_RES];
 };
 
 sampler demSampler;
@@ -71,7 +74,7 @@ float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], flo
 float demHeight(float2 uv)
 {
   float2 tileHeightSample = demTexture.SampleLevel( demSampler, uv, 0 ).xy;
-    // Reconstruct uint16 in float space and then convert back to int16 in float space
+  // Reconstruct uint16 in float space and then convert back to int16 in float space
   return ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
 }
 
@@ -81,8 +84,9 @@ PS_INPUT main(VS_INPUT input)
 
   // interpolate between control points to generate a final position for this vertex
   float2 indexUV = input.pos.xy * (CONTROL_POINT_RES - 1.0);
+  float3 worldNormal = normalize(BilinearSample(u_worldNormals, indexUV)).xyz;
   float4 eyePos = BilinearSample(u_eyePositions, indexUV);
-  float4 eyeNormal = BilinearSample(u_eyeNormals, indexUV);
+  float4 eyeNormal = mul(u_view, float4(worldNormal, 0.0));
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
   float tileHeight = demHeight(demUV);
@@ -100,6 +104,8 @@ PS_INPUT main(VS_INPUT input)
   output.depth = float2(output.pos.z, output.pos.w);
   output.objectInfo.x = u_objectInfo.x;
   output.normalUV = demUV;
+  output.normal = worldNormal;
+  output.bitangent = normalize(BilinearSample(u_worldBitangents, indexUV)).xyz;
 	
   return output;
 }
