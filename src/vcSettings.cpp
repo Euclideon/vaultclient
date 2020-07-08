@@ -224,7 +224,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->camera.cameraMouseBindings[1] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[1]").AsInt(vcCPM_Pan);
     pSettings->camera.cameraMouseBindings[2] = (vcCameraPivotMode)data.Get("camera.cameraMouseBindings[2]").AsInt(vcCPM_Orbit);
     pSettings->camera.scrollWheelMode = (vcCameraScrollWheelMode)data.Get("camera.scrollwheelBinding").AsInt(vcCSWM_Dolly);
-    pSettings->camera.keepAboveSurface = data.Get("camera.keepAboveSurface").AsBool(false);
 
     pSettings->mouseSnap.enable = data.Get("mouseSnap.enable").AsBool(true);
     pSettings->mouseSnap.range = data.Get("mouseSnap.range").AsInt(8);
@@ -247,6 +246,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
     pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
     pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
+
+    if (data.Get("camera.keepAboveSurface").IsBool())
+      pSettings->camera.keepAboveSurface = data.Get("camera.keepAboveSurface").AsBool(false);
+    else
+      pSettings->camera.keepAboveSurface = data.Get("maptiles.keepAboveSurface").AsBool(false);
 
     vcSettings_ApplyMapChange(pSettings);
   }
@@ -702,7 +706,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.moveMode = %d", pSettings->camera.lockAltitude ? 1 : 0);
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
-  data.Set("camera.keepAboveSurface = %s", pSettings->camera.keepAboveSurface ? "true" : "false");
 
   //Units of measurement
   for (uint32_t i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
@@ -861,6 +864,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);
   data.Set("maptiles.mapQuality = %d", int(pSettings->maptiles.mapQuality));
   data.Set("maptiles.mapOptions = %d", int(pSettings->maptiles.mapOptions));
+  data.Set("maptiles.keepAboveSurface = %s", pSettings->camera.keepAboveSurface ? "true" : "false");
 
   tempNode.SetString(pSettings->maptiles.mapType);
   data.Set(&tempNode, "maptiles.type");
