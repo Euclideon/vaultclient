@@ -731,6 +731,9 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
     return result;
 
+  // Metal / OpenGL ES - force a resolve before reading
+  vcFramebuffer_Bind(pRenderContext->pFinalFramebuffer);
+
   static udUInt2 lastPickLocation = udUInt2::zero();
 
   uint8_t pixelBytes[8] = {};
@@ -1538,7 +1541,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcRender_PostProcessPass(pProgramState, pRenderContext);
 
   vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);
-
+  
   vcRender_AsyncReadFrameDepth(pRenderContext);
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
