@@ -716,5 +716,6 @@
   "shareLinkApp": "Partager dans l'application",
   "modalProjectSaveGroup": "Groupe",
   "modalProjectNoGroups": "Vous ne pouvez enregistrer aucun groupe sur le serveur.",
+  "settingsMapFlatMode": "Afficher la planète comme une projection plate (SRID: {0})",
   "_last": "Last item so no one forgets the comma on the line above"
 }
