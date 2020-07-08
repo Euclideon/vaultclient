@@ -60,6 +60,7 @@ void vcI3S::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   instance.pSceneItem = this;
   instance.sceneItemInternalId = 0; // TODO: individual node picking
   instance.selectable = true;
+  instance.tint = udFloat4::one();
 
   pRenderData->polyModels.PushBack(instance);
 }

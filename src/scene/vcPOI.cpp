@@ -1358,6 +1358,7 @@ void vcPOI::AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRend
     pModel->worldMat = attachmentMat;
     pModel->cullFace = m_attachment.cullMode;
     pModel->selectable = true;
+    pModel->tint = udFloat4::one();
 
     // Update the camera if the camera is coming along
     if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
