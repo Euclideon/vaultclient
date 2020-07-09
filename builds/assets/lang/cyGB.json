@@ -720,5 +720,9 @@
   "menuProjectExportDisk": "Arbedwch i'r ddisg",
   "menuProjectExportCloud": "Arbedwch i'r cwmwl",
   "menuProjectExportButton": "Arbed a pharhau",
+  "popupOK": "iawn",
+  "menuProjectSettingsTitle": "Gosodiadau Prosiect",
+  "menuProjectName": "Enw'r Prosiect",
+  "menuProjectInfo": "Gwybodaeth am y Prosiect",
   "_last": "Last item so no one forgets the comma on the line above"
 }

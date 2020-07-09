@@ -720,5 +720,9 @@
   "menuProjectExportDisk": "ディスクに保存",
   "menuProjectExportCloud": "クラウドに保存",
   "menuProjectExportButton": "保存して続行",
+  "popupOK": "OK",
+  "menuProjectSettingsTitle": "プロジェクト設定",
+  "menuProjectName": "プロジェクト名",
+  "menuProjectInfo": "プロジェクト情報",
   "_last": "Last item so no one forgets the comma on the line above"
 }
