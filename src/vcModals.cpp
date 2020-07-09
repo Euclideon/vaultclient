@@ -219,8 +219,17 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     static int creatingNewProjectType = -1;
     static int localOrServerProject = 0;
     static char pProjectPath[vcMaxPathLength] = {};
+
     static udUUID selectedGroup = {};
+    static const char *pGroupName = nullptr;
     static bool availableGroups = true;
+
+    if (ImGui::IsWindowAppearing())
+    {
+      pGroupName = nullptr;
+      availableGroups = true;
+      udUUID_Clear(&selectedGroup);
+    }
 
     const char *pNewProjectTypes[] =
     {
@@ -381,20 +390,37 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       {
         if (pProgramState->groups.length > 0 && availableGroups)
         {
-          if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), udUUID_GetAsString(selectedGroup)))
+          if (!udUUID_IsValid(selectedGroup))
           {
             for (auto item : pProgramState->groups)
             {
               if (item.permissionLevel >= 3) // Only >Managers can load projects
               {
                 if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID) || !udUUID_IsValid(selectedGroup))
+                {
                   selectedGroup = item.groupID;
+                  pGroupName = item.pGroupName;
+                }
               }
             }
 
             if (!udUUID_IsValid(selectedGroup))
               availableGroups = false;
+          }
 
+          if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), pGroupName))
+          {
+            for (auto item : pProgramState->groups)
+            {
+              if (item.permissionLevel >= 3) // Only >Managers can load projects
+              {
+                if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID) || !udUUID_IsValid(selectedGroup))
+                {
+                  selectedGroup = item.groupID;
+                  pGroupName = item.pGroupName;
+                }
+              }
+            }
             ImGui::EndCombo();
           }
         }
