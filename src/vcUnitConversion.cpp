@@ -74,6 +74,16 @@ double vcUnitConversion_ConvertTemperature(double sourceValue, vcTemperatureUnit
   return celciusVal;
 }
 
+double vcUnitConversion_ConvertAngle(double sourceValue, vcAngleUnit sourceUnit, vcAngleUnit requiredUnit)
+{
+  if (sourceUnit == requiredUnit)
+    return sourceValue;
+
+  static const double angleTable[vcSpeed_Count] = {1.0, 180.0 / UD_PI, 18.0 / 20.0};
+
+  return sourceValue * angleTable[sourceUnit] / angleTable[requiredUnit];
+}
+
 // Algorithm: http: //howardhinnant.github.io/date_algorithms.html
 static int vcUnitConversion_DaysFromCivil(int y, int m, int d)
 {
@@ -385,6 +395,19 @@ int vcUnitConversion_ConvertTemperatureToString(char *pBuffer, size_t bufferSize
     return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
 }
 
+int vcUnitConversion_ConvertAngleToString(char *pBuffer, size_t bufferSize, double value, vcAngleUnit unit, const char *pFormat)
+{
+  static const char *Suffixes[] = {"deg", "rad", "grad"};
+
+  if (pBuffer == nullptr || unit == vcAngle_Count)
+    return -1;
+
+  if (pFormat == nullptr)
+    return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
+  else
+    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+}
+
 udResult vcUnitConversion_SetMetric(vcUnitConversionData *pData)
 {
   udResult result = udR_Failure_;
@@ -410,6 +433,7 @@ udResult vcUnitConversion_SetMetric(vcUnitConversionData *pData)
   pData->speedUnit = vcSpeed_MetresPerSecond;
   pData->temperatureUnit = vcTemperature_Celcius;
   pData->timeReference = vcTimeReference_UTC;
+  pData->angleUnit = vcAngle_Degree;
 
   pData->distanceSigFigs = 3;
   pData->areaSigFigs = 3;
@@ -417,6 +441,7 @@ udResult vcUnitConversion_SetMetric(vcUnitConversionData *pData)
   pData->speedSigFigs = 3;
   pData->temperatureSigFigs = 3;
   pData->timeSigFigs = 0;
+  pData->angleSigFigs = 2;
 
   result = udR_Success;
 
@@ -449,6 +474,7 @@ udResult vcUnitConversion_SetUSSurvey(vcUnitConversionData *pData)
   pData->speedUnit = vcSpeed_FeetPerSecond;
   pData->temperatureUnit = vcTemperature_Farenheit;
   pData->timeReference = vcTimeReference_UTC;
+  pData->angleUnit = vcAngle_Degree;
 
   pData->distanceSigFigs = 3;
   pData->areaSigFigs = 3;
@@ -456,6 +482,7 @@ udResult vcUnitConversion_SetUSSurvey(vcUnitConversionData *pData)
   pData->speedSigFigs = 3;
   pData->temperatureSigFigs = 3;
   pData->timeSigFigs = 0;
+  pData->angleSigFigs = 2;
 
   result = udR_Success;
 
@@ -598,6 +625,27 @@ udResult vcUnitConversion_ConvertAndFormatTimeReference(char *pBuffer, size_t bu
 
   sigFigs = udClamp<uint32_t>(pData->timeSigFigs, 0, gSigFigCount - 1);
   convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, gTimeSigFigsFormats[sigFigs]);
+
+  result = convertResult < 0 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_ConvertAndFormatAngle(char *pBuffer, size_t bufferSize, double value, vcAngleUnit unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  double finalValue;
+  int convertResult;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcAngle_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  finalValue = vcUnitConversion_ConvertAngle(value, unit, pData->angleUnit);
+
+  sigFigs = udClamp<uint32_t>(pData->angleSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertAngleToString(pBuffer, bufferSize, finalValue, pData->angleUnit, gSigFigsFormats[sigFigs]);
 
   result = convertResult < 0 ? udR_WriteFailure : udR_Success;
 
