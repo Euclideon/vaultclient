@@ -2671,8 +2671,9 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
   ImGui::PopStyleColor(); // Border Colour
 
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400, 130));
   ImGui::SetNextWindowBgAlpha(0.6f);
-  ImGui::SetNextWindowSize(ImVec2(500, 160), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(-1, -1));
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
   const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginMessageChecking", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorOther", "loginForgot", "loginForgotPending", "loginForgotCheckEmail", "loginForgotTryPortal", "loginRegister", "loginRegisterPending", "loginRegisterCheckEmail", "loginRegisterTryPortal" };
@@ -2821,6 +2822,8 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     ImGui::End();
   }
 
+
+  ImGui::PopStyleVar(); // ImGuiStyleVar_WindowMinSize
   ImGui::PopStyleVar(); // ImGuiStyleVar_WindowRounding
 }
 
