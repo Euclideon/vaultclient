@@ -1471,8 +1471,13 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
   udInt2 imageSize = udInt2::zero();
   vcTexture_GetSize(pWatermark, &imageSize.x, &imageSize.y);
 
-  udFloat3 position = udFloat3::create(float(imageSize.x + 10) / pRenderContext->sceneResolution.x - 1, float(imageSize.y + 50) / pRenderContext->sceneResolution.y - 1, 0);
-  udFloat3 scale = udFloat3::create(2.0f * float(imageSize.x) / pRenderContext->sceneResolution.x, -2.0f * float(imageSize.y) / pRenderContext->sceneResolution.y, 1.0);
+  // Scale the logo with scene resolution, maintaining aspect ratio
+  static const float ImageToSceneRatio = 3.0f;
+  udFloat2 logoScaleDimensions = udFloat2::create(pRenderContext->sceneResolution.x / (imageSize.x * ImageToSceneRatio), pRenderContext->sceneResolution.y / (imageSize.y * ImageToSceneRatio));
+  float logoScale = udMin(1.0f, udMin(logoScaleDimensions.x, logoScaleDimensions.y));
+
+  udFloat3 position = udFloat3::create(logoScale * float(imageSize.x + 10) / pRenderContext->sceneResolution.x - 1, logoScale * float(imageSize.y + 50) / pRenderContext->sceneResolution.y - 1, 0);
+  udFloat3 scale = udFloat3::create(logoScale * 2.0f * float(imageSize.x) / pRenderContext->sceneResolution.x, logoScale * -2.0f * float(imageSize.y) / pRenderContext->sceneResolution.y, 1.0);
 
 #if GRAPHICS_API_OPENGL
   position.y = -position.y;
