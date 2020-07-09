@@ -243,6 +243,29 @@ TEST(UnitConversion, TimeReference)
   VerifyTimeReferenceUTC(1593734653.7, vcTimeReference_Unix, utcData); //Retrieved from https: //www.epochconverter.com
 }
 
+void VerifyAngle(vcAngleUnit sourceType, double in, vcAngleUnit destType, double out)
+{
+  EXPECT_NEAR(out, vcUnitConversion_ConvertAngle(in, sourceType, destType), 0.00001) << "fwd-" << sourceType << " to " << destType;
+  EXPECT_NEAR(in, vcUnitConversion_ConvertAngle(out, destType, sourceType), 0.00001) << "back-" << sourceType << " to " << destType;
+}
+
+TEST(UnitConversion, AngleUnit)
+{
+  double oneDegInRad = 1.0 / 180.0 * UD_PI;
+  double oneDegInGrad = 20.0 / 18.0;
+  double oneRadInGrad = 200.0 / UD_PI;
+
+  VerifyAngle(vcAngle_Degree, 1, vcAngle_Radian, oneDegInRad);
+  VerifyAngle(vcAngle_Degree, 1, vcAngle_Gradian, oneDegInGrad);
+  VerifyAngle(vcAngle_Radian, 1, vcAngle_Gradian, oneRadInGrad);
+
+  double val = 42;
+  val = vcUnitConversion_ConvertAngle(val, vcAngle_Degree, vcAngle_Radian);
+  val = vcUnitConversion_ConvertAngle(val, vcAngle_Radian, vcAngle_Gradian);
+  val = vcUnitConversion_ConvertAngle(val, vcAngle_Gradian, vcAngle_Degree);
+  EXPECT_NEAR(val, 42.0, 0.000001);
+}
+
 TEST(UnitConversion, StringFormating)
 {
   double value = 42.0;
@@ -501,6 +524,26 @@ TEST(UnitConversion, StringFormating)
 
     EXPECT_EQ(vcUnitConversion_ConvertTemperatureToString(buffer, bufSze, value, vcTemperature_Count), -1);
   }
+
+  {
+    EXPECT_TRUE(vcUnitConversion_ConvertAngleToString(buffer, bufSze, value, vcAngle_Degree) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000deg"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAngleToString(buffer, bufSze, value, vcAngle_Radian) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000rad"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAngleToString(buffer, bufSze, value, vcAngle_Gradian) != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42.000000grad"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAngleToString(buffer, bufSze, value, vcAngle_Degree, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42deg"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAngleToString(buffer, bufSze, value, vcAngle_Radian, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42rad"), 0);
+
+    EXPECT_TRUE(vcUnitConversion_ConvertAngleToString(buffer, bufSze, value, vcAngle_Gradian, "%0.0f") != -1);
+    EXPECT_EQ(udStrcmp(buffer, "42grad"), 0);
+  }
 }
 
 TEST(UnitConversion, ConvertAndStringifyMetric)
@@ -613,6 +656,14 @@ TEST(UnitConversion, ConvertAndStringifyMetric)
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatTemperature(buffer, bufSze, metricVal + 273.15, vcTemperature_Kelvin, &conversionData), udR_Success);
     EXPECT_EQ(udStrcmp(buffer, "5.733C"), 0);
   }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatAngle(buffer, bufSze, metricVal, vcAngle_Degree, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.73deg"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatAngle(buffer, bufSze, metricVal /180.0 * UD_PI, vcAngle_Radian, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.73deg"), 0);
+  }
 }
 
 TEST(UnitConversion, ConvertAndStringifyImperial)
@@ -695,5 +746,13 @@ TEST(UnitConversion, ConvertAndStringifyImperial)
 
     EXPECT_EQ(vcUnitConversion_ConvertAndFormatTemperature(buffer, bufSze, (imperialVal - 32.0) * 5.0/9.0 + 273.15, vcTemperature_Kelvin, &conversionData), udR_Success);
     EXPECT_EQ(udStrcmp(buffer, "5.733F"), 0);
+  }
+
+  {
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatAngle(buffer, bufSze, imperialVal, vcAngle_Degree, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.73deg"), 0);
+
+    EXPECT_EQ(vcUnitConversion_ConvertAndFormatAngle(buffer, bufSze, imperialVal / 180.0 * UD_PI, vcAngle_Radian, &conversionData), udR_Success);
+    EXPECT_EQ(udStrcmp(buffer, "5.73deg"), 0);
   }
 }
