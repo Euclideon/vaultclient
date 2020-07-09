@@ -207,7 +207,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_Welcome))
     ImGui::OpenPopup("###modalWelcome");
 
-  ImGui::SetNextWindowSize(ImVec2(1000, 400), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(1000, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("###modalWelcome", nullptr, ImGuiWindowFlags_NoTitleBar))
   {
     if (pProgramState->closeModals & (1 << vcMT_Welcome))
@@ -255,6 +255,34 @@ void vcModals_DrawWelcome(vcState *pProgramState)
     UDCOMPILEASSERT(udLengthOf(pNewProjectTypes) == udLengthOf(pNewProjectDescriptions), "Invalid matching sizes");
 
     ImVec2 windowSize = ImGui::GetWindowSize();
+
+    // Logo
+    {
+      const int LogoSize = 400;
+
+      int x = 0;
+      int y = 0;
+
+      vcTexture_GetSize(pProgramState->pCompanyLogo, &x, &y);
+
+      float xf = (float)x;
+      float yf = (float)y;
+      float r = (float)x / (float)y;
+
+      if (r >= 1.0) // X is larger
+      {
+        xf = (float)udMin(x, LogoSize);
+        yf = (xf / r);
+      }
+      else // Y is larger
+      {
+        yf = (float)udMin(y, LogoSize);
+        xf = (yf * r);
+      }
+
+      ImGui::SetCursorPosX((windowSize.x - xf) / 2);
+      ImGui::Image(pProgramState->pCompanyLogo, ImVec2(xf, yf));
+    }
 
     // Get Help
     {
