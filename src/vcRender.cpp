@@ -1193,9 +1193,9 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
       if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
         continue;
 
-      udFloat4 *pTintOverride = &pInstance->tint;
+      udFloat4 *pColourOverride = nullptr;
       if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_IgnoreTint))
-        pTintOverride = &whiteColour;
+        pColourOverride = &whiteColour;
 
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
@@ -1204,7 +1204,7 @@ void vcRender_OpaquePass(vcState *pProgramState, vcRenderContext *pRenderContext
         objectId = 0.0f; // sentinel for 'not selectable'
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pTintOverride);
+        vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->tint, pInstance->pDiffuseOverride, pColourOverride);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution);
     }
@@ -1302,9 +1302,9 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
     if (!pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_Transparent))
       continue;
 
-    udFloat4 *pTintOverride = &pInstance->tint;
+    udFloat4 *pColourOverride = nullptr;
     if (pInstance->HasFlag(vcRenderPolyInstance::RenderFlags_IgnoreTint))
-      pTintOverride = &whiteColour;
+      pColourOverride = &whiteColour;
 
     vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
@@ -1313,7 +1313,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
       objectId = 0.0f; // sentinel for 'not selectable'
 
     if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-      vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->pDiffuseOverride, pTintOverride);
+      vcPolygonModel_Render(pInstance->pModel, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_Standard, pInstance->tint, pInstance->pDiffuseOverride, pColourOverride);
     else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
       vcSceneLayerRenderer_Render(pInstance->pSceneLayer, objectId, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution);
   }
@@ -1390,7 +1390,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, selectionMask, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_ColourOnly);
+        vcPolygonModel_Render(pInstance->pModel, selectionMask, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_ColourOnly, udFloat4::one());
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, selectionMask, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution, nullptr, vcPMP_ColourOnly);
 
