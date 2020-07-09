@@ -202,15 +202,15 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawNewProject(vcState *pProgramState)
+void vcModals_DrawWelcome(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_NewProject))
-    ImGui::OpenPopup(vcString::Get("modalProjectNewTitle"));
+  if (pProgramState->openModals & (1 << vcMT_Welcome))
+    ImGui::OpenPopup("###modalWelcome");
 
   ImGui::SetNextWindowSize(ImVec2(1000, 400), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("modalProjectNewTitle")))
+  if (ImGui::BeginPopupModal("###modalWelcome", nullptr, ImGuiWindowFlags_NoTitleBar))
   {
-    if (pProgramState->closeModals & (1 << vcMT_NewProject))
+    if (pProgramState->closeModals & (1 << vcMT_Welcome))
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
@@ -1262,7 +1262,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   pProgramState->modalOpen = false;
   vcModals_DrawLoggedOut(pProgramState);
   vcModals_DrawAddSceneItem(pProgramState);
-  vcModals_DrawNewProject(pProgramState);
+  vcModals_DrawWelcome(pProgramState);
   vcModals_DrawExportProject(pProgramState);
   vcModals_DrawImportProject(pProgramState);
   vcModals_DrawProjectSettings(pProgramState);

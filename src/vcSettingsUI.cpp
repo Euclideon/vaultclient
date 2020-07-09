@@ -633,7 +633,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if (ImGui::IsItemHovered())
             ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
-          const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
+          const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), pProgramState->branding.supportEmail);
           ImGui::TextUnformatted(pSupportStr);
           udFree(pSupportStr);
 
