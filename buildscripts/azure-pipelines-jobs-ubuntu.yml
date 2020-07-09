@@ -39,7 +39,16 @@ jobs:
       testResultsFormat: 'JUnit'
       testResultsFiles: 'test_detail.xml'
       testRunTitle: ${{ parameters.name }}_$(platform)_$(configuration)
-  - publish: builds/
+  - task: ArchiveFiles@2
+    displayName: 'Archive Artifacts'
+    condition: and(succeeded(), or(eq(variables['configuration'], 'release'), eq(variables['configuration'], 'releaseclang')))
+    inputs:
+      rootFolderOrFile: builds/
+      includeRootFolder: false
+      archiveType: 'tar'
+      tarCompression: 'gz'
+      archiveFile: 'builds/${{ parameters.name }}$(configuration).tar.gz'
+  - publish: builds/${{ parameters.name }}$(configuration).tar.gz
     displayName: 'Publish Artifacts'
     condition: and(succeeded(), or(eq(variables['configuration'], 'release'), eq(variables['configuration'], 'releaseclang')))
     artifact: ${{ parameters.name }}$(configuration)
