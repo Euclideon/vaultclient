@@ -705,16 +705,13 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
     ImVec2 size = ImGui::GetWindowSize();
     ImGui::InputTextMultiline(vcString::Get("menuProjectInfo"), information, udLengthOf(information), ImVec2(0, size.y - 90));
 
-    if (ImGui::Button(vcString::Get("popupSave")))
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       vdkProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
       vdkProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
-    }
 
-    ImGui::SameLine();
-
-    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(0, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
+    }
 
     ImGui::EndPopup();
   }
