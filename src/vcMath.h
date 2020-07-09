@@ -263,6 +263,46 @@ T udSignedSimplePolygonArea3(udVector3<T> const * pPoints, size_t nPoints)
   return area / T(2);
 }
 
+//plane is of the format [{x, y, z}, offset]
+template<typename T>
+udVector3<T> udProjectPointToPlane(const udVector3<T> &point, udVector4<T> const &plane)
+{
+  udVector3<T> planeNorm = udVector3<T>::create(plane.x, plane.y, plane.z);
+  T val = udDot(planeNorm, point);
+  return point - planeNorm * (val + plane[3]);
+}
+
+//TODO don't need the plane, just the plane normal
+template<typename T>
+T udProjectedArea(udVector4<T> const &plane, udVector3<T> const *pPoints, size_t nPoints)
+{
+  if (pPoints == nullptr || nPoints < 3)
+    return T(0);
+
+  udVector3<T> centroid = {};
+  for (size_t i = 0; i < nPoints; ++i)
+    centroid += pPoints[i];
+  centroid /= T(nPoints);
+
+  centroid = udProjectPointToPlane<T>(centroid, plane);
+
+  T area = T(0);
+
+  udVector3<T> v0 = udProjectPointToPlane<T>(pPoints[0], plane) - centroid;
+  udVector3<T> v1 = udProjectPointToPlane<T>(pPoints[1], plane) - centroid;
+
+  for (size_t i = 0; i < nPoints; ++i)
+  {
+    area += udMag3(udCross3(v0, v1));
+
+    v0 = v1;
+    size_t ind = (i == nPoints - 2) ? 0 : i + 2;
+    v1 = udProjectPointToPlane<T>(pPoints[ind], plane) - centroid;
+  }
+
+  return area / T(2);
+}
+
 //Obtain a normalised perpendicular vector to axis, in no particular direction.
 //Assumes axis is a non-zero vector.
 template<typename T>

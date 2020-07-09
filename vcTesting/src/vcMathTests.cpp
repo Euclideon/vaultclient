@@ -383,3 +383,63 @@ TEST(vcMath, PrependicularVector)
   vec = udDouble3::create(-1.0, -1.0, -1.0);
   EXPECT_NEAR(udDot(vec, udPerpendicular3(vec)), 0.0, EPSILON_DOUBLE);
 }
+
+bool vcCheckPointProjection(udDouble3 point, udDouble4 plane, udDouble3 expected)
+{
+  udDouble3 result = udProjectPointToPlane<double>(point, plane);
+  return udMag3(result - expected) < EPSILON_DOUBLE;
+}
+
+TEST(vcMath, ProjectPointToPlane)
+{
+  double invSqrt3 = 1.0 / udSqrt(3.0);
+
+  EXPECT_TRUE(vcCheckPointProjection({2.0, 0.0, 0.0}, {1.0, 0.0, 0.0, -1.0}, {1.0, 0.0, 0.0}));
+  EXPECT_TRUE(vcCheckPointProjection({3.0, 0.0, 0.0}, {1.0, 0.0, 0.0, -1.0}, {1.0, 0.0, 0.0}));
+  EXPECT_TRUE(vcCheckPointProjection({-3425.0, 0.0, 0.0}, {1.0, 0.0, 0.0, -1.0}, {1.0, 0.0, 0.0}));
+
+  EXPECT_TRUE(vcCheckPointProjection({2.0, 0.0, 0.0}, {1.0, 0.0, 0.0, 1.0}, {-1.0, 0.0, 0.0}));
+  EXPECT_TRUE(vcCheckPointProjection({3.0, 0.0, 0.0}, {1.0, 0.0, 0.0, 1.0}, {-1.0, 0.0, 0.0}));
+  EXPECT_TRUE(vcCheckPointProjection({21345.0, 0.0, 0.0}, {1.0, 0.0, 0.0, 1.0}, {-1.0, 0.0, 0.0}));
+
+  EXPECT_TRUE(vcCheckPointProjection({3.0, 3.0, 3.0}, {invSqrt3, invSqrt3, invSqrt3, -1.0}, {invSqrt3, invSqrt3, invSqrt3}));
+}
+
+
+TEST(vcMath, ProjectedArea)
+{
+  {
+    udDouble3 points[4] =
+    {
+      {2.0, 2.0, 2.0},
+      {2.0, -2.0, 2.0},
+      {2.0, -2.0, -2.0},
+      {2.0, 2.0, -2.0}
+    };
+
+    udDouble4 plane = {1.0, 0.0, 0.0, -1.0};
+    EXPECT_NEAR(udProjectedArea(plane, points, 4), 16.0, EPSILON_DOUBLE);
+
+    plane = {1.0, 0.0, 0.0, 1.0};
+    EXPECT_NEAR(udProjectedArea(plane, points, 4), 16.0, EPSILON_DOUBLE);
+
+    plane = {0.0, 1.0, 0.0, -1.0};
+    EXPECT_NEAR(udProjectedArea(plane, points, 4), 0.0, EPSILON_DOUBLE);
+  }
+
+  {
+    udDouble3 points[4] =
+    {
+      {2.2, 2.0, 2.0},
+      {1.8, -2.0, 2.0},
+      {2.6, -2.0, -2.0},
+      {-123.9, 2.0, -2.0}
+    };
+
+    udDouble4 plane = {1.0, 0.0, 0.0, -1.0};
+    EXPECT_NEAR(udProjectedArea(plane, points, 4), 16.0, EPSILON_DOUBLE);
+
+    plane = {1.0, 0.0, 0.0, 1.0};
+    EXPECT_NEAR(udProjectedArea(plane, points, 4), 16.0, EPSILON_DOUBLE);
+  }
+}

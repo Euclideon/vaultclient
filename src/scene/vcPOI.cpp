@@ -717,7 +717,9 @@ void vcPOI::RebuildSceneLabel(const vcUnitConversionData *pConversionData)
 
 void vcPOI::UpdatePoints(vcState *pProgramState)
 {
-  CalculateArea();
+  udDouble3 worldUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid);
+
+  CalculateArea(udDouble4::create(worldUp, 0.0));
   CalculateTotalLength();
   CalculateCentroid();
 
@@ -742,7 +744,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
       config.ribbonWidth = m_line.lineWidth;
       config.textureScrollSpeed = 1.f;
       config.textureRepeatScale = 1.f;
-      config.worldUp = udFloat3::create(vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid));
+      config.worldUp = udFloat3::create(vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid)); //TODO this should be worldUp as calculated above
       
       vcFenceRenderer_SetConfig(m_pFence, config);
 
@@ -1076,17 +1078,14 @@ vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRende
   return pInstance;
 }
 
-void vcPOI::CalculateArea()
+void vcPOI::CalculateArea(const udDouble4 &projectionPlane)
 {
   m_area = 0.0;
 
   if (m_line.numPoints < 3)
     return;
 
-  //TODO This assumes we have a simple polygon.
-  //     Also we currently project the points onto the ground plane to find area,
-  //     we should be able to project these onto any plane.
-  m_area = udAbs(udSignedSimplePolygonArea3(m_line.pPoints, (size_t)m_line.numPoints));
+  m_area = udProjectedArea(projectionPlane, m_line.pPoints, (size_t)m_line.numPoints);
 }
 
 void vcPOI::CalculateTotalLength()
