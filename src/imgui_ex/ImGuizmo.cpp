@@ -795,6 +795,16 @@ static void vcGizmo_HandleTranslation(const udDouble3 direction[], udDouble4x4 *
       {
         int axisIndex = sGizmoContext.mCurrentOperation - vcGMT_MoveX;
         udDouble3 axisValue = sGizmoContext.mModel.c[axisIndex].toVector3();
+
+        // Remove small deltas
+        static const double MoveThreshold = 0.0000001;
+        if (udAbs(delta.x) <= MoveThreshold)
+          delta.x = 0;       
+        if (udAbs(delta.y) <= MoveThreshold)
+          delta.y = 0;        
+        if (udAbs(delta.z) <= MoveThreshold)
+          delta.z = 0;
+
         double lengthOnAxis = udDot3(axisValue, delta);
         delta = axisValue * lengthOnAxis;
       }
