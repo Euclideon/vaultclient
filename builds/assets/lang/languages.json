@@ -22,5 +22,13 @@
   {
     "localname": "Español (esPR)",
     "filename": "esPR"
+  },
+  {
+    "localname": "Русский язык (ruRU)",
+    "filename": "ruRU"
+  },
+  {
+    "localname": "bahasa melayu (msMY)",
+    "filename": "msMY"
   }
 ]

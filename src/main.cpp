@@ -788,9 +788,7 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
       0
     };
 
-    
     pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, bigFontCharacterRanges);
-
   }
 
   udFree(pLoadInfo->pData);
