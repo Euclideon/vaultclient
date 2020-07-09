@@ -1252,10 +1252,6 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
     vcLabelRenderer_Render(drawList, renderData.labels[i], encodedLabelId, pProgramState->camera.matrices.viewProjection, pProgramState->sceneResolution);
   }
 
-  // Watermark
-  if (pProgramState->settings.presentation.showEuclideonLogo)
-    vcRender_RenderWatermark(pRenderContext, pProgramState->pCompanyWatermark);
-
   vcGLState_ResetState();
 }
 
@@ -1477,6 +1473,10 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
   if (pWatermark == nullptr)
     return;
 
+  vcGLState_SetBlendMode(vcGLSBM_Interpolative);
+  vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+
   udInt2 imageSize = udInt2::zero();
   vcTexture_GetSize(pWatermark, &imageSize.x, &imageSize.y);
 
@@ -1545,6 +1545,10 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   if (selectionBufferActive)
     vcRender_ApplySelectionBuffer(pProgramState, pRenderContext);
+
+  // Watermark
+  if (pProgramState->settings.presentation.showEuclideonLogo)
+  vcRender_RenderWatermark(pRenderContext, pProgramState->pCompanyWatermark);
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
