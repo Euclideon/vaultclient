@@ -724,5 +724,7 @@
   "menuProjectSettingsTitle": "项目设定",
   "menuProjectName": "项目名称",
   "menuProjectInfo": "项目信息",
+  "gettingStarted": "社区中心",
+  "gettingStartedDesc": "单击此处以获取视频，教程和其他信息，以帮助您入门。",
   "_last": "Last item so no one forgets the comma on the line above"
 }

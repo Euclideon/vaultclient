@@ -61,6 +61,8 @@
   "loginErrorProxyAuthPending": "Waiting for valid proxy credentials...",
   "loginErrorProxyAuthFailed": "No valid proxy credentials were supplied, please try another proxy or supply valid proxy credentials",
   "loginErrorOther": "Unknown error occurred, please try again later.",
+  "gettingStarted": "Community Hub",
+  "gettingStartedDesc": "Click here for videos, tutorials and other information to help you hit the ground running.",
   "settingsTitle": "Settings",
   "settingsRestoreDefaults": "Restore Defaults",
   "settingsAppearance": "Appearance",

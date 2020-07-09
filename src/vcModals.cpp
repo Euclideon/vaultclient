@@ -254,6 +254,46 @@ void vcModals_DrawNewProject(vcState *pProgramState)
 
     UDCOMPILEASSERT(udLengthOf(pNewProjectTypes) == udLengthOf(pNewProjectDescriptions), "Invalid matching sizes");
 
+    ImVec2 windowSize = ImGui::GetWindowSize();
+
+    // Get Help
+    {
+      ImGui::SetCursorPosX((windowSize.x - 475) / 2);
+
+      if (ImGui::Selectable("##newProjectGetHelp", false, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
+        vcWebFile_OpenBrowser("https://desk.euclideon.com/");
+
+      float prevPosY = ImGui::GetCursorPosY();
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 46);
+
+      ImGui::SetCursorPosX((windowSize.x - 475) / 2);
+
+      udFloat4 iconUV = vcGetIconUV(vcMBBI_Help);
+      ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+      ImGui::SameLine();
+
+      // Align text with icon
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
+
+      float textAlignPosX = ImGui::GetCursorPosX();
+      ImGui::TextUnformatted(vcString::Get("gettingStarted"));
+
+      // Manually align details text with title text
+      ImGui::SetCursorPosX(textAlignPosX);
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
+
+      ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+      col.w *= 0.65f;
+      ImGui::PushStyleColor(ImGuiCol_Text, col);
+      ImGui::TextUnformatted(vcString::Get("gettingStartedDesc"));
+      ImGui::PopStyleColor();
+
+      ImGui::SetCursorPosY(prevPosY);
+      ImGui::Spacing();
+    }
+
+    ImGui::Separator();
+
     if (creatingNewProjectType == -1)
     {
       ImGui::Columns(2);
@@ -435,10 +475,10 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     }
 
     // Position control buttons in the bottom right corner
-    ImVec2 windowSize = ImGui::GetWindowSize();
-    ImGui::SetCursorPos(ImVec2(windowSize.x - 280, windowSize.y - 30));
     if (creatingNewProjectType == -1)
     {
+      ImGui::Separator();
+
       if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       {
         pProgramState->modelPath[0] = '\0';
@@ -448,6 +488,8 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     }
     else
     {
+      ImGui::SetCursorPos(ImVec2(windowSize.x - 280, windowSize.y - 30));
+
       if (ImGui::Button("Back", ImVec2(100.f, 0)))
         creatingNewProjectType = -1;
 

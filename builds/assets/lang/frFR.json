@@ -724,5 +724,7 @@
   "menuProjectSettingsTitle": "Paramètres du projet",
   "menuProjectName": "nom du projet",
   "menuProjectInfo": "Infos sur le projet",
+  "gettingStarted": "Centre communautaire",
+  "gettingStartedDesc": "Cliquez ici pour des vidéos, des tutoriels et d'autres informations pour vous aider à démarrer.",
   "_last": "Last item so no one forgets the comma on the line above"
 }
