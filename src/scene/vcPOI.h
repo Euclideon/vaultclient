@@ -129,7 +129,7 @@ public:
 private:
   void RebuildSceneLabel(const vcUnitConversionData *pConversionData);
   void InsertPoint(const udDouble3 &position);
-  void CalculateArea();
+  void CalculateArea(const udDouble4 &projectionPlane);
   void CalculateTotalLength();
   void CalculateCentroid();
   void AddLengths(const vcUnitConversionData *pConversionData);
