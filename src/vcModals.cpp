@@ -606,6 +606,37 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   }
 }
 
+
+void vcModals_DrawProjectInfo(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ProjectInfo))
+    ImGui::OpenPopup(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName));
+
+  ImGui::SetNextWindowSize(ImVec2(600, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName), nullptr, ImGuiWindowFlags_NoSavedSettings))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_ProjectInfo))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    const char *pInfo = nullptr;
+
+    if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true))
+    {
+      if (vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == vE_Success)
+        ImGui::TextWrapped("%s", pInfo);
+
+      ImGui::EndChild();
+    }
+    
+    if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr || pInfo[0] == '\0')
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_DrawImportProject(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ImportProject))
@@ -641,6 +672,49 @@ void vcModals_DrawImportProject(vcState *pProgramState)
     ImGui::Separator();
 
     //TODO: Additional import settings
+
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawProjectSettings(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ProjectSettings))
+    ImGui::OpenPopup(vcString::Get("menuProjectSettingsTitle"));
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("menuProjectSettingsTitle")))
+  {
+    static char information[1024] = {};
+
+    if (pProgramState->closeModals & (1 << vcMT_ProjectSettings))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    if (ImGui::IsWindowAppearing())
+    {
+      udStrcpy(pProgramState->modelPath, pProgramState->activeProject.pRoot->pName);
+      const char *pCurrentInformation = nullptr;
+      vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pCurrentInformation, "");
+      udStrcpy(information, pCurrentInformation);
+    }
+
+    ImGui::InputText(vcString::Get("menuProjectName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
+
+    ImVec2 size = ImGui::GetWindowSize();
+    ImGui::InputTextMultiline(vcString::Get("menuProjectInfo"), information, udLengthOf(information), ImVec2(0, size.y - 90));
+
+    if (ImGui::Button(vcString::Get("popupSave")))
+    {
+      vdkProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
+      vdkProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(0, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
   }
@@ -1152,8 +1226,10 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawNewProject(pProgramState);
   vcModals_DrawExportProject(pProgramState);
   vcModals_DrawImportProject(pProgramState);
+  vcModals_DrawProjectSettings(pProgramState);
   vcModals_DrawProjectChangeResult(pProgramState);
   vcModals_DrawProjectReadOnly(pProgramState);
+  vcModals_DrawProjectInfo(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
   vcModals_DrawProfile(pProgramState);

@@ -720,5 +720,9 @@
   "menuProjectExportDisk": "Guardar en el disco",
   "menuProjectExportCloud": "Guardar en la nube",
   "menuProjectExportButton": "Guardar y continuar",
+  "popupOK": "Okay",
+  "menuProjectSettingsTitle": "Configuraciones del proyecto",
+  "menuProjectName": "Nombre del proyecto",
+  "menuProjectInfo": "Información del proyecto",
   "_last": "Last item so no one forgets the comma on the line above"
 }

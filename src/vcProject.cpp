@@ -236,6 +236,10 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
+    const char *pInfo = nullptr;
+    if (vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == vE_Success)
+      vcModals_OpenModal(pProgramState, vcMT_ProjectInfo);
+
     vcProject_ExtractCamera(pProgramState);
     vcProject_UpdateProjectHistory(pProgramState, pProjectID, true);
   }
@@ -285,6 +289,10 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
     int32_t recommendedSRID = -1;
     if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
+
+    const char *pInfo = nullptr;
+    if (vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == vE_Success)
+      vcModals_OpenModal(pProgramState, vcMT_ProjectInfo);
 
     vcProject_ExtractCamera(pProgramState);
     vcProject_UpdateProjectHistory(pProgramState, pFilename, false);

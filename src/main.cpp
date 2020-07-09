@@ -2178,6 +2178,14 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 
   if (ImGui::BeginChild("SceneExplorerList", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
   {
+    if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectSettings"), nullptr, vcMBBI_Settings, vcMBBG_FirstItem))
+      vcModals_OpenModal(pProgramState, vcMT_ProjectSettings);
+
+    ImGui::SameLine();
+    ImGui::TextWrapped("%s", pProgramState->activeProject.pRoot->pName);
+
+    ImGui::Separator();
+
     if (!ImGui::IsMouseDragging(0) && pProgramState->sceneExplorer.insertItem.pParent != nullptr)
     {
       // Ensure a circular reference is not created
