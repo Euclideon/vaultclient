@@ -716,6 +716,7 @@ bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, vdkProjectNode 
 
 void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **ppCurrentText)
 {
+  //TODO: Cache attribution text; if nothing was added/removed from the scene then it doesn't need to be updated
   vdkProjectNode *pNode = pFolderNode->pFirstChild;
 
   while (pNode != nullptr)
@@ -731,10 +732,13 @@ void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **
       pAttributionText = pModel->m_metadata.Get("Author").AsString(pModel->m_metadata.Get("License").AsString(pModel->m_metadata.Get("Copyright").AsString()));
       if (pAttributionText)
       {
-        if (*ppCurrentText != nullptr)
-          udSprintf(ppCurrentText, "%s, %s", *ppCurrentText, pAttributionText);
-        else
-          udSprintf(ppCurrentText, "%s", pAttributionText);
+        if (*ppCurrentText == nullptr || udStrstr(*ppCurrentText, 0, pAttributionText) == nullptr)
+        {
+          if (*ppCurrentText != nullptr)
+            udSprintf(ppCurrentText, "%s, %s", *ppCurrentText, pAttributionText);
+          else
+            udSprintf(ppCurrentText, "%s", pAttributionText);
+        }
       }
     }
 
