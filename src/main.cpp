@@ -409,17 +409,17 @@ void vcMain_MainLoop(vcState *pProgramState)
         if (udStrBeginsWith(pNextLoad, "euclideon:project/"))
         {
           vcProject_LoadFromServer(pProgramState, &pNextLoad[18]);
-          vcModals_CloseModal(pProgramState, vcMT_NewProject);
+          vcModals_CloseModal(pProgramState, vcMT_Welcome);
         }
         else if (udStrEquali(pExt, ".json"))
         {
           vcProject_LoadFromURI(pProgramState, pNextLoad);
-          vcModals_CloseModal(pProgramState, vcMT_NewProject);
+          vcModals_CloseModal(pProgramState, vcMT_Welcome);
         }
         else if (udStrEquali(pExt, ".udp"))
         {
           vcProject_CreateBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
-          vcModals_CloseModal(pProgramState, vcMT_NewProject);
+          vcModals_CloseModal(pProgramState, vcMT_Welcome);
 
           vcUDP_Load(pProgramState, pNextLoad);
         }
@@ -455,7 +455,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               if (firstLoad) // Was successful
                 udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
 
-              vcModals_CloseModal(pProgramState, vcMT_NewProject);
+              vcModals_CloseModal(pProgramState, vcMT_Welcome);
 
               // Let is know about the mouse position- using bounding box currently
               //TODO: Don't use the boundingBox
@@ -497,7 +497,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               if (firstLoad)
                 udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
 
-              vcModals_CloseModal(pProgramState, vcMT_NewProject);
+              vcModals_CloseModal(pProgramState, vcMT_Welcome);
             }
           }
           else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
@@ -589,7 +589,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             else if (firstLoad) // Was successful
             {
               udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-              vcModals_CloseModal(pProgramState, vcMT_NewProject);
+              vcModals_CloseModal(pProgramState, vcMT_Welcome);
             }
           }
           else // This file isn't supported in the scene
@@ -1569,7 +1569,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMain_ProfileMenu(pProgramState);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuNewScene"), nullptr, vcMBBI_NewProject, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_NewProject);
+        vcModals_OpenModal(pProgramState, vcMT_Welcome);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectImport"), nullptr, vcMBBI_Open, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_ImportProject);

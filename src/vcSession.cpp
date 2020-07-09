@@ -200,7 +200,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
   pProgramState->hasContext = true;
 
   // TODO: If no initial project specified
-  vcModals_OpenModal(pProgramState, vcMT_NewProject);
+  vcModals_OpenModal(pProgramState, vcMT_Welcome);
 }
 
 void vcSession_Login(void *pProgramStatePtr)
