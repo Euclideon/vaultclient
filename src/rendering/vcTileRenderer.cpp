@@ -1018,7 +1018,7 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
   }
 }
 
-void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
+void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer, bool *pIsLoading)
 {
   // invalidate current queue
   for (size_t i = 0; i < pTileRenderer->cache.tileLoadList.length; ++i)
@@ -1037,6 +1037,9 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   for (int i = 0; i < (int)pTileRenderer->cache.tileLoadList.length; ++i)
   {
     vcQuadTreeNode *pNode = pTileRenderer->cache.tileLoadList[i];
+
+    *pIsLoading |= pNode->visible;
+
     if (!pNode->touched || (!pNode->colourInfo.tryLoad && !pNode->demInfo.tryLoad))
     {
       pNode->colourInfo.loadStatus.TestAndSet(vcNodeRenderInfo::vcTLS_None, vcNodeRenderInfo::vcTLS_InQueue);
@@ -1047,7 +1050,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer)
   }
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const bool cameraIsUnderMapSurface, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const bool cameraIsUnderMapSurface, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix, bool *pIsLoading)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
@@ -1078,7 +1081,7 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   }
 
   udLockMutex(pTileRenderer->cache.pMutex);
-  vcTileRenderer_UpdateTextureQueues(pTileRenderer);
+  vcTileRenderer_UpdateTextureQueues(pTileRenderer, pIsLoading);
   udReleaseMutex(pTileRenderer->cache.pMutex);
 }
 

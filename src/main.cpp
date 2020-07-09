@@ -1549,6 +1549,59 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
+  static float fadeVal = 0.f;
+  if (pProgramState->isStreaming || fadeVal > 0)
+  {
+    ImVec2 sceneWindowPos = ImGui::GetWindowPos();
+
+    static float rotAmount = 0;
+    rotAmount += (float)pProgramState->deltaTime;
+
+    if (pProgramState->isStreaming)
+      fadeVal = udMin(1.f, fadeVal + (float)pProgramState->deltaTime);
+    else
+      fadeVal = udMax(0.f, fadeVal - (float)pProgramState->deltaTime);
+
+    float a = udSin(rotAmount * UD_PIf) * 30.f;
+    float b = udCos(rotAmount * UD_PIf) * 30.f;
+
+    float x = windowPos.x + windowSize.x - 40.f - 30.f - (pProgramState->settings.onScreenControls ? 165 : 0);
+    float y = windowPos.y + windowSize.y - 30.f;
+
+    ImVec2 p[] = {
+      { x - b + a, y - a - b },
+      { x + b + a, y + a - b },
+      { x + b - a, y + a + b },
+      { x - b - a, y - a + b }
+    };
+
+    ImVec2 uv[] = {
+      { 0.75f, 0.75f },
+      { 1.00f, 0.75f },
+      { 1.00f, 1.00f },
+      { 0.75f, 1.00f }
+    };
+
+    ImGui::SetNextWindowPos(ImVec2(x + 30.f, y + 30.f), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+    ImGui::SetNextWindowBgAlpha(0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+    ImGui::SetNextWindowSize(ImVec2(60, 60));
+
+    if (ImGui::Begin("StreamingIcon", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+    {
+      ImGui::GetWindowDrawList()->AddImageQuad(pProgramState->pUITexture, p[0], p[1], p[2], p[3], uv[0], uv[1], uv[2], uv[3], ((int)(0xFF * fadeVal) << 24) | 0xFFFFFF);
+
+      if (ImGui::IsWindowHovered())
+        ImGui::SetTooltip("%s", vcString::Get("sceneStreaming"));
+    }
+    ImGui::End();
+
+    ImGui::PopStyleVar();
+
+    pProgramState->isStreaming = false;
+  }
+
+
   // Tool Panel
   {
     ImVec2 buttonPanelPos = ImVec2(windowPos.x + 2.f, windowPos.y + 2.f);
@@ -2438,7 +2491,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
       ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
     }
-
 
     pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
 

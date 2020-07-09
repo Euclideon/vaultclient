@@ -137,6 +137,7 @@ struct vcState
   udGeoZone geozone;
 
   bool showWatermark;
+  bool isStreaming;
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;

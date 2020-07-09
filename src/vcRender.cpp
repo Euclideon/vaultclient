@@ -17,6 +17,8 @@
 #include "vcLineRenderer.h"
 #include "vcPinRenderer.h"
 
+#include "vdkStreamer.h"
+
 #include "stb_image.h"
 #include <vector>
 
@@ -929,7 +931,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
         slippyCorners[i] /= 2;
     }
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pProgramState->camera.cameraIsUnderSurface, pRenderContext->cameraZeroAltitude, viewProjection);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pProgramState->camera.cameraIsUnderSurface, pRenderContext->cameraZeroAltitude, viewProjection, &pProgramState->isStreaming);
 
     float terrainId = vcRender_EncodeModelId(vcObjectId_Terrain);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, pProgramState->camera.cameraIsUnderSurface, terrainId);
@@ -1548,6 +1550,10 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
+
+  vdkStreamerStatus streamingStatus = {};
+  vdkStreamer_Update(&streamingStatus);
+  pProgramState->isStreaming |= streamingStatus.active;
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)
@@ -1779,7 +1785,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
   renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
-  renderOptions.flags = vdkRF_LogarithmicDepth;
+  renderOptions.flags = (vdkRenderFlags)(vdkRF_LogarithmicDepth | vdkRF_ManualStreamerUpdate);
 
   vdkError result = vdkRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
 
