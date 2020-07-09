@@ -172,7 +172,7 @@
   "settingsVisClassRename": "重命名",
   "settingsVisClassSet": "设置",
   "settingsConvert": "转换默认值",
-  "convertTitle": "转换",
+  "convertTitle": "转换为UDS",
   "convertReadingFile": "读取文件 {0}/{1}",
   "convertWritingPoints": "写入点 {0}/{1}",
   "convertAddToScene": "添加到场景",
@@ -728,5 +728,6 @@
   "gettingStarted": "社区中心",
   "gettingStartedDesc": "单击此处以获取视频，教程和其他信息，以帮助您入门。",
   "sceneStreaming": "提炼现场...",
+  "convertDesc": "将点云和网格转换为UDS以从云中获得流式传输的好处",
   "_last": "Last item so no one forgets the comma on the line above"
 }

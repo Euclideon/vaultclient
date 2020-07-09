@@ -232,7 +232,7 @@
   "settingsUnitsOfMeasurementImperial": "имперский",
   "settingsToolsDefaultValues": "Значения по умолчанию для новых элементов инструмента",
   "settingsConvert": "Преобразовать значения по умолчанию",
-  "convertTitle": "Перерабатывать",
+  "convertTitle": "Конвертировать в UDS",
   "convertReadingFile": "Чтение файла {0} / {1}",
   "convertWritingPoints": "Написание точек {0} / {1}",
   "convertAddToScene": "Добавить к сцене",
@@ -727,5 +727,6 @@
   "shareNotPossible": "Этот проект в настоящее время не может быть разделен.",
   "shareLinkBrowser": "Поделиться в браузере",
   "shareLinkApp": "Поделиться в приложении",
+  "convertDesc": "Преобразование облаков точек и сеток в UDS для получения преимуществ потоковой передачи из облака",
   "_last": "Last item so no one forgets the comma on the line above"
 }

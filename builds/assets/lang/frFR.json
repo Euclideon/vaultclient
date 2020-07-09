@@ -197,7 +197,7 @@
   "settingsVisClassSet": "Ensemble",
   "settingsToolsDefaultValues": "Valeurs par défaut pour les nouveaux éléments d'outils",
   "settingsConvert": "Convertir les valeurs par défaut",
-  "convertTitle": "Convertir",
+  "convertTitle": "Convertir en UDS",
   "convertReadingFile": "Lecture du fichier {0} / {1}",
   "convertWritingPoints": "Points d'écriture {0} / {1}",
   "convertAddToScene": "Ajouter à la scène",
@@ -727,5 +727,6 @@
   "gettingStarted": "Centre communautaire",
   "gettingStartedDesc": "Cliquez ici pour des vidéos, des tutoriels et d'autres informations pour vous aider à démarrer.",
   "sceneStreaming": "Affiner la scène ...",
+  "convertDesc": "Convertissez des nuages de points et des maillages en UDS pour profiter des avantages du streaming à partir du cloud",
   "_last": "Last item so no one forgets the comma on the line above"
 }

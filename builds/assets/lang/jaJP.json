@@ -192,7 +192,7 @@
   "settingsVisClassSet": "セット",
   "settingsToolsDefaultValues": "ツールアイテムのデフォルト設定",
   "settingsConvert": "変換デフォルト設定",
-  "convertTitle": "UDS変換",
+  "convertTitle": "UDSに変換",
   "convertReadingFile": "読み込み中 {0}/{1}",
   "convertWritingPoints": "書き込み中 {0}/{1}",
   "convertAddToScene": "シーンに加える",
@@ -727,5 +727,6 @@
   "gettingStarted": "コミュニティハブ",
   "gettingStartedDesc": "ここをクリックして、ビデオ、チュートリアル、およびその他の情報を入手してください。",
   "sceneStreaming": "シーンを調整しています...",
+  "convertDesc": "点群とメッシュをUDSに変換して、クラウドからのストリーミングのメリットを享受",
   "_last": "Last item so no one forgets the comma on the line above"
 }
