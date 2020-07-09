@@ -253,8 +253,8 @@
   "menuSettings": "设置",
   "menuProjects": "项目",
   "menuNewScene": "新项目",
-  "menuProjectExport": "出口项目",
-  "menuProjectExportTitle": "导出工程到本地磁盘",
+  "menuProjectExport": "保存副本",
+  "menuProjectExportTitle": "将副本保存到本地或网络驱动器",
   "menuProjectImport": "导入项目",
   "menuProjectImportTitle": "导入工程到场景窗口",
   "menuProjectNone": "无可用项目",
@@ -717,5 +717,8 @@
   "modalProjectSaveGroup": "组",
   "modalProjectNoGroups": "服务器上没有可以保存到的组。",
   "settingsMapFlatMode": "将行星显示为平面投影（SRID：{0}）",
+  "menuProjectExportDisk": "保存到磁盘",
+  "menuProjectExportCloud": "储存至云端",
+  "menuProjectExportButton": "保存并继续",
   "_last": "Last item so no one forgets the comma on the line above"
 }

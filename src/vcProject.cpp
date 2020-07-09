@@ -115,7 +115,7 @@ bool vcProject_CreateServerScene(vcState *pProgramState, const char *pName, cons
     return false;
 
   vdkProject *pNewProject = nullptr;
-  if (vdkProject_CreateServer(pProgramState->pVDKContext, &pNewProject, pName, pGroupUUID) != vE_Success)
+  if (vdkProject_CreateInServer(pProgramState->pVDKContext, &pNewProject, pName, pGroupUUID) != vE_Success)
     return false;
 
   if (pProgramState->activeProject.pProject != nullptr)
@@ -376,46 +376,42 @@ bool vcProject_Save(vcState *pProgramState)
   return (status == vE_Success);
 }
 
-void vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride)
+bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride)
 {
   if (pProgramState == nullptr || pPath == nullptr)
-    return;
+    return false;
 
-  const char *pOutput = nullptr;
+  udFindDir *pDir = nullptr;
+  udFilename exportFilename(pPath);
 
-  if (vdkProject_WriteToMemory(pProgramState->activeProject.pProject, &pOutput) == vE_Success)
-  {
-    udFindDir *pDir = nullptr;
-    udFilename exportFilename(pPath);
+  if (!udStrEquali(pPath, "") && !udStrEndsWithi(pPath, "/") && !udStrEndsWithi(pPath, "\\") && udOpenDir(&pDir, pPath) == udR_Success)
+    exportFilename.SetFromFullPath("%s/%s.json", pProgramState->activeProject.pRoot->pName, pPath);
+  else if (exportFilename.HasFilename())
+    exportFilename.SetExtension(".json");
+  else
+    exportFilename.SetFilenameWithExt("untitled_project.json");
 
-    if (!udStrEquali(pPath, "") && !udStrEndsWithi(pPath, "/") && !udStrEndsWithi(pPath, "\\") && udOpenDir(&pDir, pPath) == udR_Success)
-      exportFilename.SetFromFullPath("%s/untitled_project.json", pPath);
-    else if (exportFilename.HasFilename())
-      exportFilename.SetExtension(".json");
-    else
-      exportFilename.SetFilenameWithExt("untitled_project.json");
+  udCloseDir(&pDir);
 
-    // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
-    if (allowOverride || vcModals_OverwriteExistingFile(pProgramState, exportFilename.GetPath()))
-    {
-      vcState::ErrorItem projectError = {};
-      projectError.source = vcES_ProjectChange;
-      projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
+  // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
+  if (!allowOverride && !vcModals_OverwriteExistingFile(pProgramState, exportFilename.GetPath()))
+    return false;
 
-      if (udFile_Save(exportFilename.GetPath(), (void *)pOutput, udStrlen(pOutput)) == udR_Success)
-        projectError.resultCode = udR_Success;
-      else
-        projectError.resultCode = udR_WriteFailure;
+  vcState::ErrorItem projectError = {};
+  projectError.source = vcES_ProjectChange;
+  projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
 
-      pProgramState->errorItems.PushBack(projectError);
+  if (vdkProject_SaveToFile(pProgramState->activeProject.pProject, exportFilename.GetPath()) == vE_Success)
+    projectError.resultCode = udR_Success;
+  else
+    projectError.resultCode = udR_WriteFailure;
 
-      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-    }
+  pProgramState->errorItems.PushBack(projectError);
 
-    udCloseDir(&pDir);
+  vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+  vcProject_UpdateProjectHistory(pProgramState, exportFilename.GetPath(), false);
 
-    vcProject_UpdateProjectHistory(pProgramState, pPath, false);
-  }
+  return (projectError.resultCode == udR_Success);
 }
 
 bool vcProject_AbleToChange(vcState *pProgramState)

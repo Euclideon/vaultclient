@@ -276,8 +276,8 @@
   "menuNewScene": "新しいプロジェクト",
   "menuChangeScene": "シーンの変更",
   "menuChangeSceneConfirm": "プロジェクトは保存されていません。\n\nシーンを変更しますか？",
-  "menuProjectExport": "プロジェクトをエクスポート",
-  "menuProjectExportTitle": "プロジェクトをエクスポート",
+  "menuProjectExport": "コピーを保存",
+  "menuProjectExportTitle": "コピーをローカルドライブまたはネットワークドライブに保存する",
   "menuProjectImport": "プロジェクトをインポート",
   "menuProjectImportTitle": "シーンにプロジェクトをインポート",
   "menuProjectNone": "サーバープロジェクトがありません",
@@ -717,5 +717,8 @@
   "modalProjectSaveGroup": "グループ",
   "modalProjectNoGroups": "サーバーに保存できるグループがありません。",
   "settingsMapFlatMode": "平面を平面投影で表示（SRID：{0}）",
+  "menuProjectExportDisk": "ディスクに保存",
+  "menuProjectExportCloud": "クラウドに保存",
+  "menuProjectExportButton": "保存して続行",
   "_last": "Last item so no one forgets the comma on the line above"
 }

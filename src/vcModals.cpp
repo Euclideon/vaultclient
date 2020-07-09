@@ -463,36 +463,118 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_ExportProject))
     ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
 
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectExportTitle")))
   {
     if (pProgramState->closeModals & (1 << vcMT_ExportProject))
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
-    
-    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
 
-    ImGui::SameLine();
+    static const char *pGroupName = nullptr;
+    static udUUID selectedGroup = {};
+    static bool availableGroups = true;
 
-    if (ImGui::Button(vcString::Get("sceneExplorerExportButton"), ImVec2(100.f, 0)))
+    if (ImGui::IsWindowAppearing())
     {
-      vcProject_SaveAs(pProgramState, pProgramState->modelPath, false);
-      pProgramState->modelPath[0] = '\0';
-      ImGui::CloseCurrentPopup();
+      pGroupName = nullptr;
+      udUUID_Clear(&selectedGroup);
+      availableGroups = true;
     }
 
-    ImGui::SameLine();
+    struct
+    {
+      const char *pName;          vcMenuBarButtonIcon icon;
+    } types[] = {
+      { "menuProjectExportDisk",  vcMBBI_StorageLocal },
+      { "menuProjectExportCloud", vcMBBI_StorageCloud },
+    };
+
+    for (size_t i = 0; i < udLengthOf(types); ++i)
+    {
+      if (ImGui::BeginChild(udTempStr("##saveAsType%zu", i), ImVec2(-1, 90), true))
+      {
+        udFloat4 iconUV = vcGetIconUV(types[i].icon);
+        ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+        ImGui::SameLine();
+
+        // Align text with icon
+        //ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
+
+        float textAlignPosX = ImGui::GetCursorPosX();
+        ImGui::TextUnformatted(vcString::Get(types[i].pName));
+
+        // Manually align details text with title text
+        ImGui::SetCursorPosX(textAlignPosX);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
+
+        if (i == 0) // local
+        {
+          vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+
+          ImGui::SetCursorPosX(textAlignPosX);
+          if (ImGui::Button(vcString::Get("menuProjectExportButton")))
+          {
+            vcProject_SaveAs(pProgramState, pProgramState->modelPath, false);
+            pProgramState->modelPath[0] = '\0';
+            ImGui::CloseCurrentPopup();
+          }
+        }
+        else if (i == 1) // cloud
+        {
+          if (pProgramState->groups.length > 0 && availableGroups)
+          {
+            if (!udUUID_IsValid(selectedGroup))
+            {
+              for (auto item : pProgramState->groups)
+              {
+                if (item.permissionLevel >= 3) // Only >Managers can load projects
+                {
+                  pGroupName = item.pGroupName;
+                  selectedGroup = item.groupID;
+                }
+              }
+
+              if (!udUUID_IsValid(selectedGroup))
+                availableGroups = false;
+            }
+
+            if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), pGroupName))
+            {
+              for (auto item : pProgramState->groups)
+              {
+                if (item.permissionLevel >= 3) // Only >Managers can load projects
+                {
+                  if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID))
+                  {
+                    selectedGroup = item.groupID;
+                    pGroupName = item.pGroupName;
+                  }
+                }
+              }
+
+              ImGui::EndCombo();
+            }
+
+            ImGui::SetCursorPosX(textAlignPosX);
+            if (ImGui::Button(vcString::Get("menuProjectExportButton")))
+              vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, udUUID_GetAsString(selectedGroup));
+          }
+          else
+          {
+            ImGui::TextUnformatted(vcString::Get("modalProjectNoGroups"));
+          }
+        }
+
+        ImGui::EndChild();
+      }
+    }
 
     if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
-
-    ImGui::Separator();
-
-    //TODO: Additional export settings
 
     ImGui::EndPopup();
   }

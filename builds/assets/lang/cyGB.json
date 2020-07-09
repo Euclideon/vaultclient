@@ -281,8 +281,8 @@
   "menuNewScene": "Prosiect Newydd",
   "menuChangeScene": "Newid Golygfa",
   "menuChangeSceneConfirm": "Mae gan yr olygfa bresennol newidiadau heb eu cadw. Parhau â newid yr olygfa?",
-  "menuProjectExport": "Prosiect Allforio",
-  "menuProjectExportTitle": "Prosiect Allforio i Ddisg",
+  "menuProjectExport": "Arbedwch Gopi",
+  "menuProjectExportTitle": "Cadwch Gopi i yriant lleol neu rwydwaith",
   "menuProjectImport": "Prosiect Mewnforio",
   "menuProjectImportTitle": "Prosiect Mewnforio i Golygfa",
   "menuProjectNone": "Dim prosiectau gweinydd",
@@ -717,5 +717,8 @@
   "modalProjectSaveGroup": "Grŵp",
   "modalProjectNoGroups": "Nid oes unrhyw grwpiau ar y gweinydd y gallwch arbed iddynt.",
   "settingsMapFlatMode": "Dangos Planet fel tafluniad gwastad (SRID: {0})",
+  "menuProjectExportDisk": "Arbedwch i'r ddisg",
+  "menuProjectExportCloud": "Arbedwch i'r cwmwl",
+  "menuProjectExportButton": "Arbed a pharhau",
   "_last": "Last item so no one forgets the comma on the line above"
 }
