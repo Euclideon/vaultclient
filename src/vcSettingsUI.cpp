@@ -295,8 +295,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Combo(vcString::Get("settingsControlsMiddle"), (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
           ImGui::Combo(vcString::Get("settingsControlsRight"), (int*)&pProgramState->settings.camera.cameraMouseBindings[1], mouseModes, (int)udLengthOf(mouseModes));
           ImGui::Combo(vcString::Get("settingsControlsScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
-
-          ImGui::Checkbox(vcString::Get("sceneCameraKeepAboveSurface"), &pProgramState->settings.camera.keepAboveSurface);
         }
 
         if (pProgramState->activeSetting == vcSR_Maps)
@@ -745,6 +743,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
   if (alwaysShowOptions || pProgramState->settings.maptiles.mapEnabled)
   {
     ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
+    ImGui::Checkbox(vcString::Get("sceneCameraKeepAboveSurface"), &pProgramState->settings.camera.keepAboveSurface);
 
     if (pProgramState->settings.presentation.showDiagnosticInfo)
     {
