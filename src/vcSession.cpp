@@ -89,6 +89,7 @@ void vcSession_GetGroupsWT(void *pProgramStatePtr)
     {
       // This won't work if there are more than 50 projects
       parsed.Parse(pProjData);
+      vdkServerAPI_ReleaseResult(&pProjData);
 
       size_t arrayLen = parsed.Get("groups").ArrayLength();
 
@@ -114,8 +115,10 @@ void vcSession_GetGroupsWT(void *pProgramStatePtr)
         break;
       }
     }
-
-    vdkServerAPI_ReleaseResult(&pProjData);
+    else
+    {
+      break;
+    }
   } while (true);
 }
 
