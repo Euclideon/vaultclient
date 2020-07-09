@@ -118,7 +118,6 @@ struct vcRenderContext
 
   vcFramebuffer *pFinalFramebuffer;
   vcTexture *pFinalColour;
-  vcTexture *pFinalNormal;
 
   vcFramebuffer *pAuxiliaryFramebuffers[2];
   vcTexture *pAuxiliaryTextures[2];
@@ -178,8 +177,6 @@ struct vcRenderContext
   {
     vcShader *pProgram;
     vcShaderSampler *uniform_colour;
-    vcShaderSampler *uniform_normal;
-    vcShaderSampler *uniform_depth;
     vcShaderConstantBuffer *uniform_params;
 
     struct
@@ -215,7 +212,7 @@ struct vcRenderContext
   uint16_t previousPickedId;
   float previousFrameDepth;
   udFloat2 currentMouseUV;
-  bool asyncReadInProgress;
+  int asyncReadTarget;
 
   struct
   {
@@ -404,8 +401,6 @@ udResult vcRender_LoadShaders(vcRenderContext *pRenderContext, udWorkerPool *pWo
     {
       vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
       vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_colour, pRenderContext->postEffectsShader.pProgram, "sceneColour");
-      vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_normal, pRenderContext->postEffectsShader.pProgram, "sceneNormal");
-      vcShader_GetSamplerIndex(&pRenderContext->postEffectsShader.uniform_depth, pRenderContext->postEffectsShader.pProgram, "sceneDepth");
       vcShader_GetConstantBuffer(&pRenderContext->postEffectsShader.uniform_params, pRenderContext->postEffectsShader.pProgram, "u_params", sizeof(pRenderContext->postEffectsShader.params));
     }
   ), udR_InternalError);
@@ -545,7 +540,6 @@ epilogue:
   }
 
   vcTexture_Destroy(&pRenderContext->pFinalColour);
-  vcTexture_Destroy(&pRenderContext->pFinalNormal);
   vcFramebuffer_Destroy(&pRenderContext->pFinalFramebuffer);
 
   for (int i = 0; i < 2; ++i)
@@ -635,7 +629,6 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   }
 
   vcTexture_Destroy(&pRenderContext->pFinalColour);
-  vcTexture_Destroy(&pRenderContext->pFinalNormal);
   vcFramebuffer_Destroy(&pRenderContext->pFinalFramebuffer);
 
   for (int i = 0; i < 2; ++i)
@@ -647,14 +640,13 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   for (int i = 0; i < vcRender_RenderBufferCount; ++i)
   {
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pColour, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget));
-    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pNormal, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget));
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pNormal, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
     UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->gBuffer[i].pDepth, widthIncr, heightIncr, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->gBuffer[i].pFramebuffer, pRenderContext->gBuffer[i].pColour, pRenderContext->gBuffer[i].pDepth, 0, pRenderContext->gBuffer[i].pNormal), udR_InternalError);
   }
 
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pFinalColour, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget));
-  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pFinalNormal, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA16F, vcTFM_Linear, vcTCF_RenderTarget | vcTCF_AsynchronousRead));
-  UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFinalFramebuffer, pRenderContext->pFinalColour, nullptr, 0, pRenderContext->pFinalNormal), udR_InternalError);
+  UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pFinalColour, widthIncr, heightIncr, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_RenderTarget));
+  UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pFinalFramebuffer, pRenderContext->pFinalColour), udR_InternalError);
 
   pRenderContext->effectResolution.x = widthIncr >> vcRender_OutlineEffectDownscale;
   pRenderContext->effectResolution.y = heightIncr >> vcRender_OutlineEffectDownscale;
@@ -737,15 +729,16 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 
   pRenderContext->previousFrameDepth = 1.0f;
   pRenderContext->previousPickedId = vcObjectId_Null;
-  if (pRenderContext->asyncReadInProgress)
+  if (pRenderContext->asyncReadTarget != -1)
   {
-    pRenderContext->asyncReadInProgress = false;
-    UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->pFinalNormal, lastPickLocation.x, lastPickLocation.y, 1, 1, pixelBytes), udR_InternalError); // read previous copy
+    UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pNormal, lastPickLocation.x, lastPickLocation.y, 1, 1, pixelBytes), udR_InternalError); // read previous copy
     vcRender_DecodeModelId(pixelBytes, &pRenderContext->previousPickedId, &pRenderContext->previousFrameDepth);
+
+    pRenderContext->asyncReadTarget = -1;
   }
 
-  pRenderContext->asyncReadInProgress = true;
-  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->pFinalNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes, pRenderContext->pFinalFramebuffer), udR_InternalError); // begin copy for next frame read
+  pRenderContext->asyncReadTarget = pRenderContext->activeRenderTarget;
+  UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes, pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pFramebuffer), udR_InternalError); // begin copy for next frame read
 
   lastPickLocation = pRenderContext->picking.location;
 
@@ -955,8 +948,6 @@ void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderCo
 
   vcShader_Bind(pRenderContext->postEffectsShader.pProgram);
   vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pColour, 0, pRenderContext->postEffectsShader.uniform_colour);
-  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pNormal, 1, pRenderContext->postEffectsShader.uniform_normal);
-  vcShader_BindTexture(pRenderContext->postEffectsShader.pProgram, pRenderContext->gBuffer[pRenderContext->activeRenderTarget].pDepth, 2, pRenderContext->postEffectsShader.uniform_depth);
 
   pRenderContext->postEffectsShader.params.screenParams.x = (1.0f / pRenderContext->sceneResolution.x);
   pRenderContext->postEffectsShader.params.screenParams.y = (1.0f / pRenderContext->sceneResolution.y);
@@ -1390,7 +1381,7 @@ bool vcRender_DrawSelectedGeometry(vcState *pProgramState, vcRenderContext *pRen
       vcGLState_SetFaceMode(vcGLSFM_Solid, pInstance->cullFace);
 
       if (pInstance->renderType == vcRenderPolyInstance::RenderType_Polygon)
-        vcPolygonModel_Render(pInstance->pModel, selectionMask, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_ColourOnly, udFloat4::one());
+        vcPolygonModel_Render(pInstance->pModel, selectionMask, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, vcPMP_ColourOnly);
       else if (pInstance->renderType == vcRenderPolyInstance::RenderType_SceneLayer)
         vcSceneLayerRenderer_Render(pInstance->pSceneLayer, selectionMask, pInstance->worldMat, pProgramState->camera.matrices.viewProjection, pProgramState->camera.position, pRenderContext->sceneResolution, nullptr, vcPMP_ColourOnly);
 
@@ -1535,11 +1526,10 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcRender_TransparentPass(pProgramState, pRenderContext, renderData);
 
-  vcRender_PostProcessPass(pProgramState, pRenderContext);
-
   vcRender_RenderUI(pProgramState, pProgramState->pRenderContext, renderData);
 
   vcRender_AsyncReadFrameDepth(pRenderContext);
+  vcRender_PostProcessPass(pProgramState, pRenderContext);
 
   vcRender_RenderAndApplyViewSheds(pProgramState, pRenderContext, renderData);
 
@@ -1548,7 +1538,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   // Watermark
   if (pProgramState->settings.presentation.showEuclideonLogo)
-  vcRender_RenderWatermark(pRenderContext, pProgramState->pCompanyWatermark);
+    vcRender_RenderWatermark(pRenderContext, pProgramState->pCompanyWatermark);
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
@@ -1853,8 +1843,8 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
   if (doSelectRender)
   {
     uint8_t pixelBytes[8] = {};
-    vcTexture_EndReadPixels(pRenderContext->pFinalNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes);
-    pRenderContext->asyncReadInProgress = false;
+    vcTexture_EndReadPixels(pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes);
+    pRenderContext->asyncReadTarget = -1;
 
     uint16_t pickId = vcObjectId_Null;
     vcRender_DecodeModelId(pixelBytes, &pickId, &pickDepth);
