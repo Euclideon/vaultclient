@@ -420,7 +420,12 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
   ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3);
 
   if (ImGui::IsItemDeactivatedAfterEdit())
+  {
     repackMatrix = true;
+    static udDouble3 minDouble = udDouble3::create(-1e7, -1e7, -1e7);
+    static udDouble3 maxDouble = udDouble3::create(1e7, 1e7, 1e7);
+    position = udClamp(position, minDouble, maxDouble);
+  }    
 
   udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
   ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3);
