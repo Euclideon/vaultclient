@@ -293,17 +293,24 @@ void vcVerticalMeasureTool::UpdateIntersectionPosition(vcState *pProgramState)
   if (!HasLine())
     return;
 
-  udDouble3 localStartPoint = udGeoZone_TransformPoint(m_points[0], pProgramState->geozone, pProgramState->activeProject.baseZone);
-  udDouble3 localEndPoint = udGeoZone_TransformPoint(m_points[2], pProgramState->geozone, pProgramState->activeProject.baseZone);
-  udDouble3 direction = localEndPoint - localStartPoint;
-  udDouble3 middle = udDouble3::zero();
-  if (direction.z > 0)
-    middle = udDouble3::create(localStartPoint.x, localStartPoint.y, localEndPoint.z);
+  udDouble3 v_20 = m_points[2] - m_points[0];
+  udDouble3 worldUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_points[0]);
+  udDouble3 right = udCross3(v_20, worldUp);
+  udDouble3 forward = udCross3(worldUp, right);
+
+  double len = udMag3(forward);
+  if (len == 0.0)
+  {
+    m_points[1] = m_points[0];
+    return;
+  }
+
+  forward /= len;
+  double proj = udDot(v_20, forward);
+  if (udDot(m_points[0], worldUp) > udDot(m_points[2], worldUp))
+      m_points[1] = m_points[0] + forward * proj;
   else
-    middle = udDouble3::create(localEndPoint.x, localEndPoint.y, localStartPoint.z);
-
-  m_points[1] = udGeoZone_TransformPoint(middle, pProgramState->activeProject.baseZone, pProgramState->geozone);
-
+    m_points[1] = m_points[2] - forward * proj;
 }
 
 bool vcVerticalMeasureTool::HasLine()
