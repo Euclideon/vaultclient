@@ -1552,8 +1552,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   static float fadeVal = 0.f;
   if (pProgramState->isStreaming || fadeVal > 0)
   {
-    ImVec2 sceneWindowPos = ImGui::GetWindowPos();
-
     static float rotAmount = 0;
     rotAmount += (float)pProgramState->deltaTime;
 
