@@ -8,6 +8,22 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
+const char *vcProject_ErrorToString(vdkError error)
+{
+  switch (error)
+  {
+  case vE_InvalidParameter:
+    return vcString::Get("errorInvalidParameter");
+  case vE_OpenFailure:
+    return vcString::Get("errorOpenFailure");
+  case vE_NotSupported:
+    return vcString::Get("errorUnsupported");
+  case vE_Failure: // Falls through
+  default:
+    return vcString::Get("errorUnknown");
+  }
+}
+
 void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilename, bool isServerProject);
 
 void vcProject_InitScene(vcState *pProgramState, int srid)
@@ -89,14 +105,19 @@ bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int s
   return true;
 }
 
-bool vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const char *pName, int srid)
+vdkError   vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const char *pName, int srid)
 {
-  if (pProgramState == nullptr || pPath == nullptr || pName == nullptr)
-    return false;
+  if (pProgramState == nullptr)
+    return vE_Failure;
+  if (pPath == nullptr || pPath[0] == '\0')
+    return vE_NotSupported;
+  if (pName == nullptr || pName[0] == '\0')
+    return vE_InvalidParameter;
 
   vdkProject *pNewProject = nullptr;
-  if (vdkProject_CreateInFile(&pNewProject, pName, pPath) != vE_Success)
-    return false;
+  vdkError error = vdkProject_CreateInFile(&pNewProject, pName, pPath);
+  if (error != vE_Success)
+    return error;
 
   if (pProgramState->activeProject.pProject != nullptr)
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
@@ -106,17 +127,18 @@ bool vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const 
 
   vcProject_UpdateProjectHistory(pProgramState, pPath, false);
 
-  return true;
+  return error;
 }
 
-bool vcProject_CreateServerScene(vcState *pProgramState, const char *pName, const char *pGroupUUID, int srid)
+vdkError vcProject_CreateServerScene(vcState *pProgramState, const char *pName, const char *pGroupUUID, int srid)
 {
   if (pProgramState == nullptr || pName == nullptr || pGroupUUID == nullptr)
-    return false;
+    return vE_InvalidParameter;
 
   vdkProject *pNewProject = nullptr;
-  if (vdkProject_CreateInServer(pProgramState->pVDKContext, &pNewProject, pName, pGroupUUID) != vE_Success)
-    return false;
+  vdkError error = vdkProject_CreateInServer(pProgramState->pVDKContext, &pNewProject, pName, pGroupUUID);
+  if (error != vE_Success)
+    return error;
 
   if (pProgramState->activeProject.pProject != nullptr)
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
@@ -128,7 +150,7 @@ bool vcProject_CreateServerScene(vcState *pProgramState, const char *pName, cons
   vdkProject_GetProjectUUID(pNewProject, &pProjectUUID);
   vcProject_UpdateProjectHistory(pProgramState, pProjectUUID, true);
 
-  return true;
+  return error;
 }
 
 bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pParentNode)

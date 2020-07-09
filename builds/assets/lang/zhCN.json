@@ -607,6 +607,7 @@
   "bindingsToggleInspectionTool": "切换查看工具",
   "errorWriteFailure": "文件保存失败。 磁盘已满或者文件正在使用。",
   "errorCloseFailure": "关闭文件失败。数据可能在使用种。",
+  "errorInvalidParameter": "输入错误",
   "settingsScreenshotPathAlert": "第一次创建照片时将会自动创建文件夹。",
   "settingsMissingStrings": "缺少字符串",
   "settingsTranslation": "翻译表",

@@ -672,6 +672,7 @@
   "errorReadFailure": "Failed to read.",
   "errorWriteFailure": "Failed to write to file. Drive may be full or file may already be in use.",
   "errorCloseFailure": "Failed to close file. Data may be corrupt.",
+  "errorInvalidParameter": "Wrong input.",
   "settingsScreenshot": "Screenshot",
   "settingsScreenshotResLabel": "Resolution",
   "settingsScreenshotRes720p": "720p",

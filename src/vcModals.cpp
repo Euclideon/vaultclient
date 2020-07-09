@@ -434,6 +434,15 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       //TODO: Additional export settings
     }
 
+    static vdkError result = vE_Success;
+    if (result != vE_Success)
+    {
+      ImGui::NextColumn();
+      ImGui::Spacing();
+      ImGui::Spacing();
+      ImGui::TextColored(ImVec4(1.0, 1.0, 0.5, 1.0), "%s", vcProject_ErrorToString(result));
+    }    
+
     // Position control buttons in the bottom right corner
     ImVec2 windowSize = ImGui::GetWindowSize();
     ImGui::SetCursorPos(ImVec2(windowSize.x - 280, windowSize.y - 30));
@@ -443,39 +452,38 @@ void vcModals_DrawNewProject(vcState *pProgramState)
       {
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
+        result = vE_Success;
         ImGui::CloseCurrentPopup();
       }
     }
     else
     {
       if (ImGui::Button("Back", ImVec2(100.f, 0)))
+      {        
         creatingNewProjectType = -1;
+        result = vE_Success;
+      }
 
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
       {
-        bool createSucceeded = false;
         if (localOrServerProject == 0) // local
         {
           // TODO: CONFIRM FILE OVERRIDE IF EXISTS
 
-          createSucceeded = vcProject_CreateFileScene(pProgramState, pProjectPath, pProgramState->modelPath, zoneCustomSRID);
+          result = vcProject_CreateFileScene(pProgramState, pProjectPath, pProgramState->modelPath, zoneCustomSRID);
         }
         else // server
         {
-          createSucceeded = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, udUUID_GetAsString(selectedGroup), zoneCustomSRID);
+          result = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, udUUID_GetAsString(selectedGroup), zoneCustomSRID);
         }
 
-        if (createSucceeded)
+        if (vE_Success == result)
         {
           pProgramState->modelPath[0] = '\0';
           creatingNewProjectType = -1;
 
           ImGui::CloseCurrentPopup();
-        }
-        else
-        {
-          // Errors!
         }
       }
     }
