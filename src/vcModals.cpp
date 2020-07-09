@@ -488,7 +488,6 @@ void vcModals_DrawNewProject(vcState *pProgramState)
     }
     else
     {
-      ImVec2 windowSize = ImGui::GetWindowSize();
       ImGui::SetCursorPos(ImVec2(windowSize.x - 280, windowSize.y - 30));
 
       if (ImGui::Button("Back", ImVec2(100.f, 0)))
