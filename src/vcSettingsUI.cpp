@@ -790,8 +790,8 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 
       if (s_mapTiles[i].pPreviewTexture == nullptr)
       {
-        s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
         vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
+        s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
       }
 
       if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
