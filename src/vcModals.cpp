@@ -478,7 +478,7 @@ void vcModals_DrawNewProject(vcState *pProgramState)
           result = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, udUUID_GetAsString(selectedGroup), zoneCustomSRID);
         }
 
-        if (vE_Success == result)
+        if (result == vE_Success )
         {
           pProgramState->modelPath[0] = '\0';
           creatingNewProjectType = -1;
