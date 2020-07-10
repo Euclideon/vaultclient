@@ -1634,6 +1634,11 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectShare"), nullptr, vcMBBI_Share, vcMBBG_SameGroup);
       if (ImGui::BeginPopupContextItem("##shareSettingsPopup", 0))
       {
+        static int messagePlace = -1;
+
+        if (ImGui::IsWindowAppearing())
+          messagePlace = -1;
+
         const char *pUUID = nullptr;
 
         if (vdkProject_GetProjectUUID(pProgramState->activeProject.pProject, &pUUID) == vE_Success)
@@ -1646,8 +1651,38 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
           ImGui::TextUnformatted(vcString::Get("shareInstructions"));
 
-          ImGui::InputText(vcString::Get("shareLinkBrowser"), shareLinkBrowser, udLengthOf(shareLinkBrowser), ImGuiInputTextFlags_ReadOnly);
-          ImGui::InputText(vcString::Get("shareLinkApp"), shareLinkApp, udLengthOf(shareLinkApp), ImGuiInputTextFlags_ReadOnly);
+          struct
+          {
+            const char *pLabel;
+            char *pBuffer;
+          } shareOptions[] = {
+            { vcString::Get("shareLinkBrowser"), shareLinkBrowser},
+            { vcString::Get("shareLinkApp"), shareLinkApp }
+          };
+
+          for (size_t i = 0; i < udLengthOf(shareOptions); ++i)
+          {
+            ImGui::PushID(udTempStr("shareItem%zu", i));
+
+            ImGui::InputText(shareOptions[i].pLabel, shareOptions[i].pBuffer, vcMaxPathLength, ImGuiInputTextFlags_ReadOnly);
+            ImGui::SameLine();
+            if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("popupMenuCopy"), nullptr, vcMBBI_Crosshair, vcMBBG_FirstItem))
+            {
+              if (SDL_SetClipboardText(shareLinkBrowser) == 0)
+              {
+                messagePlace = (int)i;
+              }
+            }
+
+            if (messagePlace == (int)i)
+            {
+              ImGui::SameLine();
+              vcIGSW_ShowLoadStatusIndicator(vcSLS_Success);
+              ImGui::TextUnformatted(vcString::Get("shareLinkCopied"));
+            }
+
+            ImGui::PopID();
+          }
         }
         else
         {

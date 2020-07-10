@@ -8,7 +8,7 @@
     "contactemail": "support@euclideon.com",
     "targetVersion": "1.0"
   },
-  "errorServerCommunication":  "Server communication error",
+  "errorServerCommunication": "Server communication error",
   "popupClose": "Close",
   "popupConfirmYes": "Yes",
   "popupConfirmNo": "No",
@@ -734,5 +734,6 @@
   "shareNotPossible": "This project cannot currently be shared.",
   "shareLinkBrowser": "Share in Browser",
   "shareLinkApp": "Share in App",
+  "shareLinkCopied": "Copied to clipboard",
   "_last": "Last item so no one forgets the comma on the line above"
 }
