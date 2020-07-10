@@ -111,9 +111,21 @@ project "udStream"
 
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
-		links { "SDL2", "GL" }
+		linkoptions { "-no-pie" } -- Enable double click on binary in Ubuntu
+		links { "SDL2", "GL", "z" }
 		includedirs { "3rdParty" }
 		files { "3rdParty/GL/glext.h" }
+
+	-- Clang on Ubuntu 16.04 doesn't support -no-pie
+	if os.host() == premake.LINUX then
+		status = os.execute('echo "int main() { return 0; }" | clang -o a.out -no-pie -xc - > /dev/null 2>2&1')
+		if not status then
+			filter { "system:linux", "toolset:clang" }
+				removelinkoptions { "-no-pie" }
+			filter {}
+		end
+		os.execute("rm a.out")
+	end
 
 	filter { "system:android" }
 		links { "m", "android", "SDL2", "GLESv3" }
@@ -160,9 +172,6 @@ project "udStream"
 
 	filter { "system:not windows" }
 		links { "dl" }
-
-	filter { "system:linux" }
-		links { "z" }
 
 	filter { "options:gfxapi=opengl" }
 		defines { "GRAPHICS_API_OPENGL=1" }
