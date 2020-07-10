@@ -231,29 +231,6 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       udUUID_Clear(&selectedGroup);
     }
 
-    const char *pNewProjectTypes[] =
-    {
-      vcString::Get("modalProjectNewGeolocated"),
-      vcString::Get("modalProjectNewNonGeolocated"),
-      vcString::Get("modalProjectNewGeolocatedSpecificZone")
-    };
-
-    const char *pNewProjectDescriptions[] =
-    {
-      vcString::Get("modalProjectGeolocatedDescription"),
-      vcString::Get("modalProjectNonGeolocatedDescription"),
-      vcString::Get("modalProjectSpecificZoneDescription")
-    };
-
-    vcMenuBarButtonIcon projectIcons[] =
-    {
-      vcMBBI_Geospatial,
-      vcMBBI_Grid,
-      vcMBBI_ExpertGrid
-    };
-
-    UDCOMPILEASSERT(udLengthOf(pNewProjectTypes) == udLengthOf(pNewProjectDescriptions), "Invalid matching sizes");
-
     ImVec2 windowSize = ImGui::GetWindowSize();
 
     // Logo
@@ -283,6 +260,10 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::SetCursorPosX((windowSize.x - xf) / 2);
       ImGui::Image(pProgramState->pCompanyLogo, ImVec2(xf, yf));
     }
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Spacing();
 
     // Get Help
     {
@@ -321,6 +302,17 @@ void vcModals_DrawWelcome(vcState *pProgramState)
     }
 
     ImGui::Separator();
+
+    struct
+    {
+      const char *pAction;                                      const char *pDescription;                             vcMenuBarButtonIcon icon;
+    } items[] = {
+      { vcString::Get("menuProjectImport"),                     vcString::Get("menuProjectImportDesc"),               vcMBBI_Open },
+      { vcString::Get("modalProjectNewGeolocated"),             vcString::Get("modalProjectGeolocatedDescription"),   vcMBBI_Geospatial },
+      { vcString::Get("modalProjectNewNonGeolocated"),          vcString::Get("modalProjectNonGeolocatedDescription"),vcMBBI_Grid },
+      { vcString::Get("modalProjectNewGeolocatedSpecificZone"), vcString::Get("modalProjectSpecificZoneDescription"), vcMBBI_ExpertGrid },
+      { vcString::Get("convertTitle"),                          vcString::Get("convertDesc"),                         vcMBBI_Convert },
+    };
 
     if (creatingNewProjectType == -1)
     {
@@ -376,26 +368,37 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
 
-      UDCOMPILEASSERT(udLengthOf(pNewProjectTypes) == udLengthOf(projectIcons), "Invalid matching sizes");
-
-      for (size_t i = 0; i < udLengthOf(pNewProjectTypes); ++i)
+      for (size_t i = 0; i < udLengthOf(items); ++i)
       {
         bool selected = false;
         if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
         {
-          creatingNewProjectType = (int)i;
-          udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
+          if (items[i].icon == vcMBBI_Geospatial || items[i].icon == vcMBBI_Grid || items[i].icon == vcMBBI_ExpertGrid)
+          {
+            creatingNewProjectType = (int)i;
+            udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
 
-          if (i == 0) // Geolocated
-            zoneCustomSRID = 84;
-          else if (i == 1)
-            zoneCustomSRID = 0; // Non Geolocated
+            if (items[i].icon == vcMBBI_Geospatial)
+              zoneCustomSRID = 84; // Geolocated
+            else if (items[i].icon == vcMBBI_Grid)
+              zoneCustomSRID = 0; // Non Geolocated
+          }
+          else if (items[i].icon == vcMBBI_Convert)
+          {
+            ImGui::CloseCurrentPopup();
+            vcModals_OpenModal(pProgramState, vcMT_Convert);
+          }
+          else if (items[i].icon == vcMBBI_Open)
+          {
+            ImGui::CloseCurrentPopup();
+            vcModals_OpenModal(pProgramState, vcMT_ImportProject);
+          }
         }
 
         float prevPosY = ImGui::GetCursorPosY();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 46);
 
-        udFloat4 iconUV = vcGetIconUV(projectIcons[i]);
+        udFloat4 iconUV = vcGetIconUV(items[i].icon);
         ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
         ImGui::SameLine();
 
@@ -403,7 +406,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
 
         float textAlignPosX = ImGui::GetCursorPosX();
-        ImGui::TextUnformatted(pNewProjectTypes[i]);
+        ImGui::TextUnformatted(items[i].pAction);
 
         // Manually align details text with title text
         ImGui::SetCursorPosX(textAlignPosX);
@@ -412,7 +415,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
         ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
         col.w *= 0.65f;
         ImGui::PushStyleColor(ImGuiCol_Text, col);
-        ImGui::TextUnformatted(pNewProjectDescriptions[i]);
+        ImGui::TextUnformatted(items[i].pDescription);
         ImGui::PopStyleColor();
 
         ImGui::SetCursorPosY(prevPosY);
@@ -423,11 +426,11 @@ void vcModals_DrawWelcome(vcState *pProgramState)
     }
     else
     {
-      ImGui::TextUnformatted(pNewProjectTypes[creatingNewProjectType]);
+      ImGui::TextUnformatted(items[creatingNewProjectType].pAction);
 
       vcIGSW_InputText(vcString::Get("modalProjectNewName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
       
-      if (creatingNewProjectType == 2)
+      if (items[creatingNewProjectType].icon == vcMBBI_ExpertGrid)
       {
         ImGui::Indent();
         ImGui::InputInt(vcString::Get("modalProjectNewGeolocatedSpecificZoneID"), &zoneCustomSRID);
@@ -499,7 +502,6 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       }
 
       ImGui::Unindent();
-      //TODO: Additional export settings
     }
 
     static vdkError result = vE_Success;
@@ -516,7 +518,14 @@ void vcModals_DrawWelcome(vcState *pProgramState)
     {
       ImGui::Separator();
 
-      if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      const float DismissButtonSize = 200.f;
+
+      ImGui::Spacing();
+      ImGui::Spacing();
+
+      ImGui::SetCursorPosX((windowSize.x - DismissButtonSize) / 2.f);
+
+      if (ImGui::Button(vcString::Get("modalWelcomeDismiss"), ImVec2(DismissButtonSize, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       {
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;

@@ -232,7 +232,7 @@
   "settingsUnitsOfMeasurementImperial": "Imperial",
   "settingsToolsDefaultValues": "Nilai lalai untuk item alat baru",
   "settingsConvert": "Tukar Lalai",
-  "convertTitle": "Tukarkan",
+  "convertTitle": "Tukar ke UDS",
   "convertReadingFile": "Membaca Fail {0} / {1}",
   "convertWritingPoints": "Titik Menulis {0} / {1}",
   "convertAddToScene": "Tambah ke Adegan",
@@ -727,5 +727,9 @@
   "shareNotPossible": "Projek ini tidak dapat dikongsi buat masa ini.",
   "shareLinkBrowser": "Kongsi di Penyemak Imbas",
   "shareLinkApp": "Kongsi di Aplikasi",
+  "convertDesc": "Tukarkan cloud point dan mesh ke UDS untuk mendapatkan faedah streaming dari cloud",
+  "menuProjectImportDesc": "Muatkan pemandangan dari pemacu tempatan, awan atau projek pelayan udStream.",
+  "modalWelcomeDismiss": "Mulakan tanpa projek ...",
+  "errorInvalidParameter": "Input yang salah.",
   "_last": "Last item so no one forgets the comma on the line above"
 }

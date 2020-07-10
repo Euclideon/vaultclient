@@ -197,7 +197,7 @@
   "settingsVisClassSet": "Gosod",
   "settingsToolsDefaultValues": "Gwerthoedd diofyn ar gyfer eitemau offer newydd",
   "settingsConvert": "Trosi Diffygion",
-  "convertTitle": "Trosi",
+  "convertTitle": "Trosi I UDS",
   "convertReadingFile": "Ffeil Ddarllen {0} / {1}",
   "convertWritingPoints": "Pwyntiau Ysgrifennu {0} / {1}",
   "convertAddToScene": "Ychwanegu at Scene",
@@ -727,5 +727,9 @@
   "gettingStarted": "Hwb Cymunedol",
   "gettingStartedDesc": "Cliciwch yma i gael fideos, sesiynau tiwtorial a gwybodaeth arall i'ch helpu chi i daro'r llawr.",
   "sceneStreaming": "Golygfa fireinio ...",
+  "convertDesc": "Trosi pwyntclouds a rhwyllau i UDS i gael buddion ffrydio o'r cwmwl",
+  "menuProjectImportDesc": "Llwythwch olygfa o yriant lleol, y cwmwl neu brosiect gweinydd udStream.",
+  "modalWelcomeDismiss": "Dechreuwch heb brosiect ...",
+  "errorInvalidParameter": "Mewnbwn anghywir.",
   "_last": "Last item so no one forgets the comma on the line above"
 }
