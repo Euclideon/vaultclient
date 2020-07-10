@@ -511,7 +511,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
       ImGui::TextColored(ImVec4(1.0, 1.0, 0.5, 1.0), "%s", vcProject_ErrorToString(result));
-    }    
+    }
 
     // Position control buttons in the bottom right corner
     if (creatingNewProjectType == -1)
