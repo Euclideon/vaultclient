@@ -8,6 +8,7 @@
     "contactemail": "support@euclideon.com",
     "targetVersion": "1.0"
   },
+  "errorServerCommunication":  "Server communication error",
   "popupClose": "Close",
   "popupConfirmYes": "Yes",
   "popupConfirmNo": "No",
