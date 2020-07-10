@@ -126,7 +126,7 @@ enum vcSkyboxType
 struct vcLanguageOption
 {
   // Arbitrary limits
-  char languageName[32];
+  char languageName[40];
   char filename[16];
 };
 
