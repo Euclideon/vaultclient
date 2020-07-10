@@ -328,6 +328,8 @@
   "menuProjectExportCloud": "Save to cloud",
   "menuProjectExportButton": "Save and continue",
   "menuProjectImport": "Import Project",
+  "menuProjectImportDisk": "Import from disk",
+  "menuProjectImportCloud": "Import from cloud",
   "menuProjectImportTitle": "Import Project to Scene",
   "menuProjectImportDesc": "Load a scene from a local drive, the cloud or a udStream server project.",
   "menuProjectNone": "No server projects",
