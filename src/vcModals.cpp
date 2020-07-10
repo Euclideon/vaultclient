@@ -729,7 +729,7 @@ void vcModals_DrawImportProject(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_ImportProject))
     ImGui::OpenPopup(vcString::Get("menuProjectImportTitle"));
 
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectImportTitle")))
   {
     if (pProgramState->closeModals & (1 << vcMT_ImportProject))
@@ -737,28 +737,112 @@ void vcModals_DrawImportProject(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsImport, vcFDT_OpenFile, nullptr);
+    static size_t selectedGroupIndex = 0;
+    static size_t selectedProjectIndex = 0;
 
-    ImGui::SameLine();
-
-    if (ImGui::Button(vcString::Get("menuProjectImport"), ImVec2(100.f, 0)) && vcProject_AbleToChange(pProgramState))
+    if (ImGui::IsWindowAppearing())
     {
-      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
-      pProgramState->modelPath[0] = '\0';
-      ImGui::CloseCurrentPopup();
+      selectedGroupIndex = 0;
+      selectedProjectIndex = 0;
     }
 
-    ImGui::SameLine();
+    struct
+    {
+      const char *pName;          vcMenuBarButtonIcon icon;
+    } types[] = {
+      { "menuProjectImportDisk",  vcMBBI_StorageLocal },
+      { "menuProjectImportCloud", vcMBBI_StorageCloud },
+    };
+
+    for (size_t i = 0; i < udLengthOf(types); ++i)
+    {
+      if (ImGui::BeginChild(udTempStr("##loadFromType%zu", i), ImVec2(-1, 140), true))
+      {
+        udFloat4 iconUV = vcGetIconUV(types[i].icon);
+        ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+        ImGui::SameLine();
+
+        float textAlignPosX = ImGui::GetCursorPosX();
+        ImGui::TextUnformatted(vcString::Get(types[i].pName));
+
+        // Manually align details text with title text
+        ImGui::SetCursorPosX(textAlignPosX);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
+
+        if (i == 0) // local
+        {
+          vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_OpenFile, nullptr);
+
+          ImGui::SetCursorPosX(textAlignPosX);
+          if (ImGui::Button(vcString::Get("menuProjectImport")) && vcProject_AbleToChange(pProgramState))
+          {
+            vcProject_LoadFromURI(pProgramState, pProgramState->modelPath);
+            pProgramState->modelPath[0] = '\0';
+
+            ImGui::CloseCurrentPopup();
+          }
+        }
+        else if (i == 1) // cloud
+        {
+          udJSONArray *pGroupList = pProgramState->projects.Get("groups").AsArray();
+          if (pGroupList != nullptr)
+          {
+            if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), pGroupList->GetElement(selectedGroupIndex)->Get("name").AsString()))
+            {
+              for (size_t g = 0; g < pGroupList->length; ++g)
+              {
+                udJSON *pGroupItem = pGroupList->GetElement(g);
+                const char *pGroupName = pGroupItem->Get("name").AsString();
+                if (ImGui::Selectable(pGroupName, selectedGroupIndex == g))
+                {
+                  selectedGroupIndex = g;
+                  selectedProjectIndex = 0;
+                }
+              }
+              ImGui::EndCombo();
+            }
+
+            ImGui::SetCursorPosX(textAlignPosX + 14);
+
+            udJSONArray *pProjectList = pGroupList->GetElement(selectedGroupIndex)->Get("projects").AsArray();
+            if (ImGui::BeginCombo("Projects##saveprojectslol", pProjectList->GetElement(selectedProjectIndex)->Get("name").AsString()))
+            {
+              for (size_t p = 0; p < pProjectList->length; ++p)
+              {
+                udJSON *pProject = pProjectList->GetElement(p);
+                const char *pProjectName = pProject->Get("name").AsString("<Unnamed>");
+                if (ImGui::Selectable(pProjectName, selectedProjectIndex == p))
+                {
+                  selectedProjectIndex = p;
+                }
+              }
+              ImGui::EndCombo();
+            }
+
+            ImGui::SetCursorPosX(textAlignPosX);
+            if (ImGui::Button(vcString::Get("menuProjectImport")) && vcProject_AbleToChange(pProgramState))
+            {
+              udJSON *pSelectedProjectInfo = pGroupList->GetElement(selectedGroupIndex)->Get("projects").AsArray()->GetElement(selectedProjectIndex);
+              vcProject_LoadFromServer(pProgramState, pSelectedProjectInfo->Get("projectid").AsString());
+
+              ImGui::CloseCurrentPopup();
+            }
+          }
+          else // No projects
+          {
+            ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
+          }
+        }
+
+        ImGui::EndChild();
+      }
+    }
 
     if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       pProgramState->modelPath[0] = '\0';
       ImGui::CloseCurrentPopup();
     }
-
-    ImGui::Separator();
-
-    //TODO: Additional import settings
 
     ImGui::EndPopup();
   }
