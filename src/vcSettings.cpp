@@ -188,7 +188,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     udStrcpy(pSettings->window.languageCode, data.Get("window.language").AsString(""));
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
-    pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(false);
+    pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(true);
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(false);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
