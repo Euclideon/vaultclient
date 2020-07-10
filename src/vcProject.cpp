@@ -16,7 +16,7 @@ const char *vcProject_ErrorToString(vdkError error)
     return vcString::Get("errorInvalidParameter");
   case vE_OpenFailure:
     return vcString::Get("errorOpenFailure");
-  case vE_FileExists:
+  case vE_WriteFailure:
     return vcString::Get("errorFileExists");
   case vE_Failure: // Falls through
   default:
@@ -115,7 +115,7 @@ vdkError   vcProject_CreateFileScene(vcState *pProgramState, const char *pFileNa
     return vE_InvalidParameter;
 
   if (udFileExists(pFileName) == udR_Success)
-    return vE_FileExists;
+    return vE_WriteFailure;
 
   vdkProject *pNewProject = nullptr;
   vdkError error = vdkProject_CreateInFile(&pNewProject, pProjectName, pFileName);
