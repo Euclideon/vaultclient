@@ -527,6 +527,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
       if (ImGui::Button(vcString::Get("modalWelcomeDismiss"), ImVec2(DismissButtonSize, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       {
+        pProgramState->isDanglingProject = true;
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
         result = vE_Success;
@@ -630,7 +631,8 @@ void vcModals_DrawExportProject(vcState *pProgramState)
           ImGui::SetCursorPosX(textAlignPosX);
           if (ImGui::Button(vcString::Get("menuProjectExportButton")))
           {
-            vcProject_SaveAs(pProgramState, pProgramState->modelPath, false);
+            if (vcProject_SaveAs(pProgramState, pProgramState->modelPath, false))
+              pProgramState->isDanglingProject = false;
             pProgramState->modelPath[0] = '\0';
             ImGui::CloseCurrentPopup();
           }
@@ -677,6 +679,8 @@ void vcModals_DrawExportProject(vcState *pProgramState)
               vdkError result = vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, udUUID_GetAsString(selectedGroup));
               if (result != vE_Success)
                 udSprintf(ErrorText, "%s: %s", vcString::Get("errorServerCommunication"), vcProject_ErrorToString(result));
+              else
+                pProgramState->isDanglingProject = false;
             }
           }
           else
