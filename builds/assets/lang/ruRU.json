@@ -730,5 +730,6 @@
   "convertDesc": "Преобразование облаков точек и сеток в UDS для получения преимуществ потоковой передачи из облака",
   "menuProjectImportDesc": "Загрузите сцену с локального диска, из облака или из проекта сервера udStream.",
   "modalWelcomeDismiss": "Начать без проекта ...",
+  "errorInvalidParameter": "Неправильный ввод.",
   "_last": "Last item so no one forgets the comma on the line above"
 }

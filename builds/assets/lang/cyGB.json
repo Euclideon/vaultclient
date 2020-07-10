@@ -730,5 +730,6 @@
   "convertDesc": "Trosi pwyntclouds a rhwyllau i UDS i gael buddion ffrydio o'r cwmwl",
   "menuProjectImportDesc": "Llwythwch olygfa o yriant lleol, y cwmwl neu brosiect gweinydd udStream.",
   "modalWelcomeDismiss": "Dechreuwch heb brosiect ...",
+  "errorInvalidParameter": "Mewnbwn anghywir.",
   "_last": "Last item so no one forgets the comma on the line above"
 }

@@ -730,5 +730,6 @@
   "convertDesc": "点群とメッシュをUDSに変換して、クラウドからのストリーミングのメリットを享受",
   "menuProjectImportDesc": "ローカルドライブ、クラウド、またはudStreamサーバープロジェクトからシーンをロードします。",
   "modalWelcomeDismiss": "プロジェクトなしで開始...",
+  "errorInvalidParameter": "入力が間違っています。",
   "_last": "Last item so no one forgets the comma on the line above"
 }
