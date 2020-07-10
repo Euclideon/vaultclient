@@ -213,6 +213,7 @@ struct vcState
   vcActiveTool activeTool;
 
   vcProject activeProject;
+  bool isDanglingProject;
 
   struct
   {
