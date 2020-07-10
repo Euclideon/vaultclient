@@ -7,6 +7,7 @@
 struct vcState;
 class vcSceneItem;
 class vcFolder;
+class udFilename;
 
 struct vcProject
 {
@@ -30,7 +31,7 @@ enum vcProjectStandardZones
 const char* vcProject_ErrorToString(vdkError error);
 
 bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int srid);
-vdkError vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const char *pName, int srid);
+vdkError vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName, const char *pProjectName, int srid);
 vdkError vcProject_CreateServerScene(vcState *pProgramState, const char *pName, const char *pGroupUUID, int srid);
 
 bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename);
@@ -38,6 +39,7 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID);
 
 void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);
 
+void vcProject_AutoCompletedName(udFilename *exportFilename, const char *pProjectName, const char *pFileName);
 bool vcProject_Save(vcState *pProgramState);
 bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride);
 

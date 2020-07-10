@@ -548,9 +548,9 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       {
         if (localOrServerProject == 0) // local
         {
-          // TODO: CONFIRM FILE OVERRIDE IF EXISTS
-
-          result = vcProject_CreateFileScene(pProgramState, pProjectPath, pProgramState->modelPath, zoneCustomSRID);
+          udFilename exportFilename(pProjectPath);
+          vcProject_AutoCompletedName(&exportFilename, pProjectPath, pProgramState->modelPath);
+          result = vcProject_CreateFileScene(pProgramState, exportFilename, pProgramState->modelPath, zoneCustomSRID);
         }
         else // server
         {
