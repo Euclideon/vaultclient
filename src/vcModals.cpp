@@ -573,6 +573,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
 void vcModals_DrawExportProject(vcState *pProgramState)
 {
+  static char ErrorText[128] = {};
+
   if (pProgramState->openModals & (1 << vcMT_ExportProject))
     ImGui::OpenPopup(vcString::Get("menuProjectExportTitle"));
 
@@ -671,7 +673,11 @@ void vcModals_DrawExportProject(vcState *pProgramState)
 
             ImGui::SetCursorPosX(textAlignPosX);
             if (ImGui::Button(vcString::Get("menuProjectExportButton")))
-              vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, udUUID_GetAsString(selectedGroup));
+            {
+              vdkError result = vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, udUUID_GetAsString(selectedGroup));
+              if (result != vE_Success)
+                udSprintf(ErrorText, "%s: %s", vcString::Get("errorServerCommunication"), vcProject_ErrorToString(result));
+            }
           }
           else
           {
@@ -683,6 +689,15 @@ void vcModals_DrawExportProject(vcState *pProgramState)
       }
     }
 
+    if (ErrorText[0] != 0)
+    {
+      ImGui::Spacing();
+      ImGui::Spacing();
+      ImGui::TextColored(ImVec4(1.0, 1.0, 0.5, 1.0), "%s", ErrorText);
+      ImGui::Spacing();
+      ImGui::Spacing();
+    }
+
     if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       pProgramState->modelPath[0] = '\0';
@@ -690,6 +705,10 @@ void vcModals_DrawExportProject(vcState *pProgramState)
     }
 
     ImGui::EndPopup();
+  }
+  else
+  {
+    ErrorText[0] = 0;
   }
 }
 
