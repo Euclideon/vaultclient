@@ -676,7 +676,7 @@ void vcModals_DrawExportProject(vcState *pProgramState)
             {
               vdkError result = vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, udUUID_GetAsString(selectedGroup));
               if (result != vE_Success)
-                udStrcpy(ErrorText, udTempStr("%s: %s", vcString::Get("errorServerCommunication"), vcProject_ErrorToString(result)));
+                udSprintf(ErrorText, "%s: %s", vcString::Get("errorServerCommunication"), vcProject_ErrorToString(result));
             }
           }
           else
