@@ -728,5 +728,7 @@
   "shareLinkBrowser": "Kongsi di Penyemak Imbas",
   "shareLinkApp": "Kongsi di Aplikasi",
   "convertDesc": "Tukarkan cloud point dan mesh ke UDS untuk mendapatkan faedah streaming dari cloud",
+  "menuProjectImportDesc": "Muatkan pemandangan dari pemacu tempatan, awan atau projek pelayan udStream.",
+  "modalWelcomeDismiss": "Mulakan tanpa projek ...",
   "_last": "Last item so no one forgets the comma on the line above"
 }

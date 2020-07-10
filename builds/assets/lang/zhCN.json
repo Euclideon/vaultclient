@@ -729,5 +729,7 @@
   "gettingStartedDesc": "单击此处以获取视频，教程和其他信息，以帮助您入门。",
   "sceneStreaming": "提炼现场...",
   "convertDesc": "将点云和网格转换为UDS以从云中获得流式传输的好处",
+  "menuProjectImportDesc": "从本地驱动器，云或udStream服务器项目加载场景。",
+  "modalWelcomeDismiss": "没有项目就开始...",
   "_last": "Last item so no one forgets the comma on the line above"
 }

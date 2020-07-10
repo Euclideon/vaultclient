@@ -728,5 +728,7 @@
   "gettingStartedDesc": "Cliquez ici pour des vidéos, des tutoriels et d'autres informations pour vous aider à démarrer.",
   "sceneStreaming": "Affiner la scène ...",
   "convertDesc": "Convertissez des nuages de points et des maillages en UDS pour profiter des avantages du streaming à partir du cloud",
+  "menuProjectImportDesc": "Chargez une scène à partir d'un lecteur local, du cloud ou d'un projet de serveur udStream.",
+  "modalWelcomeDismiss": "Commencez sans projet ...",
   "_last": "Last item so no one forgets the comma on the line above"
 }

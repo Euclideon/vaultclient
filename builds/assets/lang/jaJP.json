@@ -728,5 +728,7 @@
   "gettingStartedDesc": "ここをクリックして、ビデオ、チュートリアル、およびその他の情報を入手してください。",
   "sceneStreaming": "シーンを調整しています...",
   "convertDesc": "点群とメッシュをUDSに変換して、クラウドからのストリーミングのメリットを享受",
+  "menuProjectImportDesc": "ローカルドライブ、クラウド、またはudStreamサーバープロジェクトからシーンをロードします。",
+  "modalWelcomeDismiss": "プロジェクトなしで開始...",
   "_last": "Last item so no one forgets the comma on the line above"
 }

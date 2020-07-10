@@ -231,16 +231,6 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       udUUID_Clear(&selectedGroup);
     }
 
-    struct
-    {
-      const char *pAction;                                      const char *pDescription;                             vcMenuBarButtonIcon icon;
-    } items[] = {
-      { vcString::Get("modalProjectNewGeolocated"),             vcString::Get("modalProjectGeolocatedDescription"),   vcMBBI_Geospatial },
-      { vcString::Get("modalProjectNewNonGeolocated"),          vcString::Get("modalProjectNonGeolocatedDescription"),vcMBBI_Grid },
-      { vcString::Get("modalProjectNewGeolocatedSpecificZone"), vcString::Get("modalProjectSpecificZoneDescription"), vcMBBI_ExpertGrid },
-      { vcString::Get("convertTitle"),                          vcString::Get("convertDesc"),                         vcMBBI_Convert },
-    };
-
     ImVec2 windowSize = ImGui::GetWindowSize();
 
     // Logo
@@ -270,6 +260,10 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::SetCursorPosX((windowSize.x - xf) / 2);
       ImGui::Image(pProgramState->pCompanyLogo, ImVec2(xf, yf));
     }
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Spacing();
 
     // Get Help
     {
@@ -308,6 +302,17 @@ void vcModals_DrawWelcome(vcState *pProgramState)
     }
 
     ImGui::Separator();
+
+    struct
+    {
+      const char *pAction;                                      const char *pDescription;                             vcMenuBarButtonIcon icon;
+    } items[] = {
+      { vcString::Get("menuProjectImport"),                     vcString::Get("menuProjectImportDesc"),               vcMBBI_Open },
+      { vcString::Get("modalProjectNewGeolocated"),             vcString::Get("modalProjectGeolocatedDescription"),   vcMBBI_Geospatial },
+      { vcString::Get("modalProjectNewNonGeolocated"),          vcString::Get("modalProjectNonGeolocatedDescription"),vcMBBI_Grid },
+      { vcString::Get("modalProjectNewGeolocatedSpecificZone"), vcString::Get("modalProjectSpecificZoneDescription"), vcMBBI_ExpertGrid },
+      { vcString::Get("convertTitle"),                          vcString::Get("convertDesc"),                         vcMBBI_Convert },
+    };
 
     if (creatingNewProjectType == -1)
     {
@@ -368,20 +373,25 @@ void vcModals_DrawWelcome(vcState *pProgramState)
         bool selected = false;
         if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
         {
-          if (i < 3)
+          if (items[i].icon == vcMBBI_Geospatial || items[i].icon == vcMBBI_Grid || items[i].icon == vcMBBI_ExpertGrid)
           {
             creatingNewProjectType = (int)i;
             udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
 
-            if (i == 0) // Geolocated
-              zoneCustomSRID = 84;
-            else if (i == 1)
+            if (items[i].icon == vcMBBI_Geospatial)
+              zoneCustomSRID = 84; // Geolocated
+            else if (items[i].icon == vcMBBI_Grid)
               zoneCustomSRID = 0; // Non Geolocated
           }
-          else if (i == 3)
+          else if (items[i].icon == vcMBBI_Convert)
           {
             ImGui::CloseCurrentPopup();
             vcModals_OpenModal(pProgramState, vcMT_Convert);
+          }
+          else if (items[i].icon == vcMBBI_Open)
+          {
+            ImGui::CloseCurrentPopup();
+            vcModals_OpenModal(pProgramState, vcMT_ImportProject);
           }
         }
 
@@ -420,7 +430,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
       vcIGSW_InputText(vcString::Get("modalProjectNewName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
       
-      if (creatingNewProjectType == 2)
+      if (items[creatingNewProjectType].icon == vcMBBI_ExpertGrid)
       {
         ImGui::Indent();
         ImGui::InputInt(vcString::Get("modalProjectNewGeolocatedSpecificZoneID"), &zoneCustomSRID);
@@ -492,7 +502,6 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       }
 
       ImGui::Unindent();
-      //TODO: Additional export settings
     }
 
     static vdkError result = vE_Success;
@@ -509,7 +518,14 @@ void vcModals_DrawWelcome(vcState *pProgramState)
     {
       ImGui::Separator();
 
-      if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      const float DismissButtonSize = 200.f;
+
+      ImGui::Spacing();
+      ImGui::Spacing();
+
+      ImGui::SetCursorPosX((windowSize.x - DismissButtonSize) / 2.f);
+
+      if (ImGui::Button(vcString::Get("modalWelcomeDismiss"), ImVec2(DismissButtonSize, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       {
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
