@@ -29,6 +29,7 @@ enum vcMenuBarButtonIcon
 
   vcMBBI_MeasureHeight = 20,
   vcMBBI_AngleTool = 21,
+  vcMBBI_ProjectSettings = 22,
 
   // Reserved 22-29
 
