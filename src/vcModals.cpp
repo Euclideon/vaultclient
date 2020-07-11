@@ -311,8 +311,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
       ImGuiStyle style = ImGui::GetStyle();
 
-      int totalSize = pProgramState->featuredProjects.length * (128 + style.FramePadding.x);
-
+      float totalSize = pProgramState->featuredProjects.length * (128 + style.FramePadding.x);
       if (pProgramState->featuredProjects.length > 1)
         totalSize += (pProgramState->featuredProjects.length * style.ItemSpacing.x);
 
@@ -346,7 +345,9 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       { vcString::Get("modalProjectNewGeolocated"),             vcString::Get("modalProjectGeolocatedDescription"),   vcMBBI_Geospatial },
       { vcString::Get("modalProjectNewNonGeolocated"),          vcString::Get("modalProjectNonGeolocatedDescription"),vcMBBI_Grid },
       { vcString::Get("modalProjectNewGeolocatedSpecificZone"), vcString::Get("modalProjectSpecificZoneDescription"), vcMBBI_ExpertGrid },
+#if VC_HASCONVERT
       { vcString::Get("convertTitle"),                          vcString::Get("convertDesc"),                         vcMBBI_Convert },
+#endif // VC_HASCONVERT
     };
 
     if (creatingNewProjectType == -1)
