@@ -1654,7 +1654,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             ImGui::SameLine();
             if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("popupMenuCopy"), nullptr, vcMBBI_Crosshair, vcMBBG_FirstItem))
             {
-              if (SDL_SetClipboardText(shareLinkBrowser) == 0)
+              if (SDL_SetClipboardText(shareOptions[i].pBuffer) == 0)
               {
                 messagePlace = (int)i;
               }
