@@ -771,15 +771,18 @@ void vcModals_DrawImportProject(vcState *pProgramState)
 
     struct
     {
-      const char *pName;          vcMenuBarButtonIcon icon;
+      const char *pName;
+      vcMenuBarButtonIcon icon;
+      float size;
     } types[] = {
-      { "menuProjectImportDisk",  vcMBBI_StorageLocal },
-      { "menuProjectImportCloud", vcMBBI_StorageCloud },
+      { "menuProjectImportShared",  vcMBBI_Share, 90.f },
+      { "menuProjectImportDisk",  vcMBBI_StorageLocal, 90.f },
+      { "menuProjectImportCloud", vcMBBI_StorageCloud, 120.f },
     };
 
     for (size_t i = 0; i < udLengthOf(types); ++i)
     {
-      if (ImGui::BeginChild(udTempStr("##loadFromType%zu", i), ImVec2(-1, 140), true))
+      if (ImGui::BeginChild(udTempStr("##loadFromType%zu", i), ImVec2(-1, types[i].size), true))
       {
         udFloat4 iconUV = vcGetIconUV(types[i].icon);
         ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
@@ -792,9 +795,34 @@ void vcModals_DrawImportProject(vcState *pProgramState)
         ImGui::SetCursorPosX(textAlignPosX);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
 
-        if (i == 0) // local
+        if (types[i].icon == vcMBBI_Share) // Shared
         {
-          vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_OpenFile, nullptr);
+          ImGui::InputText(vcString::Get("shareLinkBrowserLoad"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
+          ImGui::SetCursorPosX(textAlignPosX);
+          if (ImGui::Button(vcString::Get("menuProjectImport")) && vcProject_AbleToChange(pProgramState))
+          {
+            if (udStrBeginsWith(pProgramState->modelPath, "euclideon:project/"))
+            {
+              vcProject_LoadFromServer(pProgramState, &pProgramState->modelPath[18]);
+              pProgramState->modelPath[0] = '\0';
+              ImGui::CloseCurrentPopup();
+            }
+            else
+            {
+              // Show error code here?
+            }
+          }
+        }
+        else if (types[i].icon == vcMBBI_StorageLocal) // local
+        {
+          vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ProjectsExport, vcFDT_OpenFile, [pProgramState] {
+            if (vcProject_AbleToChange(pProgramState))
+            {
+              vcProject_LoadFromURI(pProgramState, pProgramState->modelPath);
+              pProgramState->modelPath[0] = '\0';
+              vcModals_CloseModal(pProgramState, vcMT_ImportProject);
+            }
+          });
 
           ImGui::SetCursorPosX(textAlignPosX);
           if (ImGui::Button(vcString::Get("menuProjectImport")) && vcProject_AbleToChange(pProgramState))
@@ -805,7 +833,7 @@ void vcModals_DrawImportProject(vcState *pProgramState)
             ImGui::CloseCurrentPopup();
           }
         }
-        else if (i == 1) // cloud
+        else if (types[i].icon == vcMBBI_StorageCloud) // cloud
         {
           udJSONArray *pGroupList = pProgramState->projects.Get("groups").AsArray();
           if (pGroupList != nullptr)
@@ -948,6 +976,9 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
           break;
         case udR_ReadFailure:
           pMessage = vcString::Get("sceneExplorerProjectChangeFailedRead");
+          break;
+        case udR_ObjectNotFound:
+          pMessage = vcString::Get("sceneExplorerProjectChangeNotFoundOrDenied");
           break;
         case udR_Failure_: // Falls through
         default:
