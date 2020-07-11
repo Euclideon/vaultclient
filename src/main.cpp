@@ -1611,10 +1611,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectSave"), nullptr, vcMBBI_Save, vcMBBG_SameGroup))
       {
-        if (pProgramState->isDanglingProject)
-          vcModals_OpenModal(pProgramState, vcMT_ExportProject);
-        else
-          vcProject_Save(pProgramState);
+        vdkProjectLoadSource loadSource = vdkProjectLoadSource_Memory;
+        if (vdkProject_GetLoadSource(pProgramState->activeProject.pProject, &loadSource) == vE_Success)
+        {
+          if (loadSource == vdkProjectLoadSource_Memory)
+            vcModals_OpenModal(pProgramState, vcMT_ExportProject);
+          else
+            vcProject_Save(pProgramState);
+        }
       }
 
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectShare"), nullptr, vcMBBI_Share, vcMBBG_SameGroup);
@@ -2667,7 +2671,7 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
 void vcMain_RegisterUser(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
-  if (vdkUserUtil_Register(pProgramState->settings.loginInfo.serverURL, pProgramState->modelPath, pProgramState->settings.loginInfo.email) == vE_Success)
+  if (vdkUserUtil_Register(pProgramState->settings.loginInfo.serverURL, pProgramState->modelPath, pProgramState->settings.loginInfo.email, VCAPPNAME, pProgramState->modalTempBool) == vE_Success)
     pProgramState->loginStatus = vcLS_RegisterCheckEmail;
   else
     pProgramState->loginStatus = vcLS_RegisterTryPortal;
@@ -2788,10 +2792,13 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
       vcIGSW_InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL);
 
-      if (pProgramState->loginStatus == vcLS_Register)
-        vcIGSW_InputText(vcString::Get("loginRealname"), pProgramState->modelPath, ImGuiInputTextFlags_EnterReturnsTrue);
-
       vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.email, ImGuiInputTextFlags_EnterReturnsTrue);
+
+      if (pProgramState->loginStatus == vcLS_Register)
+      {
+        vcIGSW_InputText(vcString::Get("loginRealname"), pProgramState->modelPath, ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::Checkbox(vcString::Get("loginRegisterOptInMarketing"), &pProgramState->modalTempBool);
+      }
 
       if (ImGui::Button(vcString::Get(loginStatusKeys[pProgramState->loginStatus])))
       {
@@ -2879,7 +2886,10 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       }
 
       if (ImGui::Button(vcString::Get("loginRegister")))
+      {
         pProgramState->loginStatus = vcLS_Register;
+        pProgramState->modalTempBool = false;
+      }
 
       ImGui::SameLine();
       if (ImGui::Button(vcString::Get("loginForgot")))
