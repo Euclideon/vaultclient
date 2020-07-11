@@ -234,7 +234,8 @@ void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilenam
 bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
 {
   vdkProject *pProject = nullptr;
-  if (vdkProject_LoadFromServer(pProgramState->pVDKContext, &pProject, pProjectID) == vE_Success)
+  vdkError vResult = vdkProject_LoadFromServer(pProgramState->pVDKContext, &pProject, pProjectID);
+  if (vResult == vE_Success)
   {
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
@@ -270,7 +271,13 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     vcState::ErrorItem projectError;
     projectError.source = vcES_ProjectChange;
     projectError.pData = udStrdup(pProjectID);
-    projectError.resultCode = udR_ParseError;
+
+    if (vResult == vE_NotFound)
+      projectError.resultCode = udR_ObjectNotFound;
+    else if (vResult == vE_ParseError)
+      projectError.resultCode = udR_ParseError;
+    else
+      projectError.resultCode = udR_Failure_;
 
     pProgramState->errorItems.PushBack(projectError);
 
