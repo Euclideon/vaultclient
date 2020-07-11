@@ -1832,7 +1832,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("settingsVis"), nullptr, vcMBBI_Visualization, vcMBBG_FirstItem);
       if (ImGui::BeginPopupContextItem("##visualizationsPopup", 0))
       {
-        ImGui::BeginChild("mapSelection", ImVec2(500, 400));
+        if (ImGui::Button(vcString::Get("settingsRestoreDefaults")))
+          vcSettings_Load(&pProgramState->settings, true, vcSC_Visualization);
+        ImGui::SameLine();
+        ImGui::TextUnformatted(vcString::Get("settingsVis"));
+
+        ImGui::Separator();
+
+        ImGui::BeginChild("visualistationSelection", ImVec2(500, 400));
         vcSettingsUI_SceneVisualizationSettings(pProgramState);
         ImGui::EndChild();
 
