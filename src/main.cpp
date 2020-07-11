@@ -1607,7 +1607,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         vcModals_OpenModal(pProgramState, vcMT_Welcome);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectImport"), nullptr, vcMBBI_Open, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_ImportProject);
+        vcModals_OpenModal(pProgramState, vcMT_LoadProject);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectSave"), nullptr, vcMBBI_Save, vcMBBG_SameGroup))
       {
