@@ -193,23 +193,38 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
     pSettings->presentation.sceneExplorerCollapsed = data.Get("sceneExplorerCollapsed").AsBool(true);
-    pSettings->presentation.saturation = data.Get("saturation").AsFloat(1.0f);
     pSettings->presentation.POIFadeDistance = data.Get("POIfadeDistance").AsFloat(10000.f);
     pSettings->presentation.imageRescaleDistance = data.Get("ImageRescaleDistance").AsFloat(10000.f);
     pSettings->presentation.limitFPSInBackground = data.Get("limitFPSInBackground").AsBool(true);
-    pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
     pSettings->presentation.layout = (vcWindowLayout)data.Get("layout").AsInt(vcWL_SceneRight);
     pSettings->presentation.sceneExplorerSize = data.Get("layoutSceneExplorerSize").AsInt(350);
     pSettings->presentation.convertLeftPanelPercentage = data.Get("convertLeftPanelPercentage").AsFloat(0.33f);
     pSettings->presentation.columnSizeCorrect = false;
 
-    pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Atmosphere);
-    pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.66f, 1.f));
-    pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
-    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(12.f);
-    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6.f);
-    pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSameTime").AsBool(true);
-    pSettings->presentation.skybox.useLiveTime = data.Get("skybox.uselivetime").AsBool(false);
+    //Units of measurement
+    vcUnitConversion_SetMetric(&pSettings->unitConversionData); //set some defaults.
+    for (uint32_t i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
+    {
+      pSettings->unitConversionData.distanceUnit[i].unit = (vcDistanceUnit)data.Get("unitConversion.distanceUnit[%d].unit", i).AsInt(pSettings->unitConversionData.distanceUnit[i].unit);
+      pSettings->unitConversionData.areaUnit[i].unit = (vcAreaUnit)data.Get("unitConversion.areaUnit[%d].unit", i).AsInt(pSettings->unitConversionData.areaUnit[i].unit);
+      pSettings->unitConversionData.volumeUnit[i].unit = (vcVolumeUnit)data.Get("unitConversion.volumeUnit[%d].unit", i).AsInt(pSettings->unitConversionData.volumeUnit[i].unit);
+
+      pSettings->unitConversionData.distanceUnit[i].upperLimit = data.Get("unitConversion.distanceUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.distanceUnit[i].upperLimit);
+      pSettings->unitConversionData.areaUnit[i].upperLimit = data.Get("unitConversion.areaUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.areaUnit[i].upperLimit);
+      pSettings->unitConversionData.volumeUnit[i].upperLimit = data.Get("unitConversion.volumeUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.volumeUnit[i].upperLimit);
+    }
+
+    pSettings->unitConversionData.speedUnit = (vcSpeedUnit)data.Get("unitConversion.speedUnit").AsInt(pSettings->unitConversionData.speedUnit);
+    pSettings->unitConversionData.temperatureUnit = (vcTemperatureUnit)data.Get("unitConversion.temperatureUnit").AsInt(pSettings->unitConversionData.temperatureUnit);
+    pSettings->unitConversionData.timeReference = (vcTimeReference)data.Get("unitConversion.timeUnit").AsInt(pSettings->unitConversionData.timeReference);
+
+    pSettings->unitConversionData.distanceSigFigs = data.Get("unitConversion.distanceSigFigs").AsInt(pSettings->unitConversionData.distanceSigFigs);
+    pSettings->unitConversionData.areaSigFigs = data.Get("unitConversion.areaSigFigs").AsInt(pSettings->unitConversionData.areaSigFigs);
+    pSettings->unitConversionData.volumeSigFigs = data.Get("unitConversion.volumeSigFigs").AsInt(pSettings->unitConversionData.volumeSigFigs);
+    pSettings->unitConversionData.speedSigFigs = data.Get("unitConversion.speedSigFigs").AsInt(pSettings->unitConversionData.speedSigFigs);
+    pSettings->unitConversionData.temperatureSigFigs = data.Get("unitConversion.temperatureSigFigs").AsInt(pSettings->unitConversionData.temperatureSigFigs);
+    pSettings->unitConversionData.timeSigFigs = data.Get("unitConversion.timeSigFigs").AsInt(pSettings->unitConversionData.timeSigFigs);
+
   }
 
   if (group == vcSC_All || group == vcSC_InputControls)
@@ -257,6 +272,16 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_All || group == vcSC_Visualization)
   {
+    pSettings->presentation.pointMode = data.Get("pointMode").AsInt();
+    pSettings->presentation.saturation = data.Get("saturation").AsFloat(1.0f);
+    pSettings->presentation.skybox.type = (vcSkyboxType)data.Get("skybox.type").AsInt(vcSkyboxType_Atmosphere);
+    pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.66f, 1.f));
+    pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
+    pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(12.f);
+    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6.f);
+    pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSameTime").AsBool(true);
+    pSettings->presentation.skybox.useLiveTime = data.Get("skybox.uselivetime").AsBool(false);
+
     pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
     pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
 
@@ -315,30 +340,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         }
       }
     }
-
-    //Units of measurement
-    vcUnitConversion_SetMetric(&pSettings->unitConversionData); //set some defaults.
-    for (uint32_t i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
-    {
-      pSettings->unitConversionData.distanceUnit[i].unit = (vcDistanceUnit)data.Get("unitConversion.distanceUnit[%d].unit", i).AsInt(pSettings->unitConversionData.distanceUnit[i].unit);
-      pSettings->unitConversionData.areaUnit[i].unit = (vcAreaUnit)data.Get("unitConversion.areaUnit[%d].unit", i).AsInt(pSettings->unitConversionData.areaUnit[i].unit);
-      pSettings->unitConversionData.volumeUnit[i].unit = (vcVolumeUnit)data.Get("unitConversion.volumeUnit[%d].unit", i).AsInt(pSettings->unitConversionData.volumeUnit[i].unit);
-
-      pSettings->unitConversionData.distanceUnit[i].upperLimit = data.Get("unitConversion.distanceUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.distanceUnit[i].upperLimit);
-      pSettings->unitConversionData.areaUnit[i].upperLimit = data.Get("unitConversion.areaUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.areaUnit[i].upperLimit);
-      pSettings->unitConversionData.volumeUnit[i].upperLimit = data.Get("unitConversion.volumeUnit[%d].upperLimit", i).AsDouble(pSettings->unitConversionData.volumeUnit[i].upperLimit);
-    }
-
-    pSettings->unitConversionData.speedUnit = (vcSpeedUnit)data.Get("unitConversion.speedUnit").AsInt(pSettings->unitConversionData.speedUnit);
-    pSettings->unitConversionData.temperatureUnit = (vcTemperatureUnit)data.Get("unitConversion.temperatureUnit").AsInt(pSettings->unitConversionData.temperatureUnit);
-    pSettings->unitConversionData.timeReference = (vcTimeReference)data.Get("unitConversion.timeUnit").AsInt(pSettings->unitConversionData.timeReference);
-
-    pSettings->unitConversionData.distanceSigFigs = data.Get("unitConversion.distanceSigFigs").AsInt(pSettings->unitConversionData.distanceSigFigs);
-    pSettings->unitConversionData.areaSigFigs = data.Get("unitConversion.areaSigFigs").AsInt(pSettings->unitConversionData.areaSigFigs);
-    pSettings->unitConversionData.volumeSigFigs = data.Get("unitConversion.volumeSigFigs").AsInt(pSettings->unitConversionData.volumeSigFigs);
-    pSettings->unitConversionData.speedSigFigs = data.Get("unitConversion.speedSigFigs").AsInt(pSettings->unitConversionData.speedSigFigs);
-    pSettings->unitConversionData.temperatureSigFigs = data.Get("unitConversion.temperatureSigFigs").AsInt(pSettings->unitConversionData.temperatureSigFigs);
-    pSettings->unitConversionData.timeSigFigs = data.Get("unitConversion.timeSigFigs").AsInt(pSettings->unitConversionData.timeSigFigs);
 
     //GPSTime
     pSettings->visualization.GPSTime.minTime = data.Get("visualization.GPSTime.minTime").AsDouble(0.0);
