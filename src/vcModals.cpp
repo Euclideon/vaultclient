@@ -331,7 +331,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
         }
 
         if (ImGui::IsItemHovered())
-          ImGui::SetTooltip(item.pProjectName);
+          ImGui::SetTooltip("%s", item.pProjectName);
       }
 
       ImGui::Separator();
