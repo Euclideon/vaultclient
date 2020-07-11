@@ -722,6 +722,7 @@
   "modalProjectNewGeolocatedSpecificZoneID": "Zone SRID",
   "modalProjectNewCreate": "Create New Project",
   "modalProjectOpenRecent": "Open recent",
+  "modalProjectClearRecentItem": "Remove from recent list",
   "modalProjectGetStarted": "Get started",
   "modalProjectGeolocatedDescription": "Creates a geolocated project",
   "modalProjectNonGeolocatedDescription": "Creates a non-geolocated project",

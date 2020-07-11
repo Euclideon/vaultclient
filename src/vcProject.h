@@ -60,4 +60,6 @@ bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, vdkProjectNode 
 
 void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **ppCurrentText);
 
+void vcProject_RemoveHistoryItem(vcState *pProgramState, size_t itemPosition);
+
 #endif // vcProject_h__

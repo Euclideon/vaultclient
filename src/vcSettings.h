@@ -52,7 +52,7 @@ enum
 {
   vcMaxPathLength = 512,
   vcMetadataMaxLength = 256,
-  vcMaxProjectHistoryCount = 5
+  vcMaxProjectHistoryCount = 50
 };
 
 enum vcWindowLayout
