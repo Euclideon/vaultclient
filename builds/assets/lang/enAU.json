@@ -25,6 +25,7 @@
   "loginShowPassword": "Show",
   "loginPassword": "Password",
   "loginCapsWarning": "Caps Lock is Enabled!",
+  "loginRegisterOptInMarketing": "Allow marketing communications by email",
   "loginAdvancedSettings": "Advanced Connection Settings",
   "loginProxyAddress": "Proxy Address",
   "loginProxyAutodetect": "Auto-detect Proxy",

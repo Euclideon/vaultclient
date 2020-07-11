@@ -183,7 +183,9 @@ struct vcState
   const char *pReleaseNotes; //Only loaded when requested
   bool passwordFieldHasFocus;
 
+  // Statics/Temporaries used in modals
   char modelPath[vcMaxPathLength];
+  bool modalTempBool;
 
   int renaming;
   char renameText[30];
@@ -214,7 +216,6 @@ struct vcState
   vcActiveTool activeTool;
 
   vcProject activeProject;
-  bool isDanglingProject;
 
   struct
   {
