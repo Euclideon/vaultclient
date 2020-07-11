@@ -322,44 +322,70 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
 
-      for (size_t i = 0; i < pProgramState->settings.projectsHistory.projects.length; ++i)
+      if (ImGui::BeginChild("historyItems", ImVec2(0, -50)))
       {
-        vcProjectHistoryInfo *pProjectInfo = &pProgramState->settings.projectsHistory.projects[i];
-
-        bool selected = false;
-        if (ImGui::Selectable(udTempStr("##projectHistoryItem%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40)))
+        for (size_t i = 0; i < pProgramState->settings.projectsHistory.projects.length; ++i)
         {
-          if (pProjectInfo->isServerProject)
-            vcProject_LoadFromServer(pProgramState, pProjectInfo->pPath);
-          else
-            vcProject_LoadFromURI(pProgramState, pProjectInfo->pPath);
+          vcProjectHistoryInfo *pProjectInfo = &pProgramState->settings.projectsHistory.projects[i];
 
-          ImGui::CloseCurrentPopup();
+          bool selectableClicked = ImGui::Selectable(udTempStr("##projectHistoryItem%zu", i), false, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40));
+
+          ImVec2 itemRect = ImGui::GetItemRectSize();
+          ImVec2 activeCursorPos = ImGui::GetCursorPos();
+          bool selectableHovered = ImGui::IsItemHovered();
+
+          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 37);
+
+          udFloat4 iconUV = vcGetIconUV(pProjectInfo->isServerProject ? vcMBBI_StorageCloud : vcMBBI_StorageLocal);
+          ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+          ImGui::SameLine();
+
+          // Align text with icon
+          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
+
+          float textAlignPosX = ImGui::GetCursorPosX();
+          ImGui::Text("%s", pProjectInfo->pName);
+
+          // Manually align details text with title text
+          ImGui::SetCursorPosX(textAlignPosX);
+          ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+          col.w *= 0.65f;
+          ImGui::PushStyleColor(ImGuiCol_Text, col);
+          ImGui::Text("%s", pProjectInfo->pPath);
+
+          ImGui::PopStyleColor();
+
+          // This is quite complicated and was written in a rush.
+          // Due to some interesting behaviour in ImGui::Selectable, the delete button has to be process using the click of the selectable but with the hover of the button
+          // We then continue so the selectable isn't processed
+          if (selectableHovered)
+          {
+            ImGui::SetCursorPos(ImVec2(activeCursorPos.x + itemRect.x - 50.f, activeCursorPos.y - 37.f));
+            vcMenuBarButton(pProgramState->pUITexture, vcString::Get("modalProjectClearRecentItem"), nullptr, vcMBBI_Remove, vcMBBG_FirstItem);
+
+            if (selectableClicked && ImGui::IsItemHovered())
+            {
+              vcProject_RemoveHistoryItem(pProgramState, i);
+              --i;
+              continue;
+            }
+          }
+
+          if (selectableClicked)
+          {
+            if (pProjectInfo->isServerProject)
+              vcProject_LoadFromServer(pProgramState, pProjectInfo->pPath);
+            else
+              vcProject_LoadFromURI(pProgramState, pProjectInfo->pPath);
+
+            ImGui::CloseCurrentPopup();
+          }
+
+          ImGui::SetCursorPos(activeCursorPos);
+          ImGui::Spacing();
         }
 
-        float prevPosY = ImGui::GetCursorPosY();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 37);
-
-        udFloat4 iconUV = vcGetIconUV(pProjectInfo->isServerProject ? vcMBBI_StorageCloud : vcMBBI_StorageLocal);
-        ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
-        ImGui::SameLine();
-
-        // Align text with icon
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
-
-        float textAlignPosX = ImGui::GetCursorPosX();
-        ImGui::Text("%s", pProjectInfo->pName);
-
-        // Manually align details text with title text
-        ImGui::SetCursorPosX(textAlignPosX);
-        ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-        col.w *= 0.65f;
-        ImGui::PushStyleColor(ImGuiCol_Text, col);
-        ImGui::Text("%s", pProjectInfo->pPath);
-
-        ImGui::PopStyleColor();
-        ImGui::SetCursorPosY(prevPosY);
-        ImGui::Spacing();
+        ImGui::EndChild();
       }
 
       ImGui::NextColumn();

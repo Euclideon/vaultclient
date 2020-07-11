@@ -231,6 +231,15 @@ void vcProject_UpdateProjectHistory(vcState *pProgramState, const char *pFilenam
   pProgramState->settings.projectsHistory.projects.PushFront({ isServerProject, pProjectName, pFormattedPath });
 }
 
+void vcProject_RemoveHistoryItem(vcState *pProgramState, size_t itemPosition)
+{
+  if (pProgramState == nullptr || itemPosition >= pProgramState->settings.projectsHistory.projects.length)
+    return;
+
+  vcSettings_CleanupHistoryProjectItem(&pProgramState->settings.projectsHistory.projects[itemPosition]);
+  pProgramState->settings.projectsHistory.projects.RemoveAt(itemPosition);
+}
+
 bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
 {
   vdkProject *pProject = nullptr;
