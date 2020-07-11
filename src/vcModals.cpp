@@ -303,6 +303,40 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
     ImGui::Separator();
 
+    if (pProgramState->featuredProjects.length > 0)
+    {
+      ImVec2 textSize = ImGui::CalcTextSize(vcString::Get("welcomeFeaturedProjects"));
+      ImGui::SetCursorPosX((windowSize.x - textSize.x) / 2);
+      ImGui::TextUnformatted(vcString::Get("welcomeFeaturedProjects"));
+
+      ImGuiStyle style = ImGui::GetStyle();
+
+      float totalSize = pProgramState->featuredProjects.length * (128 + style.FramePadding.x);
+      if (pProgramState->featuredProjects.length > 1)
+        totalSize += (pProgramState->featuredProjects.length * style.ItemSpacing.x);
+
+      ImGui::SetCursorPosX((windowSize.x - totalSize) / 2);
+
+      bool first = true;
+      for (auto item : pProgramState->featuredProjects)
+      {
+        if (!first)
+          ImGui::SameLine();
+        first = false;
+
+        if (ImGui::ImageButton(item.pTexture, ImVec2(128, 128)))
+        {
+          vcProject_LoadFromServer(pProgramState, udUUID_GetAsString(item.projectID));
+          ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::IsItemHovered())
+          ImGui::SetTooltip("%s", item.pProjectName);
+      }
+
+      ImGui::Separator();
+    }
+
     struct
     {
       const char *pAction;                                      const char *pDescription;                             vcMenuBarButtonIcon icon;
@@ -311,7 +345,9 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       { vcString::Get("modalProjectNewGeolocated"),             vcString::Get("modalProjectGeolocatedDescription"),   vcMBBI_Geospatial },
       { vcString::Get("modalProjectNewNonGeolocated"),          vcString::Get("modalProjectNonGeolocatedDescription"),vcMBBI_Grid },
       { vcString::Get("modalProjectNewGeolocatedSpecificZone"), vcString::Get("modalProjectSpecificZoneDescription"), vcMBBI_ExpertGrid },
+#if VC_HASCONVERT
       { vcString::Get("convertTitle"),                          vcString::Get("convertDesc"),                         vcMBBI_Convert },
+#endif // VC_HASCONVERT
     };
 
     if (creatingNewProjectType == -1)
@@ -322,7 +358,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
 
-      if (ImGui::BeginChild("historyItems", ImVec2(0, -50)))
+      if (ImGui::BeginChild("historyItems", ImVec2(0, -40)))
       {
         for (size_t i = 0; i < pProgramState->settings.projectsHistory.projects.length; ++i)
         {
@@ -394,58 +430,63 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::Spacing();
       ImGui::Spacing();
 
-      for (size_t i = 0; i < udLengthOf(items); ++i)
+      if (ImGui::BeginChild("gettingStartedItems", ImVec2(0, -40)))
       {
-        bool selected = false;
-        if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
+        for (size_t i = 0; i < udLengthOf(items); ++i)
         {
-          if (items[i].icon == vcMBBI_Geospatial || items[i].icon == vcMBBI_Grid || items[i].icon == vcMBBI_ExpertGrid)
+          bool selected = false;
+          if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
           {
-            creatingNewProjectType = (int)i;
-            udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
+            if (items[i].icon == vcMBBI_Geospatial || items[i].icon == vcMBBI_Grid || items[i].icon == vcMBBI_ExpertGrid)
+            {
+              creatingNewProjectType = (int)i;
+              udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
 
-            if (items[i].icon == vcMBBI_Geospatial)
-              zoneCustomSRID = 84; // Geolocated
-            else if (items[i].icon == vcMBBI_Grid)
-              zoneCustomSRID = 0; // Non Geolocated
+              if (items[i].icon == vcMBBI_Geospatial)
+                zoneCustomSRID = 84; // Geolocated
+              else if (items[i].icon == vcMBBI_Grid)
+                zoneCustomSRID = 0; // Non Geolocated
+            }
+            else if (items[i].icon == vcMBBI_Convert)
+            {
+              ImGui::CloseCurrentPopup();
+              vcModals_OpenModal(pProgramState, vcMT_Convert);
+            }
+            else if (items[i].icon == vcMBBI_Open)
+            {
+              ImGui::CloseCurrentPopup();
+              vcModals_OpenModal(pProgramState, vcMT_LoadProject);
+            }
           }
-          else if (items[i].icon == vcMBBI_Convert)
-          {
-            ImGui::CloseCurrentPopup();
-            vcModals_OpenModal(pProgramState, vcMT_Convert);
-          }
-          else if (items[i].icon == vcMBBI_Open)
-          {
-            ImGui::CloseCurrentPopup();
-            vcModals_OpenModal(pProgramState, vcMT_LoadProject);
-          }
+
+          float prevPosY = ImGui::GetCursorPosY();
+          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 46);
+
+          udFloat4 iconUV = vcGetIconUV(items[i].icon);
+          ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+          ImGui::SameLine();
+
+          // Align text with icon
+          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
+
+          float textAlignPosX = ImGui::GetCursorPosX();
+          ImGui::TextUnformatted(items[i].pAction);
+
+          // Manually align details text with title text
+          ImGui::SetCursorPosX(textAlignPosX);
+          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
+
+          ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+          col.w *= 0.65f;
+          ImGui::PushStyleColor(ImGuiCol_Text, col);
+          ImGui::TextUnformatted(items[i].pDescription);
+          ImGui::PopStyleColor();
+
+          ImGui::SetCursorPosY(prevPosY);
+          ImGui::Spacing();
         }
 
-        float prevPosY = ImGui::GetCursorPosY();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 46);
-
-        udFloat4 iconUV = vcGetIconUV(items[i].icon);
-        ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
-        ImGui::SameLine();
-
-        // Align text with icon
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
-
-        float textAlignPosX = ImGui::GetCursorPosX();
-        ImGui::TextUnformatted(items[i].pAction);
-
-        // Manually align details text with title text
-        ImGui::SetCursorPosX(textAlignPosX);
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
-
-        ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-        col.w *= 0.65f;
-        ImGui::PushStyleColor(ImGuiCol_Text, col);
-        ImGui::TextUnformatted(items[i].pDescription);
-        ImGui::PopStyleColor();
-
-        ImGui::SetCursorPosY(prevPosY);
-        ImGui::Spacing();
+        ImGui::EndChild();
       }
 
       ImGui::EndColumns();

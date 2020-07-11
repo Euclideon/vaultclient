@@ -114,6 +114,38 @@ void vcSession_GetGroupsWT(void *pProgramStatePtr)
   } while (true);
 }
 
+void vcSession_GetFeaturedProjectsWT(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  const char *pProjData = nullptr;
+
+  udJSON parsed;
+  pProgramState->featuredProjects.Init(8);
+
+  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/projects/featured", nullptr, &pProjData) == vE_Success)
+  {
+    parsed.Parse(pProjData);
+    vdkServerAPI_ReleaseResult(&pProjData);
+
+    size_t arrayLen = parsed.Get("projects").ArrayLength();
+
+    if (parsed.Get("success").AsBool() && arrayLen > 0)
+    {
+      for (size_t i = 0; i < arrayLen; ++i)
+      {
+        vcState::vcFeaturedProjectInfo projectInfo = {};
+
+        udUUID_SetFromString(&projectInfo.projectID, parsed.Get("projects[%zu].projectid", i).AsString());
+        projectInfo.pProjectName = udStrdup(parsed.Get("projects[%zu].name", i).AsString());
+        pProgramState->featuredProjects.PushBack(projectInfo);
+        
+        vcTexture_AsyncCreateFromFilename(&pProgramState->featuredProjects[pProgramState->featuredProjects.length - 1].pTexture, pProgramState->pWorkerPool, parsed.Get("projects[%zu].thumb", i).AsString());
+      }
+    }
+  }
+}
+
 void vcSession_GetPackagesWT(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
@@ -177,6 +209,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
   if (!pProgramState->sessionInfo.isOffline)
   {
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProjectsWT, pProgramState, false);
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetFeaturedProjectsWT, pProgramState, false);
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetGroupsWT, pProgramState, false);
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetPackagesWT, pProgramState, false, vcSession_GetPackagesMT);
     udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_GetProfileInfoWT, pProgramState, false);
@@ -269,7 +302,7 @@ void vcSession_Logout(vcState *pProgramState)
 
     pProgramState->modelPath[0] = '\0';
     vcProject_CreateBlankScene(pProgramState, "Empty Project", vcPSZ_StandardGeoJSON);
-    vcSession_CleanupGroups(pProgramState);
+    vcSession_CleanupSession(pProgramState);
     pProgramState->projects.Destroy();
     pProgramState->profileInfo.Destroy();
 
@@ -307,16 +340,26 @@ void vcSession_UpdateInfo(void *pProgramStatePtr)
   }
 }
 
-void vcSession_CleanupGroups(vcState *pProgramState)
+void vcSession_CleanupSession(vcState *pProgramState)
 {
-  if (pProgramState->groups.length == 0)
-    return;
-
-  for (auto item : pProgramState->groups)
+  if (pProgramState->groups.length > 0)
   {
-    udFree(item.pGroupName);
-    udFree(item.pDescription);
+    for (auto item : pProgramState->groups)
+    {
+      udFree(item.pGroupName);
+      udFree(item.pDescription);
+    }
+
+    pProgramState->groups.Deinit();
   }
 
-  pProgramState->groups.Deinit();
+  if (pProgramState->featuredProjects.length > 0)
+  {
+    for (auto item : pProgramState->featuredProjects)
+    {
+      udFree(item.pProjectName);
+      vcTexture_Destroy(&item.pTexture);
+    }
+    pProgramState->featuredProjects.Deinit();
+  }
 }
