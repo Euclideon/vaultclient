@@ -2514,6 +2514,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
     }
 
+    if (vcHotkey::IsPressed(vcB_Remove) && !ImGui::IsAnyItemActive() && !pProgramState->modalOpen)
+      vcProject_RemoveSelected(pProgramState);
+
     pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
 
     // Render scene to texture
