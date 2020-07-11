@@ -203,6 +203,11 @@ struct vcToolSettings
 
   struct
   {
+    udFloat4 colour;
+  } fill;
+
+  struct
+  {
     udFloat4 textColour;
     udFloat4 backgroundColour;
     int textSize;

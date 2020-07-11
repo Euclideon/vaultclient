@@ -1940,13 +1940,14 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
             vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
           }
         }
-        else
+        else if (pProgramState->activeTool == vcActiveTool_MeasureArea)
         {
           if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == vE_Success)
           {
             vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
             udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             vdkProjectNode_SetMetadataBool(pNode, "showArea", true);
+            vdkProjectNode_SetMetadataBool(pNode, "showFill", true);
           }
         }
       }
