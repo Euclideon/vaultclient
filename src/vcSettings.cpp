@@ -412,6 +412,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
   if (group == vcSC_Tools || group == vcSC_All)
   {
     const float defaultLineColour[4] = {1.0f, 1.0f, 0.0f, 1.0f};
+    const float defaultFillColour[4] = { 1.0f, 0.0f, 1.0f, 0.25f };
     const float defaultTextColour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     const float defaultBackgroundColour[4] = {0.0f, 0.0f, 0.0f, 0.5f};
 
@@ -423,6 +424,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->tools.line.style = data.Get("tools.line.style").AsInt(1);
     for (int i = 0; i < 4; i++)
       pSettings->tools.line.colour[i] = data.Get("tools.line.colour[%d]", i).AsFloat(defaultLineColour[i]);
+
+    for (int i = 0; i < 4; i++)
+      pSettings->tools.fill.colour[i] = data.Get("tools.fill.colour[%d]", i).AsFloat(defaultFillColour[i]);
 
     //Labels
     for (int i = 0; i < 4; i++)
@@ -828,6 +832,9 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("tools.line.style = %i", pSettings->tools.line.style);
   for (int i = 0; i < 4; i++)
     data.Set("tools.line.colour[] = %f", pSettings->tools.line.colour[i]);
+
+  for (int i = 0; i < 4; i++)
+    data.Set("tools.fill.colour[] = %f", pSettings->tools.fill.colour[i]);
 
   for (int i = 0; i < 4; i++)
     data.Set("tools.label.textColour[] = %f", pSettings->tools.label.textColour[i]);

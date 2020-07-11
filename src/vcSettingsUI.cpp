@@ -371,6 +371,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Combo(vcString::Get("scenePOILineStyle"), &pProgramState->settings.tools.line.style, lineOptions, (int)udLengthOf(lineOptions));
 
           ImGui::ColorEdit4(vcString::Get("scenePOILineColour1"), &pProgramState->settings.tools.line.colour[0], ImGuiColorEditFlags_None);
+          ImGui::ColorEdit4(vcString::Get("scenePOIFillColour"), &pProgramState->settings.tools.fill.colour[0], ImGuiColorEditFlags_None);
           ImGui::ColorEdit4(vcString::Get("scenePOILabelColour"), &pProgramState->settings.tools.label.textColour[0], ImGuiColorEditFlags_None);
           ImGui::ColorEdit4(vcString::Get("scenePOILabelBackgroundColour"), &pProgramState->settings.tools.label.backgroundColour[0], ImGuiColorEditFlags_None);
         }
