@@ -391,7 +391,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
           else if (items[i].icon == vcMBBI_Open)
           {
             ImGui::CloseCurrentPopup();
-            vcModals_OpenModal(pProgramState, vcMT_ImportProject);
+            vcModals_OpenModal(pProgramState, vcMT_LoadProject);
           }
         }
 
@@ -747,15 +747,15 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawImportProject(vcState *pProgramState)
+void vcModals_DrawLoadProject(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_ImportProject))
+  if (pProgramState->openModals & (1 << vcMT_LoadProject))
     ImGui::OpenPopup(vcString::Get("menuProjectImportTitle"));
 
   ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectImportTitle")))
   {
-    if (pProgramState->closeModals & (1 << vcMT_ImportProject))
+    if (pProgramState->closeModals & (1 << vcMT_LoadProject))
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
@@ -775,8 +775,8 @@ void vcModals_DrawImportProject(vcState *pProgramState)
       vcMenuBarButtonIcon icon;
       float size;
     } types[] = {
-      { "menuProjectImportShared",  vcMBBI_Share, 90.f },
-      { "menuProjectImportDisk",  vcMBBI_StorageLocal, 90.f },
+      { "menuProjectImportShared", vcMBBI_Share, 90.f },
+      { "menuProjectImportDisk", vcMBBI_StorageLocal, 90.f },
       { "menuProjectImportCloud", vcMBBI_StorageCloud, 120.f },
     };
 
@@ -820,7 +820,7 @@ void vcModals_DrawImportProject(vcState *pProgramState)
             {
               vcProject_LoadFromURI(pProgramState, pProgramState->modelPath);
               pProgramState->modelPath[0] = '\0';
-              vcModals_CloseModal(pProgramState, vcMT_ImportProject);
+              vcModals_CloseModal(pProgramState, vcMT_LoadProject);
             }
           });
 
@@ -844,7 +844,7 @@ void vcModals_DrawImportProject(vcState *pProgramState)
               {
                 udJSON *pGroupItem = pGroupList->GetElement(g);
                 const char *pGroupName = pGroupItem->Get("name").AsString();
-                if (ImGui::Selectable(pGroupName, selectedGroupIndex == g))
+                if (ImGui::Selectable(udTempStr("%s##grp_%zu", pGroupName, g), selectedGroupIndex == g))
                 {
                   selectedGroupIndex = g;
                   selectedProjectIndex = 0;
@@ -862,7 +862,7 @@ void vcModals_DrawImportProject(vcState *pProgramState)
               {
                 udJSON *pProject = pProjectList->GetElement(p);
                 const char *pProjectName = pProject->Get("name").AsString("<Unnamed>");
-                if (ImGui::Selectable(pProjectName, selectedProjectIndex == p))
+                if (ImGui::Selectable(udTempStr("%s##prj_%s", pProjectName, pProject->Get("projectid").AsString()), selectedProjectIndex == p))
                 {
                   selectedProjectIndex = p;
                 }
@@ -1447,7 +1447,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawAddSceneItem(pProgramState);
   vcModals_DrawWelcome(pProgramState);
   vcModals_DrawExportProject(pProgramState);
-  vcModals_DrawImportProject(pProgramState);
+  vcModals_DrawLoadProject(pProgramState);
   vcModals_DrawProjectSettings(pProgramState);
   vcModals_DrawProjectChangeResult(pProgramState);
   vcModals_DrawProjectReadOnly(pProgramState);
