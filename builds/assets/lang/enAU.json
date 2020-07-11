@@ -352,6 +352,7 @@
   "endSessionConfirmProjectUnsaved": "The current project has unsaved changes",
   "endSessionConfirmExportsRunning": "There are pointcloud exports in progress",
   "modalWelcomeDismiss": "Start without a project...",
+  "welcomeFeaturedProjects": "Featured Projects",
   "modalProfileTitle": "Profile",
   "modalProfileRealName": "Name",
   "modalProfileEmail": "Email",

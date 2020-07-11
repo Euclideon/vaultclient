@@ -192,6 +192,15 @@ struct vcState
 
   vcSettings settings;
 
+  struct vcFeaturedProjectInfo
+  {
+    udUUID projectID;
+    const char *pProjectName;
+    vcTexture *pTexture;
+  };
+
+  udChunkedArray<vcFeaturedProjectInfo> featuredProjects;
+
   struct vcGroupInfo
   {
     udUUID groupID;

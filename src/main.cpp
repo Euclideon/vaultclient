@@ -1013,7 +1013,7 @@ int main(int argc, char **args)
 
 epilogue:
   udFree(programState.pReleaseNotes);
-  vcSession_CleanupGroups(&programState);
+  vcSession_CleanupSession(&programState);
   programState.projects.Destroy();
   programState.profileInfo.Destroy();
 
