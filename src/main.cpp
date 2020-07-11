@@ -143,7 +143,6 @@ enum vcLoginBackgroundSettings
   vcLBS_LogoAreaSize = 500,
 };
 
-const float ProfileTextureSize = 50.f;
 const uint32_t WhitePixel = 0xFFFFFFFF;
 
 void vcMain_ShowStartupScreen(vcState *pProgramState);
@@ -1398,14 +1397,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (pProgramState->settings.presentation.showDiagnosticInfo)
       {
-        float xPosition = ImGui::GetContentRegionMax().x;
-
-        vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
-
         char tempData[128] = {};
-
-        // Avatar Position
-        xPosition -= ProfileTextureSize;
 
         // Load List
         if (pProgramState->loadList.length > 0)
@@ -1445,19 +1437,13 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
         }
 
-        // New Version Available
-        if (pProgramState->packageInfo.Get("success").AsBool())
-        {
-          udStrcpy(tempData, udTempStr("%s [%s] / ", vcString::Get("menuBarUpdateAvailable"), pProgramState->packageInfo.Get("package.versionstring").AsString()));
-          ImGui::TextUnformatted(tempData);
-        }
-
         // Diagnostic Information
         if (pProgramState->settings.presentation.showDiagnosticInfo)
         {
           const char *strings[] = { udTempStr("%.2f", 1.f / pProgramState->deltaTime), udTempStr("%.3f", pProgramState->deltaTime * 1000.f) };
           vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFPS"), strings, udLengthOf(strings));
           ImGui::TextUnformatted(tempData);
+          ImGui::TextUnformatted(udTempStr("%sMiB", udCommaInt(pProgramState->streamingMemory >> 20)));
         }
       }
     }

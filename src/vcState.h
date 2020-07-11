@@ -138,6 +138,7 @@ struct vcState
 
   bool showWatermark;
   bool isStreaming;
+  int64_t streamingMemory;
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;

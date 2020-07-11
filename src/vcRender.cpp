@@ -1554,6 +1554,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vdkStreamerStatus streamingStatus = {};
   vdkStreamer_Update(&streamingStatus);
   pProgramState->isStreaming |= streamingStatus.active;
+  pProgramState->streamingMemory = streamingStatus.memoryInUse;
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)
