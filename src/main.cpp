@@ -1761,12 +1761,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->activeTool = vcActiveTool_MeasureHeight;
       }
 
-      // Activate Measure Height
+      // Activate Angle Measurement Tool
+      /*
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("toolMeasureAngle"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_ToggleMeasureHeightTool)), vcMBBI_AngleTool, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_MeasureHeight)) || (vcHotkey::IsPressed(vcB_ToggleMeasureHeightTool) && !ImGui::IsAnyItemActive()))
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_MeasureHeight;
       }
+      */
     }
 
     ImGui::End();
