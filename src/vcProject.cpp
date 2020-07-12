@@ -418,6 +418,10 @@ bool vcProject_Save(vcState *pProgramState)
     pProgramState->errorItems.PushBack(projectError);
     vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   }
+  else
+  {
+    pProgramState->lastSuccessfulSave = udGetEpochSecsUTCf();
+  }
 
   return (status == vE_Success);
 }

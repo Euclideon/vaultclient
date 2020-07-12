@@ -6,6 +6,7 @@
 #include "udChunkedArray.h"
 #include "udJSON.h"
 #include "udWorkerPool.h"
+#include "udThread.h"
 
 #include "vcImageRenderer.h"
 #include "vcSettings.h"
@@ -15,6 +16,7 @@
 #include "vcFolder.h"
 #include "vcStrings.h"
 #include "vcProject.h"
+#include "vcSession.h"
 
 #include "vdkError.h"
 #include "vdkContext.h"
@@ -139,6 +141,7 @@ struct vcState
   bool showWatermark;
   bool isStreaming;
   int64_t streamingMemory;
+  double lastSuccessfulSave;
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
@@ -192,25 +195,12 @@ struct vcState
 
   vcSettings settings;
 
-  struct vcFeaturedProjectInfo
-  {
-    udUUID projectID;
-    const char *pProjectName;
-    vcTexture *pTexture;
-  };
-
+  udRWLock *pSessionLock; // Used to lock access to session info
+  double lastSync;
+  double highestProjectTime; // Most recently updated project time
   udChunkedArray<vcFeaturedProjectInfo> featuredProjects;
-
-  struct vcGroupInfo
-  {
-    udUUID groupID;
-    const char *pGroupName;
-    const char *pDescription;
-    int permissionLevel;
-  };
-
   udChunkedArray<vcGroupInfo> groups;
-  udJSON projects;
+
   udJSON packageInfo;
   udJSON profileInfo;
 

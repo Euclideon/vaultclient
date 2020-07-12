@@ -642,8 +642,7 @@ void vcMain_MainLoop(vcState *pProgramState)
     // Check this first because vcSession_UpdateInfo doesn't update session info if the session has expired
     if (pProgramState->forceLogout)
       vcSession_Logout(pProgramState);
-    // Ping the server every 300 seconds
-    else if (pProgramState->hasContext && (udGetEpochSecsUTCf() > pProgramState->sessionInfo.expiresTimestamp - 300))
+    else if (pProgramState->hasContext && (pProgramState->lastSync != 0.0 && udGetEpochSecsUTCf() > pProgramState->lastSync + 30)) // Ping the server every 30 seconds
       udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
   }
 }
@@ -888,6 +887,8 @@ int main(int argc, char **args)
 
   programState.previousSRID = -1;
 
+  programState.pSessionLock = udCreateRWLock();
+
   vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   for (int i = 1; i < argc; ++i)
@@ -1014,7 +1015,6 @@ int main(int argc, char **args)
 epilogue:
   udFree(programState.pReleaseNotes);
   vcSession_CleanupSession(&programState);
-  programState.projects.Destroy();
   programState.profileInfo.Destroy();
 
   vcSettingsUI_Cleanup(&programState);
@@ -1046,6 +1046,8 @@ epilogue:
   vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
 
+  udDestroyRWLock(&programState.pSessionLock);
+
   vcGLState_Deinit();
   udThread_DestroyCached();
 
@@ -1076,20 +1078,24 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 
     ImGui::Separator();
 
-    udJSONArray *pGroupList = pProgramState->projects.Get("groups").AsArray();
-    if (pGroupList != nullptr && pGroupList->length > 0)
+    udReadLockRWLock(pProgramState->pSessionLock);
+    if (pProgramState->groups.length > 0)
     {
-      for (size_t i = 0; i < pGroupList->length; ++i)
+      for (auto group : pProgramState->groups)
       {
-        if (ImGui::BeginMenu(udTempStr("%s##group_%s", pGroupList->GetElement(i)->Get("name").AsString(), pGroupList->GetElement(i)->Get("groupid").AsString())))
+        if (ImGui::BeginMenu(udTempStr("%s##group_%s", group.pGroupName, udUUID_GetAsString(group.groupID))))
         {
-
-          udJSONArray *pProjectList = pGroupList->GetElement(i)->Get("projects").AsArray();
-
-          for (size_t j = 0; j < pProjectList->length; ++j)
+          if (group.projects.length > 0)
           {
-            if (ImGui::MenuItem(pProjectList->GetElement(j)->Get("name").AsString("<Unnamed>"), nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
-              vcProject_LoadFromServer(pProgramState, pProjectList->GetElement(j)->Get("projectid").AsString());
+            for (auto project : group.projects)
+            {
+              if (ImGui::MenuItem(project.pProjectName, nullptr, nullptr) && vcProject_AbleToChange(pProgramState))
+                vcProject_LoadFromServer(pProgramState, udUUID_GetAsString(project.projectID));
+            }
+          }
+          else
+          {
+            ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
           }
 
           ImGui::EndMenu();
@@ -1100,6 +1106,7 @@ void vcMain_ProfileMenu(vcState *pProgramState)
     {
       ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
     }
+    udReadUnlockRWLock(pProgramState->pSessionLock);
 
     ImGui::EndPopup();
   }
@@ -1625,43 +1632,86 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (ImGui::BeginPopupContextItem("##shareSettingsPopup", 0))
       {
         static int messagePlace = -1;
-
-        if (ImGui::IsWindowAppearing())
-          messagePlace = -1;
+        static char shareLinkBrowser[vcMaxPathLength] = {};
+        static char shareLinkApp[vcMaxPathLength] = {};
+        static bool foundProject = false;
+        static bool isPublic = false;
+        static bool isShared = false;
+        static bool isSharable = false;
 
         const char *pUUID = nullptr;
 
-        if (vdkProject_GetProjectUUID(pProgramState->activeProject.pProject, &pUUID) == vE_Success)
+        if (ImGui::IsWindowAppearing())
         {
-          static char shareLinkBrowser[vcMaxPathLength] = {};
-          static char shareLinkApp[vcMaxPathLength] = {};
+          messagePlace = -1;
 
-          udSprintf(shareLinkBrowser, "%s/client/?f=project/%s", pProgramState->settings.loginInfo.serverURL, pUUID);
-          udSprintf(shareLinkApp, "euclideon:project/%s", pUUID);
+          if (vdkProject_GetProjectUUID(pProgramState->activeProject.pProject, &pUUID) == vE_Success)
+          {
+            udSprintf(shareLinkBrowser, "%s/client/?f=project/%s", pProgramState->settings.loginInfo.serverURL, pUUID);
+            udSprintf(shareLinkApp, "euclideon:project/%s", pUUID);
 
+            foundProject = false;
+            isSharable = false;
+            isShared = false;
+            isPublic = false;
+
+            udReadLockRWLock(pProgramState->pSessionLock);
+
+            if (pProgramState->groups.length > 0)
+            {
+              for (vcGroupInfo &group : pProgramState->groups)
+              {
+                if (!foundProject && group.projects.length > 0)
+                {
+                  for (vcProjectInfo &project : group.projects)
+                  {
+                    if (udStrEqual(udUUID_GetAsString(project.projectID), pUUID))
+                    {
+                      foundProject = true;
+                      isSharable = (group.permissionLevel >= vcGroupPermissions_Editor);
+                      isShared = project.isShared;
+                      isPublic = (group.visibility < vcGroupVisibility_Private);
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+
+            udReadUnlockRWLock(pProgramState->pSessionLock);
+          }
+          else
+          {
+            messagePlace = -2;
+          }
+        }
+
+        if (messagePlace > -2)
+        {
           ImGui::TextUnformatted(vcString::Get("shareInstructions"));
+
+          ImGui::Separator();
 
           struct
           {
             const char *pLabel;
             char *pBuffer;
+            const char *pCopyText;
           } shareOptions[] = {
-            { vcString::Get("shareLinkBrowser"), shareLinkBrowser},
-            { vcString::Get("shareLinkApp"), shareLinkApp }
+            { vcString::Get("shareLinkBrowser"), shareLinkBrowser, vcString::Get("shareCopyBrowserLink") },
+            { vcString::Get("shareLinkApp"), shareLinkApp, vcString::Get("shareCopyAppCode") }
           };
 
           for (size_t i = 0; i < udLengthOf(shareOptions); ++i)
           {
             ImGui::PushID(udTempStr("shareItem%zu", i));
 
-            ImGui::InputText(shareOptions[i].pLabel, shareOptions[i].pBuffer, vcMaxPathLength, ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputText(shareOptions[i].pLabel, shareOptions[i].pBuffer, vcMaxPathLength, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
             ImGui::SameLine();
-            if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("popupMenuCopy"), nullptr, vcMBBI_Crosshair, vcMBBG_FirstItem))
+            if (vcMenuBarButton(pProgramState->pUITexture, shareOptions[i].pCopyText, nullptr, vcMBBI_Layers, vcMBBG_FirstItem, false, (20.f/24.f)))
             {
               if (SDL_SetClipboardText(shareOptions[i].pBuffer) == 0)
-              {
                 messagePlace = (int)i;
-              }
             }
 
             if (messagePlace == (int)i)
@@ -1672,6 +1722,43 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             }
 
             ImGui::PopID();
+          }
+
+          ImGui::Separator();
+
+          if (!foundProject)
+            ImGui::TextUnformatted(vcString::Get("shareStatusUnknown"));
+          else if (isPublic)
+            ImGui::TextUnformatted(vcString::Get("shareStatusPublic"));
+          else if (isShared)
+            ImGui::TextUnformatted(vcString::Get("shareStatusShared"));
+          else
+            ImGui::TextUnformatted(vcString::Get("shareStatusNotShared"));
+
+          if (foundProject && isSharable && !isPublic)
+          {
+            ImGui::SameLine();
+
+            if (isShared)
+            {
+              if (ImGui::Button(vcString::Get("shareMakeUnshare")))
+              {
+                if (vdkProject_SetLinkShareStatus(pProgramState->pVDKContext, pUUID, false) == vE_Success)
+                  isShared = false;
+                else
+                  isSharable = false;
+              }
+            }
+            else
+            {
+              if (ImGui::Button(vcString::Get("shareMakeShare")))
+              {
+                if (vdkProject_SetLinkShareStatus(pProgramState->pVDKContext, pUUID, true) == vE_Success)
+                  isShared = true;
+                else
+                  isSharable = false;
+              }
+            }
           }
         }
         else
@@ -1692,6 +1779,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), nullptr, vcMBBI_Help, vcMBBG_SameGroup))
         vcWebFile_OpenBrowser("https://desk.euclideon.com/");
+
+      if (pProgramState->lastSuccessfulSave + 5.0 > udGetEpochSecsUTCf())
+      {
+        ImGui::SameLine();
+        vcIGSW_ShowLoadStatusIndicator(vcSLS_Success);
+        ImGui::SameLine();
+        ImGui::TextUnformatted(vcString::Get("menuProjectSaved"));
+      }
     }
 
     ImGui::End();
