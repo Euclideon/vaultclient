@@ -926,7 +926,7 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
                   ImGui::SameLine();
                   ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(ownerUV.x, ownerUV.y), ImVec2(ownerUV.z, ownerUV.w));
                   if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip(vcString::Get("modalGroupOwner"));
+                    ImGui::SetTooltip("%s", vcString::Get("modalGroupOwner"));
                 }
 
                 if (group.visibility == vcGroupVisibility_Public || group.visibility == vcGroupVisibility_Internal)
@@ -934,7 +934,7 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
                   ImGui::SameLine();
                   ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(publicUV.x, publicUV.y), ImVec2(publicUV.z, publicUV.w));
                   if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip(vcString::Get("modalGroupPublic"));
+                    ImGui::SetTooltip("%s", vcString::Get("modalGroupPublic"));
                 }
 
                 ImGui::Indent(spacing);
