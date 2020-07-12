@@ -1003,7 +1003,7 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
                     ImGui::SameLine();
                     ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(shareUV.x, shareUV.y), ImVec2(shareUV.z, shareUV.w));
                     if (ImGui::IsItemHovered())
-                      ImGui::SetTooltip(vcString::Get("shareProjectShared"));
+                      ImGui::SetTooltip("%s", vcString::Get("shareProjectShared"));
                   }
 
                   ImGui::SetCursorPosY(prevPosY);
