@@ -303,6 +303,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
     ImGui::Separator();
 
+    udReadLockRWLock(pProgramState->pSessionLock);
     if (pProgramState->featuredProjects.length > 0)
     {
       ImVec2 textSize = ImGui::CalcTextSize(vcString::Get("welcomeFeaturedProjects"));
@@ -336,6 +337,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
       ImGui::Separator();
     }
+    udReadUnlockRWLock(pProgramState->pSessionLock);
 
     struct
     {
@@ -526,6 +528,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       }
       else
       {
+        udReadLockRWLock(pProgramState->pSessionLock);
         if (pProgramState->groups.length > 0 && availableGroups)
         {
           if (!udUUID_IsValid(selectedGroup))
@@ -548,9 +551,10 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
           if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), pGroupName))
           {
+            udReadLockRWLock(pProgramState->pSessionLock);
             for (auto item : pProgramState->groups)
             {
-              if (item.permissionLevel >= 3) // Only >Managers can load projects
+              if (item.permissionLevel >= vcGroupPermissions_Manager)
               {
                 if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID) || !udUUID_IsValid(selectedGroup))
                 {
@@ -559,6 +563,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
                 }
               }
             }
+            udReadUnlockRWLock(pProgramState->pSessionLock);
+
             ImGui::EndCombo();
           }
         }
@@ -566,6 +572,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
         {
           ImGui::TextUnformatted(vcString::Get("modalProjectNoGroups"));
         }
+        udReadUnlockRWLock(pProgramState->pSessionLock);
       }
 
       ImGui::Unindent();
@@ -704,6 +711,7 @@ void vcModals_DrawExportProject(vcState *pProgramState)
         }
         else if (i == 1) // cloud
         {
+          udReadLockRWLock(pProgramState->pSessionLock);
           if (pProgramState->groups.length > 0 && availableGroups)
           {
             if (!udUUID_IsValid(selectedGroup))
@@ -750,6 +758,7 @@ void vcModals_DrawExportProject(vcState *pProgramState)
           {
             ImGui::TextUnformatted(vcString::Get("modalProjectNoGroups"));
           }
+          udReadUnlockRWLock(pProgramState->pSessionLock);
         }
 
         ImGui::EndChild();
@@ -822,15 +831,11 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
-
-    static size_t selectedGroupIndex = 0;
-    static size_t selectedProjectIndex = 0;
-
-    if (ImGui::IsWindowAppearing())
-    {
-      selectedGroupIndex = 0;
-      selectedProjectIndex = 0;
-    }
+    
+    udFloat4 openUV = vcGetIconUV(vcMBBI_Open);
+    udFloat4 shareUV = vcGetIconUV(vcMBBI_Share);
+    udFloat4 ownerUV = vcGetIconUV(vcMBBI_NewProject);
+    udFloat4 publicUV = vcGetIconUV(vcMBBI_Visualization);
 
     struct
     {
@@ -840,13 +845,15 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
     } types[] = {
       { "menuProjectImportShared", vcMBBI_Share, 90.f },
       { "menuProjectImportDisk", vcMBBI_StorageLocal, 90.f },
-      { "menuProjectImportCloud", vcMBBI_StorageCloud, 120.f },
+      { "menuProjectImportCloud", vcMBBI_StorageCloud, -30.f },
     };
 
     for (size_t i = 0; i < udLengthOf(types); ++i)
     {
       if (ImGui::BeginChild(udTempStr("##loadFromType%zu", i), ImVec2(-1, types[i].size), true))
       {
+        float startingPos = ImGui::GetCursorPosX();
+
         udFloat4 iconUV = vcGetIconUV(types[i].icon);
         ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
         ImGui::SameLine();
@@ -898,54 +905,122 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
         }
         else if (types[i].icon == vcMBBI_StorageCloud) // cloud
         {
-          udJSONArray *pGroupList = pProgramState->projects.Get("groups").AsArray();
-          if (pGroupList != nullptr)
+          udReadLockRWLock(pProgramState->pSessionLock);
+          if (pProgramState->groups.length > 0)
           {
-            if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), pGroupList->GetElement(selectedGroupIndex)->Get("name").AsString()))
+            ImGui::Indent(textAlignPosX - startingPos);
+
+            float spacing = ImGui::GetStyle().IndentSpacing * 2;
+
+            for (vcGroupInfo &group : pProgramState->groups)
             {
-              for (size_t g = 0; g < pGroupList->length; ++g)
+              if (group.projects.length > 0)
               {
-                udJSON *pGroupItem = pGroupList->GetElement(g);
-                const char *pGroupName = pGroupItem->Get("name").AsString();
-                if (ImGui::Selectable(udTempStr("%s##grp_%zu", pGroupName, g), selectedGroupIndex == g))
+                ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(openUV.x, openUV.y), ImVec2(openUV.z, openUV.w));
+                ImGui::SameLine();
+
+                ImGui::TextUnformatted(group.pGroupName);
+
+                if (group.permissionLevel == vcGroupPermissions_Owner)
                 {
-                  selectedGroupIndex = g;
-                  selectedProjectIndex = 0;
+                  ImGui::SameLine();
+                  ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(ownerUV.x, ownerUV.y), ImVec2(ownerUV.z, ownerUV.w));
+                  if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%s", vcString::Get("modalGroupOwner"));
                 }
-              }
-              ImGui::EndCombo();
-            }
 
-            ImGui::SetCursorPosX(textAlignPosX + 14);
-
-            udJSONArray *pProjectList = pGroupList->GetElement(selectedGroupIndex)->Get("projects").AsArray();
-            if (ImGui::BeginCombo("Projects##saveprojectslol", pProjectList->GetElement(selectedProjectIndex)->Get("name").AsString()))
-            {
-              for (size_t p = 0; p < pProjectList->length; ++p)
-              {
-                udJSON *pProject = pProjectList->GetElement(p);
-                const char *pProjectName = pProject->Get("name").AsString("<Unnamed>");
-                if (ImGui::Selectable(udTempStr("%s##prj_%s", pProjectName, pProject->Get("projectid").AsString()), selectedProjectIndex == p))
+                if (group.visibility == vcGroupVisibility_Public || group.visibility == vcGroupVisibility_Internal)
                 {
-                  selectedProjectIndex = p;
+                  ImGui::SameLine();
+                  ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(publicUV.x, publicUV.y), ImVec2(publicUV.z, publicUV.w));
+                  if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%s", vcString::Get("modalGroupPublic"));
                 }
+
+                ImGui::Indent(spacing);
+
+                for (vcProjectInfo &project : group.projects)
+                {
+                  if (project.isDeleted)
+                    continue;
+
+                  float selectablePosY = ImGui::GetCursorPosY();
+
+                  if (ImGui::Selectable(udTempStr("##prj_%s", udUUID_GetAsString(project.projectID)), false) && vcProject_AbleToChange(pProgramState))
+                  {
+                    vcProject_LoadFromServer(pProgramState, udUUID_GetAsString(project.projectID));
+                    ImGui::CloseCurrentPopup();
+                  }
+
+                  if (group.permissionLevel >= vcGroupPermissions_Manager)
+                  {
+                    if (ImGui::BeginPopupContextItem())
+                    {
+                      if (group.permissionLevel == vcGroupPermissions_Owner)
+                      {
+                        if (ImGui::MenuItem(vcString::Get("modalProjectDelete")) && vcModals_AllowDestructiveAction(pProgramState, vcString::Get("modalProjectDelete"), vcString::Get("modalProjectDeleteDesc")))
+                        {
+                          if (vdkProject_DeleteServerProject(pProgramState->pVDKContext, udUUID_GetAsString(project.projectID)) == vE_Success)
+                            project.isDeleted = true;
+
+                          //TODO: Handle when it doesn't work?
+                        }
+                      }
+
+                      if (project.isShared)
+                      {
+                        if (ImGui::MenuItem(vcString::Get("shareMakeUnshare")))
+                        {
+                          if (vdkProject_SetLinkShareStatus(pProgramState->pVDKContext, udUUID_GetAsString(project.projectID), false) == vE_Success)
+                            project.isShared = false;
+
+                          //TODO: Handle when it doesn't work?
+                        }
+                      }
+
+                      if (!project.isShared)
+                      {
+                        if (ImGui::MenuItem(vcString::Get("shareMakeShare")))
+                        {
+                          if (vdkProject_SetLinkShareStatus(pProgramState->pVDKContext, udUUID_GetAsString(project.projectID), true) == vE_Success)
+                            project.isShared = true;
+
+                          //TODO: Handle when it doesn't work?
+                        }
+                      }
+
+                      ImGui::EndPopup();
+                    }
+                  }
+
+                  float prevPosY = ImGui::GetCursorPosY();
+                  ImGui::SetCursorPosY(selectablePosY);
+
+                  ImGui::TextUnformatted(project.pProjectName);
+
+                  if (project.isShared)
+                  {
+                    ImGui::SameLine();
+                    ImGui::Image(pProgramState->pUITexture, ImVec2(16, 16), ImVec2(shareUV.x, shareUV.y), ImVec2(shareUV.z, shareUV.w));
+                    if (ImGui::IsItemHovered())
+                      ImGui::SetTooltip("%s", vcString::Get("shareProjectShared"));
+                  }
+
+                  ImGui::SetCursorPosY(prevPosY);
+                  ImGui::Spacing();
+                }
+
+                ImGui::Unindent(spacing);
               }
-              ImGui::EndCombo();
             }
 
-            ImGui::SetCursorPosX(textAlignPosX);
-            if (ImGui::Button(vcString::Get("menuProjectImport")) && vcProject_AbleToChange(pProgramState))
-            {
-              udJSON *pSelectedProjectInfo = pGroupList->GetElement(selectedGroupIndex)->Get("projects").AsArray()->GetElement(selectedProjectIndex);
-              vcProject_LoadFromServer(pProgramState, pSelectedProjectInfo->Get("projectid").AsString());
-
-              ImGui::CloseCurrentPopup();
-            }
+            ImGui::Unindent(textAlignPosX - startingPos);
           }
           else // No projects
           {
             ImGui::MenuItem(vcString::Get("menuProjectNone"), nullptr, nullptr, false);
           }
+          udReadUnlockRWLock(pProgramState->pSessionLock);
         }
 
         ImGui::EndChild();
