@@ -1673,7 +1673,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
           if (vdkProject_GetProjectUUID(pProgramState->activeProject.pProject, &pUUID) == vE_Success)
           {
-            udSprintf(shareLinkBrowser, "%s/client/?f=project/%s", pProgramState->settings.loginInfo.serverURL, pUUID);
+            udSprintf(shareLinkBrowser, "%s/client/?f=euclideon:project/%s", pProgramState->settings.loginInfo.serverURL, pUUID);
             udSprintf(shareLinkApp, "euclideon:project/%s", pUUID);
 
             foundProject = false;
