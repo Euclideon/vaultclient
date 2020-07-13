@@ -658,12 +658,34 @@ void vcMain_GetScreenResolution(vcState * pProgramState)
   });
 }
 
+struct vcMainSyncFSData
+{
+  void (*pCallback)(void *);
+  udSemaphore *pSema;
+};
+
+void vcMainSyncFSFinished(void *pDataPtr)
+{
+  vcMainSyncFSData *pData = (vcMainSyncFSData *)pDataPtr;
+  udIncrementSemaphore(pData->pSema);
+}
+
 void vcMain_SyncFS()
 {
-  EM_ASM({
+  vcMainSyncFSData data = {};
+  data.pSema = udCreateSemaphore();
+  data.pCallback = vcMainSyncFSFinished;
+
+  MAIN_THREAD_EM_ASM_INT({
     // Sync from persisted state into memory
-    FS.syncfs(true, function(err) { });
-  });
+    FS.syncfs(true, function(err) {
+      var FinishCallback = Atomics.load(HEAPU32, $0 >> 2);
+      dynCall_vi(FinishCallback, $0);
+    });
+  }, &data);
+
+  udWaitSemaphore(data.pSema);
+  udDestroySemaphore(&data.pSema);
 }
 #endif
 
@@ -830,7 +852,7 @@ int main(int argc, char **args)
 #endif //UDPLATFORM_WINDOWS
 
 #if UDPLATFORM_EMSCRIPTEN
-  emscripten_sync_run_in_main_runtime_thread(EM_FUNC_SIG_V, vcMain_SyncFS);
+  vcMain_SyncFS();
 #endif
 
   uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;

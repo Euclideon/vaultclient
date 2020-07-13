@@ -354,6 +354,7 @@ void vcSession_Login(void *pProgramStatePtr)
   if (result != vE_Success)
     return;
 
+  vcSettings_Save(&pProgramState->settings);
   vcSession_ChangeSession(pProgramState);
 }
 
