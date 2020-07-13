@@ -518,6 +518,12 @@ void vcModals_DrawExportProject(vcState *pProgramState)
 
     for (size_t i = 0; i < udLengthOf(types); ++i)
     {
+#if UDPLATFORM_EMSCRIPTEN
+      // TODO: Handle downloading local copy for Emscripten instead
+      if (i == 0)
+        continue;
+#endif
+
       if (ImGui::BeginChild(udTempStr("##saveAsType%zu", i), ImVec2(-1, 90), true))
       {
         udFloat4 iconUV = vcGetIconUV(types[i].icon);
@@ -934,6 +940,12 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
 
     for (size_t i = 0; i < udLengthOf(types); ++i)
     {
+#if UDPLATFORM_EMSCRIPTEN
+      // TODO: Handle uploading local copy for Emscripten instead
+      if (types[i].icon == vcMBBI_StorageLocal)
+        continue;
+#endif
+
       if (ImGui::BeginChild(udTempStr("##loadFromType%zu", i), ImVec2(-1, types[i].size), true))
       {
         float startingPos = ImGui::GetCursorPosX();
