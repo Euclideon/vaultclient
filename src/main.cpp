@@ -959,7 +959,7 @@ int main(int argc, char **args)
   // Stop window from being minimized while fullscreened and focus is lost
   SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
-  programState.pWindow = ImGui_ImplSDL2_CreateWindow(VCVERSION_WINDOW_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
+  programState.pWindow = ImGui_ImplSDL2_CreateWindow("udStream", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
   if (!programState.pWindow)
     goto epilogue;
 
@@ -972,9 +972,9 @@ int main(int argc, char **args)
   vcSettings_LoadBranding(&programState);
 
 #if UDPLATFORM_EMSCRIPTEN
-    SDL_SetWindowTitle(programState.pWindow, udTempStr("%s " VCVERSION_VERSION_STRING " - (Built: " __DATE__ ")", programState.branding.appName));
+  SDL_SetWindowTitle(programState.pWindow, udTempStr("%s (" UDSTRINGIFY(VCVERSION_BUILD_NUMBER) ")", programState.branding.appName));
 #else
-  SDL_SetWindowTitle(programState.pWindow, udTempStr("%s " VCVERSION_PRODUCT_STRING " - (Built: " __DATE__ ")", programState.branding.appName));
+  SDL_SetWindowTitle(programState.pWindow, udTempStr("%s (" UDSTRINGIFY(VCVERSION_BUILD_NUMBER) ")", programState.branding.appName));
 #endif
 
 #if UDPLATFORM_EMSCRIPTEN
