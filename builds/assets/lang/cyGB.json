@@ -755,5 +755,10 @@
   "shareStatusPublic": "Mae'r prosiect hwn yn gyhoeddus a gall unrhyw un ar y gweinydd ei agor.",
   "shareStatusShared": "Gall unrhyw un ar y gweinydd agor y prosiect hwn gan ddefnyddio'r cod cyfranddaliadau neu'r ddolen porwr.",
   "shareStatusNotShared": "Dim ond pobl yn yr un grŵp all agor y prosiect hwn.",
+  "menuShowWelcome": "Dangos sgrin groeso",
+  "menuProjectExportMemory": "Creu fel prosiect dros dro",
+  "menuProjectCreateButton": "Creu prosiect newydd",
+  "errorFileExists": "Wedi methu â chreu ffeil, mae'r ffeil eisoes yn bodoli.",
+  "modalProjectNewDesc": "Dechreuwch olygfa newydd gyda pharamedrau penodol",
   "_last": "Last item so no one forgets the comma on the line above"
 }

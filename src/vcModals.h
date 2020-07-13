@@ -7,6 +7,7 @@ enum vcModalTypes
   vcMT_LoggedOut,
   vcMT_AddSceneItem,
   vcMT_LoadProject,
+  vcMT_CreateProject,
   vcMT_Welcome,
   vcMT_ExportProject,
   vcMT_ImageViewer,

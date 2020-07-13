@@ -755,5 +755,10 @@
   "shareStatusPublic": "Projek ini berada di khalayak ramai dan boleh dibuka oleh sesiapa sahaja di pelayan.",
   "shareStatusShared": "Projek ini boleh dibuka oleh sesiapa sahaja di pelayan menggunakan kod kongsi atau pautan penyemak imbas.",
   "shareStatusNotShared": "Projek ini hanya boleh dibuka oleh orang dalam kumpulan yang sama.",
+  "menuShowWelcome": "Tunjukkan skrin selamat datang",
+  "menuProjectExportMemory": "Buat sebagai projek sementara",
+  "menuProjectCreateButton": "Buat projek baru",
+  "errorFileExists": "Gagal membuat fail, fail sudah ada.",
+  "modalProjectNewDesc": "Mulakan pemandangan baru dengan parameter tertentu",
   "_last": "Last item so no one forgets the comma on the line above"
 }

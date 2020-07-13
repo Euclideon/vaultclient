@@ -1073,6 +1073,9 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 
     ImGui::Separator();
 
+    if (ImGui::MenuItem(vcString::Get("menuShowWelcome")))
+      vcModals_OpenModal(pProgramState, vcMT_Welcome);
+
     if (ImGui::MenuItem(vcString::Get("menuProjectExport"), nullptr, nullptr))
       vcModals_OpenModal(pProgramState, vcMT_ExportProject);
 
@@ -1611,7 +1614,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMain_ProfileMenu(pProgramState);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuNewScene"), nullptr, vcMBBI_NewProject, vcMBBG_SameGroup))
-        vcModals_OpenModal(pProgramState, vcMT_Welcome);
+        vcModals_OpenModal(pProgramState, vcMT_CreateProject);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectImport"), nullptr, vcMBBI_Open, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_LoadProject);
