@@ -755,5 +755,10 @@
   "shareStatusPublic": "Este proyecto es público y puede abrirlo cualquier persona en el servidor.",
   "shareStatusShared": "Cualquier persona en el servidor puede abrir este proyecto utilizando el código compartido o el enlace del navegador.",
   "shareStatusNotShared": "Este proyecto solo puede ser abierto por personas del mismo grupo.",
+  "menuShowWelcome": "Mostrar pantalla de bienvenida",
+  "menuProjectExportMemory": "Crear como proyecto temporal",
+  "menuProjectCreateButton": "Crear nuevo proyecto",
+  "errorFileExists": "Error al crear el archivo, el archivo ya existe.",
+  "modalProjectNewDesc": "Comience una nueva escena con parámetros específicos",
   "_last": "Last item so no one forgets the comma on the line above"
 }

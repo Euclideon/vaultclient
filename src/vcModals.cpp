@@ -215,22 +215,6 @@ void vcModals_DrawWelcome(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    static int zoneCustomSRID = 84;
-    static int creatingNewProjectType = -1;
-    static int localOrServerProject = 0;
-    static char pProjectPath[vcMaxPathLength] = {};
-
-    static udUUID selectedGroup = {};
-    static const char *pGroupName = nullptr;
-    static bool availableGroups = true;
-
-    if (ImGui::IsWindowAppearing())
-    {
-      pGroupName = nullptr;
-      availableGroups = true;
-      udUUID_Clear(&selectedGroup);
-    }
-
     ImVec2 windowSize = ImGui::GetWindowSize();
 
     // Logo
@@ -344,15 +328,12 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       const char *pAction;                                      const char *pDescription;                             vcMenuBarButtonIcon icon;
     } items[] = {
       { vcString::Get("menuProjectImport"),                     vcString::Get("menuProjectImportDesc"),               vcMBBI_Open },
-      { vcString::Get("modalProjectNewGeolocated"),             vcString::Get("modalProjectGeolocatedDescription"),   vcMBBI_Geospatial },
-      { vcString::Get("modalProjectNewNonGeolocated"),          vcString::Get("modalProjectNonGeolocatedDescription"),vcMBBI_Grid },
-      { vcString::Get("modalProjectNewGeolocatedSpecificZone"), vcString::Get("modalProjectSpecificZoneDescription"), vcMBBI_ExpertGrid },
+      { vcString::Get("modalProjectNewCreate"),                 vcString::Get("modalProjectNewDesc"),                 vcMBBI_NewProject },
 #if VC_HASCONVERT
       { vcString::Get("convertTitle"),                          vcString::Get("convertDesc"),                         vcMBBI_Convert },
 #endif // VC_HASCONVERT
     };
 
-    if (creatingNewProjectType == -1)
     {
       ImGui::Columns(2);
 
@@ -437,32 +418,20 @@ void vcModals_DrawWelcome(vcState *pProgramState)
         for (size_t i = 0; i < udLengthOf(items); ++i)
         {
           bool selected = false;
-          if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
+          if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40)))
           {
-            if (items[i].icon == vcMBBI_Geospatial || items[i].icon == vcMBBI_Grid || items[i].icon == vcMBBI_ExpertGrid)
-            {
-              creatingNewProjectType = (int)i;
-              udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
+            ImGui::CloseCurrentPopup();
 
-              if (items[i].icon == vcMBBI_Geospatial)
-                zoneCustomSRID = 84; // Geolocated
-              else if (items[i].icon == vcMBBI_Grid)
-                zoneCustomSRID = 0; // Non Geolocated
-            }
+            if (items[i].icon == vcMBBI_NewProject)
+              vcModals_OpenModal(pProgramState, vcMT_CreateProject);
             else if (items[i].icon == vcMBBI_Convert)
-            {
-              ImGui::CloseCurrentPopup();
               vcModals_OpenModal(pProgramState, vcMT_Convert);
-            }
             else if (items[i].icon == vcMBBI_Open)
-            {
-              ImGui::CloseCurrentPopup();
               vcModals_OpenModal(pProgramState, vcMT_LoadProject);
-            }
           }
 
           float prevPosY = ImGui::GetCursorPosY();
-          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 46);
+          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 38);
 
           udFloat4 iconUV = vcGetIconUV(items[i].icon);
           ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
@@ -493,102 +462,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
       ImGui::EndColumns();
     }
-    else
-    {
-      ImGui::TextUnformatted(items[creatingNewProjectType].pAction);
-
-      vcIGSW_InputText(vcString::Get("modalProjectNewName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
-      
-      if (items[creatingNewProjectType].icon == vcMBBI_ExpertGrid)
-      {
-        ImGui::Indent();
-        ImGui::InputInt(vcString::Get("modalProjectNewGeolocatedSpecificZoneID"), &zoneCustomSRID);
-      
-        udGeoZone zone;
-        if (udGeoZone_SetFromSRID(&zone, zoneCustomSRID) != udR_Success)
-          ImGui::TextUnformatted(vcString::Get("sceneUnsupportedSRID"));
-        else
-          ImGui::Text("%s (%s: %d)", zone.zoneName, vcString::Get("sceneSRID"), zoneCustomSRID);
-      
-        ImGui::Unindent();
-      }
-
-      ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
-      ImGui::TextUnformatted(vcString::Get("modalProjectLocalOrServerProject"));
-
-      ImGui::Indent();
-
-      ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectLocal")), &localOrServerProject, 0);
-      ImGui::SameLine();
-      ImGui::RadioButton(udTempStr("%s##newProjectLocalServer", vcString::Get("modalProjectServer")), &localOrServerProject, 1);
-
-      if (localOrServerProject == 0) // local
-      {
-        vcIGSW_FilePicker(pProgramState, vcString::Get("modalProjectSaveLocation"), pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
-      }
-      else
-      {
-        udReadLockRWLock(pProgramState->pSessionLock);
-        if (pProgramState->groups.length > 0 && availableGroups)
-        {
-          if (!udUUID_IsValid(selectedGroup))
-          {
-            for (auto item : pProgramState->groups)
-            {
-              if (item.permissionLevel >= 3) // Only >Managers can load projects
-              {
-                if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID) || !udUUID_IsValid(selectedGroup))
-                {
-                  selectedGroup = item.groupID;
-                  pGroupName = item.pGroupName;
-                }
-              }
-            }
-
-            if (!udUUID_IsValid(selectedGroup))
-              availableGroups = false;
-          }
-
-          if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), pGroupName))
-          {
-            udReadLockRWLock(pProgramState->pSessionLock);
-            for (auto item : pProgramState->groups)
-            {
-              if (item.permissionLevel >= vcGroupPermissions_Manager)
-              {
-                if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID) || !udUUID_IsValid(selectedGroup))
-                {
-                  selectedGroup = item.groupID;
-                  pGroupName = item.pGroupName;
-                }
-              }
-            }
-            udReadUnlockRWLock(pProgramState->pSessionLock);
-
-            ImGui::EndCombo();
-          }
-        }
-        else
-        {
-          ImGui::TextUnformatted(vcString::Get("modalProjectNoGroups"));
-        }
-        udReadUnlockRWLock(pProgramState->pSessionLock);
-      }
-
-      ImGui::Unindent();
-    }
-
-    static vdkError result = vE_Success;
-    if (result != vE_Success)
-    {
-      ImGui::NextColumn();
-      ImGui::Spacing();
-      ImGui::Spacing();
-      ImGui::TextColored(ImVec4(1.0, 1.0, 0.5, 1.0), "%s", vcProject_ErrorToString(result));
-    }
-
+    
     // Position control buttons in the bottom right corner
-    if (creatingNewProjectType == -1)
     {
       ImGui::Separator();
 
@@ -600,45 +475,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       ImGui::SetCursorPosX((windowSize.x - DismissButtonSize) / 2.f);
 
       if (ImGui::Button(vcString::Get("modalWelcomeDismiss"), ImVec2(DismissButtonSize, 0)) || vcHotkey::IsPressed(vcB_Cancel))
-      {
-        pProgramState->modelPath[0] = '\0';
-        creatingNewProjectType = -1;
-        result = vE_Success;
         ImGui::CloseCurrentPopup();
-      }
-    }
-    else
-    {
-      ImGui::SetCursorPos(ImVec2(windowSize.x - 280, windowSize.y - 30));
-
-      if (ImGui::Button("Back", ImVec2(100.f, 0)))
-      {        
-        creatingNewProjectType = -1;
-        result = vE_Success;
-      }
-
-      ImGui::SameLine();
-      if (ImGui::Button(vcString::Get("modalProjectNewCreate"), ImVec2(150.f, 0)) && vcProject_AbleToChange(pProgramState))
-      {
-        if (localOrServerProject == 0) // local
-        {
-          udFilename exportFilename(pProjectPath);
-          vcProject_AutoCompletedName(&exportFilename, pProjectPath, pProgramState->modelPath);
-          result = vcProject_CreateFileScene(pProgramState, exportFilename, pProgramState->modelPath, zoneCustomSRID);
-        }
-        else // server
-        {
-          result = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, udUUID_GetAsString(selectedGroup), zoneCustomSRID);
-        }
-
-        if (result == vE_Success )
-        {
-          pProgramState->modelPath[0] = '\0';
-          creatingNewProjectType = -1;
-
-          ImGui::CloseCurrentPopup();
-        }
-      }
     }
 
     ImGui::EndPopup();
@@ -814,6 +651,253 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
     
     if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr || pInfo[0] == '\0')
       ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
+void vcModals_DrawCreateProject(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_CreateProject))
+    ImGui::OpenPopup(vcString::Get("menuProjectCreateButton"));
+
+  ImGui::SetNextWindowSize(ImVec2(475, 450), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("menuProjectCreateButton"), 0, ImGuiWindowFlags_NoResize))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_CreateProject))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    ImVec2 windowSize = ImGui::GetWindowSize();
+
+    static int creatingNewProjectType = -1;
+    static int zoneCustomSRID = 84;
+    static char pProjectPath[vcMaxPathLength] = {};
+    static udUUID selectedGroup = {};
+    static const char *pGroupName = nullptr;
+    static bool availableGroups = true;
+    static vdkError result = vE_Success;
+
+    if (ImGui::IsWindowAppearing())
+    {
+      creatingNewProjectType = -1;
+      pGroupName = nullptr;
+      availableGroups = true;
+      udUUID_Clear(&selectedGroup);
+      result = vE_Success;
+    }
+
+    struct
+    {
+      const char *pAction;                                      const char *pDescription;                             vcMenuBarButtonIcon icon;
+    } items[] = {
+      { vcString::Get("modalProjectNewGeolocated"),             vcString::Get("modalProjectGeolocatedDescription"),   vcMBBI_Geospatial },
+      { vcString::Get("modalProjectNewNonGeolocated"),          vcString::Get("modalProjectNonGeolocatedDescription"),vcMBBI_Grid },
+      { vcString::Get("modalProjectNewGeolocatedSpecificZone"), vcString::Get("modalProjectSpecificZoneDescription"), vcMBBI_ExpertGrid },
+    };
+
+
+    if (creatingNewProjectType == -1)
+    {
+      for (size_t i = 0; i < udLengthOf(items); ++i)
+      {
+        bool selected = false;
+        if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 48)))
+        {
+          creatingNewProjectType = (int)i;
+          udStrcpy(pProgramState->modelPath, vcString::Get("modalProjectNewTitle"));
+
+          if (items[i].icon == vcMBBI_Geospatial)
+            zoneCustomSRID = 84; // Geolocated
+          else if (items[i].icon == vcMBBI_Grid)
+            zoneCustomSRID = 0; // Non Geolocated
+        }
+
+        float prevPosY = ImGui::GetCursorPosY();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 46);
+
+        udFloat4 iconUV = vcGetIconUV(items[i].icon);
+        ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+        ImGui::SameLine();
+
+        // Align text with icon
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 7);
+
+        float textAlignPosX = ImGui::GetCursorPosX();
+        ImGui::TextUnformatted(items[i].pAction);
+
+        // Manually align details text with title text
+        ImGui::SetCursorPosX(textAlignPosX);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
+
+        ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+        col.w *= 0.65f;
+        ImGui::PushStyleColor(ImGuiCol_Text, col);
+        ImGui::TextUnformatted(items[i].pDescription);
+        ImGui::PopStyleColor();
+
+        ImGui::SetCursorPosY(prevPosY);
+        ImGui::Spacing();
+      }
+
+      ImGui::SetCursorPosY(windowSize.y - 30);
+      if (ImGui::Button(vcString::Get("modalWelcomeDismiss"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      {
+        pProgramState->modelPath[0] = '\0';
+        creatingNewProjectType = -1;
+        result = vE_Success;
+        ImGui::CloseCurrentPopup();
+      }
+    }
+    else
+    {
+      ImGui::TextUnformatted(items[creatingNewProjectType].pAction);
+
+      vcIGSW_InputText(vcString::Get("modalProjectNewName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
+
+      if (items[creatingNewProjectType].icon == vcMBBI_ExpertGrid)
+      {
+        ImGui::InputInt(vcString::Get("modalProjectNewGeolocatedSpecificZoneID"), &zoneCustomSRID);
+
+        udGeoZone zone;
+        if (udGeoZone_SetFromSRID(&zone, zoneCustomSRID) != udR_Success)
+          ImGui::TextUnformatted(vcString::Get("sceneUnsupportedSRID"));
+        else
+          ImGui::Text("%s (%s: %d)", zone.displayName, vcString::Get("sceneSRID"), zoneCustomSRID);
+      }
+
+      struct
+      {
+        const char *pName;
+        vcMenuBarButtonIcon icon;
+        float height;
+      } types[] = {
+        { "menuProjectExportDisk",  vcMBBI_StorageLocal, 85.f },
+        { "menuProjectExportCloud", vcMBBI_StorageCloud, 85.f },
+        { "menuProjectExportMemory", vcMBBI_Visualization, 60.f },
+      };
+
+      for (size_t i = 0; i < udLengthOf(types); ++i)
+      {
+        if (ImGui::BeginChild(udTempStr("##saveAsType%zu", i), ImVec2(-1, types[i].height), true))
+        {
+          udFloat4 iconUV = vcGetIconUV(types[i].icon);
+          ImGui::Image(pProgramState->pUITexture, ImVec2(24, 24), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+          ImGui::SameLine();
+
+          float textAlignPosX = ImGui::GetCursorPosX();
+          ImGui::TextUnformatted(vcString::Get(types[i].pName));
+
+          // Manually align details text with title text
+          ImGui::SetCursorPosX(textAlignPosX);
+          ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9);
+
+          if (types[i].icon == vcMBBI_StorageLocal) // local
+          {
+            vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProjectPath, SupportedFileTypes_ProjectsExport, vcFDT_SaveFile, nullptr);
+
+            ImGui::SetCursorPosX(textAlignPosX);
+            if (ImGui::Button(vcString::Get("menuProjectCreateButton")) && vcProject_AbleToChange(pProgramState))
+            {
+              result = vcProject_CreateFileScene(pProgramState, pProgramState->modelPath, pProjectPath, zoneCustomSRID);
+              if (result == vE_Success)
+              {
+                pProgramState->modelPath[0] = '\0';
+                ImGui::CloseCurrentPopup();
+              }
+            }
+          }
+          else if (types[i].icon == vcMBBI_StorageCloud) // cloud
+          {
+            udReadLockRWLock(pProgramState->pSessionLock);
+            if (pProgramState->groups.length > 0 && availableGroups)
+            {
+              if (!udUUID_IsValid(selectedGroup))
+              {
+                for (auto item : pProgramState->groups)
+                {
+                  if (item.permissionLevel >= 3) // Only >Managers can load projects
+                  {
+                    pGroupName = item.pGroupName;
+                    selectedGroup = item.groupID;
+                  }
+                }
+
+                if (!udUUID_IsValid(selectedGroup))
+                  availableGroups = false;
+              }
+
+              if (ImGui::BeginCombo(vcString::Get("modalProjectSaveGroup"), pGroupName))
+              {
+                for (auto item : pProgramState->groups)
+                {
+                  if (item.permissionLevel >= 3) // Only >Managers can load projects
+                  {
+                    if (ImGui::Selectable(item.pGroupName, selectedGroup == item.groupID))
+                    {
+                      selectedGroup = item.groupID;
+                      pGroupName = item.pGroupName;
+                    }
+                  }
+                }
+
+                ImGui::EndCombo();
+              }
+
+              ImGui::SetCursorPosX(textAlignPosX);
+              if (ImGui::Button(vcString::Get("menuProjectCreateButton")) && vcProject_AbleToChange(pProgramState))
+              {
+                result = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, udUUID_GetAsString(selectedGroup), zoneCustomSRID);
+                if (result == vE_Success)
+                {
+                  pProgramState->modelPath[0] = '\0';
+                  ImGui::CloseCurrentPopup();
+                }
+              }
+            }
+            else
+            {
+              ImGui::TextUnformatted(vcString::Get("modalProjectNoGroups"));
+            }
+            udReadUnlockRWLock(pProgramState->pSessionLock);
+          }
+          else if (types[i].icon == vcMBBI_Visualization)
+          {
+            if (ImGui::Button(vcString::Get("menuProjectCreateButton")) && vcProject_AbleToChange(pProgramState))
+            {
+              if (vcProject_CreateBlankScene(pProgramState, pProgramState->modelPath, zoneCustomSRID))
+              {
+                pProgramState->modelPath[0] = '\0';
+                ImGui::CloseCurrentPopup();
+              }
+              else
+              {
+                result = vE_Failure;
+              }
+            }
+          }
+
+          ImGui::EndChild();
+        }
+      }
+
+      ImGui::SetCursorPosY(windowSize.y - 30);
+
+      if (ImGui::Button("Back", ImVec2(100.f, 0)))
+      {
+        creatingNewProjectType = -1;
+        result = vE_Success;
+      }
+
+      if (result != vE_Success)
+      {
+        ImGui::NextColumn();
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(1.0, 1.0, 0.5, 1.0), "%s", vcProject_ErrorToString(result));
+      }
+    }
 
     ImGui::EndPopup();
   }
@@ -1585,6 +1669,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawAddSceneItem(pProgramState);
   vcModals_DrawWelcome(pProgramState);
   vcModals_DrawExportProject(pProgramState);
+  vcModals_DrawCreateProject(pProgramState);
   vcModals_DrawLoadProject(pProgramState);
   vcModals_DrawProjectSettings(pProgramState);
   vcModals_DrawProjectChangeResult(pProgramState);

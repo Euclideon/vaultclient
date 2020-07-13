@@ -755,5 +755,10 @@
   "shareStatusPublic": "Этот проект находится в открытом доступе и может быть открыт любым пользователем на сервере.",
   "shareStatusShared": "Этот проект может быть открыт любым пользователем на сервере с помощью кода доступа или ссылки браузера.",
   "shareStatusNotShared": "Этот проект могут открыть только люди из одной группы.",
+  "menuShowWelcome": "Показать экран приветствия",
+  "menuProjectExportMemory": "Создать как временный проект",
+  "menuProjectCreateButton": "Создать новый проект",
+  "errorFileExists": "Не удалось создать файл, файл уже существует.",
+  "modalProjectNewDesc": "Начать новую сцену с конкретными параметрами",
   "_last": "Last item so no one forgets the comma on the line above"
 }

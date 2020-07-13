@@ -756,5 +756,9 @@
   "shareStatusPublic": "该项目是公开的，服务器上的任何人都可以打开。",
   "shareStatusShared": "服务器上的任何人都可以使用共享代码或浏览器链接打开此项目。",
   "shareStatusNotShared": "该项目只能由同一组的人员打开。",
+  "menuShowWelcome": "显示欢迎画面",
+  "menuProjectExportMemory": "创建为临时项目",
+  "menuProjectCreateButton": "建立新专案",
+  "modalProjectNewDesc": "使用特定参数开始新场景",
   "_last": "Last item so no one forgets the comma on the line above"
 }

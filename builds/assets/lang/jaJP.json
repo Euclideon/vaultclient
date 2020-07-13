@@ -755,5 +755,10 @@
   "shareStatusPublic": "このプロジェクトは公開されており、サーバー上の誰でも開くことができます。",
   "shareStatusShared": "このプロジェクトは、共有コードまたはブラウザリンクを使用して、サーバー上の誰でも開くことができます。",
   "shareStatusNotShared": "このプロジェクトは、同じグループのユーザーのみが開くことができます。",
+  "menuShowWelcome": "ようこそ画面を表示",
+  "menuProjectExportMemory": "一時プロジェクトとして作成",
+  "menuProjectCreateButton": "新しいプロジェクトを作成する",
+  "errorFileExists": "ファイルの作成に失敗しました。ファイルはすでに存在しています。",
+  "modalProjectNewDesc": "特定のパラメーターで新しいシーンを開始する",
   "_last": "Last item so no one forgets the comma on the line above"
 }
