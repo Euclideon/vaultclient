@@ -3,7 +3,7 @@ name: $(Date:yyMMdd)$(Rev:rr)
 trigger:
   tags:
     include:
-    - Release_*
+    - udStream_*
   branches:
     include:
     - '*'  # must quote since "*" is a YAML reserved character; we want a string
