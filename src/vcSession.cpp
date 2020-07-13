@@ -315,7 +315,6 @@ void vcSession_ChangeSession(vcState *pProgramState)
 
   // TODO: If no initial project specified
   vcModals_OpenModal(pProgramState, vcMT_Welcome);
-  vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
 }
 
 void vcSession_Login(void *pProgramStatePtr)

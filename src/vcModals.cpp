@@ -27,6 +27,8 @@
 
 #include "stb_image.h"
 
+bool gShowInputControlsNextHack = false;
+
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_LoggedOut))
@@ -210,6 +212,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(1000, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("###modalWelcome", nullptr, ImGuiWindowFlags_NoTitleBar))
   {
+    gShowInputControlsNextHack = true;
+
     if (pProgramState->closeModals & (1 << vcMT_Welcome))
       ImGui::CloseCurrentPopup();
     else
@@ -396,6 +400,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
               vcProject_LoadFromServer(pProgramState, pProjectInfo->pPath);
             else
               vcProject_LoadFromURI(pProgramState, pProjectInfo->pPath);
+
+            ImGui::CloseCurrentPopup();
           }
 
           ImGui::SetCursorPos(activeCursorPos);
@@ -1747,6 +1753,12 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProfile(pProgramState);
   vcModals_DrawChangePassword(pProgramState);
   vcModals_DrawConvert(pProgramState);
+
+  if (gShowInputControlsNextHack && !pProgramState->modalOpen)
+  {
+    gShowInputControlsNextHack = false;
+    vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
+  }
   vcModals_DrawInputHelper(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut));
