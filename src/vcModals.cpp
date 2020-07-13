@@ -1682,7 +1682,6 @@ void vcModals_DrawInputHelper(vcState* pProgramState)
       pProgramState->modalOpen = true;
 
     ImVec2 size = ImGui::GetWindowSize();
-    ImVec2 cursor = ImGui::GetCursorPos();
     ImVec2 itemSize = {};
 
     ImGui::Image(pProgramState->pInputsTexture, ImVec2(850.f, 330.f));
