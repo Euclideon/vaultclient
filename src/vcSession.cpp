@@ -313,7 +313,6 @@ void vcSession_ChangeSession(vcState *pProgramState)
   pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
 
-  // TODO: If no initial project specified
   vcModals_OpenModal(pProgramState, vcMT_Welcome);
 }
 

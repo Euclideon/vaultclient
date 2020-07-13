@@ -1735,6 +1735,10 @@ void vcModals_CloseModal(vcState *pProgramState, vcModalTypes type)
 
 void vcModals_DrawModals(vcState *pProgramState)
 {
+  int cancelModals = ~(pProgramState->openModals & pProgramState->closeModals);
+  pProgramState->openModals = (pProgramState->openModals & cancelModals);
+  pProgramState->closeModals = (pProgramState->closeModals & cancelModals);
+
   pProgramState->modalOpen = false;
 
   vcModals_DrawLoggedOut(pProgramState);
