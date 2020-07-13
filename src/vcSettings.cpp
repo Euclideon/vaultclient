@@ -952,19 +952,19 @@ void *vcSettings_GetAssetPathAllocateCallback(size_t length)
 
 const char *vcSettings_GetAssetPath(const char *pFilename)
 {
+  const char *pOutput = nullptr;
+
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR
   udFilename filename(pFilename);
-  return udTempStr("./%s", filename.GetFilenameWithExt());
+  udSprintf(&pOutput, "./%s", filename.GetFilenameWithExt());
 #elif UDPLATFORM_OSX
   char *pBasePath = SDL_GetBasePath();
   if (pBasePath == nullptr)
     pBasePath = SDL_strdup("./");
 
   udFilename filename(pFilename);
-  const char *pOutput = udTempStr("%s%s", pBasePath, filename.GetFilenameWithExt());
+  udSprintf(&pOutput, "%s%s", pBasePath, filename.GetFilenameWithExt());
   SDL_free(pBasePath);
-
-  return pOutput;
 #elif UDPLATFORM_EMSCRIPTEN
   char *pURL = (char*)EM_ASM_INT({
     var url = self.location.href.substr(0, self.location.href.lastIndexOf('/'));
@@ -973,12 +973,13 @@ const char *vcSettings_GetAssetPath(const char *pFilename)
     stringToUTF8(url, pURL, lengthBytes + 1);
     return pURL;
   }, vcSettings_GetAssetPathAllocateCallback);
-  const char *pTempURL = udTempStr("%s/%s", pURL, pFilename);
+  udSprintf(&pOutput, "%s/%s", pURL, pFilename);
   udFree(pURL);
-  return pTempURL;
 #else
-  return udTempStr("%s", pFilename);
+  udSprintf(&pOutput, "%s", pFilename);
 #endif
+
+  return pOutput;
 }
 
 struct vcSDLFile : udFile
@@ -1048,6 +1049,7 @@ epilogue:
     udFree(pFile->pFilenameCopy);
     udFree(pFile);
   }
+  udFree(pNewFilename);
 
   return result;
 #else
@@ -1055,8 +1057,10 @@ epilogue:
   if (res == udR_Success)
   {
     udFree((*ppFile)->pFilenameCopy);
-    (*ppFile)->pFilenameCopy = udStrdup(pNewFilename);
+    (*ppFile)->pFilenameCopy = pNewFilename;
+    pNewFilename = nullptr;
   }
+  udFree(pNewFilename);
   return res;
 #endif
 }
