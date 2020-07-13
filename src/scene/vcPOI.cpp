@@ -718,11 +718,11 @@ void vcPOI::RebuildSceneLabel(const vcUnitConversionData *pConversionData)
 
 void vcPOI::UpdatePoints(vcState *pProgramState)
 {
-  udDouble3 worldUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid);
+  CalculateCentroid();
 
+  udDouble3 worldUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid);
   CalculateArea(udDouble4::create(worldUp, 0.0));
   CalculateTotalLength();
-  CalculateCentroid();
 
   m_pLabelInfo->worldPosition = m_centroid;
 
