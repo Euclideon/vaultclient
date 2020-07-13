@@ -481,6 +481,7 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
   vcSceneItem(pProject, pNode, pProgramState)
   , m_pState(nullptr)
 {
+  m_pProgramState = pProgramState;
   m_nameColour =  0xFFFFFFFF;
   m_backColour = 0x7F000000;
 
@@ -1012,6 +1013,7 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
   udFree(m_line.pPoints);
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &m_line.pPoints, &m_line.numPoints);
+  UpdatePoints(m_pProgramState);
 }
 
 void vcPOI::Cleanup(vcState *pProgramState)
