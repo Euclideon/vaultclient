@@ -473,6 +473,25 @@ bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverr
   return (projectError.resultCode == udR_Success);
 }
 
+vdkError vcProject_SaveAsServer(vcState *pProgramState, const char *pProjectID)
+{
+  if (pProgramState == nullptr || pProjectID == nullptr)
+    return vE_InvalidParameter;
+
+  vcState::ErrorItem projectError = {};
+  projectError.source = vcES_ProjectChange;
+  projectError.pData = udStrdup(pProjectID);
+
+  vdkError result = vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, pProjectID);
+  projectError.resultCode = (result == vE_Success ? udR_Success : udR_WriteFailure);
+  pProgramState->errorItems.PushBack(projectError);
+
+  vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+  vcProject_UpdateProjectHistory(pProgramState, pProjectID, true);
+
+  return result;
+}
+
 bool vcProject_AbleToChange(vcState *pProgramState)
 {
   if (pProgramState == nullptr || !pProgramState->hasContext)

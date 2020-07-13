@@ -42,6 +42,7 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject);
 void vcProject_AutoCompletedName(udFilename *exportFilename, const char *pProjectName, const char *pFileName);
 bool vcProject_Save(vcState *pProgramState);
 bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride);
+vdkError vcProject_SaveAsServer(vcState *pProgramState, const char *pProjectID);
 
 bool vcProject_AbleToChange(vcState *pProgramState);
 
