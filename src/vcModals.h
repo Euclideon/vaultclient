@@ -19,6 +19,7 @@ enum vcModalTypes
   vcMT_Profile,
   vcMT_Convert,
   vcMT_ChangePassword,
+  vcMT_ShowInputInfo,
 
   vcMT_Count
 };

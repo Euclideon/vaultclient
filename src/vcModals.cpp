@@ -27,6 +27,8 @@
 
 #include "stb_image.h"
 
+bool gShowInputControlsNextHack = false;
+
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_LoggedOut))
@@ -210,6 +212,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(1000, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("###modalWelcome", nullptr, ImGuiWindowFlags_NoTitleBar))
   {
+    gShowInputControlsNextHack = true;
+
     if (pProgramState->closeModals & (1 << vcMT_Welcome))
       ImGui::CloseCurrentPopup();
     else
@@ -474,7 +478,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
 
       ImGui::SetCursorPosX((windowSize.x - DismissButtonSize) / 2.f);
 
-      if (ImGui::Button(vcString::Get("modalWelcomeDismiss"), ImVec2(DismissButtonSize, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      if (ImGui::Button(vcString::Get("popupDismiss"), ImVec2(DismissButtonSize, 0)) || vcHotkey::IsPressed(vcB_Cancel))
         ImGui::CloseCurrentPopup();
     }
 
@@ -1664,6 +1668,61 @@ void vcModals_DrawConvert(vcState* pProgramState)
 #endif
 }
 
+void vcModals_DrawInputHelper(vcState* pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ShowInputInfo))
+    ImGui::OpenPopup("###sceneInputHelper");
+
+  ImGui::SetNextWindowSize(ImVec2(850.f, 400.f), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal("###sceneInputHelper", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_ShowInputInfo))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    ImVec2 size = ImGui::GetWindowSize();
+    ImVec2 itemSize = {};
+
+    ImGui::Image(pProgramState->pInputsTexture, ImVec2(850.f, 330.f));
+
+    const float ComboY = 50.f;
+    const float ComboWidth = 150.f;
+    const float DismissWidth = 100.f;
+
+    const char *mouseModes[] = { vcString::Get("settingsControlsTumble"), vcString::Get("settingsControlsOrbit"), vcString::Get("settingsControlsPan"), vcString::Get("settingsControlsForward") };
+    const char *scrollwheelModes[] = { vcString::Get("settingsControlsDolly"), vcString::Get("settingsControlsChangeMoveSpeed") };
+
+    // Checks so the casts below are safe
+    UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.cameraMouseBindings[0]) == sizeof(int), "Bindings is no longer sizeof(int)");
+    UDCOMPILEASSERT(sizeof(pProgramState->settings.camera.scrollWheelMode) == sizeof(int), "ScrollWheel is no longer sizeof(int)");
+
+    ImGui::SetCursorPos(ImVec2(20.f, ComboY));
+    ImGui::SetNextItemWidth(ComboWidth);
+    ImGui::Combo(vcString::Get("settingsControlsLeft"), (int*)&pProgramState->settings.camera.cameraMouseBindings[0], mouseModes, (int)udLengthOf(mouseModes));
+
+    itemSize = ImGui::CalcTextSize(vcString::Get("settingsControlsRight"));
+    ImGui::SetCursorPos(ImVec2(udMin(834.f, size.x - itemSize.x - ComboWidth - 15.f), ComboY));
+    ImGui::SetNextItemWidth(ComboWidth);
+    ImGui::Combo(vcString::Get("settingsControlsRight"), (int*)&pProgramState->settings.camera.cameraMouseBindings[1], mouseModes, (int)udLengthOf(mouseModes));
+
+    itemSize = ImGui::CalcTextSize(vcString::Get("settingsControlsMiddle"));
+    ImGui::SetCursorPos(ImVec2((size.x - ComboWidth - itemSize.x) / 2.f, ComboY - 24.f));
+    ImGui::SetNextItemWidth(ComboWidth);
+    ImGui::Combo(vcString::Get("settingsControlsScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
+
+    ImGui::SetCursorPos(ImVec2((size.x - ComboWidth - itemSize.x) / 2.f, ComboY));
+    ImGui::SetNextItemWidth(ComboWidth);
+    ImGui::Combo(vcString::Get("settingsControlsMiddle"), (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
+
+    ImGui::SetCursorPos(ImVec2((size.x - DismissWidth) / 2.f, size.y - 30));
+    if (ImGui::Button(vcString::Get("popupDismiss"), ImVec2(DismissWidth, 0)))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -1677,6 +1736,7 @@ void vcModals_CloseModal(vcState *pProgramState, vcModalTypes type)
 void vcModals_DrawModals(vcState *pProgramState)
 {
   pProgramState->modalOpen = false;
+
   vcModals_DrawLoggedOut(pProgramState);
   vcModals_DrawAddSceneItem(pProgramState);
   vcModals_DrawWelcome(pProgramState);
@@ -1692,6 +1752,13 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProfile(pProgramState);
   vcModals_DrawChangePassword(pProgramState);
   vcModals_DrawConvert(pProgramState);
+
+  if (gShowInputControlsNextHack && !pProgramState->modalOpen)
+  {
+    gShowInputControlsNextHack = false;
+    vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
+  }
+  vcModals_DrawInputHelper(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut));
   pProgramState->closeModals = 0;

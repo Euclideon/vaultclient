@@ -1007,6 +1007,7 @@ int main(int argc, char **args)
 
   vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/branding/logo.png", vcTFM_Linear, true, vcTWM_Clamp);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png", vcTFM_Linear);
+  vcTexture_AsyncCreateFromFilename(&programState.pInputsTexture, programState.pWorkerPool, "asset://assets/textures/inputbackground.png", vcTFM_Linear);
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
 
@@ -1049,6 +1050,7 @@ epilogue:
   vcTexture_Destroy(&programState.pCompanyLogo);
   vcTexture_Destroy(&programState.pCompanyWatermark);
   vcTexture_Destroy(&programState.pUITexture);
+  vcTexture_Destroy(&programState.pInputsTexture);
   vcTexture_Destroy(&programState.pWhiteTexture);
 
   for (size_t i = 0; i < programState.loadList.length; i++)
