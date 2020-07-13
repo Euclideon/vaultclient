@@ -504,6 +504,7 @@
   "sceneExplorerErrorLoad": "Failed to load resource",
   "sceneExplorerPending": "Pending",
   "sceneExplorerLoading": "Loading",
+  "sceneExplorerExporting": "Exporting",
   "sceneExplorerPOIDefaultName": "Point of interest",
   "sceneExplorerFolderDefaultName": "Folder",
   "sceneExplorerViewShedDefaultName": "View Shed",

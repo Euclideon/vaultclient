@@ -1234,7 +1234,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
         if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
         {
-          vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
+          vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading, "sceneExplorerExporting");
           ImGui::TextUnformatted(vcString::Get("sceneExplorerExportRunning"));
         }
       }
