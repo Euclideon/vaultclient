@@ -310,9 +310,6 @@ void vcVerticalMeasureTool::UpdateIntersectionPosition(vcState *pProgramState)
     m_points[1] = m_points[2] - forward * m_distHoriz;
 
   m_distStraight = udMag3(m_points[0] - m_points[2]);
-
-  double horiz = 0.0;
-  double vert = 0.0;
 }
 
 bool vcVerticalMeasureTool::HasLine()
