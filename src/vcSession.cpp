@@ -286,7 +286,6 @@ void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
 void vcSession_ChangeSession(vcState *pProgramState)
 {
   vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
-
   vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
 
   pProgramState->featuredProjects.Init(8);
@@ -316,6 +315,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
 
   // TODO: If no initial project specified
   vcModals_OpenModal(pProgramState, vcMT_Welcome);
+  vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
 }
 
 void vcSession_Login(void *pProgramStatePtr)

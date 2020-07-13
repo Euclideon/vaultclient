@@ -147,6 +147,7 @@ struct vcState
   vcTexture *pCompanyWatermark;
   vcTexture *pUITexture;
   vcTexture *pWhiteTexture;
+  vcTexture *pInputsTexture;
 
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;
