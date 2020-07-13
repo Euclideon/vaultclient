@@ -752,7 +752,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
       }
 
       ImGui::SetCursorPosY(windowSize.y - 30);
-      if (ImGui::Button(vcString::Get("modalWelcomeDismiss"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+      if (ImGui::Button(vcString::Get("popupDismiss"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       {
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
