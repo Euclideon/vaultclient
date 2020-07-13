@@ -212,7 +212,10 @@ void vcModals_DrawWelcome(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(1000, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("###modalWelcome", nullptr, ImGuiWindowFlags_NoTitleBar))
   {
-    gShowInputControlsNextHack = true;
+    static bool showInputControls = true;
+    // Don't set to false if it's set to true (could be put in the block with OpenPopup, but it could be forced open for some other reason)
+    gShowInputControlsNextHack = gShowInputControlsNextHack || showInputControls;
+    showInputControls = false;
 
     if (pProgramState->closeModals & (1 << vcMT_Welcome))
       ImGui::CloseCurrentPopup();
@@ -596,8 +599,10 @@ void vcModals_DrawExportProject(vcState *pProgramState)
             ImGui::SetCursorPosX(textAlignPosX);
             if (ImGui::Button(vcString::Get("menuProjectExportButton")))
             {
-              vdkError result = vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, udUUID_GetAsString(selectedGroup));
-              if (result != vE_Success)
+              vdkError result = vcProject_SaveAsServer(pProgramState, udUUID_GetAsString(selectedGroup));
+              if (result == vE_Success)
+                ImGui::CloseCurrentPopup();
+              else
                 udSprintf(ErrorText, "%s: %s", vcString::Get("errorServerCommunication"), vcProject_ErrorToString(result));
             }
           }
@@ -993,7 +998,7 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
             {
               vcProject_LoadFromURI(pProgramState, pProgramState->modelPath);
               pProgramState->modelPath[0] = '\0';
-              vcModals_CloseModal(pProgramState, vcMT_LoadProject);
+              ImGui::CloseCurrentPopup();
             }
           });
 
@@ -1719,7 +1724,7 @@ void vcModals_DrawInputHelper(vcState* pProgramState)
     ImGui::Combo(vcString::Get("settingsControlsMiddle"), (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
 
     ImGui::SetCursorPos(ImVec2((size.x - DismissWidth) / 2.f, size.y - 30));
-    if (ImGui::Button(vcString::Get("popupDismiss"), ImVec2(DismissWidth, 0)))
+    if (ImGui::Button(vcString::Get("popupDismiss"), ImVec2(DismissWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
