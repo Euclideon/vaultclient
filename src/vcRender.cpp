@@ -775,7 +775,9 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 
   if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Simple)
   {
-    udFloat4x4 viewMatrixF = udFloat4x4::create(pProgramState->camera.matrices.view);
+    // undo ecef orientation
+    udDoubleQuat baseCameraOrientation = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, udDouble2::zero());
+    udFloat4x4 viewMatrixF = udFloat4x4::create(pProgramState->camera.matrices.view * udDouble4x4::rotationQuat(baseCameraOrientation));
     udFloat4x4 projectionMatrixF = udFloat4x4::create(pProgramState->camera.matrices.projectionNear);
     udFloat4x4 inverseViewProjMatrixF = projectionMatrixF * viewMatrixF;
     inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
