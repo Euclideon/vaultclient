@@ -782,7 +782,6 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
     udFloat4x4 inverseViewProjMatrixF = projectionMatrixF * viewMatrixF;
     inverseViewProjMatrixF.axis.t = udFloat4::create(0, 0, 0, 1);
     inverseViewProjMatrixF.inverse();
-    inverseViewProjMatrixF = inverseViewProjMatrixF;
 
     vcShader_Bind(pRenderContext->skyboxShaderPanorama.pProgram);
     vcShader_BindTexture(pRenderContext->skyboxShaderPanorama.pProgram, pRenderContext->skyboxShaderPanorama.pSkyboxTexture, 0, pRenderContext->skyboxShaderPanorama.uniform_texture);
