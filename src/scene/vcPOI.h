@@ -98,6 +98,8 @@ private:
 
   void HandleBasicUI(vcState *pProgramState, size_t itemID);
 
+  vcState *m_pProgramState;
+
 public:
   vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
   ~vcPOI();
