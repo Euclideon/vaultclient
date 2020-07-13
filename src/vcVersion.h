@@ -31,6 +31,4 @@
 #  define VCAPPNAME "udStream / " VCSTRINGIFY(VCVERSION_VERSION_ARRAY_PARTIAL) " DevBuild"
 #endif //GIT_BUILD
 
-#define VCVERSION_WINDOW_TITLE "udStream " VCVERSION_PRODUCT_STRING " - (Built: " __DATE__ ")"
-
 #endif

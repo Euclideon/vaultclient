@@ -20,6 +20,8 @@ const char *vcProject_ErrorToString(vdkError error)
     return vcString::Get("errorUnsupported");
   case vE_WriteFailure:
     return vcString::Get("errorFileExists");
+  case vE_ExceededAllowedLimit:
+    return vcString::Get("errorExceedsProjectLimit");
   case vE_Failure: // Falls through
   default:
     return vcString::Get("errorUnknown");
@@ -483,7 +485,14 @@ vdkError vcProject_SaveAsServer(vcState *pProgramState, const char *pProjectID)
   projectError.pData = udStrdup(pProjectID);
 
   vdkError result = vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, pProjectID);
-  projectError.resultCode = (result == vE_Success ? udR_Success : udR_WriteFailure);
+
+  if (result == vE_Success)
+    projectError.resultCode = udR_Success;
+  else if (result == vE_ExceededAllowedLimit)
+    projectError.resultCode = udR_ExceededAllowedLimit;
+  else
+    projectError.resultCode = udR_WriteFailure;
+
   pProgramState->errorItems.PushBack(projectError);
 
   vcModals_OpenModal(pProgramState, vcMT_ProjectChange);

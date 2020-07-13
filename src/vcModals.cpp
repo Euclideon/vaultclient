@@ -1226,6 +1226,9 @@ void vcModals_DrawProjectChangeResult(vcState *pProgramState)
         case udR_ObjectNotFound:
           pMessage = vcString::Get("sceneExplorerProjectChangeNotFoundOrDenied");
           break;
+        case udR_ExceededAllowedLimit:
+          pMessage = vcString::Get("errorExceedsProjectLimit");
+          break;
         case udR_Failure_: // Falls through
         default:
           pMessage = vcString::Get("sceneExplorerProjectChangeFailedMessage");

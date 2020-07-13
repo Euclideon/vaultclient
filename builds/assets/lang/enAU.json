@@ -691,6 +691,7 @@
   "errorCloseFailure": "Failed to close file. Data may be corrupt.",
   "errorInvalidParameter": "Wrong input.",
   "errorFileExists": "Failed to create file, file already exists.",
+  "errorExceedsProjectLimit": "This group already has the maximum number of projects. Please delete one or upgrade to a premium plan.",
   "settingsScreenshot": "Screenshot",
   "settingsScreenshotResLabel": "Resolution",
   "settingsScreenshotRes720p": "720p",
