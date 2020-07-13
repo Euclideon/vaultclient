@@ -1638,8 +1638,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         static bool isPublic = false;
         static bool isShared = false;
         static bool isSharable = false;
-
-        const char *pUUID = nullptr;
+        static const char *pUUID = nullptr;
 
         if (ImGui::IsWindowAppearing())
         {
