@@ -1,32 +1,34 @@
-Euclideon Vault Client Version History
+udStream Version History
 
-Known Issues In Current Release
-  - Please see https://dev.azure.com/euclideon/vaultclient/_workitems/recentlyupdated for up to date information
-  - Pointcloud Export
-    - Round trip for exporting pointclouds doesn't always give the same model
-    - Export to UDS doesn't copy all metadata
-  - Map mode is unavailable
-  - Displacement compare
-    - Calculation doesn't always work correctly
-    - Sits at 0% for a long time while during initial processing
-  - Some LAZ files fail to convert
-  - Some SLPK files fail to render correctly and SLPK pointcloud is unsupported
+Version 1.0
+  - Renamed the product to "udStream" as part of the 1.0 release
+  - Added machine translations for lots of additional language support
+    - Where possible the system language is used by default
+  - Massive UI/UX pass
+    - Added in-app password change modal
+     - Added 'essential' information of selected item onto scene explorer
+     - Removed watermarks from being displayed from UDS files
+  - Added Vertical/Horizontal measurement tools
+  - Added DAE and DXF conversion support on Windows and Linux
+  - Added hyperlinks and descriptions to POIs
+  - Added setting to stop camera going underground
+  - Added setting to choose between Imperial and Metric
 
 Version 0.6.1 (Minor Bug Fix Release)
   - Added helper system for translations
     - Updated Chinese translations
-    - Recieved Japanese translation from Kimoto Group <support-geoverse@kimoto.co.jp>
+    - Received Japanese translation from Kimoto Group <support-geoverse@kimoto.co.jp>
   - Fixed lots of issues with the Emscripten build
   - Improved sun positioning
   - Fixes for entering and leaving full screen mode
   - Camera input fixes, particularly when looking directly up or down
   - Repositioned the icons so they are better centred on the buttons
   - Fixed issue where minor network drops were causing models to disappear
-  - Fixed issues with UI elements opening the wrong pop up windows
+  - Fixed issues with UI elements opening the wrong popup windows
   - Non-geolocated UDS files will be dropped at the mouse position
   - Project base SRID can now be specified per project
   - Fixes for lines being transparent on some devices
-  - Fixed a number of issues for non-geolocated models
+  - Fixed several issues for non-geolocated models
   - Optimisations to map tile loading
 
 Version 0.6.0
@@ -41,7 +43,7 @@ Version 0.6.0
   - Improvements to custom tile servers to allow API keys and other (supported) texture formats
   - Optimisations to polygon loading (particularly with lots of textures)
   - Voxel shaders can now be set per model in the scene rather than using the global scene settings
-  - Added setting to snap the mouse to a nearby voxel (helps to avoid 'missing' the pointcloud and zooming off into space)
+  - Added setting to snap the mouse to a nearby voxel (helps to avoid 'missing' the point cloud and zooming off into space)
   - [Technical] Shaders are now stored as assets rather than embedded
   - Fixes to SLPK loader (thanks to everyone that submitted broken SLPK files!)
   - Tidied up the settings so that settings are more logically grouped together
@@ -59,9 +61,9 @@ Version 0.5.0
   - Reenabled FBX conversion on Windows and macOS
   - Viewsheds now work on polygon models
   - Added (basic) point displacement calculations
-  - Removed view distance slider (now using different technique that doesn't require the setting)
+  - Removed view distance slider (now using different technique that does not require the setting)
   - Lots of improvements to models attached to lines (face culling, improved material support)
-  - Polygon textures are now loaded asynchronously (doesn't stall the application while they load)
+  - Polygon textures are now loaded asynchronously (does not stall the application while they load)
   - Added (basic) session resume support so that licenses can continue to be used
   - Added settings to rebind hotkeys
   - Consolidated all settings to a single modal
@@ -71,7 +73,7 @@ Version 0.5.0
   - Fixed several issues in relation to resetting failed conversions
   - Added (basic) High-DPI monitor support
   - Added Copy/Paste context menu to most text input fields
-  - Fixed "Projects" menu not being available when client hadn't finished requesting the server list
+  - Fixed "Projects" menu not being available when client had not finished requesting the server list
   - Added support for native file dialogs (Windows only currently)
   - Added user profile modal
   - Removed docking of scene, scene explorer and convert to simplify the UI
@@ -125,7 +127,7 @@ Version 0.4.0
 Version 0.3.1
   - Improvements
     - Added support for FBX (macOS and Windows)
-    - Previously used map tile servers names aren't leaked in the cache system
+    - Previously used map tile servers’ names aren't leaked in the cache system
     - Added support for selecting directories correctly in the temporary and output directory modals
     - Reordered the convert jobs panel so the information that is more relevant is first
     - Images in the scene can be set to reload over time
@@ -139,7 +141,7 @@ Version 0.3.1
     - Images in the scene correctly save and load their settings from the project and exif data again
     - Updated code signing certificate on Windows because the old one expired (different signature now)
     - Improved conversion support for OBJ, PTX and PTS from broken files submitted by the community (thanks everyone!)
-    - Restored initial licence request information and made it more clear when a license is being requested
+    - Restored initial licence request information and made it clearer when a license is being requested
 
 Version 0.3.0
   - Improvements
@@ -156,7 +158,7 @@ Version 0.3.0
     - Removed rounded borders to be more consistent throughout the application
     - Significant optimisations to how tiles are loaded
     - Language list is loaded from a file to make it easier to add custom languages
-    - Startup is faster with a quick 'loading' screen added
+    - Start-up is faster with a quick 'loading' screen added
       - Additionally possible to change languages from the System menu now
     - Lots of fixes to how GIS was handled (changing zones should be a lot less jarring now)
     - Improved handling of drag and drop so that files dropped onto the convert window are correctly handled by convert
@@ -183,20 +185,20 @@ Version 0.2.3
     - Map Tiles are now cached locally so revisiting the same area is faster (EVC-485)
     - Added 'Move Forward' mouse option for Geoverse MDM fans (EVC-504)
     - Added image POI's thumbnails to the scene (EVC-510)
-    - Added option to generate and show a low quality preview during conversion
+    - Added option to generate and show a low-quality preview during conversion
     - Gizmo is now off by default and can be toggled on and off (EVC-332)
     - Added support and translation details to the login page
   - Fixed Crashes
-    - DirectX no longer crashes on systems that don't support OpenGL3.2
-    - Tiles no longer crash when server doesn't respond correctly (EVC-487)
+    - DirectX no longer crashes on systems that do not support OpenGL3.2
+    - Tiles no longer crash when server does not respond correctly (EVC-487)
     - No longer crashes after resetting to default in some configurations (EVC-501)
   - Other fixes
     - Gizmo's now work correctly in map mode (EVC-491, EVC-475, EVC-482)
     - Consistent Logout after 15minutes on macOS resolved (EVC-449)
     - POIs from dropped images are now positioned correctly if the window doesn't have focus (EVC-465)
-    - Watermarks are calculated from the center of the model (EVC-470)
+    - Watermarks are calculated from the centre of the model (EVC-470)
     - Moving to point resets camera roll to zero correctly (EVC-471)
-    - Points in POIs are able to be removed or inserted (EVA-472)
+    - Points in POIs can be removed or inserted (EVA-472)
     - Camera no longer snaps after the window gains focus (EVC-476)
     - Scale gizmo now behaves as expected (EVC-480)
     - Fixed some camera input issues that resulted in the camera getting confused and rolling around (EVC-488 & EVC-483)
@@ -225,9 +227,9 @@ Version 0.2.1
     - Removed the padding string from displaying in the metadata
     - Fixed issue with manual entry of large values into camera position causing a crash (EVC-385, EVC-386)
     - Added "Add Other" button to Scene Explorer (will be used for less common scene item types)
-    - Fixed a number of issues relating to the gizmos.
+    - Fixed several issues relating to the gizmos.
       - Multiple objects can be selected and manipulated at the same time
-      - Scale is now calcualated correctly and doesn't reapply every frame
+      - Scale is now calculated correctly and does not reapply every frame
     - Added Map Mode (orthographic rendering) (EVC-227)
     - Added a right-click context menu to add POIs, set the map height and Move To (EVC-392, EVC-399)
     - Fixed Depth being miscalculated in some situations (EVC-421)
