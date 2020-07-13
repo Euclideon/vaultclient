@@ -177,11 +177,21 @@ epilogue:
 // This functionality here for now until the cache module is implemented
 bool vcTileRenderer_CacheHasData(const char *pLocalURL)
 {
+#if UDPLATFORM_EMSCRIPTEN
+  udUnused(pLocalURL);
+  return false;
+#else
   return udFileExists(pLocalURL) == udR_Success;
+#endif
 }
 
 void vcTileRenderer_CacheDataToDisk(const char *pFilename, void *pData, int64_t dataLength)
 {
+#if UDPLATFORM_EMSCRIPTEN
+  udUnused(pFilename);
+  udUnused(pData);
+  udUnused(dataLength);
+#else
   if (pData == nullptr || dataLength == 0)
     return;
 
@@ -196,6 +206,7 @@ void vcTileRenderer_CacheDataToDisk(const char *pFilename, void *pData, int64_t 
     if (vcTileRenderer_CreateDirRecursive(localFolderPath) == udR_Success)
       vcTileRenderer_TryWriteTile(pFilename, pData, dataLength);
   }
+#endif
 }
 
 udResult vcTileRenderer_HandleTileDownload(vcNodeRenderInfo *pRenderNodeInfo, const char *pRemoteURL, const char *pLocalURL)
