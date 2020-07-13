@@ -283,8 +283,6 @@ void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
   sessionInfo.Destroy();
 }
 
-bool gLoadingInitialProjectHack = false;
-
 void vcSession_ChangeSession(vcState *pProgramState)
 {
   vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
@@ -316,10 +314,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
   pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
 
-  if (!gLoadingInitialProjectHack)
-    vcModals_OpenModal(pProgramState, vcMT_Welcome);
-
-  gLoadingInitialProjectHack = false;
+  vcModals_OpenModal(pProgramState, vcMT_Welcome);
 }
 
 void vcSession_Login(void *pProgramStatePtr)
