@@ -801,7 +801,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
             if (ImGui::Button(vcString::Get("menuProjectCreateButton")) && vcProject_AbleToChange(pProgramState))
             {
               result = vcProject_CreateFileScene(pProgramState, pProgramState->modelPath, pProjectPath, zoneCustomSRID);
-              if (result == udR_Success)
+              if (result == vE_Success)
               {
                 pProgramState->modelPath[0] = '\0';
                 ImGui::CloseCurrentPopup();
