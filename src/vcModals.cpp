@@ -800,7 +800,9 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
             ImGui::SetCursorPosX(textAlignPosX);
             if (ImGui::Button(vcString::Get("menuProjectCreateButton")) && vcProject_AbleToChange(pProgramState))
             {
-              result = vcProject_CreateFileScene(pProgramState, pProgramState->modelPath, pProjectPath, zoneCustomSRID);
+              udFilename exportFilename(pProjectPath);
+              vcProject_AutoCompletedName(&exportFilename, pProjectPath, pProgramState->modelPath);
+              result = vcProject_CreateFileScene(pProgramState, exportFilename, pProgramState->modelPath, zoneCustomSRID);
               if (result == vE_Success)
               {
                 pProgramState->modelPath[0] = '\0';
