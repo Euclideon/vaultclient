@@ -2902,6 +2902,8 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   {
     if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
     {
+      bool submit = false;
+
       if (ImGui::SmallButton(vcString::Get("loginBackToLogin")))
         pProgramState->loginStatus = vcLS_EnterCredentials;
 
@@ -2909,17 +2911,17 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
       ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
-      vcIGSW_InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL);
+      submit = submit || vcIGSW_InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL, ImGuiInputTextFlags_EnterReturnsTrue);
 
-      vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.email, ImGuiInputTextFlags_EnterReturnsTrue);
+      submit = submit || vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.email, ImGuiInputTextFlags_EnterReturnsTrue);
 
       if (pProgramState->loginStatus == vcLS_Register)
       {
-        vcIGSW_InputText(vcString::Get("loginRealname"), pProgramState->modelPath, ImGuiInputTextFlags_EnterReturnsTrue);
+        submit = submit || vcIGSW_InputText(vcString::Get("loginRealname"), pProgramState->modelPath, ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::Checkbox(vcString::Get("loginRegisterOptInMarketing"), &pProgramState->modalTempBool);
       }
 
-      if (ImGui::Button(vcString::Get(loginStatusKeys[pProgramState->loginStatus])))
+      if (ImGui::Button(vcString::Get(loginStatusKeys[pProgramState->loginStatus])) || submit)
       {
         if (pProgramState->loginStatus == vcLS_Register)
         {
