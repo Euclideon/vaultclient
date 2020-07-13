@@ -969,14 +969,15 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
 
         if (types[i].icon == vcMBBI_Share) // Shared
         {
-          ImGui::InputText(vcString::Get("shareLinkBrowserLoad"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
+          static char shareModelPath[vcMaxPathLength];
+          ImGui::InputText(vcString::Get("shareLinkBrowserLoad"), shareModelPath, udLengthOf(shareModelPath));
           ImGui::SetCursorPosX(textAlignPosX);
           if (ImGui::Button(vcString::Get("menuProjectImport")) && vcProject_AbleToChange(pProgramState))
           {
-            if (udStrBeginsWith(pProgramState->modelPath, "euclideon:project/"))
+            if (udStrBeginsWith(shareModelPath, "euclideon:project/"))
             {
-              vcProject_LoadFromServer(pProgramState, &pProgramState->modelPath[18]);
-              pProgramState->modelPath[0] = '\0';
+              vcProject_LoadFromServer(pProgramState, &shareModelPath[18]);
+              shareModelPath[0] = '\0';
               ImGui::CloseCurrentPopup();
             }
             else
