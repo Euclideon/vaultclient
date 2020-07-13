@@ -923,6 +923,10 @@ int main(int argc, char **args)
       programState.loadList.PushBack(udStrdup(args[i]));
   }
 
+  // assumption that this is a project...
+  extern bool gLoadingInitialProjectHack;
+  gLoadingInitialProjectHack = argc > 1;
+
   udWorkerPool_Create(&programState.pWorkerPool, 4, "udStreamWorker");
   vcConvert_Init(&programState);
 
