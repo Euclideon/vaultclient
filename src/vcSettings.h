@@ -479,9 +479,6 @@ bool vcSettings_Save(vcSettings *pSettings);
 
 void vcSettings_Cleanup(vcSettings *pSettings);
 
-// Uses udTempStr internally.
-const char *vcSettings_GetAssetPath(const char *pFilename);
-
 // Provides a handler for "asset://" files
 udResult vcSettings_RegisterAssetFileHandler();
 
