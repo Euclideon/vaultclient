@@ -2911,13 +2911,12 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
 
       ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
-      submit = submit || vcIGSW_InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL, ImGuiInputTextFlags_EnterReturnsTrue);
-
-      submit = submit || vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.email, ImGuiInputTextFlags_EnterReturnsTrue);
+      submit = vcIGSW_InputText(vcString::Get("loginServerURL"), pProgramState->settings.loginInfo.serverURL, ImGuiInputTextFlags_EnterReturnsTrue) || submit;
+      submit = vcIGSW_InputText(vcString::Get("loginUsername"), pProgramState->settings.loginInfo.email, ImGuiInputTextFlags_EnterReturnsTrue) || submit;
 
       if (pProgramState->loginStatus == vcLS_Register)
       {
-        submit = submit || vcIGSW_InputText(vcString::Get("loginRealname"), pProgramState->modelPath, ImGuiInputTextFlags_EnterReturnsTrue);
+        submit = vcIGSW_InputText(vcString::Get("loginRealname"), pProgramState->modelPath, ImGuiInputTextFlags_EnterReturnsTrue) || submit;
         ImGui::Checkbox(vcString::Get("loginRegisterOptInMarketing"), &pProgramState->modalTempBool);
       }
 
