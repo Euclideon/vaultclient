@@ -16,7 +16,7 @@ const char *vcProject_ErrorToString(vdkError error)
     return vcString::Get("errorInvalidParameter");
   case vE_OpenFailure:
     return vcString::Get("errorOpenFailure");
-  case vE_NotSupported:	  case vE_WriteFailure:
+  case vE_NotSupported:
     return vcString::Get("errorUnsupported");
   case vE_WriteFailure:
     return vcString::Get("errorFileExists");
