@@ -16,8 +16,10 @@ const char *vcProject_ErrorToString(vdkError error)
     return vcString::Get("errorInvalidParameter");
   case vE_OpenFailure:
     return vcString::Get("errorOpenFailure");
-  case vE_NotSupported:
+  case vE_NotSupported:	  case vE_WriteFailure:
     return vcString::Get("errorUnsupported");
+  case vE_WriteFailure:
+    return vcString::Get("errorFileExists");
   case vE_Failure: // Falls through
   default:
     return vcString::Get("errorUnknown");
@@ -105,17 +107,20 @@ bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int s
   return true;
 }
 
-vdkError   vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, const char *pName, int srid)
+vdkError   vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName, const char *pProjectName, int srid)
 {
   if (pProgramState == nullptr)
     return vE_Failure;
-  if (pPath == nullptr || pPath[0] == '\0')
-    return vE_NotSupported;
-  if (pName == nullptr || pName[0] == '\0')
+  if (pFileName == nullptr || pFileName[0] == '\0')
+    return vE_InvalidParameter;
+  if (pProjectName == nullptr || pProjectName[0] == '\0')
     return vE_InvalidParameter;
 
+  if (udFileExists(pFileName) == udR_Success)
+    return vE_WriteFailure;
+
   vdkProject *pNewProject = nullptr;
-  vdkError error = vdkProject_CreateInFile(&pNewProject, pName, pPath);
+  vdkError error = vdkProject_CreateInFile(&pNewProject, pProjectName, pFileName);
   if (error != vE_Success)
     return error;
 
@@ -125,7 +130,7 @@ vdkError   vcProject_CreateFileScene(vcState *pProgramState, const char *pPath, 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
 
-  vcProject_UpdateProjectHistory(pProgramState, pPath, false);
+  vcProject_UpdateProjectHistory(pProgramState, pFileName, false);
 
   return error;
 }
@@ -426,22 +431,26 @@ bool vcProject_Save(vcState *pProgramState)
   return (status == vE_Success);
 }
 
+void vcProject_AutoCompletedName(udFilename *exportFilename, const char *pFileName, const char *pDefaultName)
+{
+  udFindDir *pDir = nullptr;
+  if (!udStrEquali(pFileName, "") && !udStrEndsWithi(pFileName, "/") && !udStrEndsWithi(pFileName, "\\") && udOpenDir(&pDir, pFileName) == udR_Success)
+    exportFilename->SetFromFullPath("%s/%s.json", pFileName, pDefaultName);
+  else if (exportFilename->HasFilename())
+    exportFilename->SetExtension(".json");
+  else
+    exportFilename->SetFilenameWithExt(udTempStr("%s.json", pDefaultName));
+
+  udCloseDir(&pDir);
+}
+
 bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverride)
 {
   if (pProgramState == nullptr || pPath == nullptr)
     return false;
-
-  udFindDir *pDir = nullptr;
+  
   udFilename exportFilename(pPath);
-
-  if (!udStrEquali(pPath, "") && !udStrEndsWithi(pPath, "/") && !udStrEndsWithi(pPath, "\\") && udOpenDir(&pDir, pPath) == udR_Success)
-    exportFilename.SetFromFullPath("%s/%s.json", pProgramState->activeProject.pRoot->pName, pPath);
-  else if (exportFilename.HasFilename())
-    exportFilename.SetExtension(".json");
-  else
-    exportFilename.SetFilenameWithExt("untitled_project.json");
-
-  udCloseDir(&pDir);
+  vcProject_AutoCompletedName(&exportFilename, pPath, pProgramState->activeProject.pRoot->pName);
 
   // Check if file path exists before writing to disk, and if so, the user will be presented with the option to overwrite or cancel
   if (!allowOverride && !vcModals_OverwriteExistingFile(pProgramState, exportFilename.GetPath()))
