@@ -1528,7 +1528,7 @@ the geometry, which depends on the length of this segment which is in shadow:
 		
     // TODO: This is fixing the symptom - the real problem is why is 'in_scatter' so damn strong?
 	// I'm guessing the globe scale is off? Need to check precomputed textures	
-    geometry_radiance = geometry_radiance * transmittance + (in_scatter * lerp(0.5, 1.0, hack_distanceFadeScalar));
+    geometry_radiance = geometry_radiance * transmittance + in_scatter;
 	
 		
 	//geometry_radiance = lerp(geometry_radiance, in_scatter, 0.9999);
@@ -1639,17 +1639,17 @@ on the ground by the sun and sky visibility factors):
     float3 sun_irradiance = GetSunAndSkyIrradiance(
         spherePoint - earth_center, sceneNormal, sun_direction, sky_irradiance);		
 		
-    ground_radiance = sceneColour.xyz * (1.0 / PI) * (
-        sun_irradiance * GetSunVisibility(spherePoint, sun_direction, sun_size, sceneDepth) +
-        sky_irradiance * GetSkyVisibility(spherePoint, sceneDepth));
-	//ground_radiance = sceneColour.xyz * (1.0 / PI) * (
-    //    sun_irradiance +
-    //    sky_irradiance);
+    //ground_radiance = sceneColour.xyz * (1.0 / PI) * (
+    //    sun_irradiance * GetSunVisibility(spherePoint, sun_direction, sun_size, sceneDepth) +
+    //    sky_irradiance * GetSkyVisibility(spherePoint, sceneDepth));
+	ground_radiance = sceneColour.xyz * (1.0 / PI) * (
+        sun_irradiance +
+        sky_irradiance);
   
     // TODO: Normals
-    float shadow_length =
-        max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
-        lightshaft_fadein_hack;
+    float shadow_length = 0.0;//
+     //   max(0.0, min(shadow_out, distance_to_intersection) - shadow_in) *
+     //   lightshaft_fadein_hack;
 	//float shadow_length = 0.0;//distance_to_intersection * 0.65; // this is just a guess - but having a shadow_length of '0' causes issues in GetSkyRadianceToPoint()
     float3 transmittance;
     float3 in_scatter = GetSkyRadianceToPoint(camera - earth_center,

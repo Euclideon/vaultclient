@@ -259,6 +259,7 @@ void Model::UploadPrecomputedTextures()
   udFree(pScatteringPixels);
 }
 
+you broke something, zoom very far out and look at the horizon on land
 bool Model::LoadPrecomputedTextures()
 {
   // Load raw textures, and convert from RGB32F to RGBA32F where necessary
