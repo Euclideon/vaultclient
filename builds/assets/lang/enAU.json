@@ -568,6 +568,7 @@
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
   "scenePOILineShowAllLengths": "Show All Lengths",
+  "scenePOILineShowAngles": "Show Angles",
   "scenePOILineShowArea": "Show Area",
   "scenePOILineClosed": "Close Polygon",
   "scenePOILineShowFill": "Show Fill",
