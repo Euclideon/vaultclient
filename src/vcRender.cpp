@@ -941,8 +941,6 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
 void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
-  udUnused(pProgramState);
-
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
@@ -1495,6 +1493,8 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
 
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
+  uint64_t frameRenderCPUStart = udPerfCounterStart();
+
   udUnused(pDefaultFramebuffer);
 
   // project camera position to base altitude
@@ -1553,6 +1553,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   udStreamer_Update(&streamingStatus);
   pProgramState->isStreaming |= (streamingStatus.active != 0);
   pProgramState->streamingMemory = streamingStatus.memoryInUse;
+
+  float time = udPerfCounterMilliseconds(frameRenderCPUStart);
+  udUnused(time);
+  //if (time >= 3.0f)
+  //  printf("frameRender (CPU): %f\n", time);
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)

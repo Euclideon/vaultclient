@@ -34,7 +34,6 @@ udUUID demTileServerAddresUUID = {};
 
 enum
 {
-  TileVertexControlPointRes = 3, // Change with caution : 'vcQuadTreeNode::worldBounds[]' and GPU structs need to match
   TileVertexResolution = 31 + 2, // +2 for skirt
   TileIndexResolution = (TileVertexResolution - 1),
 };
@@ -86,13 +85,13 @@ struct vcTileShader
   {
     udFloat4x4 projectionMatrix;
     udFloat4x4 viewMatrix;
-    udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
+    udFloat4 eyePositions[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
     udFloat4 colour;
     udFloat4 objectInfo; // objectId.x, tileSkirtLength
     udFloat4 uvOffsetScale;
     udFloat4 demUVOffsetScale;
-    udFloat4 worldNormals[TileVertexControlPointRes * TileVertexControlPointRes];
-    udFloat4 worldBitangents[TileVertexControlPointRes * TileVertexControlPointRes];
+    udFloat4 worldNormals[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
+    udFloat4 worldBitangents[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
   } everyObject;
 };
 
@@ -319,8 +318,9 @@ void vcTileRenderer_GenerateDEMAndNormalMaps(vcQuadTreeNode *pNode, void *pRawDe
   pNode->normalInfo.data.width = pNode->demInfo.data.width;
   pNode->normalInfo.data.height = pNode->demInfo.data.height;
 
+  //TODO: here
   // Calculate the horizontal region distances covered by this node
-  udFloat2 tileWorldSize = udFloat2::create((float)udMag3(pNode->worldBounds[2] - pNode->worldBounds[0]), (float)udMag3(pNode->worldBounds[6] - pNode->worldBounds[0]));
+  udFloat2 tileWorldSize = udFloat2::create((float)udMag3(pNode->worldBounds[1] - pNode->worldBounds[0]), (float)udMag3(pNode->worldBounds[2] - pNode->worldBounds[0]));
 
   float stepSize = 1.0f + (pNode->slippyPosition.z >= 12 ? (pNode->slippyPosition.z - 11) : 0.0f); // TODO: At lower levels blocky artefacts appear, so 'smudge'
   udFloat2 stepOffset = udFloat2::create(stepSize / pNode->normalInfo.data.width, stepSize / pNode->normalInfo.data.height);
@@ -996,6 +996,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
 
+    *pUploadBudgetRemainingMS -= udPerfCounterMilliseconds(uploadStartTime);
+
     pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Loaded);
 
     *pUploadBudgetRemainingMS -= udPerfCounterMilliseconds(uploadStartTime);
@@ -1103,6 +1105,8 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer, bool *pIs
   // update visible tiles textures
   vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex], &totalUploadTimeRemainingMS);
 
+  //printf("Upload Time: %f\n", (1.0f - totalUploadTimeRemaining));
+
   // remove from the queue any tiles that are invalid
   for (int i = 0; i < (int)pTileRenderer->cache.tileLoadList.length; ++i)
   {
@@ -1179,7 +1183,7 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pNormalTexture = pTileRenderer->pEmptyNormalTexture;
   }
 
-  for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
+  for (int t = 0; t < vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution; ++t)
   {
     udDouble3 mapHeightOffset = pNode->worldNormals[t] * udDouble3::create(pTileRenderer->pSettings->maptiles.layers[layer].mapHeight);
     udFloat4 eyeSpacePosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t] + mapHeightOffset, 1.0));
@@ -1278,7 +1282,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
     pNode->normalInfo.drawInfo.pTexture = nullptr;
   }
 
-  if (!pNode->visible && pNode->slippyPosition.z >= vcQuadTree_MinimumDescendLayer)
+  if (!pNode->visible && pNode->slippyPosition.z >= 3)//vcQuadTree_MinimumDescendLayer)
     return;
 
   // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
@@ -1396,7 +1400,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
   vcShader_Bind(nullptr);
 
-#if 0
+#if 1
   printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu...used=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length, pTileRenderer->quadTree.nodes.used);
 #endif
 }
