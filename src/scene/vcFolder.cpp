@@ -185,7 +185,20 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       pSceneItem->m_editName = (pSceneItem->m_editName && pSceneItem->m_selected);
 
       // Visibility
-      ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &pSceneItem->m_visible);
+      if (ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &pSceneItem->m_visible) && pSceneItem->m_selected)
+      {
+        // Multiselect match selection
+        vdkProjectNode *pOtherSelectedNode = m_pNode->pFirstChild;
+        while (pOtherSelectedNode != nullptr)
+        {
+          vcSceneItem *pOtherSceneItem = (vcSceneItem *)pOtherSelectedNode->pUserData;
+          if (pOtherSceneItem->m_selected)
+            pOtherSceneItem->m_visible = pSceneItem->m_visible;
+
+          pOtherSelectedNode = pOtherSelectedNode->pNextSibling;
+        }
+      }
+
       ImGui::SameLine();
 
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
