@@ -186,6 +186,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         ImGui::Unindent();
         change |= ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
         change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
+        change |= ImGui::RadioButton(udTempStr("%s##AdvancedGISSettings", vcString::Get("settingsGIS")), &pProgramState->activeSetting, vcSR_AdvancedGIS);
         change |= ImGui::RadioButton(udTempStr("%s##Tools", vcString::Get("Tools")), &pProgramState->activeSetting, vcSR_Tools);
         //change |= ImGui::RadioButton(udTempStr("%s##UnitsOfMeasurement", vcString::Get("settingsUnitsOfMeasurement")), &pProgramState->activeSetting, vcSR_UnitsOfMeasurement); //TODO The measurement system will eventually be its own section
 #if VC_HASCONVERT
@@ -309,9 +310,16 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
         if (pProgramState->activeSetting == vcSR_Visualisations)
         {
+          //vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsVis"), vcSC_Visualization);
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsVis"), vcSC_Visualization);
 
           vcSettingsUI_SceneVisualizationSettings(pProgramState);
+        }
+        if (pProgramState->activeSetting == vcSR_AdvancedGIS)
+        {
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsAdvancedGIS"), vcSC_AdvancedGIS);
+
+          vcSettingsUI_AdvancedGISSettings(pProgramState);
         }
 
         if (pProgramState->activeSetting == vcSR_Tools)
@@ -1029,7 +1037,57 @@ void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
   }
 }
 
-void vcSettings_ApplyMapChange(vcSettings *pSettings, int affectedMapLayer)
+void vcSettingsUI_AdvancedGISSettings(vcState* pProgramState)
+{
+  //if (ImGui::RadioButton("Transverse Mercator", true))
+  {
+    char zoneName[64];
+
+    ImGui::InputText("Zone Name", zoneName, 64);
+
+    double scaleFactor = pProgramState->geozone.scaleFactor;
+    ImGui::InputDouble("Scale Factor", &scaleFactor);
+    double meridian = pProgramState->geozone.meridian;
+    ImGui::InputDouble("Central Meridian", &meridian);
+    double unitMetreScale = pProgramState->geozone.unitMetreScale;
+    ImGui::InputDouble("Unit Metre Scale", &unitMetreScale);
+    double parallel = pProgramState->geozone.parallel;
+    ImGui::InputDouble("Parallel", &parallel);
+    double falseNorthing = pProgramState->geozone.falseNorthing;
+    ImGui::InputDouble("False Northing", &falseNorthing);
+    double falseEasting = pProgramState->geozone.falseEasting;
+    ImGui::InputDouble("False Easting", &falseEasting);
+    const char* wkt = nullptr;
+    const char* format =
+      "PROJCS[\""
+      "Custom Zone\""//zoneName
+      ",GEOGCS[\"WGS 84\","
+      "DATUM[\"WGS_1984\","
+      "SPHEROID[\"WGS 84\","
+      "6378137,298.257223563,"
+      "AUTHORITY[\"EPSG\",\"7030\"]],"
+      "AUTHORITY[\"EPSG\",\"6326\"]],"
+      "PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"0\"]],"
+      "UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"0\"]]"
+      ",AUTHORITY[\"EPSG\",\"4326\"]],"
+      "PROJECTION[\"Transverse_Mercator\"],"
+      "PARAMETER[\"latitude_of_origin\",%f],"//parallel
+      "PARAMETER[\"central_meridian\",%f],"//meridian
+      "PARAMETER[\"scale_factor\",%f],"//scale factor
+      "PARAMETER[\"false_easting\",%f],"//false easting
+      "PARAMETER[\"false_northing\",%f],"//false northing
+      "UNIT[\"metre\",%f,AUTHORITY[\"EPSG\",\"9001\"]],"//unitMetreScale
+      "AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH],AUTHORITY[\"EPSG\",\"32705\"]]";
+    udSprintf(&wkt, format, parallel, meridian, scaleFactor, falseEasting, falseNorthing, unitMetreScale);
+    udGeoZone_SetFromWKT(&pProgramState->geozone, wkt);
+    udFree(wkt);
+    
+  }
+
+
+}
+
+void vcSettings_ApplyMapChange(vcSettings* pSettings, int affectedMapLayer)
 {
   for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
   {

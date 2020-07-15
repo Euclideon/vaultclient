@@ -13,6 +13,7 @@ bool vcSettingsUI_LangCombo(vcState *pProgramState);
 bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings, bool isGlobal = true, udAttributeSet *pAttributes = nullptr);
 void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOptions = false);
 void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState);
+void vcSettingsUI_AdvancedGISSettings(vcState *pProgramState);
 
 const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t classification);
 
