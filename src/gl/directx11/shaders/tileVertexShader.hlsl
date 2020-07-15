@@ -24,7 +24,7 @@ struct PS_INPUT
 };
 
 // This should match CPU struct size
-#define CONTROL_POINT_RES 3
+#define CONTROL_POINT_RES 2
 
 cbuffer u_EveryObject : register(b0)
 {

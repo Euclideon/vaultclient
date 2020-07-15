@@ -933,7 +933,8 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
         slippyCorners[i] /= 2;
     }
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pProgramState->camera.cameraIsUnderSurface, pRenderContext->cameraZeroAltitude, viewProjection, &pProgramState->isStreaming);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, pProgramState->updateTiles == 0, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pProgramState->camera.cameraIsUnderSurface, pRenderContext->cameraZeroAltitude, viewProjection, &pProgramState->isStreaming);
+    pProgramState->updateTiles--;
 
     float terrainId = vcRender_EncodeModelId(vcObjectId_Terrain);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->camera.matrices.view, pProgramState->camera.matrices.projection, pProgramState->camera.cameraIsUnderSurface, terrainId);
@@ -942,8 +943,6 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 
 void vcRender_PostProcessPass(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
-  udUnused(pProgramState);
-
   vcGLState_SetBlendMode(vcGLSBM_None);
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
   vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
@@ -1498,6 +1497,8 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
 
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
+  uint64_t frameRenderCPUStart = udPerfCounterStart();
+
   udUnused(pDefaultFramebuffer);
 
   // project camera position to base altitude
@@ -1557,6 +1558,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vdkStreamer_Update(&streamingStatus);
   pProgramState->isStreaming |= streamingStatus.active;
   pProgramState->streamingMemory = streamingStatus.memoryInUse;
+
+  float time = udPerfCounterMilliseconds(frameRenderCPUStart);
+  udUnused(time);
+  //if (time >= 3.0f)
+  //  printf("frameRender (CPU): %f\n", time);
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)

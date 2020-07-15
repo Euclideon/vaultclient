@@ -195,6 +195,7 @@ struct vcState
   char renameText[30];
 
   vcSettings settings;
+  int updateTiles; // kinda works...missing some spots. still just breaks sometimes?
 
   udRWLock *pSessionLock; // Used to lock access to session info
   double lastSync;
