@@ -12,7 +12,11 @@ enum
 {
   // Always descend a certain absolute depth to ensure the resulting geometry
   // is somewhat the shape of the projection (e.g. ECEF).
-  vcQuadTree_MinimumDescendLayer = 2
+  vcQuadTree_MinimumDescendLayer = 3,
+
+  // TODO: This should move out from vcQuadTree, and into an independent 'payload' struct
+  // Change with caution : 'vcQuadTreeNode::worldBounds[]' and GPU structs need to match
+  vcQuadTreeNodeVertexResolution = 2,
 };
 
 struct vcTexture;
@@ -68,18 +72,18 @@ struct vcQuadTreeNode
   bool visible;
   volatile bool touched;
 
-  // if a node was rendered with missing information (only considers colour at the moment, includes any failed descendents)
+  // if a node was rendered without missing information (only considers colour at the moment, includes any failed descendents)
   bool completeRender;
 
   // cached
-  udDouble3 tileCenter, tileExtents;
-  udDouble3 worldBounds[9]; // 3x3 grid of cartesian points
+  udDouble3 tileCenter, tileExtents, tileNormal;
+  udDouble3 worldBounds[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution]; // 3x3 grid of cartesian points
                             // [0, 1, 2,
                             //  3, 4, 5,
                             //  6, 7, 8]
 
-  udDouble3 worldNormals[9];
-  udDouble3 worldBitangents[9];
+  udDouble3 worldNormals[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
+  udDouble3 worldBitangents[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
 
   enum vcDemBoundsState
   {
