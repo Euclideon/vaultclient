@@ -15,6 +15,7 @@
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "vcCDT.h"
 
 const char *vcFRVMStrings[] =
 {
@@ -139,7 +140,7 @@ public:
     }
 
     if (GetGeometryType() == vdkPGT_Polygon && m_pParent->m_pPolyModel == nullptr)
-      m_pParent->GenerateLineFillPolygon();
+      m_pParent->GenerateLineFillPolygon(pProgramState);
 
     if (m_pParent->m_pPolyModel != nullptr && m_pParent->m_showFill)
     {
@@ -385,7 +386,7 @@ public:
 
     if (m_pParent->m_showFill)
     {
-      m_pParent->GenerateLineFillPolygon();
+      m_pParent->GenerateLineFillPolygon(pProgramState);
       m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
     }
   }
@@ -778,7 +779,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
 
   // Update Polygon Model
   if (m_pPolyModel != nullptr)
-    GenerateLineFillPolygon();
+    GenerateLineFillPolygon(pProgramState);
 }
 
 void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
@@ -1271,54 +1272,74 @@ void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderD
   pInstance->selectable = true;
 }
 
-void vcPOI::GenerateLineFillPolygon()
+void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 {
   if (m_line.numPoints >= 3)
   {
-    udDouble3 min = m_line.pPoints[0];
-    udDouble3 max = m_line.pPoints[0];
-
-    for (int pointIndex = 1; pointIndex < m_line.numPoints; ++pointIndex)
-      for (int xyz = 0; xyz < 3; ++xyz)
-      {
-        min[xyz] = udMin(min[xyz], m_line.pPoints[pointIndex][xyz]);
-        max[xyz] = udMax(max[xyz], m_line.pPoints[pointIndex][xyz]);
-      }
-
-    udFloat3 center = udFloat3::create((min + max) / 2.0 - m_line.pPoints[0]);
-
-    // Add triangle(s)
-    int numVerts = m_line.numPoints + 1;
-    int numIndices = m_line.numPoints * 3;
-
-    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numVerts, udAF_Zero);
-    uint32_t *pIndices = udAllocType(uint32_t, numIndices, udAF_Zero);
-
     udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
+    udDouble2 min = {};
+    udDouble2 max = {};
+    std::vector<udDouble2> trianglePointList;
+    
+    udDouble3 centerPoint = udDouble3::zero();
+    double invNumPoints = 1.0 / (double)m_line.numPoints;
+    for (int64_t i = 0; i < m_line.numPoints; ++i)
+      centerPoint += m_line.pPoints[i] * invNumPoints;
+    
+    // Rotate
+    udDoubleQuat rotate = vcGIS_GetQuaternion(pProgramState->geozone, centerPoint);
+    udDoubleQuat rotateInverse = udInverse(rotate);
 
-    pVerts[0] = { center, defaultNormal, defaultUV };
+    udDouble3 *pModifiedVerts = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
     for (int i = 0; i < m_line.numPoints; ++i)
-      pVerts[i + 1] = { udFloat3::create(m_line.pPoints[i] - m_line.pPoints[0]), defaultNormal, defaultUV };
+      pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
 
-    for (int i = 0; i < m_line.numPoints; ++i)
+    // Generate Triangles
+    vcCDT_ProcessOrignal(pModifiedVerts, m_line.numPoints, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointList);
+       
+    int numPoints = (int)trianglePointList.size();
+
+    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numPoints, udAF_Zero);
+
+    for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
     {
-      int indicesIndex = i * 3;
-      pIndices[indicesIndex + 0] = 0; // center
-      pIndices[indicesIndex + 1] = i + 1;
-      pIndices[indicesIndex + 2] = i + 2;
+      udFloat3 pos = udFloat3::create((float)trianglePointList[i].x, (float)trianglePointList[i].y, 0);      
+      pVerts[i] = { pos, defaultNormal, defaultUV };
+    }
+    
+    // Un-flatten 2D Result
+    for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
+    {
+      double closestDist = FLT_MAX;
+      float closestZ = 0;
+      for (int pointIndex = 0; pointIndex < m_line.numPoints; ++pointIndex)
+      {
+        udDouble2 pos = (pModifiedVerts[pointIndex] - pModifiedVerts[0]).toVector2();
+    
+        double dist = udMag2<double>(pos - trianglePointList[i]);
+        if (dist < closestDist)
+        {
+          closestDist = dist;
+          closestZ = (float)(pModifiedVerts[pointIndex].z - pModifiedVerts[0].z);
+        }
+      }
+    
+      pVerts[i].position.z = closestZ;
     }
 
-    // Wrap last triangle around to first vertex
-    pIndices[m_line.numPoints * 3 - 1] = 1;
+    // Un-Rotate
+    udFloatQuat rotatef = udFloatQuat::create(rotate);
+    for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
+      pVerts[i].position = rotatef.apply(pVerts[i].position);
 
     vcPolygonModel_Destroy(&m_pPolyModel);
-    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numVerts, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), pIndices, numIndices);
+    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numPoints, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)));
 
     m_pPolyModel->modelOffset = udDouble4x4::translation(m_line.pPoints[0]);
 
+    udFree(pModifiedVerts);
     udFree(pVerts);
-    udFree(pIndices);
   }
 }
 
