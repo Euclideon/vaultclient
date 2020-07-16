@@ -54,3 +54,12 @@ stages:
       name: androidarm64
       displayName: 'Android ARM64'
       platform: 'arm64'
+
+- stage: package
+  displayName: 'Package'
+  jobs:
+  - template: buildscripts/azure-pipelines-jobs-android-package.yml
+    parameters:
+      name: android
+      displayName: 'Android'
+      platform: 'arm64'
