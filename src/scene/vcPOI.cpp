@@ -1278,20 +1278,21 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
   {
     udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
-    udDouble2 min, max;
+    udDouble2 min = {};
+    udDouble2 max = {};
     std::vector<udDouble2> trianglePointList;
     
     udDouble3 centerPoint = udDouble3::zero();
+    double invNumPoints = 1.0 / (double)m_line.numPoints;
     for (int64_t i = 0; i < m_line.numPoints; ++i)
-      centerPoint += (m_line.pPoints[i] / (double)m_line.numPoints);
+      centerPoint += m_line.pPoints[i] * invNumPoints;
     
     // Rotate
     udDoubleQuat rotate = vcGIS_GetQuaternion(pProgramState->geozone, centerPoint);
-    udDoubleQuat rotateInverse = rotate;
-    rotateInverse.inverse();
+    udDoubleQuat rotateInverse = udInverse(rotate);
 
     udDouble3 *pModifiedVerts = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
-    for (int64_t i = 0; i < m_line.numPoints; ++i)
+    for (int i = 0; i < m_line.numPoints; ++i)
       pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
 
     // Generate Triangles
@@ -1300,13 +1301,11 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     int numPoints = (int)trianglePointList.size();
 
     vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numPoints, udAF_Zero);
-    uint32_t *pIndices = udAllocType(uint32_t, numPoints, udAF_Zero);
 
     for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
     {
       udFloat3 pos = udFloat3::create((float)trianglePointList[i].x, (float)trianglePointList[i].y, 0);      
       pVerts[i] = { pos, defaultNormal, defaultUV };
-      pIndices[i] = (uint32_t)i;
     }
     
     // Un-flatten 2D Result
@@ -1314,7 +1313,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     {
       double closestDist = FLT_MAX;
       float closestZ = 0;
-      for (int64_t pointIndex = 0; pointIndex < m_line.numPoints; ++pointIndex)
+      for (int pointIndex = 0; pointIndex < m_line.numPoints; ++pointIndex)
       {
         udDouble2 pos = (pModifiedVerts[pointIndex] - pModifiedVerts[0]).toVector2();
     
@@ -1335,13 +1334,12 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
       pVerts[i].position = rotatef.apply(pVerts[i].position);
 
     vcPolygonModel_Destroy(&m_pPolyModel);
-    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numPoints, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), pIndices, numPoints);
+    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numPoints, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)));
 
     m_pPolyModel->modelOffset = udDouble4x4::translation(m_line.pPoints[0]);
 
     udFree(pModifiedVerts);
     udFree(pVerts);
-    udFree(pIndices);
   }
 }
 
