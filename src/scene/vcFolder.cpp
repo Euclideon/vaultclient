@@ -188,13 +188,41 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       if (ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &pSceneItem->m_visible) && pSceneItem->m_selected)
       {
         // Multiselect match selection
-        vdkProjectNode *pOtherSelectedNode = m_pNode->pFirstChild;
-        while (pOtherSelectedNode != nullptr)
+        udChunkedArray<vdkProjectNode *> stack;
+        stack.Init(32);
+        stack.PushBack(pProgramState->activeProject.pRoot);
+        vdkProjectNode *pOtherSelectedNode = stack[0]->pFirstChild;
+        while (stack.length > 0)
         {
           vcSceneItem *pOtherSceneItem = (vcSceneItem *)pOtherSelectedNode->pUserData;
           if (pOtherSceneItem->m_selected)
             pOtherSceneItem->m_visible = pSceneItem->m_visible;
 
+          stack.PushBack(pOtherSelectedNode);
+
+          if (pOtherSelectedNode->pFirstChild)
+          {
+            pOtherSelectedNode = pOtherSelectedNode->pFirstChild;
+            continue;
+          }
+
+          if (pOtherSelectedNode->pNextSibling)
+          {
+            pOtherSelectedNode = pOtherSelectedNode->pNextSibling;
+            stack.PopBack();
+            continue;
+          }
+
+          // There are no children or siblings, go up until we find a sibling
+          do 
+          {
+            stack.PopBack();
+            if (stack.length == 0)
+              break;
+            pOtherSelectedNode = stack[stack.length - 1];
+          } while (pOtherSelectedNode->pNextSibling == nullptr);
+
+          stack.PopBack();
           pOtherSelectedNode = pOtherSelectedNode->pNextSibling;
         }
       }
