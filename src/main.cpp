@@ -1578,6 +1578,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             pProgramState->activeProject.pFolder->ChangeProjection(zone);
 
         }
+        vcSettingsUI_AdvancedGISSettings(pProgramState);
       }
 
       if (pProgramState->settings.presentation.showDiagnosticInfo)

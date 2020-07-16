@@ -1037,26 +1037,25 @@ void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
   }
 }
 
-void vcSettingsUI_AdvancedGISSettings(vcState* pProgramState)
+void vcSettingsUI_CustomTransverseMercator(vcState* pProgramState)
 {
-  //if (ImGui::RadioButton("Transverse Mercator", true))
-  {
-    char zoneName[64];
+  char zoneName[64];
 
-    ImGui::InputText("Zone Name", zoneName, 64);
+  bool a = ImGui::InputText("Zone Name", zoneName, 64);
 
-    double scaleFactor = pProgramState->geozone.scaleFactor;
-    ImGui::InputDouble("Scale Factor", &scaleFactor);
-    double meridian = pProgramState->geozone.meridian;
-    ImGui::InputDouble("Central Meridian", &meridian);
-    double unitMetreScale = pProgramState->geozone.unitMetreScale;
-    ImGui::InputDouble("Unit Metre Scale", &unitMetreScale);
-    double parallel = pProgramState->geozone.parallel;
-    ImGui::InputDouble("Parallel", &parallel);
-    double falseNorthing = pProgramState->geozone.falseNorthing;
-    ImGui::InputDouble("False Northing", &falseNorthing);
-    double falseEasting = pProgramState->geozone.falseEasting;
-    ImGui::InputDouble("False Easting", &falseEasting);
+  double scaleFactor = pProgramState->geozone.scaleFactor;
+  bool b = ImGui::InputDouble("Scale Factor", &scaleFactor);
+  double meridian = pProgramState->geozone.meridian;
+  bool c = ImGui::InputDouble("Central Meridian", &meridian);
+  double unitMetreScale = pProgramState->geozone.unitMetreScale;
+  bool d = ImGui::InputDouble("Unit Metre Scale", &unitMetreScale);
+  double parallel = pProgramState->geozone.parallel;
+  bool e = ImGui::InputDouble("Parallel", &parallel);
+  double falseNorthing = pProgramState->geozone.falseNorthing;
+  bool f = ImGui::InputDouble("False Northing", &falseNorthing);
+  double falseEasting = pProgramState->geozone.falseEasting;
+  bool g = ImGui::InputDouble("False Easting", &falseEasting);
+  if (a || b || c || d || e || f || g) {
     const char* wkt = nullptr;
     const char* format =
       "PROJCS[\""
@@ -1081,10 +1080,62 @@ void vcSettingsUI_AdvancedGISSettings(vcState* pProgramState)
     udSprintf(&wkt, format, parallel, meridian, scaleFactor, falseEasting, falseNorthing, unitMetreScale);
     udGeoZone_SetFromWKT(&pProgramState->geozone, wkt);
     udFree(wkt);
-    
+
   }
+}
 
+void vcSettingsUI_AdvancedGISSettings(vcState* pProgramState)
+{
+  if (ImGui::TreeNode("Custom Geozone"))
+  {
+    const char* datumNames[] = {
+      "WGS84",      //EPSG:4326
+      "ED50",       //EPSG:4230
+      "ETRS89",     //EPSG:4258
+      "TM75",       //EPSG:4300
+      "NAD27",      //EPSG:4267
+      "NAD83",      //EPSG:4269
+      "NAD83_2011", //EPSG:6318
+      "NTF",        //EPSG:4275
+      "OSGB36",     //EPSG:4277
+      "Potsdam",    //EPSG:4746
+      "Tokyo",      //EPSG:7414
+      "WGS72",      //EPSG:4322
+      "JGD2000",    //EPSG:4612
+      "JGD2011",    //EPSG:6668
+      "GDA94",      //EPSG:4283
+      "GDA2020",    //EPSG:7844
+      "RGF93",      //EPSG:4171
+      "NAD83_HARN", //EPSG:4152
+      "CGCS2000",   //EPSG:4490
+      "HK1980",     //EPSG:4611
+      "SVY21",      //EPSG:4757
+      "MGI",        //EPSG:6312
+    };
+    static udGeoZoneGeodeticDatum currentDatum = pProgramState->geozone.datum;
 
+    ImGui::ListBox("Datum", (int*)&currentDatum, datumNames, udGeoZoneGeodeticDatum(udGZGD_Count));
+
+    enum Projections {
+      TRANSVERSEMERCATOR,
+      LAMBERTCC,
+      COUNT
+    };
+    const char* projectionTypes[] = {"Transverse Mercator", "Lambert Conformal Conic"};
+    static Projections currentProjection = TRANSVERSEMERCATOR;
+    ImGui::ListBox("Projection Type", (int*) &currentProjection, projectionTypes, (int) Projections(COUNT));
+    switch(currentProjection)
+    {
+      case TRANSVERSEMERCATOR:
+        vcSettingsUI_CustomTransverseMercator(pProgramState);
+        break;
+      case LAMBERTCC:
+        char zoneName[64];
+        ImGui::InputText("Zone Name", zoneName, 64);
+        break;
+    }
+    ImGui::TreePop();
+  }
 }
 
 void vcSettings_ApplyMapChange(vcSettings* pSettings, int affectedMapLayer)
