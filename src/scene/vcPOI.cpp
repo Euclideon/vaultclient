@@ -1276,19 +1276,22 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 {
   if (m_line.numPoints >= 3)
   {
+    if (m_line.pPoints[m_line.numPoints - 1] == m_line.pPoints[m_line.numPoints - 2])
+      return;
+
     udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
     udDouble2 min = {};
     udDouble2 max = {};
     std::vector<udDouble2> trianglePointList;
     
-    udDouble3 centerPoint = udDouble3::zero();
+    udDouble3 averagePosition = udDouble3::zero();
     double invNumPoints = 1.0 / (double)m_line.numPoints;
     for (int64_t i = 0; i < m_line.numPoints; ++i)
-      centerPoint += m_line.pPoints[i] * invNumPoints;
+      averagePosition += m_line.pPoints[i] * invNumPoints;
     
     // Rotate
-    udDoubleQuat rotate = vcGIS_GetQuaternion(pProgramState->geozone, centerPoint);
+    udDoubleQuat rotate = vcGIS_GetQuaternion(pProgramState->geozone, averagePosition);
     udDoubleQuat rotateInverse = udInverse(rotate);
 
     udDouble3 *pModifiedVerts = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
