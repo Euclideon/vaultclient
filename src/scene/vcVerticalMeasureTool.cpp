@@ -23,6 +23,7 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode
   , m_pickStart(true)
   , m_pickEnd(true)
   , m_markDelete(false)
+  , m_showAllDistances(false)
   , m_pLineInstance(nullptr)
 {
   ClearPoints();
@@ -66,6 +67,7 @@ void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
   vdkProjectNode_GetMetadataBool(m_pNode, "pickStart", &m_pickStart, true);
   vdkProjectNode_GetMetadataBool(m_pNode, "pickEnd", &m_pickEnd, true);
   vdkProjectNode_GetMetadataBool(m_pNode, "measureEnd", &m_done, false);
+  vdkProjectNode_GetMetadataBool(m_pNode, "showAllDistances", &m_showAllDistances, false);  
 
   ChangeProjection(pProgramState->geozone);
   UpdateSetting(pProgramState);
@@ -129,19 +131,22 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     vcUnitConversion_ConvertAndFormatDistance(tempBuffer1, 128, m_distStraight, vcDistance_Metres, &pProgramState->settings.unitConversionData);
     vcUnitConversion_ConvertAndFormatDistance(tempBuffer2, 128, m_distHoriz, vcDistance_Metres, &pProgramState->settings.unitConversionData);
 
-    udSprintf(labelBuf, "%s\n%s: %s\n%s: %s", m_pNode->pName, vcString::Get("sceneStraightDistance"), tempBuffer1, vcString::Get("sceneHorizontalDistance"), tempBuffer2);
-    m_labelList[0].pText = udStrdup(labelBuf);
-
+    // optional straight and horizeontal distance infomation
+    if (m_showAllDistances)
+    {
+      udSprintf(labelBuf, "%s: %s\n%s: %s", vcString::Get("sceneStraightDistance"), tempBuffer1, vcString::Get("sceneHorizontalDistance"), tempBuffer2);
+      m_labelList[0].pText = udStrdup(labelBuf);
+      m_labelList[0].pSceneItem = this;
+      pRenderData->labels.PushBack(&m_labelList[0]);
+    }
+    
+    // vertical distance label
     char labelBufVertical[128] = {};
     vcUnitConversion_ConvertAndFormatDistance(tempBuffer1, 128, m_distVert, vcDistance_Metres, &pProgramState->settings.unitConversionData);
     udSprintf(labelBufVertical, "%s: %s", vcString::Get("sceneVerticalDistance"), tempBuffer1);
     m_labelList[1].pText = udStrdup(labelBufVertical);
-
-    for (auto &label : m_labelList)
-    {
-      label.pSceneItem = this;
-      pRenderData->labels.PushBack(&label);
-    }
+    m_labelList[1].pSceneItem = this;
+    pRenderData->labels.PushBack(&m_labelList[1]);
 
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
     vcLineRenderer_UpdatePoints(m_pLineInstance, m_points, 3, vcIGSW_BGRAToImGui(m_lineColour), m_lineWidth, false);
@@ -163,6 +168,9 @@ void vcVerticalMeasureTool::ApplyDelta(vcState *pProgramState, const udDouble4x4
 
 void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
+  if (ImGui::Checkbox(udTempStr("%s##showAllDistances%zu", vcString::Get("scenePOIMHeightShowAllDistances"), *pItemID), &m_showAllDistances))
+    vdkProjectNode_SetMetadataBool(m_pNode, "showAllDistances", m_showAllDistances);
+
   if (ImGui::Checkbox(udTempStr("%s##Select1%zu", vcString::Get("scenePOIMHeightPickStart"), *pItemID), &m_pickStart))
     vdkProjectNode_SetMetadataBool(m_pNode, "pickStart", m_pickStart);
 
