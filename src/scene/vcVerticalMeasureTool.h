@@ -43,6 +43,7 @@ private:
   bool m_pickStart;
   bool m_pickEnd;
   bool m_markDelete;
+  bool m_showAllDistances;
   udDouble3 m_points[3];
 
   vcLabelInfo m_labelList[2];

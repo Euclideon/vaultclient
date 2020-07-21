@@ -580,6 +580,7 @@
   "scenePOIPerformFlyThrough": "Fly Camera Through All Points",
   "scenePOIMHeightPickStart": "Pick Up Start Point",
   "scenePOIMHeightPickEnd": "Pick Up End Point",
+  "scenePOIMHeightShowAllDistances": "Show All Distances",
   "sceneFilterPosition": "Position",
   "sceneFilterRotation": "Rotation",
   "sceneFilterExtents": "Size",
