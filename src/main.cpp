@@ -2096,6 +2096,9 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
     case vcActiveTool_MeasureHeight:
     {
+      if (!pProgramState->pickingSuccess)
+        break;
+
       vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
       if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "MHeight"))
       {
