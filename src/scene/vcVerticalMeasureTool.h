@@ -40,8 +40,7 @@ private:
 
 private:
   bool m_done;
-  bool m_pickStart;
-  bool m_pickEnd;
+  int32_t m_selectedPoint;
   bool m_markDelete;
   bool m_showAllDistances;
   udDouble3 m_points[3];

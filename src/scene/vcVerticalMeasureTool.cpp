@@ -20,8 +20,7 @@
 vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
   , m_done(false)
-  , m_pickStart(true)
-  , m_pickEnd(true)
+  , m_selectedPoint(-1)
   , m_markDelete(false)
   , m_showAllDistances(false)
   , m_pLineInstance(nullptr)
@@ -64,8 +63,7 @@ void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &
 
 void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
 {
-  vdkProjectNode_GetMetadataBool(m_pNode, "pickStart", &m_pickStart, true);
-  vdkProjectNode_GetMetadataBool(m_pNode, "pickEnd", &m_pickEnd, true);
+  vdkProjectNode_GetMetadataInt(m_pNode, "selectedPoint", &m_selectedPoint, -1);
   vdkProjectNode_GetMetadataBool(m_pNode, "measureEnd", &m_done, false);
   vdkProjectNode_GetMetadataBool(m_pNode, "showAllDistances", &m_showAllDistances, false);  
 
@@ -85,7 +83,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
   if (!m_visible)
     return;
 
-  if (m_selected && (m_pickStart || !m_done))
+  if (m_selected && (m_selectedPoint == -1 || m_selectedPoint == 0 || !m_done))
   {
     vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
     udDouble3 linearDistance = (pProgramState->camera.position - m_points[0]);
@@ -104,7 +102,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
   {
     UpdateIntersectionPosition(pProgramState);
 
-    if (m_selected && (m_pickEnd || !m_done))
+    if (m_selected && (m_selectedPoint == -1 || m_selectedPoint == 1 || !m_done))
     {
       vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
       udDouble3 linearDistance = (pProgramState->camera.position - m_points[2]);
@@ -121,8 +119,18 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     for (auto &label : m_labelList)
       udFree(label.pText);
 
-    m_labelList[0].worldPosition = (m_points[0] + m_points[1]) / 2;
-    m_labelList[1].worldPosition = (m_points[1] + m_points[2]) / 2;
+    udDouble3 worldUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_points[0]);
+    if (udDot(m_points[0], worldUp) > udDot(m_points[2], worldUp)) // point 0 is higher than point 2
+    {
+      m_labelList[0].worldPosition = (m_points[0] + m_points[1]) / 2;
+      m_labelList[1].worldPosition = (m_points[1] + m_points[2]) / 2;
+    }
+    else
+    {
+      m_labelList[1].worldPosition = (m_points[0] + m_points[1]) / 2;
+      m_labelList[0].worldPosition = (m_points[1] + m_points[2]) / 2;
+    }
+    
 
     char labelBuf[128] = {};
     char tempBuffer1[128] = {};
@@ -157,10 +165,10 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
 
 void vcVerticalMeasureTool::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  if (m_pickStart)
+  if (m_selectedPoint == -1 || m_selectedPoint == 0)
     m_points[0] = (delta * udDouble4x4::translation(m_points[0])).axis.t.toVector3();
 
-  if (m_pickEnd)
+  if (m_selectedPoint == -1 || m_selectedPoint == 1)
     m_points[2] = (delta * udDouble4x4::translation(m_points[2])).axis.t.toVector3();
 
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
@@ -171,25 +179,29 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
   if (ImGui::Checkbox(udTempStr("%s##showAllDistances%zu", vcString::Get("scenePOIMHeightShowAllDistances"), *pItemID), &m_showAllDistances))
     vdkProjectNode_SetMetadataBool(m_pNode, "showAllDistances", m_showAllDistances);
 
-  if (ImGui::Checkbox(udTempStr("%s##Select1%zu", vcString::Get("scenePOIMHeightPickStart"), *pItemID), &m_pickStart))
-    vdkProjectNode_SetMetadataBool(m_pNode, "pickStart", m_pickStart);
-
-  ImGui::InputScalarN(udTempStr("%s##Start%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[0].x, 3);
-
   if (HasLine())
   {
-    if (ImGui::Checkbox(udTempStr("%s##Select2%zu", vcString::Get("scenePOIMHeightPickEnd"), *pItemID), &m_pickEnd))
-      vdkProjectNode_SetMetadataBool(m_pNode, "pickEnd", m_pickEnd);
-
-    ImGui::InputScalarN(udTempStr("%s##End%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[2].x, 3);
-    if (ImGui::IsItemDeactivatedAfterEdit())
-      vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
-
     if (ImGui::SliderFloat(udTempStr("%s##VerticalLineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_lineWidth, 3.f, 15.f, "%.2f", 3.f))
       vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", m_lineWidth);
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLineColour%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_lineColour, ImGuiColorEditFlags_None))
       vdkProjectNode_SetMetadataUint(m_pNode, "lineColour", m_lineColour);
+
+    if(ImGui::SliderInt(udTempStr("%s##HM%zu", vcString::Get("scenePOISelectedPoint")), &m_selectedPoint, -1, 1))
+      vdkProjectNode_SetMetadataInt(m_pNode, "selectedPoint", m_selectedPoint);
+
+    if (m_selectedPoint == 0)
+    {
+      ImGui::InputScalarN(udTempStr("%s##Start%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[0].x, 3);
+      if (ImGui::IsItemDeactivatedAfterEdit())
+        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
+    }
+    else if (m_selectedPoint == 1)
+    {
+      ImGui::InputScalarN(udTempStr("%s##End%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[2].x, 3);
+      if (ImGui::IsItemDeactivatedAfterEdit())
+        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
+    }
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLabelColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_textColourBGRA, ImGuiColorEditFlags_None))
     {
@@ -285,10 +297,12 @@ void vcVerticalMeasureTool::ChangeProjection(const udGeoZone &newZone)
 
 udDouble3 vcVerticalMeasureTool::GetLocalSpacePivot()
 {
-  if (!HasLine() || !m_done || (m_done && m_pickStart))
+  if (m_selectedPoint == 0)
     return m_points[0];
-  else
+  else if (m_selectedPoint == 1)
     return m_points[2];
+
+  return m_points[1];
 }
 
 void vcVerticalMeasureTool::UpdateIntersectionPosition(vcState *pProgramState)
