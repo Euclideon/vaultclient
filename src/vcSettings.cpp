@@ -580,6 +580,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       udStrcpy(pSettings->screenshot.outputPath, data.Get("screenshot.outputPath").AsString());
     pSettings->screenshot.resolution.x = data.Get("screenshot.resolution.width").AsInt(4096); // Defaults to 4K
     pSettings->screenshot.resolution.y = data.Get("screenshot.resolution.height").AsInt(2160);
+    pSettings->screenshot.viewShot = data.Get("screenshot.viewOnceTaken").AsBool(false);
   }
 
   if (group == vcSC_All)
@@ -863,6 +864,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("screenshot.resolution.height = %d", pSettings->screenshot.resolution.y);
   tempNode.SetString(pSettings->screenshot.outputPath);
   data.Set(&tempNode, "screenshot.outputPath");
+  data.Set("screenshot.viewOnceTaken = %s", pSettings->screenshot.viewShot ? "true" : "false");
 
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
