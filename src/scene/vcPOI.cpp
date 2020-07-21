@@ -1275,6 +1275,41 @@ void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderD
   pInstance->selectable = true;
 }
 
+//2D Line-line intersection using determinants
+//by Tim Sheerman-Chase, 2016
+//Released under CC0
+//https://gist.github.com/TimSC/47203a0f5f15293d2099507ba5da44e6
+static double Det(double a, double b, double c, double d)
+{
+  return a * d - b * c;
+}
+
+static bool LineLineIntersection2D(const udDouble2 &line1Point1, const udDouble2 &line1Point2, const udDouble2 &line2Point1, const udDouble2 &line2Point2, udDouble2 *pIntersectPoint = nullptr)
+{
+  double detL1 = Det(line1Point1.x, line1Point1.y, line1Point2.x, line1Point2.y);
+  double detL2 = Det(line2Point1.x, line2Point1.y, line2Point2.x, line2Point2.y);
+  udDouble2 line1Dif = line1Point1 - line1Point2;
+  udDouble2 line2Dif = line2Point1 - line2Point2;
+
+  // double x1mx2 = line1Point1.x - line1Point2.x;
+  // double y1my2 = line1Point1.y - line1Point2.y;
+  double x3mx4 = line2Point1.x - line2Point2.x;
+  double y3my4 = line2Point1.y - line2Point2.y;
+
+  double denom = Det(line1Dif.x, line1Dif.y, x3mx4, y3my4);
+
+  if (denom == 0.0)
+    return false;
+
+  if (pIntersectPoint)
+  {
+    pIntersectPoint->x = Det(detL1, line1Dif.x, detL2, x3mx4) / denom;
+    pIntersectPoint->y = Det(detL1, line1Dif.y, detL2, y3my4) / denom;
+  }
+
+  return true;
+}
+
 void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 {
   if (m_line.numPoints >= 3)
