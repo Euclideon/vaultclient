@@ -1290,21 +1290,16 @@ static bool LineLineIntersection2D(const udDouble2 &line1Point1, const udDouble2
   double detL2 = Det(line2Point1.x, line2Point1.y, line2Point2.x, line2Point2.y);
   udDouble2 line1Dif = line1Point1 - line1Point2;
   udDouble2 line2Dif = line2Point1 - line2Point2;
-
-  // double x1mx2 = line1Point1.x - line1Point2.x;
-  // double y1my2 = line1Point1.y - line1Point2.y;
-  double x3mx4 = line2Point1.x - line2Point2.x;
-  double y3my4 = line2Point1.y - line2Point2.y;
-
-  double denom = Det(line1Dif.x, line1Dif.y, x3mx4, y3my4);
+  
+  double denom = Det(line1Dif.x, line1Dif.y, line2Dif.x, line2Dif.y);
 
   if (denom == 0.0)
     return false;
 
   if (pIntersectPoint)
   {
-    pIntersectPoint->x = Det(detL1, line1Dif.x, detL2, x3mx4) / denom;
-    pIntersectPoint->y = Det(detL1, line1Dif.y, detL2, y3my4) / denom;
+    pIntersectPoint->x = Det(detL1, line1Dif.x, detL2, line2Dif.x) / denom;
+    pIntersectPoint->y = Det(detL1, line1Dif.y, detL2, line2Dif.y) / denom;
   }
 
   return true;
@@ -1332,6 +1327,68 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     udDouble3 *pModifiedVerts = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
     for (int i = 0; i < m_line.numPoints; ++i)
       pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
+
+    int lineNumber = 0;
+
+    udChunkedArray<int> splitPoints;
+    udChunkedArray<udDouble3> finalPoints;
+    udChunkedArray<udInt2> lines;
+    for (int i = 0; i < m_line.numPoints; ++i)
+      finalPoints.PushBack(pModifiedVerts[i]);
+    for (int i = 0; i < m_line.numPoints; ++i)
+      lines.PushBack(udInt2::create(i, i == (m_line.numPoints - 1) ? 0 : i + 1));
+
+
+
+    int startLine = 0;
+    while (true)
+    {
+      bool splitFound = false;
+      for (int line1 = startLine; line1 < lines.ElementSize(); ++line1)
+      {
+        const udDouble2 &line1Point1 = finalPoints[lines[line1].x].toVector2();
+        const udDouble2 &line1Point2 = finalPoints[lines[line1].y].toVector2();
+
+        for (int line2 = line1 + 1; line2 < lines.ElementSize(); ++line2)
+        {
+          if (lines[line1].x == lines[line2].x
+            || lines[line1].x == lines[line2].y
+            || lines[line1].y == lines[line2].x
+            || lines[line1].y == lines[line2].y)
+            continue;
+
+          const udDouble2 &line2Point1 = finalPoints[lines[line2].x].toVector2();
+          const udDouble2 &line2Point2 = finalPoints[lines[line2].y].toVector2();
+
+          udDouble2 splitPoint = udDouble2::create(0);
+          if (LineLineIntersection2D(line1Point1, line1Point2, line2Point1, line2Point2, &splitPoint))
+          {
+            splitFound = true;
+
+            // Add new split point
+            int64_t newPointIndex = finalPoints.ElementSize();
+            finalPoints.PushBack(udDouble3::create(splitPoint.x, splitPoint.y, 0.0));
+
+            // remove the 2 lines, and add 4 new ones
+            lines.RemoveAt(line2);
+            lines.RemoveAt(line1);
+
+            lines.PushBack(udInt2::create(lines[line1].x, newPointIndex));
+            lines.PushBack(udInt2::create(lines[line1].y, newPointIndex));
+            lines.PushBack(udInt2::create(lines[line2].x, newPointIndex));
+            lines.PushBack(udInt2::create(lines[line2].y, newPointIndex));
+
+            break;
+          }
+        }
+
+        if (splitFound)
+          break;
+      }
+
+      if (splitFound == false)
+        break;
+    }    
 
     // Generate Triangles
     vcCDT_ProcessOrignal(pModifiedVerts, m_line.numPoints, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointList);
