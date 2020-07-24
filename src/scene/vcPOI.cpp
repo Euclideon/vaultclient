@@ -1330,24 +1330,32 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 
     int lineNumber = 0;
 
+    struct PointInfo
+    {
+      udDouble3 positon;
+      udChunkedArray<int> lines;
+    };
+
     udChunkedArray<int> splitPoints;
-    udChunkedArray<udDouble3> finalPoints;
+    udChunkedArray<PointInfo> finalPoints;
     udChunkedArray<udInt2> lines;
     for (int i = 0; i < m_line.numPoints; ++i)
-      finalPoints.PushBack(pModifiedVerts[i]);
+    {
+      PointInfo pointInfo;
+      pointInfo.positon = pModifiedVerts[i];
+      finalPoints.PushBack(pointInfo);
+    }
     for (int i = 0; i < m_line.numPoints; ++i)
       lines.PushBack(udInt2::create(i, i == (m_line.numPoints - 1) ? 0 : i + 1));
-
-
-
+    
     int startLine = 0;
     while (true)
     {
       bool splitFound = false;
       for (int line1 = startLine; line1 < lines.ElementSize(); ++line1)
       {
-        const udDouble2 &line1Point1 = finalPoints[lines[line1].x].toVector2();
-        const udDouble2 &line1Point2 = finalPoints[lines[line1].y].toVector2();
+        const udDouble2 &line1Point1 = finalPoints[lines[line1].x].positon.toVector2();
+        const udDouble2 &line1Point2 = finalPoints[lines[line1].y].positon.toVector2();
 
         for (int line2 = line1 + 1; line2 < lines.ElementSize(); ++line2)
         {
@@ -1357,8 +1365,8 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
             || lines[line1].y == lines[line2].y)
             continue;
 
-          const udDouble2 &line2Point1 = finalPoints[lines[line2].x].toVector2();
-          const udDouble2 &line2Point2 = finalPoints[lines[line2].y].toVector2();
+          const udDouble2 &line2Point1 = finalPoints[lines[line2].x].positon.toVector2();
+          const udDouble2 &line2Point2 = finalPoints[lines[line2].y].positon.toVector2();
 
           udDouble2 splitPoint = udDouble2::create(0);
           if (LineLineIntersection2D(line1Point1, line1Point2, line2Point1, line2Point2, &splitPoint))
@@ -1388,45 +1396,52 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 
       if (splitFound == false)
         break;
-    }    
+    }
+
+    // Start from Top-most point to ensure it's not inside the shape
+    int startPoint = -1;
+    double highestY = -DBL_MAX;
+
+
 
     // Generate Triangles
     vcCDT_ProcessOrignal(pModifiedVerts, m_line.numPoints, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointList);
        
     int numPoints = (int)trianglePointList.size();
 
-    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numPoints, udAF_Zero);
-
+    udDouble3 *pPositions = udAllocType(udDouble3, numPoints, udAF_Zero);
     for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
-    {
-      udFloat3 pos = udFloat3::create((float)trianglePointList[i].x, (float)trianglePointList[i].y, 0);      
-      pVerts[i] = { pos, defaultNormal, defaultUV };
-    }
-    
+      pPositions[i] = udDouble3::create(trianglePointList[i].x, trianglePointList[i].y, 0);
+
     // Un-flatten 2D Result
     for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
     {
       double closestDist = FLT_MAX;
-      float closestZ = 0;
+      double closestZ = 0;
       for (int pointIndex = 0; pointIndex < m_line.numPoints; ++pointIndex)
       {
         udDouble2 pos = (pModifiedVerts[pointIndex] - pModifiedVerts[0]).toVector2();
-    
+
         double dist = udMag2<double>(pos - trianglePointList[i]);
         if (dist < closestDist)
         {
           closestDist = dist;
-          closestZ = (float)(pModifiedVerts[pointIndex].z - pModifiedVerts[0].z);
+          closestZ = pModifiedVerts[pointIndex].z - pModifiedVerts[0].z;
         }
       }
-    
-      pVerts[i].position.z = closestZ;
+
+      pPositions[i].z = closestZ;
     }
 
     // Un-Rotate
+    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numPoints, udAF_Zero);
     udFloatQuat rotatef = udFloatQuat::create(rotate);
     for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
-      pVerts[i].position = rotatef.apply(pVerts[i].position);
+    {
+      pVerts[i].position = rotatef.apply(udFloat3::create(pPositions[i]));
+      pVerts[i].uv = defaultUV;
+      pVerts[i].normal = defaultNormal;
+    }
 
     vcPolygonModel_Destroy(&m_pPolyModel);
     vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numPoints, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)));
