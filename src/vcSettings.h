@@ -52,7 +52,8 @@ enum
 {
   vcMaxPathLength = 512,
   vcMetadataMaxLength = 256,
-  vcMaxProjectHistoryCount = 50
+  vcMaxProjectHistoryCount = 50,
+  vcMaxTileLayerCount = 3
 };
 
 enum vcWindowLayout
@@ -366,14 +367,19 @@ struct vcSettings
     vcTileRendererMapQuality mapQuality;
     vcTileRendererFlags mapOptions;
 
-    float mapHeight;
+    struct Layer
+    {
+      bool enabled;
+      float mapHeight;
 
-    char mapType[32]; // 'custom', 'euc-osm-base', 'euc-az-aerial', 'euc-az-roads'
-    vcMapServer customServer;
-    vcMapServer activeServer; // The server settings actually in use
+      char mapType[32]; // 'custom', 'euc-osm-base', 'euc-az-aerial', 'euc-az-roads'
+      vcMapServer customServer;
+      vcMapServer activeServer; // The server settings actually in use
 
-    vcMapTileBlendMode blendMode;
-    float transparency;
+      vcMapTileBlendMode blendMode;
+      float transparency;
+    } layers[vcMaxTileLayerCount];
+    int activeLayerCount;
   } maptiles;
 
   struct
@@ -484,7 +490,7 @@ udResult vcSettings_RegisterAssetFileHandler();
 
 // Various settings helpers
 udResult vcSettings_UpdateLanguageOptions(vcSettings *pSettings);
-void vcSettings_ApplyMapChange(vcSettings *pSettings);
+void vcSettings_ApplyMapChange(vcSettings *pSettings, int affectedMapLayer);
 
 // Load Branding Info
 void vcSettings_LoadBranding(vcState *pState);

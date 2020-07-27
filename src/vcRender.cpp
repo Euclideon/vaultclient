@@ -889,7 +889,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
 
-    double cameraHeightAboveEarthSurface = -pProgramState->settings.maptiles.mapHeight;
+    double cameraHeightAboveEarthSurface = -pProgramState->settings.maptiles.layers[0].mapHeight;
     udDouble3 earthSurfaceToCamera = localCamPos - pRenderContext->cameraZeroAltitude;
     if (udMagSq3(earthSurfaceToCamera) > 0)
       cameraHeightAboveEarthSurface += udMag3(earthSurfaceToCamera);

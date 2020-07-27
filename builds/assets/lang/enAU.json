@@ -146,6 +146,8 @@
   "settingsMapsBlending": "Blending",
   "settingsMapsOpacity": "Opacity",
   "settingsMapType": "Base Map",
+  "settingsMapMapLayers": "Map Layers",
+  "settingsMapLayer": "Layer",
   "settingsMapTypeCustom": "Custom",
   "settingsMapECEFMode": "Show Planet as Globe",
   "settingsMapFlatMode": "Show Planet as a flat projection (SRID:{0})",

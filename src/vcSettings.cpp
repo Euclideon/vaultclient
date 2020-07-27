@@ -250,14 +250,48 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.demEnabled = data.Get("maptiles.demEnabled").AsBool(true);
 
-    udStrcpy(pSettings->maptiles.mapType, data.Get("maptiles.type").AsString("euc-az-aerial"));
+    pSettings->maptiles.activeLayerCount = data.Get("maptiles.layerCount").AsInt(0);
 
-    udStrcpy(pSettings->maptiles.customServer.tileServerAddress, data.Get("maptiles.serverURL").AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
-    udStrcpy(pSettings->maptiles.customServer.attribution, data.Get("maptiles.attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
+    // backwards compatability
+    if (pSettings->maptiles.activeLayerCount == 0)
+    {
+      // defaults
+      pSettings->maptiles.activeLayerCount = 1;
+      pSettings->maptiles.layers[0].enabled = true;
+      for (int mapLayer = 1; mapLayer < vcMaxTileLayerCount; ++mapLayer)
+      {
+        pSettings->maptiles.layers[mapLayer].mapHeight = 0.0f;
+        pSettings->maptiles.layers[mapLayer].blendMode = vcMTBM_Hybrid;
+        pSettings->maptiles.layers[mapLayer].transparency = 1.0f;
+      }
 
-    pSettings->maptiles.mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
-    pSettings->maptiles.blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(vcMTBM_Hybrid);
-    pSettings->maptiles.transparency = data.Get("maptiles.transparency").AsFloat(1.f);
+      udStrcpy(pSettings->maptiles.layers[0].mapType, data.Get("maptiles.layer[0].type").AsString("euc-az-aerial"));
+
+      udStrcpy(pSettings->maptiles.layers[0].customServer.tileServerAddress, data.Get("maptiles.layer[0].serverURL").AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
+      udStrcpy(pSettings->maptiles.layers[0].customServer.attribution, data.Get("maptiles.layer[0].attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
+
+      pSettings->maptiles.layers[0].mapHeight = data.Get("maptiles.layer[0].mapHeight").AsFloat(0.f);
+      pSettings->maptiles.layers[0].blendMode = (vcMapTileBlendMode)data.Get("maptiles.layer[0].blendMode").AsInt(vcMTBM_Hybrid);
+      pSettings->maptiles.layers[0].transparency = data.Get("maptiles.layer[0].transparency").AsFloat(1.f);
+
+
+    }
+    else
+    {
+      for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
+      {
+        pSettings->maptiles.layers[mapLayer].enabled = data.Get("maptiles.layer[%d].enabled", mapLayer).AsBool(false);
+
+        udStrcpy(pSettings->maptiles.layers[mapLayer].mapType, data.Get("maptiles.layer[%d].type", mapLayer).AsString("euc-az-aerial"));
+
+        udStrcpy(pSettings->maptiles.layers[mapLayer].customServer.tileServerAddress, data.Get("maptiles.layer[%d].serverURL", mapLayer).AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
+        udStrcpy(pSettings->maptiles.layers[mapLayer].customServer.attribution, data.Get("maptiles.layer[%d].attribution", mapLayer).AsString("\xC2\xA9 OpenStreetMap contributors"));
+
+        pSettings->maptiles.layers[mapLayer].mapHeight = data.Get("maptiles.layer[%d].mapHeight", mapLayer).AsFloat(0.f);
+        pSettings->maptiles.layers[mapLayer].blendMode = (vcMapTileBlendMode)data.Get("maptiles.layer[%d].blendMode", mapLayer).AsInt(vcMTBM_Hybrid);
+        pSettings->maptiles.layers[mapLayer].transparency = data.Get("maptiles.layer[%d].transparency", mapLayer).AsFloat(1.f);
+      }
+    }
 
     pSettings->maptiles.mapQuality = (vcTileRendererMapQuality)data.Get("maptiles.mapQuality").AsInt(vcTRMQ_High);
     pSettings->maptiles.mapOptions = (vcTileRendererFlags)data.Get("maptiles.mapOptions").AsInt(vcTRF_None);
@@ -267,7 +301,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     else
       pSettings->camera.keepAboveSurface = data.Get("maptiles.keepAboveSurface").AsBool(false);
 
-    vcSettings_ApplyMapChange(pSettings);
+    vcSettings_ApplyMapChange(pSettings, -1);
   }
 
   if (group == vcSC_All || group == vcSC_Visualization)
@@ -869,21 +903,27 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
   data.Set("maptiles.demEnabled = %s", pSettings->maptiles.demEnabled ? "true" : "false");
-  data.Set("maptiles.blendMode = %d", pSettings->maptiles.blendMode);
-  data.Set("maptiles.transparency = %f", pSettings->maptiles.transparency);
-  data.Set("maptiles.mapHeight = %f", pSettings->maptiles.mapHeight);
+  data.Set("maptiles.layerCount = %d", pSettings->maptiles.activeLayerCount);
+
+  // map layers
+  for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
+  {
+    data.Set("maptiles.layer[%d].enabled = %s", mapLayer, pSettings->maptiles.layers[mapLayer].enabled ? "true" : "false");
+    data.Set("maptiles.layer[%d].blendMode = %d", mapLayer, pSettings->maptiles.layers[mapLayer].blendMode);
+    data.Set("maptiles.layer[%d].transparency = %f", mapLayer, pSettings->maptiles.layers[mapLayer].transparency);
+    data.Set("maptiles.layer[%d].mapHeight = %f", mapLayer, pSettings->maptiles.layers[mapLayer].mapHeight);
+    tempNode.SetString(pSettings->maptiles.layers[mapLayer].mapType);
+    data.Set(&tempNode, "maptiles.layer[%d].type", mapLayer);
+    tempNode.SetString(pSettings->maptiles.layers[mapLayer].customServer.tileServerAddress);
+    data.Set(&tempNode, "maptiles.layer[%d].serverURL", mapLayer);
+    tempNode.SetString(pSettings->maptiles.layers[mapLayer].customServer.attribution);
+    data.Set(&tempNode, "maptiles.layer[%d].attribution", mapLayer);
+  }
+
   data.Set("maptiles.mapQuality = %d", int(pSettings->maptiles.mapQuality));
   data.Set("maptiles.mapOptions = %d", int(pSettings->maptiles.mapOptions));
   data.Set("maptiles.keepAboveSurface = %s", pSettings->camera.keepAboveSurface ? "true" : "false");
 
-  tempNode.SetString(pSettings->maptiles.mapType);
-  data.Set(&tempNode, "maptiles.type");
-
-  tempNode.SetString(pSettings->maptiles.customServer.tileServerAddress);
-  data.Set(&tempNode, "maptiles.serverURL");
-
-  tempNode.SetString(pSettings->maptiles.customServer.attribution);
-  data.Set(&tempNode, "maptiles.attribution");
 
   for (size_t i = 0; i < vcB_Count; ++i)
     data.Set("keys.%s = %d", vcHotkey::GetBindName((vcBind)i), vcHotkey::Get((vcBind)i));
