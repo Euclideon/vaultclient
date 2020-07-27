@@ -1304,6 +1304,157 @@ static bool LineLineIntersection2D(const udDouble2 &line1Point1, const udDouble2
 
   return true;
 }
+ 
+udChunkedArray<udDouble3> CalculateTriangles(udDouble3 *pPoints, int numPoints)
+{
+  // Point Info
+  struct PointInfo
+  {
+    udDouble3 positon;
+    udChunkedArray<int> lines;
+  };
+
+  udChunkedArray<PointInfo> points;
+  for (int i = 0; i < numPoints; ++i)
+  {
+    PointInfo pointInfo;
+    pointInfo.positon = pPoints[i];
+    points.PushBack(pointInfo);
+  }
+
+  // Find Start Point for tracing outside of the mesh
+  int startPoint = 0;
+  {
+    double highestY = points[startPoint].positon.y;
+    for (int i = 1; i < points.ElementSize(); ++i)
+      if (points[i].positon.y > highestY)
+      {
+        startPoint = i;
+        highestY = points[i].positon.y;
+      }
+  }
+
+  // Create Initial Lines
+  udChunkedArray<udInt2> lines;
+  for (int i = 0; i < points.ElementSize(); ++i)
+  {
+    int pointIndex1 = i;
+    int pointIndex2 = i == (points.ElementSize() - 1) ? 0 : i + 1);
+    lines.PushBack(udInt2::create(pointIndex1, pointIndex2));
+
+    int lineIndex = lines.ElementSize() - 1;
+    points[pointIndex1].lines.PushBack(lineIndex);
+    points[pointIndex2].lines.PushBack(lineIndex);
+  }
+
+  // Splits
+  int startLine = 0;
+  while (true)
+  {
+    bool splitFound = false;
+    udDouble2 splitPoint = udDouble2::create(0);
+    int line1 = startLine;
+    int line2 = line1 + 1;
+    for (; line1 < lines.ElementSize(); ++line1)
+    {
+      const udDouble2 &line1Point1 = points[lines[line1].x].positon.toVector2();
+      const udDouble2 &line1Point2 = points[lines[line1].y].positon.toVector2();
+
+      for (; line2 < lines.ElementSize(); ++line2)
+      {
+        if (lines[line1].x == lines[line2].x
+          || lines[line1].x == lines[line2].y
+          || lines[line1].y == lines[line2].x
+          || lines[line1].y == lines[line2].y)
+          continue;
+
+        const udDouble2 &line2Point1 = points[lines[line2].x].positon.toVector2();
+        const udDouble2 &line2Point2 = points[lines[line2].y].positon.toVector2();
+
+        if (LineLineIntersection2D(line1Point1, line1Point2, line2Point1, line2Point2, &splitPoint))
+        {
+          // Add new split point
+          PointInfo newPoint;
+          newPoint.positon = udDouble3::create(splitPoint.x, splitPoint.y, 0.0);
+          // todo: calcualte Z
+
+          int64_t newPointIndex = points.ElementSize();
+
+          // use the first half of the splits in place of the original lines
+          lines[line1] = udInt2::create(lines[line1].x, newPointIndex);
+          lines[line2] = udInt2::create(lines[line2].x, newPointIndex);
+
+          // Add 2 new lines for the 2nd half of the splits
+          lines.PushBack(udInt2::create(newPointIndex, lines[line1].y));
+          lines.PushBack(udInt2::create(newPointIndex, lines[line2].y));
+
+          newPoint.lines.PushBack(line1);
+          newPoint.lines.PushBack(line2);
+          newPoint.lines.PushBack(lines.ElementSize() - 2);
+          newPoint.lines.PushBack(lines.ElementSize() - 1);
+          points.PushBack(newPoint);
+
+          splitFound = true;
+          break;
+        }
+      }
+
+      if (splitFound)
+        break;
+    }
+
+    if (!splitFound)
+      break;
+  }
+
+  // Trace only the outside for the new shape
+
+  // Create new non-intersecting mesh
+
+  // start line (find 2nd point most up-right)
+  udChunkedArray<PointInfo> newPoints;
+  int pointNumber = startPoint;
+  double closestAngle = FLT_MAX;
+  for (const int &lineIndex : points[startPoint].lines)
+  {
+    int point2Index = lines[lineIndex].x == startPoint ? lines[lineIndex].y : lines[lineIndex].x;
+
+    const udDouble3 &pos1 = points[startPoint].positon;
+    const udDouble3 &pos2 = points[startPoint].positon;
+
+    if (line.x == startPoint)
+    {
+      pointNumber = line.y;
+      break;
+    }
+  }
+
+
+  do 
+  {
+
+  } while (pointNumber != startPoint);
+  
+  // Un-flatten 2D Result
+  for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
+  {
+    double closestDist = FLT_MAX;
+    double closestZ = 0;
+    for (int pointIndex = 0; pointIndex < m_line.numPoints; ++pointIndex)
+    {
+      udDouble2 pos = (pModifiedVerts[pointIndex] - pModifiedVerts[0]).toVector2();
+
+      double dist = udMag2<double>(pos - trianglePointList[i]);
+      if (dist < closestDist)
+      {
+        closestDist = dist;
+        closestZ = pModifiedVerts[pointIndex].z - pModifiedVerts[0].z;
+      }
+    }
+
+    pPositions[i].z = closestZ;
+  }
+}
 
 void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 {
@@ -1313,7 +1464,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
     udDouble2 min = {};
     udDouble2 max = {};
-    std::vector<udDouble2> trianglePointList;
+    udChunkedArray<udDouble2> trianglePointList;
     
     udDouble3 centerPoint = udDouble3::zero();
     double invNumPoints = 1.0 / (double)m_line.numPoints;
@@ -1328,8 +1479,12 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     for (int i = 0; i < m_line.numPoints; ++i)
       pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
 
+    udChunkedArray<udDouble3> triPoints = CalculateTriangles(pModifiedVerts, m_line.numPoints);
+
+    /*
     int lineNumber = 0;
 
+    // Split Crossing Lines
     struct PointInfo
     {
       udDouble3 positon;
@@ -1345,19 +1500,31 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
       pointInfo.positon = pModifiedVerts[i];
       finalPoints.PushBack(pointInfo);
     }
+
     for (int i = 0; i < m_line.numPoints; ++i)
-      lines.PushBack(udInt2::create(i, i == (m_line.numPoints - 1) ? 0 : i + 1));
+    {
+      int pointIndex1 = i;
+      int pointIndex2 = i == (m_line.numPoints - 1) ? 0 : i + 1);
+      lines.PushBack(udInt2::create(pointIndex1, pointIndex2));
+
+      int lineIndex = lines.ElementSize() - 1;
+      finalPoints[pointIndex1].lines.PushBack(lineIndex);
+      finalPoints[pointIndex2].lines.PushBack(lineIndex);
+    }
     
     int startLine = 0;
     while (true)
     {
       bool splitFound = false;
-      for (int line1 = startLine; line1 < lines.ElementSize(); ++line1)
+      udDouble2 splitPoint = udDouble2::create(0);
+      int line1 = startLine;
+      int line2 = line1 + 1;
+      for (; line1 < lines.ElementSize(); ++line1)
       {
         const udDouble2 &line1Point1 = finalPoints[lines[line1].x].positon.toVector2();
         const udDouble2 &line1Point2 = finalPoints[lines[line1].y].positon.toVector2();
 
-        for (int line2 = line1 + 1; line2 < lines.ElementSize(); ++line2)
+        for (; line2 < lines.ElementSize(); ++line2)
         {
           if (lines[line1].x == lines[line2].x
             || lines[line1].x == lines[line2].y
@@ -1368,11 +1535,8 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
           const udDouble2 &line2Point1 = finalPoints[lines[line2].x].positon.toVector2();
           const udDouble2 &line2Point2 = finalPoints[lines[line2].y].positon.toVector2();
 
-          udDouble2 splitPoint = udDouble2::create(0);
           if (LineLineIntersection2D(line1Point1, line1Point2, line2Point1, line2Point2, &splitPoint))
           {
-            splitFound = true;
-
             // Add new split point
             int64_t newPointIndex = finalPoints.ElementSize();
             finalPoints.PushBack(udDouble3::create(splitPoint.x, splitPoint.y, 0.0));
@@ -1386,6 +1550,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
             lines.PushBack(udInt2::create(lines[line2].x, newPointIndex));
             lines.PushBack(udInt2::create(lines[line2].y, newPointIndex));
 
+            splitFound = true;
             break;
           }
         }
@@ -1394,7 +1559,16 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
           break;
       }
 
-      if (splitFound == false)
+      if (splitFound)
+      {
+        PointInfo newPointInfo;
+        newPointInfo.positon = splitPoint;
+        finalPoints();
+
+        udInt2 newLines[4];
+        newLines[0] = udInt2::create(lines[line1].x, );
+      }
+      else
         break;
     }
 
@@ -1412,7 +1586,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     udDouble3 *pPositions = udAllocType(udDouble3, numPoints, udAF_Zero);
     for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
       pPositions[i] = udDouble3::create(trianglePointList[i].x, trianglePointList[i].y, 0);
-
+    
     // Un-flatten 2D Result
     for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
     {
@@ -1432,6 +1606,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 
       pPositions[i].z = closestZ;
     }
+    */
 
     // Un-Rotate
     vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numPoints, udAF_Zero);
