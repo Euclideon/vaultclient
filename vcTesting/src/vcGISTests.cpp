@@ -123,3 +123,17 @@ TEST(vcGIS, LocalAxis)
     EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({ 0, 0, 1 })));
   }
 }
+
+TEST(vcGIS, NonGeolocatedRotationTests)
+{
+  udGeoZone lZone = {};
+
+  udDouble3 localPosition = udGeoZone_LatLongToCartesian(lZone, {1.0, 2.0, 3.0});
+
+  udGeoZone_SetFromSRID(&lZone, 0); // Non geolocated
+
+  udDoubleQuat q = vcGIS_GetQuaternion(lZone, localPosition);
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({1, 0, 0})));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({0, 1, 0})));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+}

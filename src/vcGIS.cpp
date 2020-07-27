@@ -98,6 +98,10 @@ void vcGIS_GetOrthonormalBasis(const udGeoZone &zone, udDouble3 localPosition, u
 
 udDoubleQuat vcGIS_GetQuaternion(const udGeoZone &zone, udDouble3 localPosition)
 {
+  //Flat projections just return the unit quaternion.
+  if (zone.srid != 4978)
+    return udDoubleQuat{0.0, 0.0, 0.0, 1.0};
+
   udDouble3 up, north, east;
   vcGIS_GetOrthonormalBasis(zone, localPosition, &up, &north, &east);
 
