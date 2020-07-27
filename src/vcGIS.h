@@ -18,7 +18,7 @@ bool vcGIS_SlippyToLocal(const udGeoZone &zone, udDouble3 *pLocalCoords, const u
 
 // Helpers
 void vcGIS_GetOrthonormalBasis(const udGeoZone &zone, udDouble3 localPosition, udDouble3 *pUp, udDouble3 *pNorth, udDouble3 *pEast);
-udDoubleQuat vcGIS_GetQuaternion(const udGeoZone &zone, udDouble3 localPosition); // Get rotational transform from cartesian space to the world position
+udDoubleQuat vcGIS_GetQuaternion(const udGeoZone &zone, udDouble3 localPosition); // Get rotational transform from cartesian space to the world position, where z = up, y = north, x = east in cartesian space
 udDouble3 vcGIS_GetWorldLocalUp(const udGeoZone &zone, udDouble3 localCoords); // Returns which direction is "up" at a given coordinate
 udDouble3 vcGIS_GetWorldLocalNorth(const udGeoZone &zone, udDouble3 localCoords); // Returns which direction is "north"
 udDouble2 vcGIS_QuaternionToHeadingPitch(const udGeoZone &zone, udDouble3 localPosition, udDoubleQuat orientation); // Returns HPR from a Quaternion at a specific location
