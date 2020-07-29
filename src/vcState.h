@@ -17,6 +17,7 @@
 #include "vcStrings.h"
 #include "vcProject.h"
 #include "vcSession.h"
+#include "vcQueryNode.h"
 
 #include "vdkError.h"
 #include "vdkContext.h"
@@ -85,6 +86,9 @@ enum vcActiveTool
 
   vcActiveTool_Annotate, //Single POI
   vcActiveTool_Inspect, // Inspects the voxel under the mouse
+  vcActiveTool_AddBoxFilter, // Add box filter in the current mouse position
+  vcActiveTool_AddSphereFilter,// Add sphere filter in the current mouse position
+  vcActiveTool_AddCylinderFilter,// Add cylinder filter in the current mouse position
 
   vcActiveTool_Count
 };
@@ -244,6 +248,8 @@ struct vcState
   int currentKey;
 
   int previousSRID;
+
+  vcQueryNodeFilterInput filterInput;
 };
 
 #endif // !vcState_h__

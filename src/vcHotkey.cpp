@@ -49,6 +49,9 @@ namespace vcHotkey
     "ToggleAnnotateTool",
     "OpenSettingsMenu",
     "ToggleMeasureHeightTool",
+    "AddBoxFilter",
+    "AddSphereFilter",
+    "AddCylinderFilter",
   };
   UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 

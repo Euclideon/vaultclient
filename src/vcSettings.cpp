@@ -475,6 +475,9 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_ToggleAnnotateTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleAnnotateTool)).AsInt(67));
     vcHotkey::Set(vcB_OpenSettingsMenu, data.Get("keys.%s", vcHotkey::GetBindName(vcB_OpenSettingsMenu)).AsInt(vcMOD_Ctrl + SDL_SCANCODE_L));
     vcHotkey::Set(vcB_ToggleMeasureHeightTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureHeightTool)).AsInt(11));
+    vcHotkey::Set(vcB_AddBoxFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddBoxFilter)).AsInt(12));
+    vcHotkey::Set(vcB_AddSphereFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddSphereFilter)).AsInt(13));
+    vcHotkey::Set(vcB_AddCylinderFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddCylinderFilter)).AsInt(14));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)

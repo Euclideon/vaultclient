@@ -12,6 +12,37 @@
 
 #include "imgui.h"
 
+
+const char *GetNodeName(vcQueryNodeFilterShape shape)
+{
+  switch (shape)
+  {
+  case vcQNFS_Box:
+    return vcString::Get("sceneExplorerFilterBoxDefaultName");
+  case vcQNFS_Sphere:
+    return vcString::Get("sceneExplorerFilterSphereDefaultName");
+  case vcQNFS_Cylinder:
+    return vcString::Get("sceneExplorerFilterCylinderDefaultName");
+  }
+
+  return "";
+}
+
+const char *GetNodeShape(vcQueryNodeFilterShape shape)
+{
+  switch (shape)
+  {
+  case vcQNFS_Box:
+    return "box";
+  case vcQNFS_Sphere:
+    return "sphere";
+  case vcQNFS_Cylinder:
+    return "cylinder";
+  }
+
+  return "";
+}
+
 vcQueryNode::vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_shape(vcQNFS_Box),
@@ -134,13 +165,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   {
     changed = true;
     m_shape = (vcQueryNodeFilterShape)shape;
-
-    if (m_shape == vcQNFS_Box)
-      vdkProjectNode_SetMetadataString(m_pNode, "shape", "box");
-    else if (m_shape == vcQNFS_Sphere)
-      vdkProjectNode_SetMetadataString(m_pNode, "shape", "sphere");
-    else if (m_shape == vcQNFS_Cylinder)
-      vdkProjectNode_SetMetadataString(m_pNode, "shape", "cylinder");
+    vdkProjectNode_SetMetadataString(m_pNode, "shape", GetNodeShape(m_shape));
   }
 
   ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
@@ -181,10 +206,24 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   }
 }
 
-void vcQueryNode::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
 {
+  ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterPosition"), m_center.x, m_center.y, m_center.z);
+  ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterExtents"), m_extents.x, m_extents.y, m_extents.z);
+
   if (ImGui::Checkbox(udTempStr("%s##EmbeddedUI", vcString::Get("sceneFilterInverted")), &m_inverted))
     vdkQueryFilter_SetInverted(m_pFilter, m_inverted);
+
+  if (vcQueryNodeFilter_IsDragActive(pProgramState))
+  {
+    ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterEndPosition"), pProgramState->filterInput.endPoint.x, pProgramState->filterInput.endPoint.y, pProgramState->filterInput.endPoint.z);
+    udDouble3 d = pProgramState->filterInput.endPoint - pProgramState->filterInput.pickPoint;
+    if (d.x < 0)
+      ImGui::Text("%s %f", vcString::Get("sceneFilterWidthNegative"), d.x);
+
+    if (d.y < 0)
+      ImGui::Text("%s %f", vcString::Get("sceneFilterLengthNegative"), d.y);
+  }
 }
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
@@ -246,3 +285,119 @@ vcGizmoAllowedControls vcQueryNode::GetAllowedControls()
   else
     return vcGAC_All;
 }
+
+static const uint32_t HOLD_TICKS = 10;
+
+void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape)
+{
+  pFilter->shape = shape;
+  pFilter->pickPoint = udDouble3::zero();
+  pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
+  pFilter->pNode = nullptr;
+  pFilter->holdCount = 0;
+}
+
+void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter)
+{
+  pFilter->shape = vcQNFS_None;
+  pFilter->pickPoint = udDouble3::zero();
+  pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
+  pFilter->pNode = nullptr;
+  pFilter->holdCount = 0;
+}
+
+vdkProjectNode *vcQueryNodeFilter_CreateNode(vcQueryNodeFilterInput *pFilter, vcState *pProgramState)
+{
+  vdkProjectNode *pNode = nullptr;
+  if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", GetNodeName(pFilter->shape), nullptr, nullptr) == vE_Success)
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
+    vdkProjectNode_SetMetadataString(pNode, "shape", GetNodeShape(pFilter->shape));
+    vdkProjectNode_SetMetadataDouble(pNode, "size.x", pFilter->size.x);
+    vdkProjectNode_SetMetadataDouble(pNode, "size.y", pFilter->size.y);
+    vdkProjectNode_SetMetadataDouble(pNode, "size.z", pFilter->size.z);
+    udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+  }
+
+  return pNode;
+}
+
+void vcQueryNodeFilter_Update(vcQueryNodeFilterInput *pFilter, vcState *pProgramState)
+{
+  if (pFilter->pNode)
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pFilter->pNode, pProgramState->geozone, vdkPGT_Point, &pFilter->pickPoint, 1);
+    vdkProjectNode_SetMetadataDouble(pFilter->pNode, "size.x", pFilter->size.x);
+    vdkProjectNode_SetMetadataDouble(pFilter->pNode, "size.y", pFilter->size.y);
+    vdkProjectNode_SetMetadataDouble(pFilter->pNode, "size.z", pFilter->size.z);
+  }
+}
+
+void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, bool isBtnReleased)
+{
+  vcQueryNodeFilterInput *pFilter = &pProgramState->filterInput;
+  if (pProgramState->activeTool != vcActiveTool_AddBoxFilter && pProgramState->activeTool != vcActiveTool_AddSphereFilter && pProgramState->activeTool != vcActiveTool_AddCylinderFilter)
+  {
+    if (pFilter->shape != vcQNFS_None)
+      vcQueryNodeFilter_Clear(&pProgramState->filterInput);
+    return;
+  }
+
+  if (isBtnHeld)
+  {
+    // create node
+    if (pProgramState->pickingSuccess)
+    {
+      if (!pFilter->pNode)
+      {
+        pFilter->pNode = vcQueryNodeFilter_CreateNode(pFilter, pProgramState);
+        pFilter->pickPoint = pProgramState->worldMousePosCartesian;
+      }
+    }
+
+    if (pFilter->pNode && !vcQueryNodeFilter_IsDragActive(pProgramState))
+      pFilter->holdCount++;
+  }
+
+  if (pFilter->holdCount == 0)
+    return;
+
+  if (vcQueryNodeFilter_IsDragActive(pProgramState))
+  {
+    udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pFilter->pickPoint);
+    udPlane<double> plane = udPlane<double>::create(pFilter->pickPoint, up);
+
+    pFilter->endPoint = {};
+    if (plane.intersects(pProgramState->camera.worldMouseRay, &pFilter->endPoint, nullptr))
+    {
+      udDouble3 d = pFilter->endPoint - pFilter->pickPoint;
+      pFilter->size.x = udMax(d.x, 2.0f) * 2;
+      pFilter->size.y = udMax(d.y, 2.0f) * 2;
+      pFilter->size.z = udMax(pFilter->size.x, pFilter->size.y);
+    }
+
+    vcQueryNodeFilter_Update(pFilter, pProgramState);
+
+    if (isBtnReleased)
+      vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
+  }
+  else
+  {
+    if (isBtnReleased)
+    {
+      double scaleFactor = udMag3(pProgramState->camera.position - pProgramState->worldMousePosCartesian) / 10.0; // 1/10th of the screen
+      pFilter->size = udDouble3::create(scaleFactor, scaleFactor, scaleFactor);
+      vcQueryNodeFilter_Update(pFilter, pProgramState);
+      vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
+      return;
+    }
+  }
+
+}
+
+bool vcQueryNodeFilter_IsDragActive(vcState *pProgramState)
+{
+  return pProgramState->filterInput.holdCount >= HOLD_TICKS;
+}
+
+

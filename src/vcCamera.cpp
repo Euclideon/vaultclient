@@ -436,7 +436,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     forceClearMouseState = (forceClearMouseState || gizmoCapturedMouse);
   }
 
-  if (forceClearMouseState)
+  // Handle mouse input for filter tool
+  if (!forceClearMouseState)
+    vcQueryNodeFilter_HandleSceneInput(pProgramState, isBtnHeld[0], isBtnReleased[0]);
+
+  if (forceClearMouseState || vcQueryNodeFilter_IsDragActive(pProgramState))
   {
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
