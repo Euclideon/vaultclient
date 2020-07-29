@@ -15,32 +15,26 @@
 
 const char *GetNodeName(vcQueryNodeFilterShape shape)
 {
-  switch (shape)
-  {
-  case vcQNFS_Box:
+  if(shape == vcQNFS_Box)
     return vcString::Get("sceneExplorerFilterBoxDefaultName");
-  case vcQNFS_Sphere:
+  else if (shape == vcQNFS_Sphere)
     return vcString::Get("sceneExplorerFilterSphereDefaultName");
-  case vcQNFS_Cylinder:
+  else if (shape == vcQNFS_Cylinder)
     return vcString::Get("sceneExplorerFilterCylinderDefaultName");
-  }
-
-  return "";
+  else
+    return "";
 }
 
 const char *GetNodeShape(vcQueryNodeFilterShape shape)
 {
-  switch (shape)
-  {
-  case vcQNFS_Box:
+  if (shape == vcQNFS_Box)
     return "box";
-  case vcQNFS_Sphere:
+  else if (shape == vcQNFS_Sphere)
     return "sphere";
-  case vcQNFS_Cylinder:
+  else if (shape == vcQNFS_Cylinder)
     return "cylinder";
-  }
-
-  return "";
+  else
+    return "";
 }
 
 vcQueryNode::vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
