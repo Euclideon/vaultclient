@@ -63,7 +63,6 @@ void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &
 
 void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
 {
-  vdkProjectNode_GetMetadataInt(m_pNode, "selectedPoint", &m_selectedPoint, -1);
   vdkProjectNode_GetMetadataBool(m_pNode, "measureEnd", &m_done, false);
   vdkProjectNode_GetMetadataBool(m_pNode, "showAllDistances", &m_showAllDistances, false);  
 
@@ -187,8 +186,7 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLineColour%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_lineColour, ImGuiColorEditFlags_None))
       vdkProjectNode_SetMetadataUint(m_pNode, "lineColour", m_lineColour);
 
-    if(ImGui::SliderInt(udTempStr("%s##SelectedPoint%zu", vcString::Get("scenePOISelectedPoint"), *pItemID), &m_selectedPoint, -1, 1))
-      vdkProjectNode_SetMetadataInt(m_pNode, "selectedPoint", m_selectedPoint);
+    ImGui::SliderInt(udTempStr("%s##SelectedPoint%zu", vcString::Get("scenePOISelectedPoint"), *pItemID), &m_selectedPoint, -1, 1);
 
     if (m_selectedPoint == 0)
     {
