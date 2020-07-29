@@ -2153,6 +2153,11 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     }
     break;
 
+    case vcActiveTool_AddBoxFilter:
+    case vcActiveTool_AddSphereFilter:
+    case vcActiveTool_AddCylinderFilter:
+      break;
+
     case vcActiveTool_Count:
       // Does nothing
       break;
