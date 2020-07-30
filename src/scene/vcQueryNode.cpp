@@ -287,6 +287,7 @@ void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFi
   pFilter->shape = shape;
   pFilter->pickPoint = udDouble3::zero();
   pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
+  pFilter->endPoint = udDouble3::zero();
   pFilter->pNode = nullptr;
   pFilter->holdCount = 0;
 }
@@ -296,6 +297,7 @@ void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter)
   pFilter->shape = vcQNFS_None;
   pFilter->pickPoint = udDouble3::zero();
   pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
+  pFilter->endPoint = udDouble3::zero();
   pFilter->pNode = nullptr;
   pFilter->holdCount = 0;
 }

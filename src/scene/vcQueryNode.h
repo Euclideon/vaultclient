@@ -51,7 +51,7 @@ public:
 struct vdkProjectNode;
 struct vcQueryNodeFilterInput
 {
-  vcQueryNodeFilterShape shape = vcQNFS_None;
+  vcQueryNodeFilterShape shape;
   udDouble3 pickPoint;
   udDouble3 size;
   udDouble3 endPoint;

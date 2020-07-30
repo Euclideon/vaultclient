@@ -912,6 +912,8 @@ int main(int argc, char **args)
 
   programState.pSessionLock = udCreateRWLock();
 
+  vcQueryNodeFilter_Clear(&programState.filterInput);
+
   vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   for (int i = 1; i < argc; ++i)
