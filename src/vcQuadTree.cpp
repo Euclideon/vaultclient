@@ -261,6 +261,12 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
   if (frustumTest == -1)
     return false;
 
+  for (int i = 0; i < vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution; ++i)
+  {
+    if (udDot3(pNode->worldBounds[i] - pQuadTree->cameraWorldPosition, pNode->worldNormals[i]) < 0)
+      return true;
+  }
+
   if (udDot3(pNode->tileCenter - pQuadTree->cameraWorldPosition, pNode->tileNormal) < 0)
     return true;
 

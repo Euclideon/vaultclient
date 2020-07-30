@@ -361,8 +361,6 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
         else
           pSceneItem->SetCameraPosition(pProgramState);
-
-        pProgramState->updateTiles = 1;
       }
 
       if (vcIGSW_IsItemHovered())

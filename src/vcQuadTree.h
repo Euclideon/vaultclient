@@ -76,7 +76,7 @@ struct vcQuadTreeNode
 
   /// NODE PAYLOAD
 
-  // if a node was rendered with missing information (only considers colour at the moment, includes any failed descendents)
+  // if a node was rendered without missing information (only considers colour at the moment, includes any failed descendents)
   bool completeRender;
 
   // cached

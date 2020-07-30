@@ -1071,7 +1071,7 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer, bool *pIs
   }
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, bool forceUpdateMaps, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const bool cameraIsUnderMapSurface, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix, bool *pIsLoading)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const bool cameraIsUnderMapSurface, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix, bool *pIsLoading)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
@@ -1092,15 +1092,13 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   vcQuadTree_UpdateView(&pTileRenderer->quadTree, viewInfo.cameraPosition, viewInfo.viewProjectionMatrix);
 
   pTileRenderer->generateTreeUpdateTimer += pTileRenderer->frameDeltaTime;
-  if (forceUpdateMaps || pTileRenderer->generateTreeUpdateTimer >= QuadTreeUpdateFrequencySec)
+  if (pTileRenderer->generateTreeUpdateTimer >= QuadTreeUpdateFrequencySec)
   {
     pTileRenderer->generateTreeUpdateTimer = 0.0;
 
     uint64_t startTime = udPerfCounterStart();
     vcQuadTree_Update(&pTileRenderer->quadTree, viewInfo);
     pTileRenderer->quadTree.metaData.generateTimeMs = udPerfCounterMilliseconds(startTime);
-
-    //printf("UPDATE GEN TREEEEEEEEEEEEEEEEEEEEEEEEEEE\n\n\n\n");
   }
 
   udLockMutex(pTileRenderer->cache.pMutex);
