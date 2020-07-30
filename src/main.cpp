@@ -1492,8 +1492,11 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
     if (pProgramState->settings.maptiles.mapEnabled && pProgramState->geozone.projection != udGZPT_Unknown)
     {
-      if (pProgramState->settings.maptiles.layers[0].activeServer.attribution[0] != '\0')
-        udSprintf(&pBuffer, "%s, %s", pBuffer, pProgramState->settings.maptiles.layers[0].activeServer.attribution);
+      for (int mapLayer = 0; mapLayer <= pProgramState->settings.maptiles.activeLayerCount; ++mapLayer)
+      {
+        if (pProgramState->settings.maptiles.layers[mapLayer].activeServer.attribution[0] != '\0')
+          udSprintf(&pBuffer, "%s, %s", pBuffer, pProgramState->settings.maptiles.layers[mapLayer].activeServer.attribution);
+      }
 
       if (pProgramState->settings.maptiles.demEnabled)
         udSprintf(&pBuffer, "%s, NOAA, GEBCO", pBuffer);

@@ -726,6 +726,9 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 
     ImGui::TextUnformatted(vcString::Get("settingsMapMapLayers"));
 
+    char buffer[128] = {};
+    char mapLayerStr[16] = {};
+
     pProgramState->settings.maptiles.activeLayerCount = 0;
     for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
     {
@@ -733,7 +736,8 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
         pProgramState->settings.maptiles.layers[mapLayer].enabled = !pProgramState->settings.maptiles.layers[mapLayer].enabled;
 
       ImGui::SameLine();
-      ImGui::Text("%s %d", vcString::Get("settingsMapLayer"), mapLayer);
+      udStrItoa(mapLayerStr, mapLayer + 1);
+      ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("settingsMapLayer"), mapLayerStr));
 
       if (!pProgramState->settings.maptiles.layers[mapLayer].enabled)
         break;

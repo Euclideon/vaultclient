@@ -548,14 +548,16 @@ bool vcQuadTree_IsBlockUsed(vcQuadTree *pQuadTree, uint32_t blockIndex)
 
 bool vcQuadTree_RecursiveHasDrawData(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
 {
+  if (pNode->demInfo.data.pTexture != nullptr)
+    return true;
+
+
+  // check payloads
   for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)
   {
     if (pNode->pPayloads[i].data.pTexture != nullptr)
       return true;
   }
-
-  if (pNode->demInfo.data.pTexture != nullptr)
-    return true;
 
   if (!vcQuadTree_IsLeafNode(pNode))
   {
@@ -574,15 +576,16 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
     vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[blockIndex + c];
+    if (pChildNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+      return false;
+
+    // check payloads
     for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)
     {
       if (pChildNode->pPayloads[i].loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
         return false;
 
     }
-
-    if (pChildNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
-      return false;
 
     if (pChildNode->touched && (pChildNode->serverId == pQuadTree->serverId))
       return false;

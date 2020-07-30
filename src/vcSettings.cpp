@@ -250,7 +250,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->maptiles.mapEnabled = data.Get("maptiles.enabled").AsBool(true);
     pSettings->maptiles.demEnabled = data.Get("maptiles.demEnabled").AsBool(true);
 
-    pSettings->maptiles.activeLayerCount = data.Get("maptiles.layerCount").AsInt(0);
+    pSettings->maptiles.activeLayerCount = (int)data.Get("maptiles.layer").ArrayLength();
 
     // backwards compatability
     if (pSettings->maptiles.activeLayerCount == 0)
@@ -265,14 +265,14 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         pSettings->maptiles.layers[mapLayer].transparency = 1.0f;
       }
 
-      udStrcpy(pSettings->maptiles.layers[0].mapType, data.Get("maptiles.layer[0].type").AsString("euc-az-aerial"));
+      udStrcpy(pSettings->maptiles.layers[0].mapType, data.Get("maptiles.type").AsString("euc-az-aerial"));
 
-      udStrcpy(pSettings->maptiles.layers[0].customServer.tileServerAddress, data.Get("maptiles.layer[0].serverURL").AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
-      udStrcpy(pSettings->maptiles.layers[0].customServer.attribution, data.Get("maptiles.layer[0].attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
+      udStrcpy(pSettings->maptiles.layers[0].customServer.tileServerAddress, data.Get("maptiles.serverURL").AsString("https://slippy.vault.euclideon.com/{0}/{1}/{2}.png"));
+      udStrcpy(pSettings->maptiles.layers[0].customServer.attribution, data.Get("maptiles.attribution").AsString("\xC2\xA9 OpenStreetMap contributors"));
 
-      pSettings->maptiles.layers[0].mapHeight = data.Get("maptiles.layer[0].mapHeight").AsFloat(0.f);
-      pSettings->maptiles.layers[0].blendMode = (vcMapTileBlendMode)data.Get("maptiles.layer[0].blendMode").AsInt(vcMTBM_Hybrid);
-      pSettings->maptiles.layers[0].transparency = data.Get("maptiles.layer[0].transparency").AsFloat(1.f);
+      pSettings->maptiles.layers[0].mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
+      pSettings->maptiles.layers[0].blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(vcMTBM_Hybrid);
+      pSettings->maptiles.layers[0].transparency = data.Get("maptiles.transparency").AsFloat(1.f);
 
 
     }
@@ -903,10 +903,9 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Map Tiles
   data.Set("maptiles.enabled = %s", pSettings->maptiles.mapEnabled ? "true" : "false");
   data.Set("maptiles.demEnabled = %s", pSettings->maptiles.demEnabled ? "true" : "false");
-  data.Set("maptiles.layerCount = %d", pSettings->maptiles.activeLayerCount);
 
   // map layers
-  for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
+  for (int mapLayer = 0; mapLayer < pSettings->maptiles.activeLayerCount; ++mapLayer)
   {
     data.Set("maptiles.layer[%d].enabled = %s", mapLayer, pSettings->maptiles.layers[mapLayer].enabled ? "true" : "false");
     data.Set("maptiles.layer[%d].blendMode = %d", mapLayer, pSettings->maptiles.layers[mapLayer].blendMode);
