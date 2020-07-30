@@ -4,6 +4,7 @@
 #include "vcState.h"
 #include "vcRender.h"
 #include "vcModals.h"
+#include "vcQueryNode.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -712,7 +713,10 @@ void vcProject_ClearSelection(vcState *pProgramState, bool clearToolState /*= tr
   pProgramState->sceneExplorer.clickedItem = {};
 
   if (clearToolState)
+  {
     pProgramState->activeTool = vcActiveTool_Select;
+    vcQueryNodeFilter_Clear(&pProgramState->filterInput);
+  }
 }
 
 bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
