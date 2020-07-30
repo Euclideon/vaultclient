@@ -107,10 +107,15 @@ double vcQuadTree_PointToRectDistance(udDouble3 edges[9], const udDouble3 &point
   return closestEdgeDistance;
 }
 
-void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
+void vcQuadTree_CleanupNode(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
 {
-  vcTexture_Destroy(&pNode->colourInfo.data.pTexture);
-  udFree(pNode->colourInfo.data.pData);
+  for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)
+  {
+    vcTexture_Destroy(&pNode->pPayloads[i].data.pTexture);
+    udFree(pNode->pPayloads[i].data.pData);
+
+    pNode->pPayloads[i].loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
+  }
 
   vcTexture_Destroy(&pNode->demInfo.data.pTexture);
   udFree(pNode->demInfo.data.pData);
@@ -120,7 +125,6 @@ void vcQuadTree_CleanupNode(vcQuadTreeNode *pNode)
 
   udFree(pNode->pDemHeightsCopy);
 
-  pNode->colourInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
   pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_None);
 
   memset(pNode, 0, sizeof(vcQuadTreeNode));
@@ -200,7 +204,7 @@ void vcQuadTree_InitNode(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
 {
-  udDouble3 mapHeightOffset = pNode->worldNormals[4] * pQuadTree->pSettings->maptiles.mapHeight;
+  udDouble3 mapHeightOffset = pNode->worldNormals[4] * pQuadTree->pSettings->maptiles.layers[0].mapHeight;
   return -1 < vcQuadTree_FrustumTest(pQuadTree->frustumPlanes, pNode->tileCenter + mapHeightOffset, pNode->tileExtents);
 }
 
@@ -259,11 +263,11 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
     pChildNode->morten.x = pCurrentNode->morten.x | (mortenIndices[childQuadrant].x << (31 - pChildNode->slippyPosition.z));
     pChildNode->morten.y = pCurrentNode->morten.y | (mortenIndices[childQuadrant].y << (31 - pChildNode->slippyPosition.z));
 
-    double distanceToQuadrant = udMax(0.0, pQuadTree->cameraDistanceZeroAltitude - (pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.mapHeight));
+    double distanceToQuadrant = udMax(0.0, pQuadTree->cameraDistanceZeroAltitude - (pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.layers[0].mapHeight));
 
     int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
     if (slippyManhattanDist != 0)
-      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormals[4] * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.mapHeight));
+      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->worldNormals[4] * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.layers[0].mapHeight));
 
     int totalDepth = pQuadTree->rootSlippyCoords.z + currentDepth;
     bool alwaysSubdivide = pChildNode->visible && totalDepth < vcQuadTree_MinimumDescendLayer;
@@ -329,7 +333,7 @@ void vcQuadTree_CalculateNeighbours(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode
 void vcQuadTree_CleanupNodes(vcQuadTree *pQuadTree)
 {
   for (uint32_t i = 0; i < pQuadTree->nodes.used; ++i)
-    vcQuadTree_CleanupNode(&pQuadTree->nodes.pPool[i]);
+    vcQuadTree_CleanupNode(pQuadTree, &pQuadTree->nodes.pPool[i]);
 
   pQuadTree->nodes.used = 0;
 }
@@ -476,11 +480,12 @@ void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPositio
   for (int j = 0; j < 6; ++j)
     pQuadTree->frustumPlanes[j] /= udMag3(pQuadTree->frustumPlanes[j]);
 
+  // TODO: map height
   // Detect changes to DEM settings
   bool demChangeOccurred = pQuadTree->demWasEnabled != pQuadTree->pSettings->maptiles.demEnabled;
-  demChangeOccurred = demChangeOccurred || (udAbs(pQuadTree->previousMapHeight - pQuadTree->pSettings->maptiles.mapHeight) > UD_EPSILON);
+  demChangeOccurred = demChangeOccurred || (udAbs(pQuadTree->previousMapHeight - pQuadTree->pSettings->maptiles.layers[0].mapHeight) > UD_EPSILON);
   pQuadTree->demWasEnabled = pQuadTree->pSettings->maptiles.demEnabled;
-  pQuadTree->previousMapHeight = pQuadTree->pSettings->maptiles.mapHeight;
+  pQuadTree->previousMapHeight = pQuadTree->pSettings->maptiles.layers[0].mapHeight;
 
   if (demChangeOccurred)
     vcQuadTree_RecursiveUpdateNodesAABB(pQuadTree, &pQuadTree->nodes.pPool[pQuadTree->rootIndex]);
@@ -543,8 +548,16 @@ bool vcQuadTree_IsBlockUsed(vcQuadTree *pQuadTree, uint32_t blockIndex)
 
 bool vcQuadTree_RecursiveHasDrawData(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
 {
-  if (pNode->colourInfo.data.pTexture || pNode->demInfo.data.pTexture)
+  if (pNode->demInfo.data.pTexture != nullptr)
     return true;
+
+
+  // check payloads
+  for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)
+  {
+    if (pNode->pPayloads[i].data.pTexture != nullptr)
+      return true;
+  }
 
   if (!vcQuadTree_IsLeafNode(pNode))
   {
@@ -563,8 +576,16 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
     vcQuadTreeNode *pChildNode = &pQuadTree->nodes.pPool[blockIndex + c];
-    if (pChildNode->colourInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading || pChildNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+    if (pChildNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
       return false;
+
+    // check payloads
+    for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)
+    {
+      if (pChildNode->pPayloads[i].loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloading)
+        return false;
+
+    }
 
     if (pChildNode->touched && (pChildNode->serverId == pQuadTree->serverId))
       return false;
@@ -582,15 +603,20 @@ bool vcQuadTree_ShouldFreeBlock(vcQuadTree *pQuadTree, uint32_t blockIndex)
       while (parentIndex != INVALID_NODE_INDEX)
       {
         vcQuadTreeNode *pParentNode = &pQuadTree->nodes.pPool[parentIndex];
+
+        bool hasPayloadData = false;
+        for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)
+          hasPayloadData = hasPayloadData || (pParentNode->pPayloads[i].data.pTexture != nullptr);
+
         if (pParentNode->touched)
         {
           // We have an ancestor that has no texture, so it will need this node
-          if (pParentNode->colourInfo.data.pTexture == nullptr)
+          if (!hasPayloadData)
             return false;
 
           break;
         }
-        else if (pParentNode->colourInfo.data.pTexture != nullptr)
+        else if (hasPayloadData)
         {
           // there exists a better 'non-touched' ancestor that could be used instead of this one, throw out
           return true;
@@ -632,7 +658,7 @@ void vcQuadTree_Prune(vcQuadTree *pQuadTree)
             pQuadTree->nodes.pPool[childBlockIndex + c2].parentIndex = INVALID_NODE_INDEX;
         }
 
-        vcQuadTree_CleanupNode(pNode);
+        vcQuadTree_CleanupNode(pQuadTree, pNode);
       }
     }
   }

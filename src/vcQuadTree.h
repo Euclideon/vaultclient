@@ -95,12 +95,12 @@ struct vcQuadTreeNode
   udInt2 demHeightsCopySize;
 
   // node payloads
-  vcNodeRenderInfo colourInfo;
-  vcNodeRenderInfo demInfo;
+  vcNodeRenderInfo pPayloads[vcMaxTileLayerCount];
 
   // TODO: (AB#1751)
   // Note: 'normalInfo' piggy backs a lot of its state from 'demInfo'.
   vcNodeRenderInfo normalInfo;
+  vcNodeRenderInfo demInfo;
 };
 
 struct vcQuadTreeMetaData
@@ -133,6 +133,7 @@ struct vcQuadTree
 
   uint32_t rootIndex;
   bool completeRerootRequired;
+
   struct
   {
     vcQuadTreeNode *pPool;
@@ -147,7 +148,6 @@ struct vcQuadTreeViewInfo
   udInt3 slippyCoords;
   udDouble3 cameraPosition;
   udDouble3 cameraPositionZeroAltitude;
-  double quadTreeHeightOffset;
   udDouble4x4 viewProjectionMatrix;
   int maxVisibleTileLevel;
 };
