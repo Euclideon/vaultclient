@@ -3,8 +3,8 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
-#include "vdkError.h"
+#include "udRenderContext.h"
+#include "udError.h"
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
@@ -16,7 +16,7 @@
 class vcPOIState_General;
 struct vcRenderPolyInstance;
 struct udWorkerPool;
-struct vdkPointCloud;
+struct udPointCloud;
 struct vcTexture;
 struct vcState;
 struct vcFenceRenderer;
@@ -101,7 +101,7 @@ private:
   vcState *m_pProgramState;
 
 public:
-  vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcPOI(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcPOI();
 
   void OnNodeUpdate(vcState *pProgramState);

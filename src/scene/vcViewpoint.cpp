@@ -8,7 +8,7 @@
 
 #include "imgui.h"
 
-vcViewpoint::vcViewpoint(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcViewpoint::vcViewpoint(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Loaded;
@@ -18,15 +18,15 @@ vcViewpoint::vcViewpoint(vcProject *pProject, vdkProjectNode *pNode, vcState *pP
 
 void vcViewpoint::OnNodeUpdate(vcState *pProgramState)
 {
-  vdkError result;
+  udError result;
 
-  result = vdkProjectNode_GetMetadataDouble(m_pNode, "transform.heading", &m_CameraHeadingPitch.x, 0.0);
-  result = vdkProjectNode_GetMetadataDouble(m_pNode, "transform.pitch", &m_CameraHeadingPitch.y, 0.0);
+  result = udProjectNode_GetMetadataDouble(m_pNode, "transform.heading", &m_CameraHeadingPitch.x, 0.0);
+  result = udProjectNode_GetMetadataDouble(m_pNode, "transform.pitch", &m_CameraHeadingPitch.y, 0.0);
 
-  if (result != vE_Success)
+  if (result != udE_Success)
   {
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.x", &m_CameraHeadingPitch.x, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_CameraHeadingPitch.y, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.x", &m_CameraHeadingPitch.x, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_CameraHeadingPitch.y, 0.0);
   }
 
   ChangeProjection(pProgramState->geozone);
@@ -46,7 +46,7 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   // Clamped this to the same limitations as the camera
   m_CameraHeadingPitch = udDouble2::create(udMod(sumRotation.x, UD_2PI), udClampWrap(sumRotation.y, -UD_HALF_PI, UD_HALF_PI));
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
 }
 
 void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -68,10 +68,10 @@ void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (changed)
   {
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
 
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);
   }
 }
 
@@ -82,10 +82,10 @@ void vcViewpoint::HandleSceneEmbeddedUI(vcState *pProgramState)
     m_CameraHeadingPitch = pProgramState->camera.headingPitch;
     m_CameraPosition = pProgramState->camera.position;
 
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_CameraPosition, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
 
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);
   }
 }
 

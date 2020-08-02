@@ -9,21 +9,21 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
-const char *vcProject_ErrorToString(vdkError error)
+const char *vcProject_ErrorToString(udError error)
 {
   switch (error)
   {
-  case vE_InvalidParameter:
+  case udE_InvalidParameter:
     return vcString::Get("errorInvalidParameter");
-  case vE_OpenFailure:
+  case udE_OpenFailure:
     return vcString::Get("errorOpenFailure");
-  case vE_NotSupported:
+  case udE_NotSupported:
     return vcString::Get("errorUnsupported");
-  case vE_WriteFailure:
+  case udE_WriteFailure:
     return vcString::Get("errorFileExists");
-  case vE_ExceededAllowedLimit:
+  case udE_ExceededAllowedLimit:
     return vcString::Get("errorExceedsProjectLimit");
-  case vE_Failure: // Falls through
+  case udE_Failure: // Falls through
   default:
     return vcString::Get("errorUnknown");
   }
@@ -41,7 +41,7 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
 
-  vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
+  udProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
 
   pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
@@ -87,9 +87,9 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
     pProgramState->camera.headingPitch = udDouble2::zero();
   }
 
-  vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->geozone.srid);
-  vdkProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", srid);
-  vdkProject_Save(pProgramState->activeProject.pProject);
+  udProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->geozone.srid);
+  udProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", srid);
+  udProject_Save(pProgramState->activeProject.pProject);
 }
 
 bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int srid)
@@ -97,8 +97,8 @@ bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int s
   if (pProgramState == nullptr || pName == nullptr)
     return false;
 
-  vdkProject *pNewProject = nullptr;
-  if (vdkProject_CreateInMemory(&pNewProject, pName) != vE_Success)
+  udProject *pNewProject = nullptr;
+  if (udProject_CreateInMemory(&pNewProject, pName) != udE_Success)
     return false;
 
   if (pProgramState->activeProject.pProject != nullptr)
@@ -110,21 +110,21 @@ bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int s
   return true;
 }
 
-vdkError   vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName, const char *pProjectName, int srid)
+udError   vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName, const char *pProjectName, int srid)
 {
   if (pProgramState == nullptr)
-    return vE_Failure;
+    return udE_Failure;
   if (pFileName == nullptr || pFileName[0] == '\0')
-    return vE_InvalidParameter;
+    return udE_InvalidParameter;
   if (pProjectName == nullptr || pProjectName[0] == '\0')
-    return vE_InvalidParameter;
+    return udE_InvalidParameter;
 
   if (udFileExists(pFileName) == udR_Success)
-    return vE_WriteFailure;
+    return udE_WriteFailure;
 
-  vdkProject *pNewProject = nullptr;
-  vdkError error = vdkProject_CreateInFile(&pNewProject, pProjectName, pFileName);
-  if (error != vE_Success)
+  udProject *pNewProject = nullptr;
+  udError error = udProject_CreateInFile(&pNewProject, pProjectName, pFileName);
+  if (error != udE_Success)
     return error;
 
   if (pProgramState->activeProject.pProject != nullptr)
@@ -138,14 +138,14 @@ vdkError   vcProject_CreateFileScene(vcState *pProgramState, const char *pFileNa
   return error;
 }
 
-vdkError vcProject_CreateServerScene(vcState *pProgramState, const char *pName, const char *pGroupUUID, int srid)
+udError vcProject_CreateServerScene(vcState *pProgramState, const char *pName, const char *pGroupUUID, int srid)
 {
   if (pProgramState == nullptr || pName == nullptr || pGroupUUID == nullptr)
-    return vE_InvalidParameter;
+    return udE_InvalidParameter;
 
-  vdkProject *pNewProject = nullptr;
-  vdkError error = vdkProject_CreateInServer(pProgramState->pVDKContext, &pNewProject, pName, pGroupUUID);
-  if (error != vE_Success)
+  udProject *pNewProject = nullptr;
+  udError error = udProject_CreateInServer(pProgramState->pUDSDKContext, &pNewProject, pName, pGroupUUID);
+  if (error != udE_Success)
     return error;
 
   if (pProgramState->activeProject.pProject != nullptr)
@@ -155,18 +155,18 @@ vdkError vcProject_CreateServerScene(vcState *pProgramState, const char *pName, 
   vcProject_InitScene(pProgramState, srid);
 
   const char *pProjectUUID = nullptr;
-  vdkProject_GetProjectUUID(pNewProject, &pProjectUUID);
+  udProject_GetProjectUUID(pNewProject, &pProjectUUID);
   vcProject_UpdateProjectHistory(pProgramState, pProjectUUID, true);
 
   return error;
 }
 
-bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pParentNode)
+bool vcProject_ExtractCameraRecursive(vcState *pProgramState, udProjectNode *pParentNode)
 {
-  vdkProjectNode *pNode = pParentNode->pFirstChild;
+  udProjectNode *pNode = pParentNode->pFirstChild;
   while (pNode != nullptr)
   {
-    if (pNode->itemtype == vdkPNT_Viewpoint)
+    if (pNode->itemtype == udPNT_Viewpoint)
     {
       udDouble3 position = udDouble3::zero();
       udDouble2 headingPitch = udDouble2::zero();
@@ -178,8 +178,8 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pP
       if (numPoints == 1)
         position = pPoint[0];
 
-      vdkProjectNode_GetMetadataDouble(pNode, "transform.heading", &headingPitch.x, 0.0);
-      vdkProjectNode_GetMetadataDouble(pNode, "transform.pitch", &headingPitch.y, 0.0);
+      udProjectNode_GetMetadataDouble(pNode, "transform.heading", &headingPitch.x, 0.0);
+      udProjectNode_GetMetadataDouble(pNode, "transform.pitch", &headingPitch.y, 0.0);
 
       pProgramState->camera.position = position;
       pProgramState->camera.headingPitch = headingPitch;
@@ -188,7 +188,7 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, vdkProjectNode *pP
       memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
       return true;
     }
-    else if (pNode->itemtype == vdkPNT_PointCloud)
+    else if (pNode->itemtype == udPNT_PointCloud)
     {
       udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
     }
@@ -250,9 +250,9 @@ void vcProject_RemoveHistoryItem(vcState *pProgramState, size_t itemPosition)
 
 bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
 {
-  vdkProject *pProject = nullptr;
-  vdkError vResult = vdkProject_LoadFromServer(pProgramState->pVDKContext, &pProject, pProjectID);
-  if (vResult == vE_Success)
+  udProject *pProject = nullptr;
+  udError vResult = udProject_LoadFromServer(pProgramState->pUDSDKContext, &pProject, pProjectID);
+  if (vResult == udE_Success)
   {
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
@@ -263,21 +263,21 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     pProgramState->sceneExplorer.clickedItem = {};
 
     pProgramState->activeProject.pProject = pProject;
-    vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
+    udProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
     pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
     pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
     int32_t projectZone = vcPSZ_StandardGeoJSON; // LongLat
-    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, vcPSZ_StandardGeoJSON);
+    udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, vcPSZ_StandardGeoJSON);
     if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
       udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, vcPSZ_StandardGeoJSON);
 
     int32_t recommendedSRID = -1;
-    if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
+    if (udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == udE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
     const char *pInfo = nullptr;
-    if (vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == vE_Success)
+    if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
       vcModals_OpenModal(pProgramState, vcMT_ProjectInfo);
 
     vcProject_ExtractCamera(pProgramState);
@@ -289,9 +289,9 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     projectError.source = vcES_ProjectChange;
     projectError.pData = udStrdup(pProjectID);
 
-    if (vResult == vE_NotFound)
+    if (vResult == udE_NotFound)
       projectError.resultCode = udR_ObjectNotFound;
-    else if (vResult == vE_ParseError)
+    else if (vResult == udE_ParseError)
       projectError.resultCode = udR_ParseError;
     else
       projectError.resultCode = udR_Failure_;
@@ -307,8 +307,8 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
 bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
 {
   bool success = false;
-  vdkProject *pProject = nullptr;
-  if (vdkProject_LoadFromFile(&pProject, pFilename) == vE_Success)
+  udProject *pProject = nullptr;
+  if (udProject_LoadFromFile(&pProject, pFilename) == udE_Success)
   {
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
@@ -319,7 +319,7 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
     pProgramState->sceneExplorer.clickedItem = {};
 
     pProgramState->activeProject.pProject = pProject;
-    vdkProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
+    udProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
     pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
     pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
 
@@ -328,16 +328,16 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
     pProgramState->activeProject.pRelativeBase = udStrdup(temp.GetPath());
 
     int32_t projectZone = vcPSZ_StandardGeoJSON; // LongLat
-    vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, vcPSZ_StandardGeoJSON);
+    udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, vcPSZ_StandardGeoJSON);
     if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
       udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, vcPSZ_StandardGeoJSON);
 
     int32_t recommendedSRID = -1;
-    if (vdkProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == vE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
+    if (udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == udE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
     const char *pInfo = nullptr;
-    if (vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == vE_Success)
+    if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
       vcModals_OpenModal(pProgramState, vcMT_ProjectInfo);
 
     vcProject_ExtractCamera(pProgramState);
@@ -360,10 +360,10 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
   return success;
 }
 
-// This won't be required after destroy list works in vdkProject
-void vcProject_RecursiveDestroyUserData(vcState *pProgramData, vdkProjectNode *pFirstSibling)
+// This won't be required after destroy list works in udProject
+void vcProject_RecursiveDestroyUserData(vcState *pProgramData, udProjectNode *pFirstSibling)
 {
-  vdkProjectNode *pNode = pFirstSibling;
+  udProjectNode *pNode = pFirstSibling;
 
   do
   {
@@ -402,7 +402,7 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
 
   udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
-  vdkProject_Release(&pProject->pProject);
+  udProject_Release(&pProject->pProject);
 }
 
 bool vcProject_Save(vcState *pProgramState)
@@ -410,15 +410,15 @@ bool vcProject_Save(vcState *pProgramState)
   if (pProgramState == nullptr)
     return false;
 
-  vdkError status = vdkProject_Save(pProgramState->activeProject.pProject);
+  udError status = udProject_Save(pProgramState->activeProject.pProject);
 
-  if (status != vE_Success)
+  if (status != udE_Success)
   {
     vcState::ErrorItem projectError = {};
     projectError.source = vcES_ProjectChange;
     projectError.pData = nullptr;
 
-    if (status == vE_WriteFailure)
+    if (status == udE_WriteFailure)
       projectError.resultCode = udR_WriteFailure;
     else
       projectError.resultCode = udR_Failure_;
@@ -431,7 +431,7 @@ bool vcProject_Save(vcState *pProgramState)
     pProgramState->lastSuccessfulSave = udGetEpochSecsUTCf();
   }
 
-  return (status == vE_Success);
+  return (status == udE_Success);
 }
 
 void vcProject_AutoCompletedName(udFilename *exportFilename, const char *pFileName, const char *pDefaultName)
@@ -463,7 +463,7 @@ bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverr
   projectError.source = vcES_ProjectChange;
   projectError.pData = udStrdup(exportFilename.GetFilenameWithExt());
 
-  if (vdkProject_SaveToFile(pProgramState->activeProject.pProject, exportFilename.GetPath()) == vE_Success)
+  if (udProject_SaveToFile(pProgramState->activeProject.pProject, exportFilename.GetPath()) == udE_Success)
     projectError.resultCode = udR_Success;
   else
     projectError.resultCode = udR_WriteFailure;
@@ -476,20 +476,20 @@ bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverr
   return (projectError.resultCode == udR_Success);
 }
 
-vdkError vcProject_SaveAsServer(vcState *pProgramState, const char *pProjectID)
+udError vcProject_SaveAsServer(vcState *pProgramState, const char *pProjectID)
 {
   if (pProgramState == nullptr || pProjectID == nullptr)
-    return vE_InvalidParameter;
+    return udE_InvalidParameter;
 
   vcState::ErrorItem projectError = {};
   projectError.source = vcES_ProjectChange;
   projectError.pData = udStrdup(pProjectID);
 
-  vdkError result = vdkProject_SaveToServer(pProgramState->pVDKContext, pProgramState->activeProject.pProject, pProjectID);
+  udError result = udProject_SaveToServer(pProgramState->pUDSDKContext, pProgramState->activeProject.pProject, pProjectID);
 
-  if (result == vE_Success)
+  if (result == udE_Success)
     projectError.resultCode = udR_Success;
-  else if (result == vE_ExceededAllowedLimit)
+  else if (result == udE_ExceededAllowedLimit)
     projectError.resultCode = udR_ExceededAllowedLimit;
   else
     projectError.resultCode = udR_WriteFailure;
@@ -507,13 +507,13 @@ bool vcProject_AbleToChange(vcState *pProgramState)
   if (pProgramState == nullptr || !pProgramState->hasContext)
     return false;
 
-  if (vdkProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == vE_NotFound)
+  if (udProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == udE_NotFound)
     return true;
 
   return vcModals_AllowDestructiveAction(pProgramState, vcString::Get("menuChangeScene"), vcString::Get("menuChangeSceneConfirm"));
 }
 
-void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
+void vcProject_RemoveItem(vcState *pProgramState, udProjectNode *pParent, udProjectNode *pNode)
 {
   for (int32_t i = 0; i < (int32_t)pProgramState->sceneExplorer.selectedItems.size(); ++i)
   {
@@ -542,12 +542,12 @@ void vcProject_RemoveItem(vcState *pProgramState, vdkProjectNode *pParent, vdkPr
     }
   }
 
-  vdkProjectNode_RemoveChild(pProgramState->activeProject.pProject, pParent, pNode);
+  udProjectNode_RemoveChild(pProgramState->activeProject.pProject, pParent, pNode);
 }
 
-void vcProject_RemoveSelectedFolder(vcState *pProgramState, vdkProjectNode *pFolderNode)
+void vcProject_RemoveSelectedFolder(vcState *pProgramState, udProjectNode *pFolderNode)
 {
-  vdkProjectNode *pNode = pFolderNode->pFirstChild;
+  udProjectNode *pNode = pFolderNode->pFirstChild;
 
   while (pNode != nullptr)
   {
@@ -556,7 +556,7 @@ void vcProject_RemoveSelectedFolder(vcState *pProgramState, vdkProjectNode *pFol
     if (pItem != nullptr && pItem->m_selected)
       vcProject_RemoveItem(pProgramState, pFolderNode, pNode);
 
-    if (pNode->itemtype == vdkPNT_Folder)
+    if (pNode->itemtype == udPNT_Folder)
       vcProject_RemoveSelectedFolder(pProgramState, pNode);
 
     pNode = pNode->pNextSibling;
@@ -572,19 +572,19 @@ void vcProject_RemoveSelected(vcState *pProgramState)
   pProgramState->sceneExplorer.clickedItem = {};
 }
 
-bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem)
+bool vcProject_ContainsItem(udProjectNode *pParentNode, udProjectNode *pItem)
 {
   if (pParentNode == pItem)
     return true;
 
-  vdkProjectNode *pNode = pParentNode->pFirstChild;
+  udProjectNode *pNode = pParentNode->pFirstChild;
 
   while (pNode != nullptr)
   {
     if (pNode == pItem)
       return true;
 
-    if (pNode->itemtype == vdkPNT_Folder && vcProject_ContainsItem(pNode, pItem))
+    if (pNode->itemtype == udPNT_Folder && vcProject_ContainsItem(pNode, pItem))
       return true;
 
     pNode = pNode->pNextSibling;
@@ -593,13 +593,13 @@ bool vcProject_ContainsItem(vdkProjectNode *pParentNode, vdkProjectNode *pItem)
   return false;
 }
 
-static void vcProject_SelectRange(vcState *pProgramState, vdkProjectNode *pNode1, vdkProjectNode *pNode2)
+static void vcProject_SelectRange(vcState *pProgramState, udProjectNode *pNode1, udProjectNode *pNode2)
 {
-  udChunkedArray<vdkProjectNode *> stack;
+  udChunkedArray<udProjectNode *> stack;
   stack.Init(32);
   stack.PushBack(pProgramState->activeProject.pRoot);
 
-  vdkProjectNode *pChild = pProgramState->activeProject.pRoot->pFirstChild;
+  udProjectNode *pChild = pProgramState->activeProject.pRoot->pFirstChild;
   bool select = false;
   do
   {
@@ -652,14 +652,14 @@ static void vcProject_SelectRange(vcState *pProgramState, vdkProjectNode *pNode1
   stack.Deinit();
 }
 
-void vcProject_SelectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
+void vcProject_SelectItem(vcState *pProgramState, udProjectNode *pParent, udProjectNode *pNode)
 {
   vcSceneItem *pItem = (vcSceneItem*)pNode->pUserData;
 
   // If we're doing range selection, else normal selection
   if (pItem != nullptr && pProgramState->sceneExplorer.selectStartItem.pItem != nullptr && pProgramState->sceneExplorer.selectStartItem.pItem != pNode)
   {
-    vdkProjectNode *pSelectNode = pProgramState->sceneExplorer.selectStartItem.pItem;
+    udProjectNode *pSelectNode = pProgramState->sceneExplorer.selectStartItem.pItem;
     vcProject_SelectRange(pProgramState, pNode, pSelectNode);
   }
   else if (pItem != nullptr && !pItem->m_selected)
@@ -669,7 +669,7 @@ void vcProject_SelectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkPr
   }
 }
 
-void vcProject_UnselectItem(vcState *pProgramState, vdkProjectNode *pParent, vdkProjectNode *pNode)
+void vcProject_UnselectItem(vcState *pProgramState, udProjectNode *pParent, udProjectNode *pNode)
 {
   vcSceneItem *pItem = (vcSceneItem *)pNode->pUserData;
 
@@ -688,13 +688,13 @@ void vcProject_UnselectItem(vcState *pProgramState, vdkProjectNode *pParent, vdk
   }
 }
 
-void vcProject_ClearSelection(vdkProjectNode *pParentNode)
+void vcProject_ClearSelection(udProjectNode *pParentNode)
 {
-  vdkProjectNode *pNode = pParentNode->pFirstChild;
+  udProjectNode *pNode = pParentNode->pFirstChild;
 
   while (pNode != nullptr)
   {
-    if (pNode->itemtype == vdkPNT_Folder)
+    if (pNode->itemtype == udPNT_Folder)
       vcProject_ClearSelection(pNode);
     else if (pNode->pUserData != nullptr)
       ((vcSceneItem*)pNode->pUserData)->m_selected = false;
@@ -733,14 +733,14 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
   return true;
 }
 
-bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
+bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
 {
   if (pProject == nullptr || pNode == nullptr)
     return false;
 
   udDouble3 *pGeom = nullptr;
 
-  vdkError result = vE_Failure;
+  udError result = udE_Failure;
 
   if (zone.srid != 0 && pProject->baseZone.srid != 0) //Geolocated
   {
@@ -750,18 +750,18 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, vdkProjectNo
     for (int i = 0; i < numPoints; ++i)
       pGeom[i] = udGeoZone_TransformPoint(pPoints[i], zone, pProject->baseZone);
 
-    result = vdkProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pGeom);
+    result = udProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pGeom);
     udFree(pGeom);
   }
   else
   {
-    result = vdkProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pPoints);
+    result = udProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pPoints);
   }
 
-  return (result == vE_Success);
+  return (result == udE_Success);
 }
 
-bool vcProject_UpdateNodeGeometryFromLatLong(vcProject *pProject, vdkProjectNode *pNode, vdkProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
+bool vcProject_UpdateNodeGeometryFromLatLong(vcProject *pProject, udProjectNode *pNode, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
 {
   //TODO: Optimise this
   udGeoZone zone;
@@ -770,7 +770,7 @@ bool vcProject_UpdateNodeGeometryFromLatLong(vcProject *pProject, vdkProjectNode
   return vcProject_UpdateNodeGeometryFromCartesian(pProject, pNode, zone, newType, pPoints, numPoints);
 }
 
-bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, vdkProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)
+bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)
 {
   if (pProject == nullptr || pNode == nullptr)
     return false;
@@ -797,14 +797,14 @@ bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, vdkProjectNode 
   return true;
 }
 
-void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **ppCurrentText)
+void vcProject_ExtractAttributionText(udProjectNode *pFolderNode, const char **ppCurrentText)
 {
   //TODO: Cache attribution text; if nothing was added/removed from the scene then it doesn't need to be updated
-  vdkProjectNode *pNode = pFolderNode->pFirstChild;
+  udProjectNode *pNode = pFolderNode->pFirstChild;
 
   while (pNode != nullptr)
   {
-    if (pNode->pUserData != nullptr && pNode->itemtype == vdkProjectNodeType::vdkPNT_PointCloud)
+    if (pNode->pUserData != nullptr && pNode->itemtype == udProjectNodeType::udPNT_PointCloud)
     {
       vcModel *pModel = nullptr;
       const char *pAttributionText = nullptr;
@@ -825,7 +825,7 @@ void vcProject_ExtractAttributionText(vdkProjectNode *pFolderNode, const char **
       }
     }
 
-    if (pNode->itemtype == vdkPNT_Folder)
+    if (pNode->itemtype == udPNT_Folder)
       vcProject_ExtractAttributionText(pNode, ppCurrentText);
 
     pNode = pNode->pNextSibling;

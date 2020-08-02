@@ -1,6 +1,6 @@
 #include "vcWebFile.h"
 
-#include "vdkWeb.h"
+#include "udWeb.h"
 
 #include "udPlatformUtil.h"
 #include "udFile.h"
@@ -11,14 +11,14 @@ static udResult vcWebFile_Load(udFile *pFile, void **ppBuffer, int64_t *pBufferL
 {
   UDTRACE();
   udResult result = udR_Success;
-  vdkWebOptions options = {};
+  udWebOptions options = {};
   const char *pData = nullptr;
   uint64_t dataLength = 0;
   int responseCode = 0;
 
-  options.method = vdkWM_GET;
+  options.method = udWM_GET;
 
-  UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
+  UD_ERROR_IF(udWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != udE_Success, udR_ReadFailure);
 
   *ppBuffer = udMemDup(pData, dataLength, 1, udAF_None);
   UD_ERROR_NULL(*ppBuffer, udR_MemoryAllocationFailure);
@@ -29,7 +29,7 @@ static udResult vcWebFile_Load(udFile *pFile, void **ppBuffer, int64_t *pBufferL
 
 epilogue:
   if (pData)
-    vdkWeb_ReleaseResponse(&pData);
+    udWeb_ReleaseResponse(&pData);
   return result;
 }
 
@@ -37,20 +37,20 @@ static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLe
 {
   UDTRACE();
   udResult result = udR_Success;
-  vdkWebOptions options = {};
+  udWebOptions options = {};
   const char *pData = nullptr;
   const char *pDataOffset = nullptr;
   uint64_t dataLength = 0;
   int responseCode = 0;
 
-  options.method = vdkWM_GET;
+  options.method = udWM_GET;
   options.rangeBegin = (uint64_t)seekOffset;
   options.rangeEnd = (uint64_t)(seekOffset + bufferLength - 1);
 
   if ((int64_t)options.rangeEnd >= pFile->fileLength && pFile->fileLength > 0)
     options.rangeEnd = (uint64_t)(pFile->fileLength - 1);
 
-  UD_ERROR_IF(vdkWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != vE_Success, udR_ReadFailure);
+  UD_ERROR_IF(udWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != udE_Success, udR_ReadFailure);
   pDataOffset = pData;
 
   // If the range was specified and the server responded with a 200 then this handles getting the correct part of the buffer
@@ -68,7 +68,7 @@ static udResult vcWebFile_SeekRead(udFile *pFile, void *pBuffer, size_t bufferLe
 
 epilogue:
   if (pData)
-    vdkWeb_ReleaseResponse(&pData);
+    udWeb_ReleaseResponse(&pData);
   return result;
 }
 
@@ -87,12 +87,12 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
   UDTRACE();
   udFile *pFile = nullptr;
   udResult result;
-  vdkWebOptions options = {};
+  udWebOptions options = {};
   const char *pData = nullptr;
   uint64_t dataLength = 0;
   int responseCode = 0;
 
-  options.method = vdkWM_HEAD;
+  options.method = udWM_HEAD;
 
   UD_ERROR_IF(flags & udFOF_Write, udR_NotAllowed);
   UD_ERROR_IF(flags & udFOF_Create, udR_NotAllowed);
@@ -106,7 +106,7 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
 
   if ((flags & udFOF_FastOpen) == 0)
   {
-    UD_ERROR_IF(vdkWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != vE_Success, udR_OpenFailure);
+    UD_ERROR_IF(udWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != udE_Success, udR_OpenFailure);
 
     // TODO: (EVC-615) JIRA task to expand these
     if (responseCode == 403)

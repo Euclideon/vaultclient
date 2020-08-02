@@ -34,7 +34,7 @@ project "udStream"
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "ImDrawIdx=int" }
 
-	injectvaultsdkbin()
+	ProcessudSDK()
 
 	local excludedSourceFileNames = {}
 	if _OPTIONS["gfxapi"] ~= "opengl" then
@@ -145,9 +145,9 @@ project "udStream"
 		}
 
 	filter { "system:ios" }
-		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
+		files { "iOS-Info.plist", "builds/libudSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
 		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
-		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
+		xcodebuildresources { "libudSDK", "Images.xcassets" }
 		xcodebuildsettings { ["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }
 		removefiles { "3rdParty/glew/glew.c" }
 		libdirs { "3rdParty/SDL2-2.0.8/lib/ios" }
@@ -163,11 +163,11 @@ project "udStream"
 		links { "GLEW" }
 		linkoptions  { "-s USE_WEBGL2=1", "-s FULL_ES3=1", --[["-s DEMANGLE_SUPPORT=1",]] "-s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\", \"getValue\", \"setValue\", \"UTF8ToString\", \"stringToUTF8\"]'" }
 
-	filter { "system:emscripten", "options:force-vaultsdk" }
+	filter { "system:emscripten", "options:force-udsdk" }
 		removeincludedirs { "3rdParty/udcore/Include" }
 		removelinks { "udCore" .. (projectSuffix or "") }
 
-	filter { "system:emscripten", "options:not force-vaultsdk" }
+	filter { "system:emscripten", "options:not force-udsdk" }
 		removefiles { "src/vCore/vUUID.cpp", "src/vCore/vWorkerThread.cpp" }
 
 	filter { "system:not windows" }

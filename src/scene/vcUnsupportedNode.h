@@ -9,7 +9,7 @@ struct vcRenderData;
 class vcUnsupportedNode : public vcSceneItem
 {
 public:
-  vcUnsupportedNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcUnsupportedNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcUnsupportedNode() {};
 
   void OnNodeUpdate(vcState *pProgramState);

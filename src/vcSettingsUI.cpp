@@ -14,7 +14,7 @@
 #include "vcProxyHelper.h"
 #include "vcStringFormat.h"
 
-#include "vdkConfig.h"
+#include "udConfig.h"
 
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "stb_image.h"
@@ -421,7 +421,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
               pProgramState->settings.loginInfo.testing = false;
               pProgramState->settings.loginInfo.tested = true;
             }, nullptr, true, [pProgramState](void*) {
-              if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
+              if (pProgramState->settings.loginInfo.testStatus == udE_ProxyAuthRequired)
                 pProgramState->settings.loginInfo.requiresProxyAuth = true;
             });
           }
@@ -435,7 +435,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           else if (pProgramState->settings.loginInfo.tested)
           {
             ImGui::SameLine();
-            if (pProgramState->settings.loginInfo.testStatus == vE_Success)
+            if (pProgramState->settings.loginInfo.testStatus == udE_Success)
             {
               vcIGSW_ShowLoadStatusIndicator(vcSLS_Success);
               ImGui::TextUnformatted(vcString::Get("loginProxyTestSuccess"));
@@ -445,13 +445,13 @@ void vcSettingsUI_Show(vcState *pProgramState)
               char buffer[256];
               vcIGSW_ShowLoadStatusIndicator(vcSLS_Failed);
 
-              if (pProgramState->settings.loginInfo.testStatus == vE_SecurityFailure)
+              if (pProgramState->settings.loginInfo.testStatus == udE_SecurityFailure)
                 ImGui::TextUnformatted(vcString::Get("loginErrorSecurity"));
-              else if (pProgramState->settings.loginInfo.testStatus == vE_ConnectionFailure)
+              else if (pProgramState->settings.loginInfo.testStatus == udE_ConnectionFailure)
                 ImGui::TextUnformatted(vcString::Get("loginProxyTestCouldNotConnect"));
-              else if (pProgramState->settings.loginInfo.testStatus == vE_ProxyError)
+              else if (pProgramState->settings.loginInfo.testStatus == udE_ProxyError)
                 ImGui::TextUnformatted(vcString::Get("loginErrorProxy"));
-              else if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
+              else if (pProgramState->settings.loginInfo.testStatus == udE_ProxyAuthRequired)
                 ImGui::TextUnformatted(vcString::Get("loginErrorProxyAuthFailed"));
               else
                 ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("loginProxyTestFailed"), udTempStr("%d", pProgramState->settings.loginInfo.testStatus)));
@@ -464,23 +464,23 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
             if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy))
             {
-              vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+              udConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
               pProgramState->settings.loginInfo.tested = false;
             }
 
             ImGui::SameLine();
             if (ImGui::Button(vcString::Get("loginProxyAutodetect")))
             {
-              if (vcProxyHelper_AutoDetectProxy(pProgramState) == vE_Success)
+              if (vcProxyHelper_AutoDetectProxy(pProgramState) == udE_Success)
               {
                 udStrcpy(pProgramState->settings.loginInfo.proxy, pProgramState->settings.loginInfo.autoDetectProxyURL);
-                vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+                udConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
               }
             }
 
             if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent))
             {
-              vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+              udConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
               pProgramState->settings.loginInfo.tested = false;
             }
 
@@ -497,7 +497,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
                 if (ImGui::MenuItem(UAOptions[i]))
                 {
                   udStrcpy(pProgramState->settings.loginInfo.userAgent, UAStrings[i]);
-                  vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+                  udConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
                   pProgramState->settings.loginInfo.tested = false;
                 }
               }
@@ -506,7 +506,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
             if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
             {
-              vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
+              udConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
               pProgramState->settings.loginInfo.tested = false;
             }
 
@@ -541,7 +541,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
               if (updateInfo)
               {
                 pProgramState->settings.loginInfo.tested = false;
-                vdkConfig_SetProxyAuth(pProgramState->settings.loginInfo.proxyUsername, pProgramState->settings.loginInfo.proxyPassword);
+                udConfig_SetProxyAuth(pProgramState->settings.loginInfo.proxyUsername, pProgramState->settings.loginInfo.proxyPassword);
               }
 
               ImGui::Unindent();

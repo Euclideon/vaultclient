@@ -4,9 +4,9 @@
 #include "udChunkedArray.h"
 #include "udPlatformUtil.h"
 
-#include "vdkPointCloud.h"
-#include "vdkConvertCustom.h"
-#include "vdkTriangleVoxelizer.h"
+#include "udPointCloud.h"
+#include "udConvertCustom.h"
+#include "udTriangleVoxelizer.h"
 
 struct vcSceneLayerConvert
 {
@@ -20,9 +20,9 @@ struct vcSceneLayerConvert
   size_t totalPrimIndex;
   size_t totalPrimCount;
   size_t totalPoints;
-  vdkTriangleVoxelizer *pTrivox;
+  udTriangleVoxelizer *pTrivox;
 
-  vdkConvertCustomItemFlags flags;
+  udConvertCustomItemFlags flags;
   size_t pointsReturned;
   int64_t triangleArea;
   int64_t triangleAreaReturned; // Area of triangles returned so far (used to estimate how many to go)
@@ -145,12 +145,12 @@ epilogue:
   return result;
 }
 
-vdkError vcSceneLayerConvert_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, vdkConvertCustomItemFlags flags)
+udError vcSceneLayerConvert_Open(udConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, udConvertCustomItemFlags flags)
 {
   udUnused(origin);
 
   vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
-  vdkError result;
+  udError result;
 
   pConvertInput->sourceResolution = pointResolution;
   pSceneLayerConvert->flags = flags;
@@ -163,51 +163,51 @@ vdkError vcSceneLayerConvert_Open(vdkConvertCustomItem *pConvertInput, uint32_t 
   pSceneLayerConvert->leafIndex = 0;
 
   if (pSceneLayerConvert->leafNodes.Init(128) != udR_Success)
-    UD_ERROR_SET(vE_Failure);
+    UD_ERROR_SET(udE_Failure);
   
   // Recursively load child nodes
   if (vcSceneLayerConvert_GenerateLeafNodeList(pSceneLayerConvert) != udR_Success)
-    UD_ERROR_SET(vE_Failure);
+    UD_ERROR_SET(udE_Failure);
 
   if (vcSceneLayerConvert_GatherEstimates(pSceneLayerConvert, pConvertInput->sourceResolution) != udR_Success)
-    UD_ERROR_SET(vE_Failure);
+    UD_ERROR_SET(udE_Failure);
 
-  UD_ERROR_CHECK(vdkTriangleVoxelizer_Create(&pSceneLayerConvert->pTrivox, pointResolution));
+  UD_ERROR_CHECK(udTriangleVoxelizer_Create(&pSceneLayerConvert->pTrivox, pointResolution));
 
-  result = vE_Success;
+  result = udE_Success;
 epilogue:
 
   return result;
 }
 
-void vcSceneLayerConvert_Close(vdkConvertCustomItem *pConvertInput)
+void vcSceneLayerConvert_Close(udConvertCustomItem *pConvertInput)
 {
   vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
   pSceneLayerConvert->leafNodes.Deinit();
-  vdkTriangleVoxelizer_Destroy(&pSceneLayerConvert->pTrivox);
+  udTriangleVoxelizer_Destroy(&pSceneLayerConvert->pTrivox);
 }
 
-void vcSceneLayerConvert_Destroy(vdkConvertCustomItem *pConvertInput)
+void vcSceneLayerConvert_Destroy(udConvertCustomItem *pConvertInput)
 {
   vcSceneLayerConvert *pSceneLayerConvert = (vcSceneLayerConvert *)pConvertInput->pData;
   vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
-  vdkAttributeSet_Free(&pConvertInput->attributes);
+  udAttributeSet_Destroy(&pConvertInput->attributes);
   pConvertInput->pData = nullptr;
 }
 
-vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBufferI64 *pBuffer)
+udError vcSceneLayerConvert_ReadPointsInt(udConvertCustomItem *pConvertInput, udPointBufferI64 *pBuffer)
 {
-  vdkError result;
+  udError result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
   uint32_t pointCount = 0;
   udDouble3 sceneLayerOrigin = udDouble3::zero();
   bool allPointsReturned = false;
   udDouble3 localJobOriginOffset = udDouble3::zero();
 
-  UD_ERROR_NULL(pConvertInput, vE_Failure);
-  UD_ERROR_NULL(pConvertInput->pData, vE_Failure);
-  UD_ERROR_NULL(pBuffer, vE_Failure);
-  UD_ERROR_NULL(pBuffer->pAttributes, vE_Failure);
+  UD_ERROR_NULL(pConvertInput, udE_Failure);
+  UD_ERROR_NULL(pConvertInput->pData, udE_Failure);
+  UD_ERROR_NULL(pBuffer, udE_Failure);
+  UD_ERROR_NULL(pBuffer->pAttributes, udE_Failure);
 
   pSceneLayerConvert = (vcSceneLayerConvert*)pConvertInput->pData;
   memset(pBuffer->pAttributes, 0, pBuffer->attributeStride * pBuffer->pointsAllocated);
@@ -255,13 +255,13 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
             p2[i] = v2->position[i] + geometryOriginOffset[i];
           }
 
-          UD_ERROR_CHECK(vdkTriangleVoxelizer_SetTriangle(pSceneLayerConvert->pTrivox, p0, p1, p2));
+          UD_ERROR_CHECK(udTriangleVoxelizer_SetTriangle(pSceneLayerConvert->pTrivox, p0, p1, p2));
           pSceneLayerConvert->lastPrimedPrimitive = pSceneLayerConvert->primIndex;
         }
 
         double *pTriPositions = nullptr;
         double *pTriWeights = nullptr;
-        UD_ERROR_CHECK(vdkTriangleVoxelizer_GetPoints(pSceneLayerConvert->pTrivox, &pTriPositions, &pTriWeights, &pointCount, maxPoints));
+        UD_ERROR_CHECK(udTriangleVoxelizer_GetPoints(pSceneLayerConvert->pTrivox, &pTriPositions, &pTriWeights, &pointCount, maxPoints));
 
         // Handle everyNth here in one place, slightly inefficiently but with the benefit of simplicity for the rest of the function
         if (pSceneLayerConvert->everyNth > 1)
@@ -290,10 +290,10 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
         }
 
         // Assign attributes
-        if (pBuffer->attributes.standardContent & vdkSAC_ARGB)
+        if (pBuffer->attributes.content & udSAC_ARGB)
         {
           // TODO: (EVC-540) other handle variant attribute layouts
-          // Actually use `udAttribute_GetAttributeOffset(vdkCAC_ARGB, pBuffer->content)` correctly
+          // Actually use `udAttribute_GetAttributeOffset(udCAC_ARGB, pBuffer->content)` correctly
           uint32_t *pColour = (uint32_t*)udAddBytes(pBuffer->pAttributes, pBuffer->pointCount * pBuffer->attributeStride);
 
           if (pTextureData != nullptr)
@@ -368,24 +368,24 @@ vdkError vcSceneLayerConvert_ReadPointsInt(vdkConvertCustomItem *pConvertInput, 
   else if (pSceneLayerConvert->totalPrimIndex)
     pConvertInput->pointCount = pSceneLayerConvert->totalPrimCount * pSceneLayerConvert->pointsReturned / pSceneLayerConvert->totalPrimIndex;
 
-  result = vE_Success;
+  result = udE_Success;
 
 epilogue:
   return result;
 }
 
-vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const char *pSceneLayerURL)
+udError vcSceneLayerConvert_AddItem(udConvertContext *pConvertContext, const char *pSceneLayerURL)
 {
-  vdkError result;
+  udError result;
   vcSceneLayerConvert *pSceneLayerConvert = nullptr;
-  vdkConvertCustomItem customItem = {};
+  udConvertCustomItem customItem = {};
 
   if (vcSceneLayerConvert_Create(&pSceneLayerConvert, pSceneLayerURL) != udR_Success)
-    UD_ERROR_SET(vE_Failure);
+    UD_ERROR_SET(udE_Failure);
 
   // load root data now
   if (vcSceneLayer_LoadNode(pSceneLayerConvert->pSceneLayer, &pSceneLayerConvert->pSceneLayer->root) != udR_Success)
-    UD_ERROR_SET(vE_Failure);
+    UD_ERROR_SET(udE_Failure);
 
   customItem.pData = pSceneLayerConvert;
   customItem.pOpen = vcSceneLayerConvert_Open;
@@ -393,9 +393,9 @@ vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const c
   customItem.pDestroy = vcSceneLayerConvert_Destroy;
   customItem.pReadPointsInt = vcSceneLayerConvert_ReadPointsInt;
   customItem.pName = pSceneLayerURL;
-  vdkAttributeSet_Generate(&customItem.attributes, vdkSAC_ARGB, 0);
+  udAttributeSet_Create(&customItem.attributes, udSAC_ARGB, 0);
   customItem.srid = pSceneLayerConvert->pSceneLayer->root.zone.srid;
-  customItem.sourceProjection = vdkCSP_SourceCartesian;
+  customItem.sourceProjection = udCSP_SourceCartesian;
   customItem.pointCount = -1;
   customItem.pointCountIsEstimate = true;
 
@@ -407,12 +407,12 @@ vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const c
   customItem.boundMax[2] = customItem.boundMin[2] + pSceneLayerConvert->pSceneLayer->root.minimumBoundingSphere.radius * 2.0;
   customItem.boundsKnown = true;
 
-  UD_ERROR_CHECK(vdkConvert_AddCustomItem(pConvertContext, &customItem));
+  UD_ERROR_CHECK(udConvert_AddCustomItem(pConvertContext, &customItem));
 
-  result = vE_Success;
+  result = udE_Success;
 
 epilogue:
-  if (result != vE_Success)
+  if (result != udE_Success)
     vcSceneLayerConvert_Destroy(&pSceneLayerConvert);
 
   return result;

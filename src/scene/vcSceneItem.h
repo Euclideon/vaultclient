@@ -31,7 +31,7 @@ class vcSceneItem
 {
 public:
   vcProject *m_pProject;
-  vdkProjectNode *m_pNode;
+  udProjectNode *m_pNode;
 
   volatile int32_t m_loadStatus;
   const char *m_pActiveWarningStatus; // This is used to give temporary alerts that the node is not working as intended (load failures, wrong projection, etc)- gets passed to vcString:Get
@@ -48,14 +48,14 @@ public:
   udJSON m_metadata; // This points to a metadata (may be an empty object)
   udGeoZone *m_pPreferredProjection; // nullptr if there is no preferred zone
 
-  vcSceneItem(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcSceneItem(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   vcSceneItem(vcState *pProgramState, const char *pType, const char *pName);
   virtual ~vcSceneItem();
 
   virtual bool Is3DSceneObject() const { return true; }
   virtual bool IsValid() const { return true; }
 
-  // This lets SceneItems know that their vdkProjectNode has changed
+  // This lets SceneItems know that their udProjectNode has changed
   virtual void OnNodeUpdate(vcState *pProgramState) = 0;
 
   virtual void SelectSubitem(uint64_t internalId);

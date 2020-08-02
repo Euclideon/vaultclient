@@ -17,7 +17,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
   , m_done(false)
   , m_selectedPoint(-1)
@@ -58,13 +58,13 @@ void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &
   m_points[2] = position;
   m_done = true;
   pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
-  vdkProjectNode_SetMetadataBool(m_pNode, "measureEnd", m_done);
+  udProjectNode_SetMetadataBool(m_pNode, "measureEnd", m_done);
 }
 
 void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
 {
-  vdkProjectNode_GetMetadataBool(m_pNode, "measureEnd", &m_done, false);
-  vdkProjectNode_GetMetadataBool(m_pNode, "showAllDistances", &m_showAllDistances, false);  
+  udProjectNode_GetMetadataBool(m_pNode, "measureEnd", (uint32_t*)&m_done, false);
+  udProjectNode_GetMetadataBool(m_pNode, "showAllDistances", (uint32_t*)&m_showAllDistances, false);
 
   ChangeProjection(pProgramState->geozone);
   UpdateSetting(pProgramState);
@@ -155,7 +155,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     m_labelList[1].pSceneItem = this;
     pRenderData->labels.PushBack(&m_labelList[1]);
 
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
+    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
     vcLineRenderer_UpdatePoints(m_pLineInstance, m_points, 3, vcIGSW_BGRAToImGui(m_lineColour), m_lineWidth, false);
     pRenderData->lines.PushBack(m_pLineInstance);
   }
@@ -170,21 +170,21 @@ void vcVerticalMeasureTool::ApplyDelta(vcState *pProgramState, const udDouble4x4
   if (m_selectedPoint == -1 || m_selectedPoint == 1)
     m_points[2] = (delta * udDouble4x4::translation(m_points[2])).axis.t.toVector3();
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
 }
 
 void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   if (ImGui::Checkbox(udTempStr("%s##showAllDistances%zu", vcString::Get("scenePOIMHeightShowAllDistances"), *pItemID), &m_showAllDistances))
-    vdkProjectNode_SetMetadataBool(m_pNode, "showAllDistances", m_showAllDistances);
+    udProjectNode_SetMetadataBool(m_pNode, "showAllDistances", m_showAllDistances);
 
   if (HasLine())
   {
     if (ImGui::SliderFloat(udTempStr("%s##VerticalLineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_lineWidth, 3.f, 15.f, "%.2f", 3.f))
-      vdkProjectNode_SetMetadataDouble(m_pNode, "lineWidth", m_lineWidth);
+      udProjectNode_SetMetadataDouble(m_pNode, "lineWidth", m_lineWidth);
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLineColour%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_lineColour, ImGuiColorEditFlags_None))
-      vdkProjectNode_SetMetadataUint(m_pNode, "lineColour", m_lineColour);
+      udProjectNode_SetMetadataUint(m_pNode, "lineColour", m_lineColour);
 
     ImGui::SliderInt(udTempStr("%s##SelectedPoint%zu", vcString::Get("scenePOISelectedPoint"), *pItemID), &m_selectedPoint, -1, 1);
 
@@ -192,31 +192,31 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
     {
       ImGui::InputScalarN(udTempStr("%s##Start%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[0].x, 3);
       if (ImGui::IsItemDeactivatedAfterEdit())
-        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
+        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
     }
     else if (m_selectedPoint == 1)
     {
       ImGui::InputScalarN(udTempStr("%s##End%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[2].x, 3);
       if (ImGui::IsItemDeactivatedAfterEdit())
-        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_LineString, m_points, 3);
+        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
     }
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLabelColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_textColourBGRA, ImGuiColorEditFlags_None))
     {
       for (auto &label : m_labelList)
         label.textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textColourBGRA);
-      vdkProjectNode_SetMetadataUint(m_pNode, "nameColour", m_textColourBGRA);
+      udProjectNode_SetMetadataUint(m_pNode, "nameColour", m_textColourBGRA);
     }
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLabelBackgroundColour%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_textBackgroundBGRA, ImGuiColorEditFlags_None))
     {
       for (auto &label : m_labelList)
         label.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
-      vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_textBackgroundBGRA);
+      udProjectNode_SetMetadataUint(m_pNode, "backColour", m_textBackgroundBGRA);
     }
 
     if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
-      vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
+      udProjectNode_SetMetadataString(m_pNode, "description", m_description);
 
     char mBuffer[128] = {};
 
@@ -346,9 +346,9 @@ void vcVerticalMeasureTool::ClearPoints()
 void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
 {
   int32_t size = vcLFS_Medium;
-  vdkProjectNode_GetMetadataInt(m_pNode, "textSize", &size, pProgramState->settings.tools.label.textSize);
-  vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_textColourBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
-  vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_textBackgroundBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
+  udProjectNode_GetMetadataInt(m_pNode, "textSize", &size, pProgramState->settings.tools.label.textSize);
+  udProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_textColourBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
+  udProjectNode_GetMetadataUint(m_pNode, "backColour", &m_textBackgroundBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
 
   uint32_t textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textColourBGRA);
   uint32_t backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
@@ -358,14 +358,14 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
     label.backColourRGBA = backColourRGBA;
   }
 
-  vdkProjectNode_GetMetadataUint(m_pNode, "lineColour", &m_lineColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
+  udProjectNode_GetMetadataUint(m_pNode, "lineColour", &m_lineColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
 
   double width = pProgramState->settings.tools.line.width;
-  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", &width, pProgramState->settings.tools.line.width);
+  udProjectNode_GetMetadataDouble(m_pNode, "lineWidth", &width, pProgramState->settings.tools.line.width);
   m_lineWidth = (float)width;
 
   const char *pTemp;
-  vdkProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
+  udProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
   udStrcpy(m_description, pTemp);
 }
 

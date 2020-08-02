@@ -3,8 +3,8 @@
 
 #include "vcSceneItem.h"
 
-#include "vdkRenderContext.h"
-#include "vdkError.h"
+#include "udRenderContext.h"
+#include "udError.h"
 
 #include "udUUID.h"
 #include "udThread.h"
@@ -59,7 +59,7 @@ public:
 
   udMutex *m_pMutex;
 
-  vcLiveFeed(vcProject *pProject, vdkProjectNode *pProjectNode, vcState *pProgramState);
+  vcLiveFeed(vcProject *pProject, udProjectNode *pProjectNode, vcState *pProgramState);
   ~vcLiveFeed() {};
 
   void OnNodeUpdate(vcState *pProgramState);

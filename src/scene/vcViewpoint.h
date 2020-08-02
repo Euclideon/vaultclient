@@ -3,9 +3,9 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
+#include "udRenderContext.h"
 
-struct vdkPointCloud;
+struct udPointCloud;
 struct vcState;
 
 class vcViewpoint : public vcSceneItem
@@ -15,7 +15,7 @@ private:
   udDouble2 m_CameraHeadingPitch;
 
 public:
-  vcViewpoint(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcViewpoint(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcViewpoint() {};
 
   void OnNodeUpdate(vcState *pProgramState);
