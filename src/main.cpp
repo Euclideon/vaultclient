@@ -232,10 +232,26 @@ void vcMain_LoadSettings(vcState *pProgramState)
     vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
 
 #if !(UDPLATFORM_ANDROID || UDPLATFORM_EMSCRIPTEN || UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
-    SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
-    SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
-    if (pProgramState->settings.window.maximized)
-      SDL_MaximizeWindow(pProgramState->pWindow);
+    SDL_Rect bounds = {};
+    SDL_Rect screenPos = { pProgramState->settings.window.xpos, pProgramState->settings.window.ypos, pProgramState->settings.window.width, pProgramState->settings.window.height };
+    SDL_Rect overlap = {};
+
+    for (int i = 0; i < SDL_GetNumVideoDisplays(); ++i)
+    {
+      if (SDL_GetDisplayBounds(i, &bounds) == 0)
+      {
+        if (SDL_IntersectRect(&bounds, &screenPos, &overlap) == SDL_TRUE)
+        {
+          SDL_SetWindowSize(pProgramState->pWindow, pProgramState->settings.window.width, pProgramState->settings.window.height);
+          SDL_SetWindowPosition(pProgramState->pWindow, pProgramState->settings.window.xpos, pProgramState->settings.window.ypos);
+
+          if (pProgramState->settings.window.maximized)
+            SDL_MaximizeWindow(pProgramState->pWindow);
+
+          break;
+        }
+      }
+    }
 #endif
   }
 }
