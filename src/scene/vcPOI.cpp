@@ -221,6 +221,7 @@ public:
 // vcPOIState_MeasureLine
 //----------------------------------------------------------------------------------------------------
 
+
 class vcPOIState_MeasureLine : public vcPOIState_General
 {
 public:
@@ -1305,44 +1306,84 @@ static bool LineLineIntersection2D(const udDouble2 &line1Point1, const udDouble2
   return true;
 }
  
-udChunkedArray<udDouble3> CalculateTriangles(udDouble3 *pPoints, int numPoints)
+bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDouble3> *pTrianglePoints)
 {
+  double bias = 0.000001;
+
+  udDouble3 pivotPoint = pPoints[0];
+
   // Point Info
   struct PointInfo
   {
-    udDouble3 positon;
+    void Init() { lines.Init(512); }
+    void DeInit() { lines.Deinit(); }
+
+    udDouble3 position;
     udChunkedArray<int> lines;
   };
 
   udChunkedArray<PointInfo> points;
+  points.Init(512);
   for (int i = 0; i < numPoints; ++i)
   {
+    int prevIndex = (i == 0 ? numPoints : i) - 1;
+    if (udMag3(pPoints[i] - pPoints[prevIndex]) < bias)
+      continue;
+
     PointInfo pointInfo;
-    pointInfo.positon = pPoints[i];
+    pointInfo.Init();
+    pointInfo.position = pPoints[i];
     points.PushBack(pointInfo);
   }
+
+  if (points.length < 3)
+    return false;
 
   // Find Start Point for tracing outside of the mesh
   int startPoint = 0;
   {
-    double highestY = points[startPoint].positon.y;
-    for (int i = 1; i < points.ElementSize(); ++i)
-      if (points[i].positon.y > highestY)
+    double highestY = points[startPoint].position.y;
+    for (int i = 1; i < points.length; ++i)
+      if (points[i].position.y > highestY)
       {
         startPoint = i;
-        highestY = points[i].positon.y;
+        highestY = points[i].position.y;
       }
   }
 
   // Create Initial Lines
-  udChunkedArray<udInt2> lines;
-  for (int i = 0; i < points.ElementSize(); ++i)
+  struct LineInfo
+  {
+    void Init() { intersectedLines.Init(512); }
+
+    bool GetLineHasBeenIntersected(int _lineID)
+    {
+      for (int lineID : intersectedLines)
+        if (lineID == _lineID)
+          return true;
+      return false;
+    }
+
+    udInt2 pointIndices;
+    udChunkedArray<int> intersectedLines;
+  };
+  udChunkedArray<LineInfo> lines;
+  lines.Init(512);
+  for (int i = 0; i < points.length; ++i)
   {
     int pointIndex1 = i;
-    int pointIndex2 = i == (points.ElementSize() - 1) ? 0 : i + 1);
-    lines.PushBack(udInt2::create(pointIndex1, pointIndex2));
+    int pointIndex2 = i == (points.length - 1) ? 0 : (i + 1);
 
-    int lineIndex = lines.ElementSize() - 1;
+    double lineLength = udMag3(points[pointIndex1].position - points[pointIndex2].position);
+    if (lineLength < bias)
+      continue;
+
+    LineInfo newLine;
+    newLine.Init();
+    newLine.pointIndices = udInt2::create(pointIndex1, pointIndex2);
+    lines.PushBack(newLine);
+
+    int lineIndex = (int)lines.length - 1;
     points[pointIndex1].lines.PushBack(lineIndex);
     points[pointIndex2].lines.PushBack(lineIndex);
   }
@@ -1355,30 +1396,58 @@ udChunkedArray<udDouble3> CalculateTriangles(udDouble3 *pPoints, int numPoints)
     udDouble2 splitPoint = udDouble2::create(0);
     int line1 = startLine;
     int line2 = line1 + 1;
-    for (; line1 < lines.ElementSize(); ++line1)
+    for (; line1 < lines.length; ++line1)
     {
-      const udDouble2 &line1Point1 = points[lines[line1].x].positon.toVector2();
-      const udDouble2 &line1Point2 = points[lines[line1].y].positon.toVector2();
+      const udDouble3 &p1 = points[lines[line1].x].position;
+      const udDouble3 &p2 = points[lines[line1].y].position;
 
-      for (; line2 < lines.ElementSize(); ++line2)
+      const udDouble2 &line1Point1 = p1.toVector2();
+      const udDouble2 &line1Point2 = p2.toVector2();
+
+      for (; line2 < lines.length; ++line2)
       {
-        if (lines[line1].x == lines[line2].x
-          || lines[line1].x == lines[line2].y
-          || lines[line1].y == lines[line2].x
-          || lines[line1].y == lines[line2].y)
+
+
+        // make sure the 2 lines don't share any points
+        if (lines[line1].pointIndices.x == lines[line2].pointIndices.x
+          || lines[line1].pointIndices.x == lines[line2].pointIndices.y
+          || lines[line1].pointIndices.y == lines[line2].pointIndices.x
+          || lines[line1].pointIndices.y == lines[line2].pointIndices.y)
           continue;
 
-        const udDouble2 &line2Point1 = points[lines[line2].x].positon.toVector2();
-        const udDouble2 &line2Point2 = points[lines[line2].y].positon.toVector2();
+        const udDouble3 &p3 = points[lines[line2].x].position;
+        const udDouble3 &p4 = points[lines[line2].y].position;
+
+        const udDouble2 &line2Point1 = p3.toVector2();
+        const udDouble2 &line2Point2 = p4.toVector2();
 
         if (LineLineIntersection2D(line1Point1, line1Point2, line2Point1, line2Point2, &splitPoint))
         {
           // Add new split point
           PointInfo newPoint;
-          newPoint.positon = udDouble3::create(splitPoint.x, splitPoint.y, 0.0);
-          // todo: calcualte Z
+          newPoint.Init();
+          newPoint.position = udDouble3::create(splitPoint.x, splitPoint.y, 0.0);
 
-          int64_t newPointIndex = points.ElementSize();
+          double pointInfluence[4];
+          pointInfluence[0] = 1.0 / udMag2(udDouble2::create(newPoint.position.x - line1Point1.x, newPoint.position.y - line1Point1.y));
+          pointInfluence[1] = 1.0 / udMag2(udDouble2::create(newPoint.position.x - line1Point2.x, newPoint.position.y - line1Point2.y));
+          pointInfluence[2] = 1.0 / udMag2(udDouble2::create(newPoint.position.x - line2Point1.x, newPoint.position.y - line2Point1.y));
+          pointInfluence[3] = 1.0 / udMag2(udDouble2::create(newPoint.position.x - line2Point2.x, newPoint.position.y - line2Point2.y));
+
+          double totalInvLength = 0;
+          for (int i = 0; i < 4; ++i)
+            totalInvLength += pointInfluence[i];
+
+          for (int i = 0; i < 4; ++i)
+            pointInfluence[i] /= totalInvLength;
+
+          newPoint.position.z =
+            p1.z * pointInfluence[0] +
+            p2.z * pointInfluence[1] +
+            p3.z * pointInfluence[2] +
+            p4.z * pointInfluence[3];
+
+          int newPointIndex = (int)points.length;
 
           // use the first half of the splits in place of the original lines
           lines[line1] = udInt2::create(lines[line1].x, newPointIndex);
@@ -1390,8 +1459,8 @@ udChunkedArray<udDouble3> CalculateTriangles(udDouble3 *pPoints, int numPoints)
 
           newPoint.lines.PushBack(line1);
           newPoint.lines.PushBack(line2);
-          newPoint.lines.PushBack(lines.ElementSize() - 2);
-          newPoint.lines.PushBack(lines.ElementSize() - 1);
+          newPoint.lines.PushBack((int)lines.length - 2);
+          newPoint.lines.PushBack((int)lines.length - 1);
           points.PushBack(newPoint);
 
           splitFound = true;
@@ -1412,48 +1481,119 @@ udChunkedArray<udDouble3> CalculateTriangles(udDouble3 *pPoints, int numPoints)
   // Create new non-intersecting mesh
 
   // start line (find 2nd point most up-right)
-  udChunkedArray<PointInfo> newPoints;
+  udChunkedArray<udDouble3> newPoints;
+  newPoints.Init(512);
   int pointNumber = startPoint;
-  double closestAngle = FLT_MAX;
-  for (const int &lineIndex : points[startPoint].lines)
-  {
-    int point2Index = lines[lineIndex].x == startPoint ? lines[lineIndex].y : lines[lineIndex].x;
-
-    const udDouble3 &pos1 = points[startPoint].positon;
-    const udDouble3 &pos2 = points[startPoint].positon;
-
-    if (line.x == startPoint)
-    {
-      pointNumber = line.y;
-      break;
-    }
-  }
-
-
+  double lastAngle = 0.0f;
+  int lastLineIndex = -1;
   do 
   {
-
-  } while (pointNumber != startPoint);
-  
-  // Un-flatten 2D Result
-  for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
-  {
-    double closestDist = FLT_MAX;
-    double closestZ = 0;
-    for (int pointIndex = 0; pointIndex < m_line.numPoints; ++pointIndex)
-    {
-      udDouble2 pos = (pModifiedVerts[pointIndex] - pModifiedVerts[0]).toVector2();
-
-      double dist = udMag2<double>(pos - trianglePointList[i]);
-      if (dist < closestDist)
+    int closestLine = -1;
+    int closestPoint = -1;
+    double closestAngle = FLT_MAX;
+    for (const int &lineIndex : points[pointNumber].lines)
+      if (lineIndex != lastLineIndex)
       {
-        closestDist = dist;
-        closestZ = pModifiedVerts[pointIndex].z - pModifiedVerts[0].z;
+        int point2Index = lines[lineIndex].x == pointNumber ? lines[lineIndex].y : lines[lineIndex].x;
+
+        const udDouble3 &pos1 = points[pointNumber].position;
+        const udDouble3 &pos2 = points[point2Index].position;
+
+        double angle = atan2(pos1.y - pos2.y, pos1.x - pos2.x) - lastAngle;
+        if (angle < 0)
+          angle += UD_2PI;
+
+        if (angle < closestAngle)
+        {
+          closestAngle = angle;
+          closestLine = lineIndex;
+          closestPoint = point2Index;
+        }
+      }
+
+    lastLineIndex = closestLine;
+
+    pointNumber = closestPoint;
+    newPoints.PushBack(points[pointNumber].position);
+  } while (pointNumber != startPoint);
+
+  // Remove duplicate Points
+  while (true)
+  {
+    bool unnecessaryPointRemoved = false;
+    int64_t lastIndex = newPoints.length - 1;
+    for (int64_t i = 0; i < newPoints.length; ++i)
+    {
+      int64_t prevIndex = i == 0 ? lastIndex : i - 1;
+      int64_t nextIndex = i == lastIndex ? 0 : i + 1;
+
+      if (udMag3(newPoints[i] - newPoints[prevIndex]) < bias || udMag3(newPoints[i] - newPoints[nextIndex]) < bias || udMag3(newPoints[prevIndex] - newPoints[nextIndex]) < bias)
+      {
+        newPoints.RemoveAt(i);
+        unnecessaryPointRemoved = true;
+        break;
       }
     }
 
-    pPositions[i].z = closestZ;
+    if (!unnecessaryPointRemoved)
+      break;
   }
+
+  // Create Triangle Points
+  udDouble3 *pPointsForTriangleGeneration = udAllocType(udDouble3, newPoints.length, udAF_Zero);
+  for (int64_t i = 0; i < newPoints.length; ++i)
+    pPointsForTriangleGeneration[i] = newPoints[i];
+
+  udDouble2 min = {};
+  udDouble2 max = {};
+  std::vector<udDouble2> trianglePointList;
+  vcCDT_ProcessOrignal(pPointsForTriangleGeneration, newPoints.length, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointList);
+  newPoints.Deinit();
+  udFree(pPointsForTriangleGeneration);
+
+  // Remove this when u can
+  for (int64_t i = 0; i < (int64_t)trianglePointList.size(); i += 3)
+  {
+    udDouble3 triPoints[3] = {
+      udDouble3::create(trianglePointList[i].x, trianglePointList[i].y, 0),
+      udDouble3::create(trianglePointList[i + 1].x, trianglePointList[i + 1].y, 0),
+      udDouble3::create(trianglePointList[i + 2].x, trianglePointList[i + 2].y, 0)};
+
+    if (triPoints[0] == triPoints[1] || triPoints[0] == triPoints[2] || triPoints[1] == triPoints[2])
+      continue;
+
+    pTrianglePoints->PushBack(triPoints[0]);
+    pTrianglePoints->PushBack(triPoints[1]);
+    pTrianglePoints->PushBack(triPoints[2]);
+  }
+
+  // Un-flatten 2D Result
+  for (int64_t i = 0; i < (int64_t)pTrianglePoints->length; ++i)
+  {
+    double closestDist = FLT_MAX;
+    double closestZ = 0;
+    for (const udDouble3 &point : newPoints)
+    {
+      udDouble2 triPoint2 = udDouble2::create(pTrianglePoints->GetElement(i)->x, pTrianglePoints->GetElement(i)->y);
+      udDouble2 pos = (point - pivotPoint).toVector2();
+
+      double dist = udMag2<double>(pos - triPoint2);
+      if (dist < closestDist)
+      {
+        closestDist = dist;
+        closestZ = point.z - pivotPoint.z;
+      }
+    }
+
+    pTrianglePoints->GetElement(i)->z = closestZ;
+  }
+
+  // Cleanup
+  for (PointInfo &point : points)
+    point.DeInit();
+  points.Deinit();
+  lines.Deinit();
+  return pTrianglePoints->length > 0;
 }
 
 void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
@@ -1462,9 +1602,6 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
   {
     udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
-    udDouble2 min = {};
-    udDouble2 max = {};
-    udChunkedArray<udDouble2> trianglePointList;
     
     udDouble3 centerPoint = udDouble3::zero();
     double invNumPoints = 1.0 / (double)m_line.numPoints;
@@ -1479,7 +1616,13 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     for (int i = 0; i < m_line.numPoints; ++i)
       pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
 
-    udChunkedArray<udDouble3> triPoints = CalculateTriangles(pModifiedVerts, m_line.numPoints);
+    udChunkedArray<udDouble3> triPoints;
+    triPoints.Init(512);
+    if (!CalculateTriangles(pModifiedVerts, m_line.numPoints, &triPoints))
+    {
+      triPoints.Deinit();
+      return;
+    }
 
     /*
     int lineNumber = 0;
@@ -1609,19 +1752,21 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     */
 
     // Un-Rotate
-    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numPoints, udAF_Zero);
+    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, triPoints.length, udAF_Zero);
     udFloatQuat rotatef = udFloatQuat::create(rotate);
-    for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
+    for (int64_t i = 0; i < (int64_t)triPoints.length; ++i)
     {
-      pVerts[i].position = rotatef.apply(udFloat3::create(pPositions[i]));
+      pVerts[i].position = rotatef.apply(udFloat3::create(triPoints[i]));
       pVerts[i].uv = defaultUV;
       pVerts[i].normal = defaultNormal;
     }
 
     vcPolygonModel_Destroy(&m_pPolyModel);
-    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numPoints, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)));
+    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, (uint32_t)triPoints.length, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)));
 
     m_pPolyModel->modelOffset = udDouble4x4::translation(m_line.pPoints[0]);
+
+    triPoints.Deinit();
 
     udFree(pModifiedVerts);
     udFree(pVerts);
