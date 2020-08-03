@@ -12,13 +12,15 @@ enum vcQueryNodeFilterShape
   vcQNFS_Box,
   vcQNFS_Cylinder,
   vcQNFS_Sphere,
+  vcQNFS_CrossSection,
 
   vcQNFS_Count
 };
 
 class vcQueryNode : public vcSceneItem
 {
-private:
+//private:
+public:
   vcQueryNodeFilterShape m_shape;
 
   bool m_inverted;

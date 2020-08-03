@@ -1919,6 +1919,13 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
         vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQNFS_Cylinder);
       }
+
+      // Add Filter Plane
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddCrossSection"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_AddCrossSection)), vcMBBI_AddCrossSection, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddCrossSection)) || (vcHotkey::IsPressed(vcB_AddCrossSection) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_AddCrossSection;
+      }
     }
 
     ImGui::End();
@@ -2162,6 +2169,58 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     case vcActiveTool_AddSphereFilter:
     case vcActiveTool_AddCylinderFilter:
       break;
+    
+    case vcActiveTool_AddCrossSection:
+    {
+      if (!pProgramState->pickingSuccess)
+        break;
+
+      // click
+      vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+      if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter"))
+      {
+        //vcQueryNode *pNode = (vcQueryNode *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+        //udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->worldMousePosCartesian);
+        //udPlane<double> plane = udPlane<double>::create(pProgramState->worldMousePosCartesian, up);
+
+        //udDouble3 endPoint = {};
+        //udDouble3 center = {};
+        //if (plane.intersects(pProgramState->camera.worldMouseRay, &endPoint, nullptr))
+        //{
+        //  udDouble3 *pPoint = nullptr;
+        //  int numPoints = 0;
+        //  vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, pItem, pProgramState->geozone, &pPoint, &numPoints);
+        //  if (numPoints == 1)
+        //    center = pPoint[0];
+
+        //  udDouble4x4 delta = udDouble4x4::rotationYPR(center, endPoint);
+        //  udDouble4x4 matrix = delta * udDouble4x4::rotationYPR(pNode->m_ypr, center);
+        //  udDouble3 ypr = matrix.extractYPR();
+        //  vdkProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.rotation.y", ypr.x);
+        //  pNode->OnNodeUpdate(pProgramState);
+        //}
+
+        pProgramState->activeTool = vcActiveTool_Select;
+      }
+      else
+      {
+        vcProject_ClearSelection(pProgramState, false);
+        vdkProjectNode *pNode = nullptr;
+        if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerCrossSectionDefaultName"), nullptr, nullptr) == vE_Success)
+        {
+          vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
+          vdkProjectNode_SetMetadataString(pNode, "shape", "crossSection");
+          vdkProjectNode_SetMetadataDouble(pNode, "size.x", 1);
+          vdkProjectNode_SetMetadataDouble(pNode, "size.y", 2000);
+          vdkProjectNode_SetMetadataDouble(pNode, "size.z", 2000);
+          vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", 0.0f);
+          vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.p", 0.0f);
+          vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", 0.0f);
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+        }
+      }
+    }
+    break;
 
     case vcActiveTool_Count:
       // Does nothing
@@ -2334,6 +2393,37 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
         vcVerticalMeasureTool *pTool = (vcVerticalMeasureTool *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
         pTool->Preview(pProgramState->worldMousePosCartesian);
+      }
+    }
+    break;
+
+    // preview
+    case vcActiveTool_AddCrossSection:
+    {
+      vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+      if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter"))
+      {
+        vcQueryNode *pNode = (vcQueryNode *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+        udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->worldMousePosCartesian);
+        udPlane<double> plane = udPlane<double>::create(pProgramState->worldMousePosCartesian, up);
+
+        udDouble3 endPoint = {};
+        udDouble3 center = {};
+        if (plane.intersects(pProgramState->camera.worldMouseRay, &endPoint, nullptr))
+        {
+          udDouble3 *pPoint = nullptr;
+          int numPoints = 0;
+          vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, pItem, pProgramState->geozone, &pPoint, &numPoints);
+          if (numPoints == 1)
+            center = pPoint[0];
+
+          udDouble4x4 delta = udDouble4x4::rotationYPR(endPoint, center);
+          udDouble4x4 matrix = delta * udDouble4x4::rotationYPR(pNode->m_ypr, center);
+          udDouble3 newYPR = matrix.extractYPR();
+          vdkProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.rotation.y", newYPR.x);
+          printf("(%f,%f,%f), (%f,%f,%f), (%f,%f,%f) \n", endPoint.x, endPoint.y, endPoint.z, pNode->m_ypr.x, pNode->m_ypr.y, pNode->m_ypr.z, newYPR.x, newYPR.y, newYPR.z);
+          pNode->OnNodeUpdate(pProgramState);
+        }
       }
     }
     break;

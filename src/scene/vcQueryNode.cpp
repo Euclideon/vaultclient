@@ -33,6 +33,8 @@ const char *GetNodeShape(vcQueryNodeFilterShape shape)
     return "sphere";
   else if (shape == vcQNFS_Cylinder)
     return "cylinder";
+  else if (shape == vcQNFS_CrossSection)
+    return "crossSection";
   else
     return "";
 }
@@ -72,6 +74,8 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
       m_shape = vcQNFS_Sphere;
     else if (udStrEquali(pString, "cylinder"))
       m_shape = vcQNFS_Cylinder;
+    else if (udStrEquali(pString, "crossSection"))
+      m_shape = vcQNFS_CrossSection;
   }
 
   vdkProjectNode_GetMetadataDouble(m_pNode, "size.x", &m_extents.x, 1.0);
@@ -116,6 +120,8 @@ void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       pInstance->pModel = gInternalModels[vcInternalModelType_Cylinder];
     else if (m_shape == vcQNFS_Sphere)
       pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
+    else if (m_shape == vcQNFS_CrossSection)
+      pInstance->pModel = gInternalModels[vcInternalModelType_Cube];
 
     pInstance->worldMat = this->GetWorldSpaceMatrix();
     pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;

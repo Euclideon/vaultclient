@@ -692,6 +692,7 @@
   "bindingsAddBoxFilter": "Key to add box filter",
   "bindingsAddSphereFilter": "Key to add sphere filter",
   "bindingsAddCylinderFilter": "Key to add cylinder filter",
+  "bindingsAddCrossSection": "Key to add cross section",
   "errorUnknown": "An unexpected error occurred.",
   "errorCorruptData": "Corrupt data.",
   "errorUnsupported": "Unsupported file formats.",

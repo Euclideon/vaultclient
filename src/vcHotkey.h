@@ -49,6 +49,7 @@ enum vcBind
   vcB_AddBoxFilter,
   vcB_AddSphereFilter,
   vcB_AddCylinderFilter,
+  vcB_AddCrossSection,
 
   vcB_Count
 };
