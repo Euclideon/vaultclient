@@ -2195,27 +2195,6 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
       if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter"))
       {
-        //vcQueryNode *pNode = (vcQueryNode *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-        //udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->worldMousePosCartesian);
-        //udPlane<double> plane = udPlane<double>::create(pProgramState->worldMousePosCartesian, up);
-
-        //udDouble3 endPoint = {};
-        //udDouble3 center = {};
-        //if (plane.intersects(pProgramState->camera.worldMouseRay, &endPoint, nullptr))
-        //{
-        //  udDouble3 *pPoint = nullptr;
-        //  int numPoints = 0;
-        //  vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, pItem, pProgramState->geozone, &pPoint, &numPoints);
-        //  if (numPoints == 1)
-        //    center = pPoint[0];
-
-        //  udDouble4x4 delta = udDouble4x4::rotationYPR(center, endPoint);
-        //  udDouble4x4 matrix = delta * udDouble4x4::rotationYPR(pNode->m_ypr, center);
-        //  udDouble3 ypr = matrix.extractYPR();
-        //  vdkProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.rotation.y", ypr.x);
-        //  pNode->OnNodeUpdate(pProgramState);
-        //}
-
         pProgramState->activeTool = vcActiveTool_Select;
       }
       else
@@ -2229,9 +2208,8 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
           vdkProjectNode_SetMetadataDouble(pNode, "size.x", 1);
           vdkProjectNode_SetMetadataDouble(pNode, "size.y", 2000);
           vdkProjectNode_SetMetadataDouble(pNode, "size.z", 2000);
-          vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", 0.0f);
-          vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.p", 0.0f);
-          vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", 0.0f);
+          vdkProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
+          vdkProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
           udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
         }
       }
@@ -2427,18 +2405,10 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         udDouble3 center = {};
         if (plane.intersects(pProgramState->camera.worldMouseRay, &endPoint, nullptr))
         {
-          udDouble3 *pPoint = nullptr;
-          int numPoints = 0;
-          vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, pItem, pProgramState->geozone, &pPoint, &numPoints);
-          if (numPoints == 1)
-            center = pPoint[0];
-
-          udDouble4x4 delta = udDouble4x4::rotationYPR(endPoint, center);
-          udDouble4x4 matrix = delta * udDouble4x4::rotationYPR(pNode->m_ypr, center);
-          udDouble3 newYPR = matrix.extractYPR();
-          vdkProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.rotation.y", newYPR.x);
-          printf("(%f,%f,%f), (%f,%f,%f), (%f,%f,%f) \n", endPoint.x, endPoint.y, endPoint.z, pNode->m_ypr.x, pNode->m_ypr.y, pNode->m_ypr.z, newYPR.x, newYPR.y, newYPR.z);
+          udDouble2 headingPitch = vcGIS_GetHeadingPitchFromLatLong(pProgramState->geozone, pNode->m_center, endPoint);
+          vdkProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.rotation.y", headingPitch.x);
           pNode->OnNodeUpdate(pProgramState);
+          printf("%f, %f \n", headingPitch.x, pNode->m_ypr.x);
         }
       }
     }
