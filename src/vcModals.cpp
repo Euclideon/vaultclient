@@ -410,9 +410,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
           ImGui::SetCursorPos(activeCursorPos);
           ImGui::Spacing();
         }
-
-        ImGui::EndChild();
       }
+      ImGui::EndChild();
 
       ImGui::NextColumn();
 
@@ -463,11 +462,10 @@ void vcModals_DrawWelcome(vcState *pProgramState)
           ImGui::SetCursorPosY(prevPosY);
           ImGui::Spacing();
         }
-
-        ImGui::EndChild();
       }
+      ImGui::EndChild();
 
-      ImGui::EndColumns();
+      ImGui::Columns(1);
     }
     
     // Position control buttons in the bottom right corner
@@ -612,9 +610,8 @@ void vcModals_DrawExportProject(vcState *pProgramState)
           }
           udReadUnlockRWLock(pProgramState->pSessionLock);
         }
-
-        ImGui::EndChild();
       }
+      ImGui::EndChild();
     }
 
     if (ErrorText[0] != 0)
@@ -660,9 +657,8 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
     {
       if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
         ImGui::TextWrapped("%s", pInfo);
-
-      ImGui::EndChild();
     }
+    ImGui::EndChild();
     
     if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr || pInfo[0] == '\0')
       ImGui::CloseCurrentPopup();
@@ -894,9 +890,8 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
               }
             }
           }
-
-          ImGui::EndChild();
         }
+        ImGui::EndChild();
       }
 
       ImGui::SetCursorPosY(windowSize.y - 30);
@@ -1130,9 +1125,8 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
           }
           udReadUnlockRWLock(pProgramState->pSessionLock);
         }
-
-        ImGui::EndChild();
       }
+      ImGui::EndChild();
     }
 
     if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
