@@ -1520,7 +1520,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
     if (pProgramState->settings.maptiles.mapEnabled && pProgramState->geozone.projection != udGZPT_Unknown)
     {
-      for (int mapLayer = 0; mapLayer <= pProgramState->settings.maptiles.activeLayerCount; ++mapLayer)
+      for (int mapLayer = 0; mapLayer < pProgramState->settings.maptiles.activeLayerCount; ++mapLayer)
       {
         if (pProgramState->settings.maptiles.layers[mapLayer].activeServer.attribution[0] != '\0')
           udSprintf(&pBuffer, "%s, %s", pBuffer, pProgramState->settings.maptiles.layers[mapLayer].activeServer.attribution);
