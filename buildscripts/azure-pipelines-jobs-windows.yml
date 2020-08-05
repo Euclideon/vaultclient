@@ -19,7 +19,7 @@ jobs:
   steps:
   - checkout: self
     submodules: recursive
-  - template: azure-pipelines-steps-linkedvdk.yml
+  - template: azure-pipelines-steps-linkedudsdk.yml
   - script: curl -OL https://github.com/zellski/FBXSDK-Windows/archive/2019.2.tar.gz
     displayName: 'Download Dependencies'
   - powershell: |

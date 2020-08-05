@@ -5,7 +5,7 @@ SET forceudSDKText=
 
 :MENU
 ECHO Select the type of project you would like to create:
-IF "%forceudSDK%" =="" ECHO 0. Euclideon VDK Developers (Additional Menu)
+IF "%forceudSDK%" =="" ECHO 0. Euclideon udSDK Developers (Additional Menu)
 ECHO 1. Visual Studio 2019 Solution%forceudSDKText% (DirectX 11)
 ECHO 2. Visual Studio 2019 Solution%forceudSDKText% (OpenGL)
 ECHO 3. Visual Studio 2019 Solution%forceudSDKText% (OpenGLES+Android)

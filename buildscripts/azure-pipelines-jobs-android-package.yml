@@ -11,7 +11,7 @@ jobs:
   steps:
   - checkout: self
     submodules: recursive
-  - template: azure-pipelines-steps-linkedvdk.yml
+  - template: azure-pipelines-steps-linkedudsdk.yml
   - task: DownloadPipelineArtifact@2
     displayName: 'Download Android x64 SO'
     inputs:

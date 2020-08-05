@@ -56,7 +56,7 @@ function ProcessudSDK()
 		if udSDKLocalEmbed ~= nil then
 			udSDKLocalEmbed()
 		else
-			error "Something Whack?"
+			error "Attempting to link with an unsupported version of udSDK!"
 		end
 	else
 		if _OPTIONS["udSDK"] == nil then
