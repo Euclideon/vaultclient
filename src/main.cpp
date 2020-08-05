@@ -1609,11 +1609,11 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     else
       fadeVal = udMax(0.f, fadeVal - (float)pProgramState->deltaTime);
 
-    float a = udSin(rotAmount * UD_PIf) * 30.f;
-    float b = udCos(rotAmount * UD_PIf) * 30.f;
+    float a = udSin(rotAmount * UD_PIf) * 15.f;
+    float b = udCos(rotAmount * UD_PIf) * 15.f;
 
-    float x = windowPos.x + windowSize.x - 40.f - 30.f - (pProgramState->settings.onScreenControls ? 165 : 0);
-    float y = windowPos.y + windowSize.y - 30.f;
+    float x = windowPos.x + windowSize.x - 40.f - 15.f - (pProgramState->settings.onScreenControls ? 165 : 0);
+    float y = windowPos.y + windowSize.y - 15.f;
 
     ImVec2 p[] = {
       { x - b + a, y - a - b },
