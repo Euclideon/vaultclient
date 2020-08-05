@@ -3,14 +3,14 @@
 
 #include "vcSceneLayer.h"
 
-#include "vdkError.h"
+#include "udError.h"
 
 struct vcSceneLayerConvert;
 
-struct vdkConvertContext;
+struct udConvertContext;
 struct vWorkerThreadPool;
 
-vdkError vcSceneLayerConvert_AddItem(vdkConvertContext *pConvertContext, const char *pSceneLayerURL);
+udError vcSceneLayerConvert_AddItem(udConvertContext *pConvertContext, const char *pSceneLayerURL);
 
 #endif//vcSceneLayerConvert_h__
 

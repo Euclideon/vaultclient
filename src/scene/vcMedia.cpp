@@ -31,7 +31,7 @@ UDCOMPILEASSERT(udLengthOf(s_imageTypes) == vcIT_Count, "Update Image Types");
 const char *s_imageThumbnailSizes[] = { "native", "small", "large" };
 UDCOMPILEASSERT(udLengthOf(s_imageThumbnailSizes) == vcIS_Count, "Update Image Sizes");
 
-vcMedia::vcMedia(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcMedia::vcMedia(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_pLoadedURI(nullptr),
   m_loadLoadTimeSec(0.0),
@@ -104,19 +104,19 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
     m_loadLoadTimeSec = udGetEpochSecsUTCf();
   }
 
-  vdkProjectNode_GetMetadataDouble(m_pNode, "reloadRate", &m_reloadTimeSecs, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "reloadRate", &m_reloadTimeSecs, 0.0);
 
-  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_image.ypr.x, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_image.ypr.y, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_image.ypr.z, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale", &m_image.scale, 1.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_image.ypr.x, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_image.ypr.y, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_image.ypr.z, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "transform.scale", &m_image.scale, 1.0);
 
   m_image.colour = udFloat4::create(1.0f, 1.0f, 1.0f, 1.0f);
   m_image.size = vcIS_Large;
   m_image.type = vcIT_StandardPhoto;
 
   const char *pImageSize = nullptr;
-  if (vdkProjectNode_GetMetadataString(m_pNode, "imagesize", &pImageSize, nullptr) == vE_Success)
+  if (udProjectNode_GetMetadataString(m_pNode, "imagesize", &pImageSize, nullptr) == udE_Success)
   {
     for (size_t i = 0; i < udLengthOf(s_imageThumbnailSizes); ++i)
     {
@@ -126,7 +126,7 @@ void vcMedia::OnNodeUpdate(vcState *pProgramState)
   }
 
   const char *pImageType = nullptr;
-  if (vdkProjectNode_GetMetadataString(m_pNode, "imagetype", &pImageType, nullptr) == vE_Success)
+  if (udProjectNode_GetMetadataString(m_pNode, "imagetype", &pImageType, nullptr) == udE_Success)
   {
     for (size_t i = 0; i < udLengthOf(s_imageTypes); ++i)
     {
@@ -267,12 +267,12 @@ void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_image.ypr = rotation.eulerAngles();
   m_image.scale = scale.x;
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_image.position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_image.position, 1);
 
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_image.ypr.z);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_image.ypr.z);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
 }
 
 void vcMedia::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -286,24 +286,24 @@ void vcMedia::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
     const char *imageTypeNames[] = { vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypeOriented"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere"), vcString::Get("scenePOILabelImageTypeScreen") };
     UDCOMPILEASSERT(udLengthOf(imageTypeNames) == vcIT_Count, "Update image names");
     if (ImGui::Combo(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOILabelImageType"), *pItemID), (int *)&m_image.type, imageTypeNames, (int)udLengthOf(imageTypeNames)))
-      vdkProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
+      udProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
 
     const char *imageThumbnailSizeNames[] = { vcString::Get("scenePOIThumbnailSizeNative"), vcString::Get("scenePOIThumbnailSizeSmall"), vcString::Get("scenePOIThumbnailSizeLarge") };
     if (ImGui::Combo(udTempStr("%s##scenePOIThumbnailSize%zu", vcString::Get("scenePOIThumbnailSize"), *pItemID), (int *)&m_image.size, imageThumbnailSizeNames, (int)udLengthOf(imageThumbnailSizeNames)))
-      vdkProjectNode_SetMetadataString(m_pNode, "imagesize", s_imageThumbnailSizes[(int)m_image.size]);
+      udProjectNode_SetMetadataString(m_pNode, "imagesize", s_imageThumbnailSizes[(int)m_image.size]);
   }
 
   if (m_image.type != vcIT_StandardPhoto)
   {
     if (ImGui::InputScalarN(udTempStr("%s##scenePOILabelImageYPR%zu", vcString::Get("scenePOILabelImageYPR"), *pItemID), ImGuiDataType_Double, &m_image.ypr, 3))
     {
-      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
-      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);
-      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_image.ypr.z);
+      udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
+      udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);
+      udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_image.ypr.z);
     }
 
     if (ImGui::InputDouble(udTempStr("%s##scenePOILabelImageYPR%zu", vcString::Get("scenePOILabelImageYPR"), *pItemID), &m_image.scale))
-      vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
+      udProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
   }
 
   double reloadTimeMin = 0;
@@ -311,7 +311,7 @@ void vcMedia::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   if (ImGui::SliderScalar(udTempStr("%s##scenePOILabelImageType%zu", vcString::Get("scenePOIReloadTime"), *pItemID), ImGuiDataType_Double, &m_reloadTimeSecs, &reloadTimeMin, &reloadTimeMax))
   {
     m_reloadTimeSecs = udClamp(m_reloadTimeSecs, reloadTimeMin, reloadTimeMax);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "reloadRate", m_reloadTimeSecs);
+    udProjectNode_SetMetadataDouble(m_pNode, "reloadRate", m_reloadTimeSecs);
   }
 }
 
@@ -320,7 +320,7 @@ void vcMedia::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
   const char *imageTypeNames[] = {vcString::Get("scenePOILabelImageTypeStandard"), vcString::Get("scenePOILabelImageTypeOriented"), vcString::Get("scenePOILabelImageTypePanorama"), vcString::Get("scenePOILabelImageTypePhotosphere"), vcString::Get("scenePOILabelImageTypeScreen")};
   UDCOMPILEASSERT(udLengthOf(imageTypeNames) == vcIT_Count, "Update image names");
   if (ImGui::Combo(udTempStr("%s##ImageEmbeddedUI", vcString::Get("scenePOILabelImageType")), (int *)&m_image.type, imageTypeNames, (int)udLengthOf(imageTypeNames)))
-    vdkProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
+    udProjectNode_SetMetadataString(m_pNode, "imagetype", s_imageTypes[(int)m_image.type]);
 }
 
 void vcMedia::HandleContextMenu(vcState *pProgramState)

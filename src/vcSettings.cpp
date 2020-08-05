@@ -12,7 +12,7 @@
 #include "vcStringFormat.h"
 #include "vcHotkey.h"
 
-#include "vdkConfig.h"
+#include "udConfig.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 # include <emscripten.h>
@@ -105,10 +105,10 @@ void vcSettings_Cleanup_CustomClassificationColorLabels(vcSettings *pSettings)
 
 bool vcSettings_ApplyConnectionSettings(vcSettings *pSettings)
 {
-  vdkConfig_ForceProxy(pSettings->loginInfo.proxy);
-  vdkConfig_SetUserAgent(pSettings->loginInfo.userAgent);
-  vdkConfig_IgnoreCertificateVerification(pSettings->loginInfo.ignoreCertificateVerification);
-  vdkConfig_SetProxyAuth(pSettings->loginInfo.proxyUsername, pSettings->loginInfo.proxyPassword);
+  udConfig_ForceProxy(pSettings->loginInfo.proxy);
+  udConfig_SetUserAgent(pSettings->loginInfo.userAgent);
+  udConfig_IgnoreCertificateVerification(pSettings->loginInfo.ignoreCertificateVerification);
+  udConfig_SetProxyAuth(pSettings->loginInfo.proxyUsername, pSettings->loginInfo.proxyPassword);
 
   return true;
 }

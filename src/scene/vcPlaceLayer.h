@@ -3,15 +3,15 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
-#include "vdkError.h"
+#include "udRenderContext.h"
+#include "udError.h"
 #include "vcLineRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
 #include "vcGLState.h"
 
 struct udWorkerPool;
-struct vdkPointCloud;
+struct udPointCloud;
 struct vcTexture;
 struct vcState;
 struct vcFenceRenderer;
@@ -39,7 +39,7 @@ private:
   double m_labelDistance;
 
 public:
-  vcPlaceLayer(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcPlaceLayer(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcPlaceLayer() {};
 
   void OnNodeUpdate(vcState *pProgramState);

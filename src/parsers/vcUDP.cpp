@@ -84,7 +84,7 @@ struct vcUDPItemData
   };
 };
 
-vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, int epsgCode, udDouble3 *pPosition, udDouble3 *pYPR, double *pScale)
+udProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, const char *pModelName, const char *pModelFilename, int epsgCode, udDouble3 *pPosition, udDouble3 *pYPR, double *pScale)
 {
   // If the model filename is nullptr there's nothing to load
   if (pModelFilename == nullptr)
@@ -101,33 +101,33 @@ vdkProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename,
   else
     file.SetFromFullPath("%s", pModelFilename);
 
-  vdkProjectNode *pNode = nullptr;
-  vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-  vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "UDS", pModelName, file.GetPath(), nullptr);
+  udProjectNode *pNode = nullptr;
+  udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+  udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "UDS", pModelName, file.GetPath(), nullptr);
 
   if (epsgCode != 0 && pPosition != nullptr)
   {
     udGeoZone tempZone = {};
     if (udGeoZone_SetFromSRID(&tempZone, epsgCode) == udR_Success)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, tempZone, vdkPGT_Point, pPosition, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, tempZone, udPGT_Point, pPosition, 1);
   }
 
   if (pPosition != nullptr)
   {
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.position.x", pPosition->x);
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.position.y", pPosition->y);
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.position.z", pPosition->z);
+    udProjectNode_SetMetadataDouble(pNode, "transform.position.x", pPosition->x);
+    udProjectNode_SetMetadataDouble(pNode, "transform.position.y", pPosition->y);
+    udProjectNode_SetMetadataDouble(pNode, "transform.position.z", pPosition->z);
   }
 
   if (pYPR != nullptr)
   {
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pYPR->x);
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.p", pYPR->y);
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", pYPR->z);
+    udProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", pYPR->x);
+    udProjectNode_SetMetadataDouble(pNode, "transform.rotation.p", pYPR->y);
+    udProjectNode_SetMetadataDouble(pNode, "transform.rotation.r", pYPR->z);
   }
 
   if (pScale != nullptr)
-    vdkProjectNode_SetMetadataDouble(pNode, "transform.scale", *pScale);
+    udProjectNode_SetMetadataDouble(pNode, "transform.scale", *pScale);
 
   return pNode;
 }
@@ -367,9 +367,9 @@ void vcUDP_AddDataSetData(vcState *pProgramState, const char *pFilename, std::ve
       pScale = &scale;
     }
 
-    vdkProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, epsgCode, pPosition, pYPR, pScale);
+    udProjectNode *pNode = vcUDP_AddModel(pProgramState, pFilename, item.dataset.pName, item.dataset.pPath, epsgCode, pPosition, pYPR, pScale);
 
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
   }
 }
@@ -380,9 +380,9 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
 
   if (item.bookmark.pName != nullptr && item.bookmark.pGeoLocation != nullptr)
   {
-    vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "Camera", item.bookmark.pName, nullptr, nullptr);
+    udProjectNode *pNode = nullptr;
+    udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "Camera", item.bookmark.pName, nullptr, nullptr);
 
     udGeoZone zone;
     int epsgCode = 0;
@@ -390,15 +390,15 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
     if (vcUDP_ReadGeolocation(item.bookmark.pGeoLocation, temp, epsgCode))
     {
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, vdkPGT_Point, &temp, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_Point, &temp, 1);
     }
 
     temp = udDouble3::zero();
     if (item.bookmark.pRotation != nullptr && vcUDP_ReadDouble3(item.bookmark.pRotation, temp))
     {
-      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", temp.x);
-      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", temp.y);
-      vdkProjectNode_SetMetadataDouble(pNode, "transform.rotation.z", temp.z);
+      udProjectNode_SetMetadataDouble(pNode, "transform.rotation.x", temp.x);
+      udProjectNode_SetMetadataDouble(pNode, "transform.rotation.y", temp.y);
+      udProjectNode_SetMetadataDouble(pNode, "transform.rotation.z", temp.z);
     }
 
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
@@ -411,19 +411,19 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
 
   if (item.measure.pName != nullptr && item.measure.geoLocation[0] != nullptr && item.measure.geoLocation[1] != nullptr)
   {
-    vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    udProjectNode *pNode = nullptr;
+    udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
 
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.bookmark.pName, nullptr, nullptr);
+    udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.bookmark.pName, nullptr, nullptr);
 
     int epsgCode = 0;
     udDouble3 temp[2];
     udGeoZone zone;
     uint32_t colour = item.measure.pColour ? (uint32_t)udStrAtoi(item.measure.pColour) : 0xffffffff; //These are stored as int (with negatives) in MDM
 
-    vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", colour);
-    vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", colour);
-    vdkProjectNode_SetMetadataBool(pNode, "showLength", true);
+    udProjectNode_SetMetadataUint(pNode, "lineColourPrimary", colour);
+    udProjectNode_SetMetadataUint(pNode, "lineColourSecondary", colour);
+    udProjectNode_SetMetadataBool(pNode, "showLength", true);
 
     if (vcUDP_ReadGeolocation(item.measure.geoLocation[0], temp[0], epsgCode))
     {
@@ -435,7 +435,7 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
     }
 
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, vdkPGT_LineString, temp, 2);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_LineString, temp, 2);
 
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
   }
@@ -446,10 +446,10 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
 
   if (item.label.pName != nullptr && item.label.pGeoLocation != nullptr)
   {
-    vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    udProjectNode *pNode = nullptr;
+    udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
 
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.label.pName, nullptr, nullptr);
+    udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.label.pName, nullptr, nullptr);
 
     udDouble3 position = udDouble3::zero();
     int32_t epsgCode = 0;
@@ -465,14 +465,14 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     else
       pSize = "Medium";
 
-    vdkProjectNode_SetMetadataString(pNode, "textSize", pSize);
-    vdkProjectNode_SetMetadataUint(pNode, "nameColour", colour);
+    udProjectNode_SetMetadataString(pNode, "textSize", pSize);
+    udProjectNode_SetMetadataUint(pNode, "nameColour", colour);
 
     if (vcUDP_ReadGeolocation(item.label.pGeoLocation, position, epsgCode))
     {
       udGeoZone zone;
       udGeoZone_SetFromSRID(&zone, epsgCode);
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_Point, &position, 1);
     }
 
     pLabelData->at(index).sceneFolder = { pParentNode, pNode };
@@ -485,29 +485,29 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
 
   if (item.polygon.pName != nullptr && item.polygon.pPoints != nullptr && item.polygon.numPoints > 0)
   {
-    vdkProjectNode *pNode = nullptr;
-    vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+    udProjectNode *pNode = nullptr;
+    udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
 
-    vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.polygon.pName, nullptr, nullptr);
+    udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", item.polygon.pName, nullptr, nullptr);
 
     udGeoZone zone;
     if (udGeoZone_SetFromSRID(&zone, item.polygon.epsgCode) != udR_Success)
       pProgramState->geozone = zone;
 
     if (item.polygon.isClosed)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, vdkPGT_Polygon, item.polygon.pPoints, item.polygon.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_Polygon, item.polygon.pPoints, item.polygon.numPoints);
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, vdkPGT_MultiPoint, item.polygon.pPoints, item.polygon.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_MultiPoint, item.polygon.pPoints, item.polygon.numPoints);
 
     udDouble3 *pTemp = item.polygon.pPoints;
     udFree(pTemp);
 
     uint32_t colour = item.polygon.pColour ? (uint32_t)udStrAtoi(item.polygon.pColour) : 0xffffffff;
 
-    vdkProjectNode_SetMetadataDouble(pNode, "lineWidth", 1.0);
-    vdkProjectNode_SetMetadataUint(pNode, "lineColourPrimary", colour);
-    vdkProjectNode_SetMetadataUint(pNode, "lineColourSecondary", colour);
-    vdkProjectNode_SetMetadataString(pNode, "textSize", "Medium");
+    udProjectNode_SetMetadataDouble(pNode, "lineWidth", 1.0);
+    udProjectNode_SetMetadataUint(pNode, "lineColourPrimary", colour);
+    udProjectNode_SetMetadataUint(pNode, "lineColourSecondary", colour);
+    udProjectNode_SetMetadataString(pNode, "textSize", "Medium");
 
     pLabelData->at(index).sceneFolder = { pParentNode, pNode };
   }
@@ -539,9 +539,9 @@ void vcUDP_AddItemData(vcState *pProgramState, const char *pFilename, std::vecto
   {
     if (pItemData->at(index).sceneFolder.pParent == nullptr)
     {
-      vdkProjectNode *pNode = nullptr;
-      vdkProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-      vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "Folder", item.dataset.pName, nullptr, nullptr);
+      udProjectNode *pNode = nullptr;
+      udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+      udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "Folder", item.dataset.pName, nullptr, nullptr);
 
       vcFolder *pFolder = new vcFolder(&pProgramState->activeProject, pNode, pProgramState);
       pNode->pUserData = pFolder;
@@ -646,7 +646,7 @@ void vcUDP_Load(vcState *pProgramState, const char *pFilename)
 
       // If any found then do the move, otherwise this node should bubble to the front
       if (minGTIndex != itemNum)
-        vdkProjectNode_MoveChild(pProgramState->activeProject.pProject, item.sceneFolder.pParent, item.sceneFolder.pParent, item.sceneFolder.pItem, itemData.at(itemNum).sceneFolder.pItem);
+        udProjectNode_MoveChild(pProgramState->activeProject.pProject, item.sceneFolder.pParent, item.sceneFolder.pParent, item.sceneFolder.pItem, itemData.at(itemNum).sceneFolder.pItem);
     }
   }
 

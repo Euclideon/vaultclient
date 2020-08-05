@@ -1,0 +1,11 @@
+steps:
+- task: DownloadSecureFile@1
+  name: linkedudSDKFile
+  displayName: 'Download Linked udSDK'
+  inputs:
+    secureFile: $(linkedudSDK).zip
+- task: ExtractFiles@1
+  displayName: 'Extract Linked udSDK'
+  inputs:
+    archiveFilePatterns: $(linkedudSDKFile.secureFilePath)
+    destinationFolder: linkedudSDK

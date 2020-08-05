@@ -17,7 +17,7 @@
 #include "vcLineRenderer.h"
 #include "vcPinRenderer.h"
 
-#include "vdkStreamer.h"
+#include "udStreamer.h"
 
 #include "stb_image.h"
 #include <vector>
@@ -66,13 +66,13 @@ struct vcViewShedRenderContext
   vcTexture *pDummyNormal;
   vcFramebuffer *pFramebuffer;
 
-  vdkRenderView *pRenderView;
+  udRenderTarget *pRenderTarget;
 };
 
 struct vcUDRenderContext
 {
-  vdkRenderContext *pRenderer;
-  vdkRenderView *pRenderView;
+  udRenderContext *pRenderer;
+  udRenderTarget *pRenderTarget;
   uint32_t *pColorBuffer;
   float *pDepthBuffer;
 
@@ -285,7 +285,7 @@ struct vcRenderContext
 
 udResult vcRender_LoadShaders(vcRenderContext *pRenderContext, udWorkerPool *pWorkerPool);
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext);
-udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData, bool doPick);
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, udRenderTarget *pRenderTarget, vcCamera *pCamera, vcRenderData &renderData, bool doPick);
 void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWatermark);
 void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderContext);
 
@@ -495,15 +495,15 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
   pRenderContext = *ppRenderContext;
   *ppRenderContext = nullptr;
 
-  if (pProgramState->pVDKContext != nullptr)
+  if (pProgramState->pUDSDKContext != nullptr)
   {
-    if (pRenderContext->viewShedRenderingContext.pRenderView != nullptr && vdkRenderView_Destroy(&pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
+    if (pRenderContext->viewShedRenderingContext.pRenderTarget != nullptr && udRenderTarget_Destroy(&pRenderContext->viewShedRenderingContext.pRenderTarget) != udE_Success)
       UD_ERROR_SET(udR_InternalError);
 
-    if (pRenderContext->udRenderContext.pRenderView != nullptr && vdkRenderView_Destroy(&pRenderContext->udRenderContext.pRenderView) != vE_Success)
+    if (pRenderContext->udRenderContext.pRenderTarget != nullptr && udRenderTarget_Destroy(&pRenderContext->udRenderContext.pRenderTarget) != udE_Success)
       UD_ERROR_SET(udR_InternalError);
 
-    if (vdkRenderContext_Destroy(&pRenderContext->udRenderContext.pRenderer) != vE_Success)
+    if (udRenderContext_Destroy(&pRenderContext->udRenderContext.pRenderer) != udE_Success)
       UD_ERROR_SET(udR_InternalError);
   }
 
@@ -560,7 +560,7 @@ udResult vcRender_SetVaultContext(vcState *pProgramState, vcRenderContext *pRend
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
-  if (vdkRenderContext_Create(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderer) != vE_Success)
+  if (udRenderContext_Create(pProgramState->pUDSDKContext, &pRenderContext->udRenderContext.pRenderer) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
   UD_ERROR_CHECK(vcRender_RecreateUDView(pProgramState, pRenderContext));
@@ -575,13 +575,13 @@ udResult vcRender_RemoveVaultContext(vcRenderContext *pRenderContext)
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
-  if (vdkRenderView_Destroy(&pRenderContext->viewShedRenderingContext.pRenderView) != vE_Success)
+  if (udRenderTarget_Destroy(&pRenderContext->viewShedRenderingContext.pRenderTarget) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_Destroy(&pRenderContext->udRenderContext.pRenderView) != vE_Success)
+  if (udRenderTarget_Destroy(&pRenderContext->udRenderContext.pRenderTarget) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderContext_Destroy(&pRenderContext->udRenderContext.pRenderer) != vE_Success)
+  if (udRenderContext_Destroy(&pRenderContext->udRenderContext.pRenderer) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -661,7 +661,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
     UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i]), udR_InternalError);
   }
 
-  if (pProgramState->pVDKContext)
+  if (pProgramState->pUDSDKContext)
     UD_ERROR_CHECK(vcRender_RecreateUDView(pProgramState, pRenderContext));
 
 epilogue:
@@ -1072,8 +1072,8 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
   if (!doUDRender && !doPolygonRender)
     return;
 
-  if (pRenderContext->viewShedRenderingContext.pRenderView == nullptr)
-    vdkRenderView_Create(pProgramState->pVDKContext, &pRenderContext->viewShedRenderingContext.pRenderView, pRenderContext->udRenderContext.pRenderer, singleRenderSize.x, singleRenderSize.y);
+  if (pRenderContext->viewShedRenderingContext.pRenderTarget == nullptr)
+    udRenderTarget_Create(pProgramState->pUDSDKContext, &pRenderContext->viewShedRenderingContext.pRenderTarget, pRenderContext->udRenderContext.pRenderer, singleRenderSize.x, singleRenderSize.y);
 
   for (size_t v = 0; v < renderData.viewSheds.length; ++v)
   {
@@ -1103,11 +1103,11 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
       for (int r = 0; r < ViewShedMapCount; ++r)
       {
         // configure UD render to only render into portion of buffer
-        vdkRenderView_SetTargetsWithPitch(pRenderContext->viewShedRenderingContext.pRenderView, nullptr, 0, pRenderContext->viewShedRenderingContext.pDepthBuffer + r * singleRenderSize.x, 0, ViewShedMapRes.x * 4);
-        vdkRenderView_SetMatrix(pRenderContext->viewShedRenderingContext.pRenderView, vdkRVM_Projection, shadowRenderCameras[r].matrices.projectionUD.a);
+        udRenderTarget_SetTargetsWithPitch(pRenderContext->viewShedRenderingContext.pRenderTarget, nullptr, 0, pRenderContext->viewShedRenderingContext.pDepthBuffer + r * singleRenderSize.x, 0, ViewShedMapRes.x * 4);
+        udRenderTarget_SetMatrix(pRenderContext->viewShedRenderingContext.pRenderTarget, udRTM_Projection, shadowRenderCameras[r].matrices.projectionUD.a);
 
         // render UD
-        vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pRenderView, &shadowRenderCameras[r], renderData, false);
+        vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->viewShedRenderingContext.pRenderTarget, &shadowRenderCameras[r], renderData, false);
       }
 
       vcTexture_UploadPixels(pRenderContext->viewShedRenderingContext.pUDDepthTexture, pRenderContext->viewShedRenderingContext.pDepthBuffer, ViewShedMapRes.x, ViewShedMapRes.y);
@@ -1518,7 +1518,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   // Render and upload UD buffers
   if (renderData.models.length > 0)
   {
-    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderView, &pProgramState->camera, renderData, true);
+    vcRender_RenderUD(pProgramState, pRenderContext, pRenderContext->udRenderContext.pRenderTarget, &pProgramState->camera, renderData, true);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pColourTex, pRenderContext->udRenderContext.pColorBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
     vcTexture_UploadPixels(pRenderContext->udRenderContext.pDepthTex, pRenderContext->udRenderContext.pDepthBuffer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
   }
@@ -1553,9 +1553,9 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   vcShader_Bind(nullptr);
   vcGLState_SetViewport(0, 0, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
-  vdkStreamerStatus streamingStatus = {};
-  vdkStreamer_Update(&streamingStatus);
-  pProgramState->isStreaming |= streamingStatus.active;
+  udStreamerInfo streamingStatus = {};
+  udStreamer_Update(&streamingStatus);
+  pProgramState->isStreaming |= (streamingStatus.active != 0);
   pProgramState->streamingMemory = streamingStatus.memoryInUse;
 }
 
@@ -1565,16 +1565,16 @@ udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRende
 
   UD_ERROR_NULL(pRenderContext, udR_InvalidParameter_);
 
-  if (pRenderContext->udRenderContext.pRenderView && vdkRenderView_Destroy(&pRenderContext->udRenderContext.pRenderView) != vE_Success)
+  if (pRenderContext->udRenderContext.pRenderTarget && udRenderTarget_Destroy(&pRenderContext->udRenderContext.pRenderTarget) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_Create(pProgramState->pVDKContext, &pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pRenderer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y) != vE_Success)
+  if (udRenderTarget_Create(pProgramState->pUDSDKContext, &pRenderContext->udRenderContext.pRenderTarget, pRenderContext->udRenderContext.pRenderer, pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetTargets(pRenderContext->udRenderContext.pRenderView, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != vE_Success)
+  if (udRenderTarget_SetTargets(pRenderContext->udRenderContext.pRenderTarget, pRenderContext->udRenderContext.pColorBuffer, 0, pRenderContext->udRenderContext.pDepthBuffer) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
-  if (vdkRenderView_SetMatrix(pRenderContext->udRenderContext.pRenderView, vdkRVM_Projection, pProgramState->camera.matrices.projectionUD.a) != vE_Success)
+  if (udRenderTarget_SetMatrix(pRenderContext->udRenderContext.pRenderTarget, udRTM_Projection, pProgramState->camera.matrices.projectionUD.a) != udE_Success)
     UD_ERROR_SET(udR_InternalError);
 
 epilogue:
@@ -1609,25 +1609,25 @@ bool vcRender_FindSnapPoint(vcState *pProgramState, vcRenderContext *pRenderCont
   return bFind;
 }
 
-udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, vdkRenderView *pRenderView, vcCamera *pCamera, vcRenderData &renderData, bool doPick)
+udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderContext, udRenderTarget *pRenderTarget, vcCamera *pCamera, vcRenderData &renderData, bool doPick)
 {
   if (pRenderContext == nullptr)
     return udR_InvalidParameter_;
 
-  if (pRenderView == nullptr && pProgramState->pVDKContext)
+  if (pRenderTarget == nullptr && pProgramState->pUDSDKContext)
     vcRender_RecreateUDView(pProgramState, pRenderContext);
 
-  vdkRenderInstance *pModels = nullptr;
+  udRenderInstance *pModels = nullptr;
   vcUDRSData *pVoxelShaderData = nullptr;
 
   int numVisibleModels = 0;
 
-  vdkRenderView_SetMatrix(pRenderView, vdkRVM_Projection, pCamera->matrices.projectionUD.a);
-  vdkRenderView_SetMatrix(pRenderView, vdkRVM_View, pCamera->matrices.view.a);
+  udRenderTarget_SetMatrix(pRenderTarget, udRTM_Projection, pCamera->matrices.projectionUD.a);
+  udRenderTarget_SetMatrix(pRenderTarget, udRTM_View, pCamera->matrices.view.a);
 
   if (renderData.models.length > 0)
   {
-    pModels = udAllocType(vdkRenderInstance, renderData.models.length, udAF_None);
+    pModels = udAllocType(udRenderInstance, renderData.models.length, udAF_None);
     pVoxelShaderData = udAllocType(vcUDRSData, renderData.models.length, udAF_None);
   }
 
@@ -1642,7 +1642,6 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       // Copy to the contiguous array
       pModels[numVisibleModels].pPointCloud = renderData.models[i]->m_pPointCloud;
       memcpy(&pModels[numVisibleModels].matrix, renderData.models[i]->m_sceneMatrix.a, sizeof(pModels[numVisibleModels].matrix));
-      pModels[numVisibleModels].modelFlags = vdkRMF_None;
 
       pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Black;
       pModels[numVisibleModels].pVoxelUserData = &pVoxelShaderData[numVisibleModels];
@@ -1654,11 +1653,11 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       const vcVisualizationSettings *pVisSettings = (renderData.models[i]->m_visualization.mode != vcVM_Default ? &renderData.models[i]->m_visualization : &pProgramState->settings.visualization);
 
       // Fallback to the first available option when default, if all else fails, render black.
-      if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Colour) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ARGB, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Colour) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_ARGB, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Colour;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Intensity) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Intensity, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Intensity) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_Intensity, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Intensity;
 
@@ -1666,13 +1665,13 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         pVoxelShaderData[numVisibleModels].data.intensity.minIntensity = (uint16_t)pVisSettings->minIntensity;
         pVoxelShaderData[numVisibleModels].data.intensity.intensityRange = (float)(pVisSettings->maxIntensity - pVisSettings->minIntensity);
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Classification) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Classification) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;
 
         pVoxelShaderData[numVisibleModels].data.classification.pCustomClassificationColors = pVisSettings->customClassificationColors;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDistance) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDistance) && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementDistance;
 
@@ -1685,18 +1684,18 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         pVoxelShaderData[numVisibleModels].data.displacementAmount.minColour = pVisSettings->displacement.min;
         pVoxelShaderData[numVisibleModels].data.displacementAmount.midColour = pVisSettings->displacement.mid;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDirection) && vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDirection) && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementDirection;
-        vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionX", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[0]);
-        vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionY", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[1]);
-        vdkAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionZ", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[2]);
+        udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionX", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[0]);
+        udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionY", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[1]);
+        udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionZ", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[2]);
 
         pVoxelShaderData[numVisibleModels].data.displacementDirection.cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
         pVoxelShaderData[numVisibleModels].data.displacementDirection.posColour = pVisSettings->displacement.max;
         pVoxelShaderData[numVisibleModels].data.displacementDirection.negColour = pVisSettings->displacement.min;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_GPSTime) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_GPSTime, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_GPSTime) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_GPSTime, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         double range = pVisSettings->GPSTime.maxTime - pVisSettings->GPSTime.minTime;
         if (range < 0.0001)
@@ -1711,7 +1710,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
           pVoxelShaderData[numVisibleModels].data.GPSTime.maxTime = pVisSettings->GPSTime.maxTime;
         }
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ScanAngle) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ScanAngle, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ScanAngle) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_ScanAngle, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         double minAngleNorm = (pVisSettings->scanAngle.minAngle + 180.0) / 360.0;
         double maxAngleNorm = (pVisSettings->scanAngle.maxAngle + 180.0) / 360.0;
@@ -1725,18 +1724,18 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         else
           pModels[numVisibleModels].pVoxelShader = vcVoxelShader_ScanAngle;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_PointSourceID) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_PointSourceID, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_PointSourceID) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_PointSourceID, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_PointSourceID;
         pVoxelShaderData[numVisibleModels].data.pointSourceID.defaultColour = pVisSettings->pointSourceID.defaultColour;
         pVoxelShaderData[numVisibleModels].data.pointSourceID.pColourMap = &pVisSettings->pointSourceID.colourMap;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ReturnNumber) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_ReturnNumber, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ReturnNumber) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_ReturnNumber, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_ReturnNumber;
         pVoxelShaderData[numVisibleModels].data.returnNumber.pColours = pVisSettings->returnNumberColours;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_NumberOfReturns) && vdkAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, vdkSA_NumberOfReturns, &pVoxelShaderData[numVisibleModels].attributeOffset) == vE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_NumberOfReturns) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_NumberOfReturns, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NumberOfReturns;
         pVoxelShaderData[numVisibleModels].data.numberOfReturns.pColours = pVisSettings->numberOfReturnsColours;
@@ -1776,23 +1775,23 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     }
   }
 
-  vdkRenderPicking picking = {};
+  udRenderPicking picking = {};
   picking.x = (uint32_t)((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
   picking.y = (uint32_t)((float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
 
-  vdkRenderOptions renderOptions;
-  memset(&renderOptions, 0, sizeof(vdkRenderOptions));
+  udRenderSettings renderOptions;
+  memset(&renderOptions, 0, sizeof(udRenderSettings));
 
   if (doPick)
     renderOptions.pPick = &picking;
 
   renderOptions.pFilter = renderData.pQueryFilter;
-  renderOptions.pointMode = (vdkRenderContextPointMode)pProgramState->settings.presentation.pointMode;
-  renderOptions.flags = (vdkRenderFlags)(vdkRF_LogarithmicDepth | vdkRF_ManualStreamerUpdate);
+  renderOptions.pointMode = (udRenderContextPointMode)pProgramState->settings.presentation.pointMode;
+  renderOptions.flags = (udRenderContextFlags)(udRCF_LogarithmicDepth | udRCF_ManualStreamerUpdate);
 
-  vdkError result = vdkRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
+  udError result = udRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderTarget, pModels, numVisibleModels, &renderOptions);
 
-  if (result == vE_Success && doPick && !picking.hit && pProgramState->settings.mouseSnap.enable)
+  if (result == udE_Success && doPick && !picking.hit && pProgramState->settings.mouseSnap.enable)
   {
     udInt2 snapPoint = udInt2::zero();
     if (vcRender_FindSnapPoint(pProgramState, pRenderContext, renderData, snapPoint))
@@ -1800,11 +1799,11 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
       renderData.mouse.position = snapPoint;
       picking.x = (uint32_t)((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
       picking.y = (uint32_t)((float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
-      vdkRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderView, pModels, numVisibleModels, &renderOptions);
+      udRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderTarget, pModels, numVisibleModels, &renderOptions);
     }
   }
 
-  if (result == vE_Success)
+  if (result == udE_Success)
   {
     if (doPick && picking.hit)
     {

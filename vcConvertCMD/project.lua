@@ -14,7 +14,7 @@ project "udStreamConvertCMD"
 	includedirs { "../3rdParty/udcore/Include" }
 
 	links { "udCore" .. (projectSuffix or "") }
-	injectvaultsdkbin()
+	ProcessudSDK()
 
 	filter { "system:windows" }
 		links { "ws2_32.lib", "winmm.lib" }

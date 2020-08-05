@@ -10,7 +10,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcWater::vcWater(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcWater::vcWater(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_pWaterRenderer = nullptr;
@@ -24,7 +24,7 @@ vcWater::vcWater(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
 
 void vcWater::OnNodeUpdate(vcState *pProgramState)
 {
-  vdkProjectNode_GetMetadataDouble(m_pNode, "altitude", &m_altitude, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "altitude", &m_altitude, 0.0);
   ChangeProjection(pProgramState->geozone);
 }
 
@@ -46,7 +46,7 @@ void vcWater::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pItemID
   double min = -100.0;
   double max = 3500.0;
   if (ImGui::SliderScalar(udTempStr("%s##%zu", vcString::Get("waterAltitude"), *pItemID), ImGuiDataType_Double, &m_altitude, &min, &max))
-    vdkProjectNode_SetMetadataDouble(m_pNode, "altitude", m_altitude);
+    udProjectNode_SetMetadataDouble(m_pNode, "altitude", m_altitude);
 }
 
 void vcWater::Cleanup(vcState * /*pProgramState*/)
@@ -67,7 +67,7 @@ void vcWater::ChangeProjection(const udGeoZone &newZone)
   std::vector< std::pair<const udDouble3 *, size_t> > islandPoints;
   if (m_pNode->pFirstChild != nullptr)
   {
-    vdkProjectNode *pIslandNode = m_pNode->pFirstChild;
+    udProjectNode *pIslandNode = m_pNode->pFirstChild;
 
     do
     {

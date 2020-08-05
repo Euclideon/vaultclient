@@ -1,4 +1,4 @@
-#include "vdkPointCloud.h"
+#include "udPointCloud.h"
 #include "vcModel.h"
 #include "vcState.h"
 
@@ -64,14 +64,14 @@ struct vcUDRSData
   } data;
 };
 
-uint32_t vcVoxelShader_Black(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_Colour(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_Intensity(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_Classification(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_DisplacementDistance(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_DisplacementDirection(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_GPSTime(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_ScanAngle(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_PointSourceID(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_ReturnNumber(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
-uint32_t vcVoxelShader_NumberOfReturns(vdkPointCloud *pPointCloud,const vdkVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_Black(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_Colour(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_Intensity(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_Classification(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_DisplacementDistance(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_DisplacementDirection(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_GPSTime(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_ScanAngle(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_PointSourceID(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_ReturnNumber(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_NumberOfReturns(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);

@@ -5,9 +5,9 @@
 #include "udFile.h"
 #include "udChunkedArray.h"
 
-#include "vdkConvert.h"
-#include "vdkContext.h"
-#include "vdkConfig.h"
+#include "udConvert.h"
+#include "udContext.h"
+#include "udConfig.h"
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -35,17 +35,17 @@ void vcConvertCMD_ShowOptions()
 
 struct vcConvertData
 {
-  vdkConvertContext *pConvertContext;
+  udConvertContext *pConvertContext;
 
   bool ended;
-  vdkError response;
+  udError response;
 };
 
 uint32_t vcConvertCMD_DoConvert(void *pDataPtr)
 {
   vcConvertData *pConvData = (vcConvertData*)pDataPtr;
 
-  pConvData->response = vdkConvert_DoConvert(pConvData->pConvertContext);
+  pConvData->response = udConvert_DoConvert(pConvData->pConvertContext);
   pConvData->ended = true;
 
   return 0;
@@ -168,11 +168,11 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
 
 int main(int argc, const char **ppArgv)
 {
-  vdkError result = vE_Success;
+  udError result = udE_Success;
 
-  vdkContext *pContext = nullptr;
-  const vdkConvertInfo *pInfo = nullptr;
-  vdkConvertContext *pModel = nullptr;
+  udContext *pContext = nullptr;
+  const udConvertInfo *pInfo = nullptr;
+  udConvertContext *pModel = nullptr;
   vcConvertCMDSettings settings = {};
 
   settings.files.Init(256);
@@ -188,49 +188,49 @@ int main(int argc, const char **ppArgv)
   bool cmdlineError = vcConvertCMD_ProcessCommandLine(argc, ppArgv, &settings);
 
   if (settings.pProxyURL)
-    vdkConfig_ForceProxy(settings.pProxyURL);
+    udConfig_ForceProxy(settings.pProxyURL);
 
   if (settings.pProxyUsername)
-    vdkConfig_SetProxyAuth(settings.pProxyUsername, settings.pProxyPassword);
+    udConfig_SetProxyAuth(settings.pProxyUsername, settings.pProxyPassword);
 
-  result = vdkContext_TryResume(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], true);
+  result = udContext_TryResume(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], true);
 
-  if (result != vE_Success)
+  if (result != udE_Success)
   {
-    result = vdkContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
-    if (result == vE_ConnectionFailure)
+    result = udContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
+    if (result == udE_ConnectionFailure)
       printf("Could not connect to server.");
-    else if (result == vE_NotAllowed)
+    else if (result == udE_NotAllowed)
       printf("Username or Password incorrect.");
-    else if (result == vE_OutOfSync)
+    else if (result == udE_OutOfSync)
       printf("Your clock doesn't match the remote server clock.");
-    else if (result == vE_SecurityFailure)
+    else if (result == udE_SecurityFailure)
       printf("Could not open a secure channel to the server.");
-    else if (result == vE_ServerFailure)
+    else if (result == udE_ServerFailure)
       printf("Unable to negotiate with server, please confirm the server address");
-    else if (result != vE_Success)
+    else if (result != udE_Success)
       printf("Unknown error occurred (Error=%d), please try again later.", result);
   }
 
-  if (result != vE_Success)
+  if (result != udE_Success)
     exit(2);
 
-  result = vdkConvert_CreateContext(pContext, &pModel);
-  if (result != vE_Success)
+  result = udConvert_CreateContext(pContext, &pModel);
+  if (result != udE_Success)
   {
     printf("Could not created render context");
     exit(3);
   }
 
-  vdkConvert_GetInfo(pModel, &pInfo);
+  udConvert_GetInfo(pModel, &pInfo);
 
   // Process settings
   if (settings.resolution != 0)
-    vdkConvert_SetPointResolution(pModel, true, settings.resolution);
+    udConvert_SetPointResolution(pModel, true, settings.resolution);
 
   if (settings.srid != 0)
   {
-    if (vdkConvert_SetSRID(pModel, true, settings.srid) != vE_Success)
+    if (udConvert_SetSRID(pModel, true, settings.srid) != udE_Success)
     {
       printf("Error setting srid %d\n", settings.srid);
       cmdlineError = true;
@@ -239,7 +239,7 @@ int main(int argc, const char **ppArgv)
 
   if (settings.globalOffset[0] != 0.0 || settings.globalOffset[1] != 0.0 || settings.globalOffset[2] != 0.0)
   {
-    if (vdkConvert_SetGlobalOffset(pModel, settings.globalOffset) != vE_Success)
+    if (udConvert_SetGlobalOffset(pModel, settings.globalOffset) != udE_Success)
     {
       printf("Error setting global offset %1.1f,%1.1f,%1.1f\n", settings.globalOffset[0], settings.globalOffset[1], settings.globalOffset[2]);
       cmdlineError = true;
@@ -248,7 +248,7 @@ int main(int argc, const char **ppArgv)
 
   if (settings.quicktest)
   {
-    if (vdkConvert_SetEveryNth(pModel, 1000) != vE_Success)
+    if (udConvert_SetEveryNth(pModel, 1000) != udE_Success)
       cmdlineError = true;
   }
 
@@ -267,8 +267,8 @@ int main(int argc, const char **ppArgv)
         udFilename foundFile(pFindDir->pFilename);
         foundFile.SetFolder(settings.files[i]);
         printf("\tPreprocessing '%s'... [%" PRIu64 " total items]\n", foundFile.GetPath(), pInfo->totalItems);
-        result = vdkConvert_AddItem(pModel, foundFile.GetPath());
-        if (result != vE_Success)
+        result = udConvert_AddItem(pModel, foundFile.GetPath());
+        if (result != udE_Success)
           printf("\t\tUnable to convert %s [Error:%d]:\n", foundFile.GetPath(), result);
       } while (udReadDir(pFindDir) == udR_Success);
       res = udCloseDir(&pFindDir);
@@ -276,8 +276,8 @@ int main(int argc, const char **ppArgv)
     else
     {
       printf("\tPreprocessing '%s'... [%" PRIu64 " total items]\n", settings.files[i], pInfo->totalItems);
-      result = vdkConvert_AddItem(pModel, settings.files[i]);
-      if (result != vE_Success)
+      result = udConvert_AddItem(pModel, settings.files[i]);
+      if (result != udE_Success)
         printf("\t\tUnable to convert %s [Error:%d]:\n", settings.files[i], result);
     }
 
@@ -285,7 +285,7 @@ int main(int argc, const char **ppArgv)
   }
 
   if (settings.pOutputFilename)
-    vdkConvert_SetOutputFilename(pModel, settings.pOutputFilename);
+    udConvert_SetOutputFilename(pModel, settings.pOutputFilename);
 
   if (cmdlineError || pInfo->totalItems == 0)
   {
@@ -313,7 +313,7 @@ int main(int argc, const char **ppArgv)
     if (settings.pCopyright != nullptr)
     {
       printf("\tCopyright: %s\n", settings.pCopyright);
-      vdkConvert_SetMetadata(convdata.pConvertContext, "Copyright", settings.pCopyright);
+      udConvert_SetMetadata(convdata.pConvertContext, "Copyright", settings.pCopyright);
     }
 
     printf("\tOutput: %s\n", pInfo->pOutputName);
@@ -322,7 +322,7 @@ int main(int argc, const char **ppArgv)
 
     udThread_Create(nullptr, vcConvertCMD_DoConvert, &convdata);
 
-    vdkConvertItemInfo itemInfo = {};
+    udConvertItemInfo itemInfo = {};
 
     uint64_t previousItem = UINT64_MAX;
 
@@ -339,7 +339,7 @@ int main(int argc, const char **ppArgv)
 
       if (currentItem < pInfo->totalItems)
       {
-        vdkConvert_GetItemInfo(pModel, currentItem, &itemInfo);
+        udConvert_GetItemInfo(pModel, currentItem, &itemInfo);
         printf("[%" PRIu64 "/%" PRIu64 "] %s: %s/%s    \r", currentItem +1, pInfo->totalItems, itemInfo.pFilename, udTempStr_CommaInt(itemInfo.pointsRead), udTempStr_CommaInt(itemInfo.pointsCount));
       }
       else
@@ -355,7 +355,7 @@ int main(int argc, const char **ppArgv)
 
     for (size_t inputFilesRead = 0; inputFilesRead < pInfo->currentInputItem; ++inputFilesRead)
     {
-      vdkConvert_GetItemInfo(pModel, inputFilesRead, &itemInfo);
+      udConvert_GetItemInfo(pModel, inputFilesRead, &itemInfo);
       printf("%s: %s/%s points read         \n", itemInfo.pFilename, udCommaInt(itemInfo.pointsRead), udCommaInt(itemInfo.pointsCount));
     }
 
@@ -371,14 +371,14 @@ int main(int argc, const char **ppArgv)
 
   printf("\nStatus: %d\n", (int)result);
 
-  if (settings.pause || (settings.pauseOnError && result != vE_Success))
+  if (settings.pause || (settings.pauseOnError && result != udE_Success))
   {
     printf("Press enter...");
     getchar();
   }
 
-  vdkConvert_DestroyContext(&pModel);
-  vdkContext_Disconnect(&pContext, false);
+  udConvert_DestroyContext(&pModel);
+  udContext_Disconnect(&pContext, false);
   settings.files.Deinit();
 
   return -result;

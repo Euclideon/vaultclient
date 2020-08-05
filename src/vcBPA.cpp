@@ -3,9 +3,9 @@
 #include "vcMath.h"
 #include "vcConvert.h"
 
-#include "vdkConvert.h"
-#include "vdkConvertCustom.h"
-#include "vdkQuery.h"
+#include "udConvert.h"
+#include "udConvertCustom.h"
+#include "udQueryContext.h"
 
 #include "udChunkedArray.h"
 #include "udWorkerPool.h"
@@ -59,7 +59,7 @@ struct vcBPAGrid
   udDouble3 center;
   bool visited;
 
-  vdkPointBufferF64 *pBuffer;
+  udPointBufferF64 *pBuffer;
   udChunkedArray<vcBPAVertex> vertices;
   udChunkedArray<vcBPATriangle> triangles;
   udChunkedArray<vcBPAEdge> edges;
@@ -80,17 +80,17 @@ struct vcBPAGrid
     return grid;
   }
 
-  void Init(vdkAttributeSet *pAttributes)
+  void Init(udAttributeSet *pAttributes)
   {
     vertices.Init(512);
     triangles.Init(512);
     edges.Init(512);
-    vdkPointBufferF64_Create(&pBuffer, 1 << 20, pAttributes);
+    udPointBufferF64_Create(&pBuffer, 1 << 20, pAttributes);
   }
 
   void Deinit()
   {
-    vdkPointBufferF64_Destroy(&pBuffer);
+    udPointBufferF64_Destroy(&pBuffer);
     edges.Deinit();
     triangles.Deinit();
     vertices.Deinit();
@@ -122,10 +122,10 @@ struct vcBPAManifold
 
   double gridSize;
   double ballRadius;
-  vdkContext *pContext;
+  udContext *pContext;
 };
 
-void vcBPA_Init(vcBPAManifold **ppManifold, vdkContext *pContext)
+void vcBPA_Init(vcBPAManifold **ppManifold, udContext *pContext)
 {
   vcBPAManifold *pManifold = udAllocType(vcBPAManifold, 1, udAF_Zero);
   pManifold->grids.Init(1 << 10);
@@ -151,45 +151,45 @@ void vcBPA_Deinit(vcBPAManifold **ppManifold)
   udFree(pManifold);
 }
 
-bool vcBPA_NodeHasData(vcBPAManifold *pManifold, vdkPointCloud *pModel, vcBPAOctNode *pNode)
+bool vcBPA_NodeHasData(vcBPAManifold *pManifold, udPointCloud *pModel, vcBPAOctNode *pNode)
 {
   bool hasData = false;
-  vdkPointBufferF64 *pBuffer = nullptr;
-  vdkPointBufferF64_Create(&pBuffer, 1, nullptr);
+  udPointBufferF64 *pBuffer = nullptr;
+  udPointBufferF64_Create(&pBuffer, 1, nullptr);
 
-  vdkQueryFilter *pFilter = nullptr;
-  vdkQueryFilter_Create(&pFilter);
+  udQueryFilter *pFilter = nullptr;
+  udQueryFilter_Create(&pFilter);
   udDouble3 zero = udDouble3::zero();
-  vdkQueryFilter_SetAsBox(pFilter, &pNode->center.x, &pNode->extents.x, &zero.x);
+  udQueryFilter_SetAsBox(pFilter, &pNode->center.x, &pNode->extents.x, &zero.x);
 
-  vdkQuery *pQuery = nullptr;
-  vdkQuery_Create(pManifold->pContext, &pQuery, pModel, pFilter);
-  vdkQuery_ExecuteF64(pQuery, pBuffer);
-  vdkQuery_Destroy(&pQuery);
+  udQueryContext *pQuery = nullptr;
+  udQueryContext_Create(pManifold->pContext, &pQuery, pModel, pFilter);
+  udQueryContext_ExecuteF64(pQuery, pBuffer);
+  udQueryContext_Destroy(&pQuery);
 
-  vdkQueryFilter_Destroy(&pFilter);
+  udQueryFilter_Destroy(&pFilter);
 
   hasData = (pBuffer->pointCount != 0);
 
-  vdkPointBufferF64_Destroy(&pBuffer);
+  udPointBufferF64_Destroy(&pBuffer);
 
   return hasData;
 }
 
-void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, udDouble3 aabbCenter, udDouble3 aabbExtents, vcBPAGrid *pGrid, bool *pHasPoints)
+void vcBPA_PopulateGrid(udContext *pContext, udPointCloud *pModel, udAttributeSet *pAttributes, udDouble3 aabbCenter, udDouble3 aabbExtents, vcBPAGrid *pGrid, bool *pHasPoints)
 {
   pGrid->Init(pAttributes);
 
-  vdkQueryFilter *pFilter = nullptr;
-  vdkQueryFilter_Create(&pFilter);
+  udQueryFilter *pFilter = nullptr;
+  udQueryFilter_Create(&pFilter);
   udDouble3 zero = udDouble3::zero();
-  vdkQueryFilter_SetAsBox(pFilter, &aabbCenter.x, &aabbExtents.x, &zero.x);
+  udQueryFilter_SetAsBox(pFilter, &aabbCenter.x, &aabbExtents.x, &zero.x);
 
-  vdkQuery *pQuery = nullptr;
-  vdkQuery_Create(pContext, &pQuery, pModel, pFilter);
-  vdkQuery_ExecuteF64(pQuery, pGrid->pBuffer);
-  vdkQuery_Destroy(&pQuery);
-  vdkQueryFilter_Destroy(&pFilter);
+  udQueryContext *pQuery = nullptr;
+  udQueryContext_Create(pContext, &pQuery, pModel, pFilter);
+  udQueryContext_ExecuteF64(pQuery, pGrid->pBuffer);
+  udQueryContext_Destroy(&pQuery);
+  udQueryFilter_Destroy(&pFilter);
 
   pGrid->vertices.ReserveBack(pGrid->pBuffer->pointCount);
   for (uint32_t j = 0; j < pGrid->pBuffer->pointCount; ++j)
@@ -203,7 +203,7 @@ void vcBPA_PopulateGrid(vdkContext *pContext, vdkPointCloud *pModel, vdkAttribut
   }
 }
 
-bool vcBPA_GetGrid(vcBPAManifold *pManifold, vdkPointCloud *pModel, vdkAttributeSet *pAttributes, vcBPAGrid **ppGrid)
+bool vcBPA_GetGrid(vcBPAManifold *pManifold, udPointCloud *pModel, udAttributeSet *pAttributes, vcBPAGrid **ppGrid)
 {
   double startTime = udGetEpochMilliSecsUTCf();
 
@@ -841,16 +841,16 @@ struct vcBPAConvertItemData
   vcBPAGrid *pGrid;
   uint32_t pointIndex;
 
-  vdkPointCloud *pOldModel;
+  udPointCloud *pOldModel;
   vcBPAGrid oldGrid;
 };
 
 struct vcBPAConvertItem
 {
   vcBPAManifold *pManifold;
-  vdkContext *pContext;
-  vdkPointCloud *pOldModel;
-  vdkPointCloud *pNewModel;
+  udContext *pContext;
+  udPointCloud *pOldModel;
+  udPointCloud *pNewModel;
   vcConvertItem *pConvertItem;
   double gridSize;
   double ballRadius;
@@ -891,8 +891,8 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
   vcBPAGrid *pGrid = nullptr;
   int i = 0;
 
-  vdkPointCloudHeader header;
-  vdkPointCloud_GetHeader(pData->pNewModel, &header);
+  udPointCloudHeader header;
+  udPointCloud_GetHeader(pData->pNewModel, &header);
 
   while (vcBPA_GetGrid(pData->pManifold, pData->pNewModel, &header.attributes, &pGrid) && pData->running)
   {
@@ -927,7 +927,7 @@ uint32_t vcBPA_GridGeneratorThread(void *pDataPtr)
   return 0;
 }
 
-vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, vdkConvertCustomItemFlags flags)
+udError vcBPA_ConvertOpen(udConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, udConvertCustomItemFlags flags)
 {
   udUnused(everyNth);
   udUnused(origin);
@@ -941,8 +941,8 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   pData->pManifold->ballRadius = pData->ballRadius;
   pData->pManifold->gridSize = pData->gridSize;
 
-  vdkPointCloudHeader header = {};
-  vdkPointCloud_GetHeader(pData->pNewModel, &header);
+  udPointCloudHeader header = {};
+  udPointCloud_GetHeader(pData->pNewModel, &header);
   udDouble4x4 storedMatrix = udDouble4x4::create(header.storedMatrix);
   udDouble3 startAABBCenter = (storedMatrix * udDouble4::create(header.pivot[0], header.pivot[1], header.pivot[2], 1.0)).toVector3();
 
@@ -959,10 +959,10 @@ vdkError vcBPA_ConvertOpen(vdkConvertCustomItem *pConvertInput, uint32_t everyNt
   while (pData->running && udSafeDeque_PopFront(pData->pConvertItemData, &pData->activeItem) != udR_Success)
     continue;
 
-  return (!pData->running && pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr) ? vE_InvalidConfiguration : vE_Success;
+  return (!pData->running && pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr) ? udE_InvalidConfiguration : udE_Success;
 }
 
-vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBufferF64 *pBuffer)
+udError vcBPA_ConvertReadPoints(udConvertCustomItem *pConvertInput, udPointBufferF64 *pBuffer)
 {
   // Reset point count to avoid infinite loop
   pBuffer->pointCount = 0;
@@ -972,7 +972,7 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
 
   uint32_t displacementOffset = 0;
   udUInt3 displacementDistanceOffset = {};
-  vdkError error = vE_Failure;
+  udError error = udE_Failure;
 
   static int gridCount = 0;
   if (pData->activeItem.pointIndex == 0)
@@ -981,20 +981,20 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   if (pData->activeItem.pointIndex == 0 && pData->activeItem.pGrid == nullptr)
     goto epilogue;
 
-  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacement", &displacementOffset);
-  if (error != vE_Success)
+  error = udAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacement", &displacementOffset);
+  if (error != udE_Success)
     return error;
 
-  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionX", &displacementDistanceOffset.x);
-  if (error != vE_Success)
+  error = udAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionX", &displacementDistanceOffset.x);
+  if (error != udE_Success)
     return error;
 
-  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionY", &displacementDistanceOffset.y);
-  if (error != vE_Success)
+  error = udAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionY", &displacementDistanceOffset.y);
+  if (error != udE_Success)
     return error;
 
-  error = vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionZ", &displacementDistanceOffset.z);
-  if (error != vE_Success)
+  error = udAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, "udDisplacementDirectionZ", &displacementDistanceOffset.z);
+  if (error != udE_Success)
     return error;
 
   for (size_t i = pData->activeItem.pointIndex; i < pData->activeItem.pGrid->vertices.length; ++i)
@@ -1022,19 +1022,19 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
     ptrdiff_t pointAttrOffset = ptrdiff_t(pBuffer->pointCount) * pBuffer->attributeStride;
     for (uint32_t j = 0; j < pData->activeItem.pGrid->pBuffer->attributes.count; ++j)
     {
-      vdkAttributeDescriptor &oldAttrDesc = pData->activeItem.pGrid->pBuffer->attributes.pDescriptors[j];
-      uint32_t attributeSize = (oldAttrDesc.typeInfo & (vdkAttributeTypeInfo_SizeMask << vdkAttributeTypeInfo_SizeShift));
+      udAttributeDescriptor &oldAttrDesc = pData->activeItem.pGrid->pBuffer->attributes.pDescriptors[j];
+      uint32_t attributeSize = (oldAttrDesc.typeInfo & (udATI_SizeMask << udATI_SizeShift));
 
       // Get attribute old offset and pointer
       uint32_t attrOldOffset = 0;
-      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pData->activeItem.pGrid->pBuffer->attributes, oldAttrDesc.name, &attrOldOffset) != vE_Success)
+      if (udAttributeSet_GetOffsetOfNamedAttribute(&pData->activeItem.pGrid->pBuffer->attributes, oldAttrDesc.name, &attrOldOffset) != udE_Success)
         continue;
 
       void *pOldAttr = udAddBytes(pData->activeItem.pGrid->pBuffer->pAttributes, i * pData->activeItem.pGrid->pBuffer->attributeStride + attrOldOffset);
 
       // Get attribute new offset and pointer
       uint32_t attrNewOffset = 0;
-      if (vdkAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, oldAttrDesc.name, &attrNewOffset) != vE_Success)
+      if (udAttributeSet_GetOffsetOfNamedAttribute(&pBuffer->attributes, oldAttrDesc.name, &attrNewOffset) != udE_Success)
         continue;
 
       void *pNewAttr = udAddBytes(pBuffer->pAttributes, pointAttrOffset + attrNewOffset);
@@ -1075,10 +1075,10 @@ vdkError vcBPA_ConvertReadPoints(vdkConvertCustomItem *pConvertInput, vdkPointBu
   }
 
 epilogue:
-  return vE_Success;
+  return udE_Success;
 }
 
-void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
+void vcBPA_ConvertClose(udConvertCustomItem *pConvertInput)
 {
   vcBPAConvertItem *pBPA = (vcBPAConvertItem *)pConvertInput->pData;
   pBPA->running = false;
@@ -1099,12 +1099,12 @@ void vcBPA_ConvertClose(vdkConvertCustomItem *pConvertInput)
   vcBPA_Deinit(&pBPA->pManifold);
 }
 
-void vcBPA_ConvertDestroy(vdkConvertCustomItem *pConvertInput)
+void vcBPA_ConvertDestroy(udConvertCustomItem *pConvertInput)
 {
   vcBPAConvertItem *pBPA = (vcBPAConvertItem*)pConvertInput->pData;
-  vdkPointCloud_Unload(&pBPA->pOldModel);
-  vdkPointCloud_Unload(&pBPA->pNewModel);
-  vdkAttributeSet_Free(&pConvertInput->attributes);
+  udPointCloud_Unload(&pBPA->pOldModel);
+  udPointCloud_Unload(&pBPA->pNewModel);
+  udAttributeSet_Destroy(&pConvertInput->attributes);
   udFree(pConvertInput->pData);
 }
 
@@ -1115,12 +1115,12 @@ void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, cons
 
   udLockMutex(pConvertItem->pMutex);
 
-  vdkPointCloudHeader header = {};
+  udPointCloudHeader header = {};
 
   vcBPAConvertItem *pBPA = udAllocType(vcBPAConvertItem, 1, udAF_Zero);
-  pBPA->pContext = pProgramState->pVDKContext;
-  vdkPointCloud_Load(pBPA->pContext, &pBPA->pOldModel, pOldModelPath, nullptr);
-  vdkPointCloud_Load(pBPA->pContext, &pBPA->pNewModel, pNewModelPath, &header);
+  pBPA->pContext = pProgramState->pUDSDKContext;
+  udPointCloud_Load(pBPA->pContext, &pBPA->pOldModel, pOldModelPath, nullptr);
+  udPointCloud_Load(pBPA->pContext, &pBPA->pNewModel, pNewModelPath, &header);
   pBPA->pConvertItem = pConvertItem;
   pBPA->running = true;
   pBPA->ballRadius = ballRadius;
@@ -1131,18 +1131,18 @@ void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, cons
   udDouble3 boundingBoxExtents = udDouble3::create(header.boundingBoxExtents[0], header.boundingBoxExtents[1], header.boundingBoxExtents[2]);
 
   const char *pMetadata = nullptr;
-  vdkPointCloud_GetMetadata(pBPA->pNewModel, &pMetadata);
+  udPointCloud_GetMetadata(pBPA->pNewModel, &pMetadata);
   udJSON metadata = {};
   metadata.Parse(pMetadata);
 
   for (uint32_t i = 0; i < metadata.MemberCount() ; ++i)
   {
     const udJSON *pElement = metadata.GetMember(i);
-    // Removed error checking because convertInfo metadata triggers vE_NotSupported
-    vdkConvert_SetMetadata(pConvertItem->pConvertContext, metadata.GetMemberName(i), pElement->AsString());
+    // Removed error checking because convertInfo metadata triggers udE_NotSupported
+    udConvert_SetMetadata(pConvertItem->pConvertContext, metadata.GetMemberName(i), pElement->AsString());
   }
 
-  vdkConvertCustomItem item = {};
+  udConvertCustomItem item = {};
   item.pName = pName;
 
   uint32_t displacementOffset = 0;
@@ -1151,17 +1151,17 @@ void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, cons
   uint32_t displacementDirectionOffset = 0;
   bool addDisplacementDirection = true;
 
-  if (vdkAttributeSet_GetOffsetOfNamedAttribute(&header.attributes, "udDisplacement", &displacementOffset) == vE_Success)
+  if (udAttributeSet_GetOffsetOfNamedAttribute(&header.attributes, "udDisplacement", &displacementOffset) == udE_Success)
     addDisplacement = false;
 
-  if (vdkAttributeSet_GetOffsetOfNamedAttribute(&header.attributes, "udDisplacementDirectionX", &displacementDirectionOffset) == vE_Success)
+  if (udAttributeSet_GetOffsetOfNamedAttribute(&header.attributes, "udDisplacementDirectionX", &displacementDirectionOffset) == udE_Success)
     addDisplacementDirection = false;
 
-  vdkAttributeSet_Generate(&item.attributes, vdkSAC_None, header.attributes.count + (addDisplacement ? 1 : 0) + (addDisplacementDirection ? 3 : 0));
+  udAttributeSet_Create(&item.attributes, udSAC_None, header.attributes.count + (addDisplacement ? 1 : 0) + (addDisplacementDirection ? 3 : 0));
 
   for (uint32_t i = 0; i < header.attributes.count; ++i)
   {
-    item.attributes.pDescriptors[i].blendMode = header.attributes.pDescriptors[i].blendMode;
+    item.attributes.pDescriptors[i].blendType = header.attributes.pDescriptors[i].blendType;
     item.attributes.pDescriptors[i].typeInfo = header.attributes.pDescriptors[i].typeInfo;
     udStrcpy(item.attributes.pDescriptors[i].name, header.attributes.pDescriptors[i].name);
     ++item.attributes.count;
@@ -1169,26 +1169,26 @@ void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, cons
 
   if (addDisplacement)
   {
-    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
-    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    item.attributes.pDescriptors[item.attributes.count].blendType = udABT_FirstChild;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = udATI_float32;
     udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacement");
     ++item.attributes.count;
   }
 
   if (addDisplacementDirection)
   {
-    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
-    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    item.attributes.pDescriptors[item.attributes.count].blendType = udABT_FirstChild;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = udATI_float32;
     udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacementDirectionX");
     ++item.attributes.count;
 
-    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
-    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    item.attributes.pDescriptors[item.attributes.count].blendType = udABT_FirstChild;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = udATI_float32;
     udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacementDirectionY");
     ++item.attributes.count;
 
-    item.attributes.pDescriptors[item.attributes.count].blendMode = vdkABM_SingleValue;
-    item.attributes.pDescriptors[item.attributes.count].typeInfo = vdkAttributeTypeInfo_float32;
+    item.attributes.pDescriptors[item.attributes.count].blendType = udABT_FirstChild;
+    item.attributes.pDescriptors[item.attributes.count].typeInfo = udATI_float32;
     udStrcpy(item.attributes.pDescriptors[item.attributes.count].name, "udDisplacementDirectionZ");
     ++item.attributes.count;
   }
@@ -1210,7 +1210,7 @@ void vcBPA_CompareExport(vcState *pProgramState, const char *pOldModelPath, cons
     item.boundMax[i] = temp[i];
 
   item.boundsKnown = true;
-  vdkConvert_AddCustomItem(pConvertItem->pConvertContext, &item);
+  udConvert_AddCustomItem(pConvertItem->pConvertContext, &item);
 
   udFree(item.pName);
   udReleaseMutex(pBPA->pConvertItem->pMutex);

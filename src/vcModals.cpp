@@ -23,7 +23,7 @@
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "imgui_ex/imgui_udValue.h"
 
-#include "vdkServerAPI.h"
+#include "udServerAPI.h"
 
 #include "stb_image.h"
 
@@ -150,7 +150,7 @@ bool vcModals_ConfirmEndSession(vcState *pProgramState, bool isQuit)
       udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmEndConvert"));
 #endif
 
-    if (vdkProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == vE_Success)
+    if (udProject_HasUnsavedChanges(pProgramState->activeProject.pProject) == udE_Success)
       udSprintf(&pMessage, "%s\n- %s", pMessage, vcString::Get("endSessionConfirmProjectUnsaved"));
 
     if (pProgramState->backgroundWork.exportsRunning.Get() > 0)
@@ -599,8 +599,8 @@ void vcModals_DrawExportProject(vcState *pProgramState)
             ImGui::SetCursorPosX(textAlignPosX);
             if (ImGui::Button(vcString::Get("menuProjectExportButton")))
             {
-              vdkError result = vcProject_SaveAsServer(pProgramState, udUUID_GetAsString(selectedGroup));
-              if (result == vE_Success)
+              udError result = vcProject_SaveAsServer(pProgramState, udUUID_GetAsString(selectedGroup));
+              if (result == udE_Success)
                 ImGui::CloseCurrentPopup();
               else
                 udSprintf(ErrorText, "%s: %s", vcString::Get("errorServerCommunication"), vcProject_ErrorToString(result));
@@ -658,7 +658,7 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
 
     if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true))
     {
-      if (vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == vE_Success)
+      if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
         ImGui::TextWrapped("%s", pInfo);
 
       ImGui::EndChild();
@@ -692,7 +692,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
     static udUUID selectedGroup = {};
     static const char *pGroupName = nullptr;
     static bool availableGroups = true;
-    static vdkError result = vE_Success;
+    static udError result = udE_Success;
 
     if (ImGui::IsWindowAppearing())
     {
@@ -700,7 +700,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
       pGroupName = nullptr;
       availableGroups = true;
       udUUID_Clear(&selectedGroup);
-      result = vE_Success;
+      result = udE_Success;
     }
 
     struct
@@ -761,7 +761,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
       {
         pProgramState->modelPath[0] = '\0';
         creatingNewProjectType = -1;
-        result = vE_Success;
+        result = udE_Success;
         ImGui::CloseCurrentPopup();
       }
     }
@@ -818,7 +818,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
               udFilename exportFilename(pProjectPath);
               vcProject_AutoCompletedName(&exportFilename, pProjectPath, pProgramState->modelPath);
               result = vcProject_CreateFileScene(pProgramState, exportFilename, pProgramState->modelPath, zoneCustomSRID);
-              if (result == vE_Success)
+              if (result == udE_Success)
               {
                 pProgramState->modelPath[0] = '\0';
                 ImGui::CloseCurrentPopup();
@@ -866,7 +866,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
               if (ImGui::Button(vcString::Get("menuProjectCreateButton")) && vcProject_AbleToChange(pProgramState))
               {
                 result = vcProject_CreateServerScene(pProgramState, pProgramState->modelPath, udUUID_GetAsString(selectedGroup), zoneCustomSRID);
-                if (result == vE_Success)
+                if (result == udE_Success)
                 {
                   pProgramState->modelPath[0] = '\0';
                   ImGui::CloseCurrentPopup();
@@ -890,7 +890,7 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
               }
               else
               {
-                result = vE_Failure;
+                result = udE_Failure;
               }
             }
           }
@@ -904,10 +904,10 @@ void vcModals_DrawCreateProject(vcState *pProgramState)
       if (ImGui::Button("Back", ImVec2(100.f, 0)))
       {
         creatingNewProjectType = -1;
-        result = vE_Success;
+        result = udE_Success;
       }
 
-      if (result != vE_Success)
+      if (result != udE_Success)
       {
         ImGui::NextColumn();
         ImGui::Spacing();
@@ -1068,7 +1068,7 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
                       {
                         if (ImGui::MenuItem(vcString::Get("modalProjectDelete")) && vcModals_AllowDestructiveAction(pProgramState, vcString::Get("modalProjectDelete"), vcString::Get("modalProjectDeleteDesc")))
                         {
-                          if (vdkProject_DeleteServerProject(pProgramState->pVDKContext, udUUID_GetAsString(project.projectID)) == vE_Success)
+                          if (udProject_DeleteServerProject(pProgramState->pUDSDKContext, udUUID_GetAsString(project.projectID)) == udE_Success)
                             project.isDeleted = true;
 
                           //TODO: Handle when it doesn't work?
@@ -1079,7 +1079,7 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
                       {
                         if (ImGui::MenuItem(vcString::Get("shareMakeUnshare")))
                         {
-                          if (vdkProject_SetLinkShareStatus(pProgramState->pVDKContext, udUUID_GetAsString(project.projectID), false) == vE_Success)
+                          if (udProject_SetLinkShareStatus(pProgramState->pUDSDKContext, udUUID_GetAsString(project.projectID), false) == udE_Success)
                             project.isShared = false;
 
                           //TODO: Handle when it doesn't work?
@@ -1090,7 +1090,7 @@ void vcModals_DrawLoadProject(vcState *pProgramState)
                       {
                         if (ImGui::MenuItem(vcString::Get("shareMakeShare")))
                         {
-                          if (vdkProject_SetLinkShareStatus(pProgramState->pVDKContext, udUUID_GetAsString(project.projectID), true) == vE_Success)
+                          if (udProject_SetLinkShareStatus(pProgramState->pUDSDKContext, udUUID_GetAsString(project.projectID), true) == udE_Success)
                             project.isShared = true;
 
                           //TODO: Handle when it doesn't work?
@@ -1164,7 +1164,7 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
     {
       udStrcpy(pProgramState->modelPath, pProgramState->activeProject.pRoot->pName);
       const char *pCurrentInformation = nullptr;
-      vdkProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pCurrentInformation, "");
+      udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pCurrentInformation, "");
       udStrcpy(information, pCurrentInformation);
     }
 
@@ -1175,8 +1175,8 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
-      vdkProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
-      vdkProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
+      udProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
+      udProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
 
       ImGui::CloseCurrentPopup();
     }
@@ -1587,8 +1587,8 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
       changePasswordData.Export(&pUpdatePasswordString);
 
       const char *pResult = nullptr;
-      vdkError result = vdkServerAPI_Query(pProgramState->pVDKContext, "v1/user/updatepassword", pUpdatePasswordString, &pResult);
-      if (result == vE_Success)
+      udError result = udServerAPI_Query(pProgramState->pUDSDKContext, "v1/user/updatepassword", pUpdatePasswordString, &pResult);
+      if (result == udE_Success)
       {
         udJSON resultData;
         resultData.Parse(pResult);
@@ -1616,7 +1616,7 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
         }
       }
 
-      vdkServerAPI_ReleaseResult(&pResult);
+      udServerAPI_ReleaseResult(&pResult);
       udFree(pUpdatePasswordString);
     }
     

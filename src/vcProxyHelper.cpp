@@ -1,8 +1,8 @@
 #include "vcProxyHelper.h"
 #include "vcState.h"
 
-#include "vdkConfig.h"
-#include "vdkWeb.h"
+#include "udConfig.h"
+#include "udWeb.h"
 
 #include "udStringUtil.h"
 
@@ -10,7 +10,7 @@
 # include <winhttp.h>
 #endif
 
-vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState)
+udError vcProxyHelper_AutoDetectProxy(vcState *pProgramState)
 {
 #if UDPLATFORM_WINDOWS
   HINTERNET pHttpSession = nullptr;
@@ -101,10 +101,10 @@ Exit:
     WinHttpCloseHandle(pHttpSession);
 #endif
 
-  return vdkConfig_ForceProxy(pProgramState->settings.loginInfo.autoDetectProxyURL);
+  return udConfig_ForceProxy(pProgramState->settings.loginInfo.autoDetectProxyURL);
 }
 
-vdkError vcProxyHelper_TestProxy(vcState *pProgramState)
+udError vcProxyHelper_TestProxy(vcState *pProgramState)
 {
   const char *pResult = nullptr;
 
@@ -115,19 +115,19 @@ vdkError vcProxyHelper_TestProxy(vcState *pProgramState)
   else
     pServerURL = pProgramState->settings.loginInfo.serverURL;
 
-  vdkError vResult = vdkWeb_Request(pServerURL, &pResult, nullptr, nullptr);
+  udError vResult = udWeb_Request(pServerURL, &pResult, nullptr, nullptr);
 
-  if (vResult == vE_Success)
-    vdkWeb_ReleaseResponse(&pResult);
+  if (vResult == udE_Success)
+    udWeb_ReleaseResponse(&pResult);
 
   return vResult;
 }
 
-vdkError vcProxyHelper_SetUserAndPass(vcState *pProgramState, const char *pProxyUsername, const char *pProxyPassword)
+udError vcProxyHelper_SetUserAndPass(vcState *pProgramState, const char *pProxyUsername, const char *pProxyPassword)
 {
-  vdkError vResult = vdkConfig_SetProxyAuth(pProxyUsername, pProxyPassword);
+  udError vResult = udConfig_SetProxyAuth(pProxyUsername, pProxyPassword);
 
-  if (vResult == vE_Success)
+  if (vResult == udE_Success)
     return vcProxyHelper_TestProxy(pProgramState);
   else
     return vResult;

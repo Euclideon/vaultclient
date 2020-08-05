@@ -10,10 +10,10 @@ trigger:
 
 variables:
 - group: SignToolKey
-- name: linkedVDK
-  value: Pipeline_2020071403
-- name: VAULTSDK_HOME
-  value: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
+- name: linkedudSDK
+  value: Pipeline_2020080302
+- name: UDSDK_HOME
+  value: $(Build.SourcesDirectory)/linkedudSDK/$(linkedudSDK)
 
 stages:
 - stage: build
