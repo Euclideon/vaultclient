@@ -15,7 +15,7 @@ public class udStream extends SDLActivity
         return new String[] {
 //            "hidapi",
             "SDL2",
-            "vaultSDK",
+            "udSDK",
             "udStream"
         };
     }
@@ -62,6 +62,6 @@ public class udStream extends SDLActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        VaultSDK.setupJNI(this);
+        udSDK.setupJNI(this);
     }
 }
