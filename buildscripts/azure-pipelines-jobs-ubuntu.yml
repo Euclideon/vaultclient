@@ -25,7 +25,7 @@ jobs:
   steps:
   - checkout: self
     submodules: recursive
-  - template: azure-pipelines-steps-linkedvdk.yml
+  - template: azure-pipelines-steps-linkedudsdk.yml
   - script: 3rdParty/udcore/bin/premake-bin/premake5 gmake2
     displayName: 'Run Premake'
   - script: make -j4 config=$(configuration)_$(platform)

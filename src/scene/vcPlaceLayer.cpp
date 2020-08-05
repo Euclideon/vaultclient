@@ -14,7 +14,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcPlaceLayer::vcPlaceLayer(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcPlaceLayer::vcPlaceLayer(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_places.Init(512);
@@ -39,20 +39,20 @@ void vcPlaceLayer::OnNodeUpdate(vcState *pProgramState)
 {
   m_places.Clear();
 
-  vdkProjectNode_GetMetadataString(m_pNode, "pin", &m_pPinIcon, nullptr);
+  udProjectNode_GetMetadataString(m_pNode, "pin", &m_pPinIcon, nullptr);
 
-  vdkProjectNode_GetMetadataDouble(m_pNode, "labelDistance", &m_labelDistance, 20000);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "pinDistance", &m_pinDistance, 6000000);
+  udProjectNode_GetMetadataDouble(m_pNode, "labelDistance", &m_labelDistance, 20000);
+  udProjectNode_GetMetadataDouble(m_pNode, "pinDistance", &m_pinDistance, 6000000);
 
 
   Place place;
 
-  while (vdkProjectNode_GetMetadataString(m_pNode, udTempStr("places[%zu].name", m_places.length), &place.pName, nullptr) == vE_Success)
+  while (udProjectNode_GetMetadataString(m_pNode, udTempStr("places[%zu].name", m_places.length), &place.pName, nullptr) == udE_Success)
   {
-    vdkProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[0]", m_places.length), &place.latLongAlt.x, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[1]", m_places.length), &place.latLongAlt.y, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[2]", m_places.length), &place.latLongAlt.z, 0.0);
-    vdkProjectNode_GetMetadataInt(m_pNode, udTempStr("places[%zu].count", m_places.length), &place.count, 1);
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[0]", m_places.length), &place.latLongAlt.x, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[1]", m_places.length), &place.latLongAlt.y, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("places[%zu].lla[2]", m_places.length), &place.latLongAlt.z, 0.0);
+    udProjectNode_GetMetadataInt(m_pNode, udTempStr("places[%zu].count", m_places.length), &place.count, 1);
 
     m_places.PushBack(place);
   }
@@ -117,10 +117,10 @@ void vcPlaceLayer::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pI
   double maxPin = 6000000;
 
   if (ImGui::SliderScalar(udTempStr("Label Distance##%zu", *pItemID), ImGuiDataType_Double, &m_labelDistance, &min, &maxLabel))
-    vdkProjectNode_SetMetadataDouble(m_pNode, "labelDistance", m_labelDistance);
+    udProjectNode_SetMetadataDouble(m_pNode, "labelDistance", m_labelDistance);
 
   if (ImGui::SliderScalar(udTempStr("Pin Distance##%zu", *pItemID), ImGuiDataType_Double, &m_pinDistance, &min, &maxPin))
-    vdkProjectNode_SetMetadataDouble(m_pNode, "pinDistance", m_pinDistance);
+    udProjectNode_SetMetadataDouble(m_pNode, "pinDistance", m_pinDistance);
 }
 
 void vcPlaceLayer::ChangeProjection(const udGeoZone &newZone)

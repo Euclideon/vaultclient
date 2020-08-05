@@ -3,8 +3,8 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
-#include "vdkError.h"
+#include "udRenderContext.h"
+#include "udError.h"
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
@@ -15,7 +15,7 @@
 class vcVerticalMeasureTool : public vcSceneItem
 {
 public:
-  vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcVerticalMeasureTool(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   virtual ~vcVerticalMeasureTool();
 
   void Preview(const udDouble3 &position);

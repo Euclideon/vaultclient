@@ -19,8 +19,8 @@
 #include "vcSession.h"
 #include "vcQueryNode.h"
 
-#include "vdkError.h"
-#include "vdkContext.h"
+#include "udError.h"
+#include "udContext.h"
 
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcFileDialog.h"
@@ -37,8 +37,8 @@ struct vcConvertContext;
 
 struct vcSceneItemRef
 {
-  vdkProjectNode *pParent;
-  vdkProjectNode *pItem;
+  udProjectNode *pParent;
+  udProjectNode *pItem;
 };
 
 enum vcLoginStatus
@@ -162,15 +162,15 @@ struct vcState
   udDouble3 worldMousePosLongLat;
   bool pickingSuccess;
   int udModelPickedIndex;
-  vdkVoxelID udModelPickedNode;
+  udVoxelID udModelPickedNode;
   udJSON udModelNodeAttributes;
 
   bool finishedStartup;
   bool forceLogout;
 
   bool hasContext;
-  vdkSessionInfo sessionInfo;
-  vdkContext *pVDKContext;
+  udSessionInfo sessionInfo;
+  udContext *pUDSDKContext;
 
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
@@ -186,7 +186,7 @@ struct vcState
   } changePassword;
 
   vcLoginStatus loginStatus;
-  vdkError logoutReason;
+  udError logoutReason;
 
   const char *pReleaseNotes; //Only loaded when requested
   bool passwordFieldHasFocus;

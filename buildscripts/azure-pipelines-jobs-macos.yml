@@ -25,7 +25,7 @@ jobs:
       brew install zstd
       zstd -d -r --rm sdk
     displayName: 'Install dependencies'
-  - template: azure-pipelines-steps-linkedvdk.yml
+  - template: azure-pipelines-steps-linkedudsdk.yml
   - script: 3rdParty/udcore/bin/premake-bin/premake5-osx xcode4 --gfxapi=${{ parameters.gfxapi }} --fbxsdk=$(Build.SourcesDirectory)/sdk/Darwin/2019.2
     displayName: 'Run Premake'
   - task: Xcode@5

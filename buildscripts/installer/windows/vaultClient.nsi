@@ -100,7 +100,7 @@ Section "udStream" SecCore
   ;Add files
   File ..\..\..\builds\udStream${BUILD_SUFFIX}.exe
   File ..\..\..\builds\udStreamConvertCMD.exe
-  File ..\..\..\builds\vaultSDK.dll
+  File ..\..\..\builds\udSDK.dll
   File ..\..\..\builds\SDL2.dll
   File /nonfatal ..\..\..\builds\libfbxsdk.dll
   File ..\..\..\builds\releasenotes.md
@@ -123,7 +123,7 @@ Section "udStream" SecCore
   WriteRegDWORD HKLM "${REG_UNINST_KEY}" "VersionMinor" "${VER_MINOR}" ; Required by WACK
 !endif
   WriteRegStr HKLM "${REG_UNINST_KEY}" "Publisher" "Euclideon Pty Ltd" ; Required by WACK
-  WriteRegStr HKLM "${REG_UNINST_KEY}" "URLInfoAbout" "https://www.euclideon.com/vault/"
+  WriteRegStr HKLM "${REG_UNINST_KEY}" "URLInfoAbout" "https://www.euclideon.com/"
   WriteRegStr HKLM "${REG_UNINST_KEY}" "HelpLink" "https://www.euclideon.com/customerresourcepage/"
   WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoRepair" 1
@@ -203,7 +203,7 @@ Section "Uninstall"
   ;Delete files
   Delete "$INSTDIR\udStream${BUILD_SUFFIX}.exe"
   Delete "$INSTDIR\udStreamConvertCMD.exe"
-  Delete "$INSTDIR\vaultSDK.dll"
+  Delete "$INSTDIR\udSDK.dll"
   Delete "$INSTDIR\SDL2.dll"
   Delete "$INSTDIR\libfbxsdk.dll"
   Delete "$INSTDIR\releasenotes.md"

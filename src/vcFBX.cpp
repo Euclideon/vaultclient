@@ -18,7 +18,7 @@
 #include "udPlatformUtil.h"
 
 #include "vcFBX.h"
-#include "vdkTriangleVoxelizer.h"
+#include "udTriangleVoxelizer.h"
 
 struct vcFBXTexture
 {
@@ -61,11 +61,11 @@ struct vcFBX
   int *pIndices;
 
   double pointResolution;
-  vdkConvertCustomItemFlags convertFlags;
+  udConvertCustomItemFlags convertFlags;
   uint32_t everyNth;
   uint32_t everyNthAccum;
 
-  vdkTriangleVoxelizer *pTrivox;
+  udTriangleVoxelizer *pTrivox;
   double *pTriPositions;
   udDouble3 *pTriWeights;
   uint64_t pointsReturned;
@@ -287,11 +287,11 @@ void vcFBX_CleanMaterials(udChunkedArray<vcFBXMaterial> *pMats)
   pMats->Deinit();
 }
 
-vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, vdkConvertCustomItemFlags flags)
+udError vcFBX_Open(udConvertCustomItem *pConvertInput, uint32_t everyNth, const double origin[3], double pointResolution, udConvertCustomItemFlags flags)
 {
   udUnused(origin);
 
-  vdkError result = vE_Failure;
+  udError result = udE_Failure;
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
 
   memset(pFBX, 0, sizeof(vcFBX));
@@ -320,12 +320,12 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   };
 
   // Import File
-  UD_ERROR_IF(!pImporter->Initialize(pConvertInput->pName, -1, pFBX->pManager->GetIOSettings()), vE_ReadFailure);
+  UD_ERROR_IF(!pImporter->Initialize(pConvertInput->pName, -1, pFBX->pManager->GetIOSettings()), udE_ReadFailure);
   pFBX->pScene = FbxScene::Create(pFBX->pManager, "");
 
   matCon.ConnectTexturesToMaterials(*pFBX->pScene);
 
-  UD_ERROR_IF(!pImporter->Import(pFBX->pScene), vE_OpenFailure);
+  UD_ERROR_IF(!pImporter->Import(pFBX->pScene), udE_OpenFailure);
   pImporter->Destroy(); // Once file is imported, importer can be destroyed
 
   // If model isn't already scaled to metres, resize model
@@ -339,9 +339,9 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   pFBX->convertFlags = flags;
 
   pFBX->totalMeshes = pFBX->pScene->GetGeometryCount();
-  UD_ERROR_IF(pFBX->totalMeshes < 1, vE_NotFound);
+  UD_ERROR_IF(pFBX->totalMeshes < 1, udE_NotFound);
 
-  UD_ERROR_IF(!geoCon.Triangulate(pFBX->pScene, true), vE_Failure);
+  UD_ERROR_IF(!geoCon.Triangulate(pFBX->pScene, true), udE_Failure);
 
   for (uint16_t i = 0; i < pFBX->totalMeshes; ++i)
   {
@@ -361,13 +361,13 @@ vdkError vcFBX_Open(vdkConvertCustomItem *pConvertInput, uint32_t everyNth, cons
   pFBX->lastTouchedPoly = 1; // Forces handling 0, then gets set to 0
   pFBX->lastTouchedMesh = 1;
 
-  UD_ERROR_CHECK(vdkTriangleVoxelizer_Create(&pFBX->pTrivox, pointResolution));
+  UD_ERROR_CHECK(udTriangleVoxelizer_Create(&pFBX->pTrivox, pointResolution));
 
-  result = vE_Success;
+  result = udE_Success;
 
 epilogue:
 
-  if (result != vE_Success)
+  if (result != udE_Success)
   {
     pFBX->pManager->Destroy();
     udFree(pFBX);
@@ -377,13 +377,13 @@ epilogue:
   return result;
 }
 
-vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBufferI64 *pBuffer)
+udError vcFBX_ReadPointsInt(udConvertCustomItem *pConvertInput, udPointBufferI64 *pBuffer)
 {
   if (pBuffer == nullptr || pBuffer->pAttributes == nullptr || pConvertInput == nullptr || pConvertInput->pData == nullptr)
-    return vE_InvalidParameter;
+    return udE_InvalidParameter;
 
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
-  vdkError result = vE_Failure;
+  udError result = udE_Failure;
 
   pBuffer->pointCount = 0;
   memset(pBuffer->pAttributes, 0, pBuffer->attributeStride * pBuffer->pointsAllocated);
@@ -445,13 +445,13 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
       pFBX->pIndices = pFBX->pMesh->GetPolygonVertices();
 
       // Colour processing
-      if (pConvertInput->attributes.standardContent & vdkSAC_ARGB)
+      if (pConvertInput->attributes.content & udSAC_ARGB)
         vcFBX_GetTextures(pFBX, pFBX->pNode);
 
     } // End new mesh handling
 
     // Vertex only case makes a point per vertex
-    if (pFBX->convertFlags & vdkCCIF_PolygonVerticesOnly)
+    if (pFBX->convertFlags & udCCIF_PolygonVerticesOnly)
     {
       // For each vertex
       while (pFBX->currMeshPointCount < pFBX->totalMeshPoints)
@@ -466,7 +466,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
         vcFBXMaterial *pMat = nullptr;
 
         // Handle colour
-        if (pConvertInput->attributes.standardContent & vdkSAC_ARGB && pFBX->materials.length > 0) // must be at least one material
+        if (pConvertInput->attributes.content & udSAC_ARGB && pFBX->materials.length > 0) // must be at least one material
         {
           uint32_t colour = 0;
           uint32_t thisColour = 0;
@@ -583,7 +583,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
             p2[coord] = f2[coord] - pConvertInput->boundMin[coord];
           }
 
-          UD_ERROR_CHECK(vdkTriangleVoxelizer_SetTriangle(pFBX->pTrivox, p0, p1, p2));
+          UD_ERROR_CHECK(udTriangleVoxelizer_SetTriangle(pFBX->pTrivox, p0, p1, p2));
           pFBX->lastTouchedPoly = pFBX->currMeshPolygon;
           ++pFBX->currProcessedPolygons;
         }
@@ -592,13 +592,13 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
         while (numPoints != 0)
         {
-          UD_ERROR_CHECK(vdkTriangleVoxelizer_GetPoints(pFBX->pTrivox, &pFBX->pTriPositions, (double**)&pFBX->pTriWeights, &numPoints, pBuffer->pointsAllocated - pBuffer->pointCount));
+          UD_ERROR_CHECK(udTriangleVoxelizer_GetPoints(pFBX->pTrivox, &pFBX->pTriPositions, (double**)&pFBX->pTriWeights, &numPoints, pBuffer->pointsAllocated - pBuffer->pointCount));
 
           if (numPoints > 0)
           {
             vcFBXMaterial *pMat = nullptr;
 
-            if (pConvertInput->attributes.standardContent & vdkSAC_ARGB && pFBX->materials.length > 0)
+            if (pConvertInput->attributes.content & udSAC_ARGB && pFBX->materials.length > 0)
             {
               uint32_t index = 0;
 
@@ -712,7 +712,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
 
                 // Colour
                 uint32_t colour = 0;
-                if (pConvertInput->attributes.standardContent & vdkSAC_ARGB)
+                if (pConvertInput->attributes.content & udSAC_ARGB)
                 {
                   for (uint32_t currTex = 0; currTex < pMat->textures.length; ++currTex)
                   {
@@ -781,7 +781,7 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
               // Improve estimate
               pConvertInput->pointCount = pFBX->pointsReturned / pFBX->currProcessedPolygons * pFBX->totalPolygons;
 
-              return vE_Success;
+              return udE_Success;
             }
           } // End if numpoints
         }
@@ -798,13 +798,13 @@ vdkError vcFBX_ReadPointsInt(vdkConvertCustomItem *pConvertInput, vdkPointBuffer
   pFBX->pointsReturned += pBuffer->pointCount;
   pConvertInput->pointCount = pFBX->pointsReturned;
 
-  result = vE_Success;
+  result = udE_Success;
 
 epilogue:
   return result;
 }
 
-void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
+void vcFBX_Close(udConvertCustomItem *pConvertInput)
 {
   vcFBX *pFBX = (vcFBX*)pConvertInput->pData;
   if (pFBX->pScene != nullptr)
@@ -822,26 +822,26 @@ void vcFBX_Close(vdkConvertCustomItem *pConvertInput)
   vcFBX_CleanMaterials(&pFBX->materials);
 
   if (pFBX->pTrivox)
-    vdkTriangleVoxelizer_Destroy(&pFBX->pTrivox);
+    udTriangleVoxelizer_Destroy(&pFBX->pTrivox);
 }
 
-void vcFBX_Destroy(vdkConvertCustomItem* pConvertInput)
+void vcFBX_Destroy(udConvertCustomItem* pConvertInput)
 {
   vcFBX* pFBX = (vcFBX*)pConvertInput->pData;
 
-  vdkAttributeSet_Free(&pConvertInput->attributes);
+  udAttributeSet_Destroy(&pConvertInput->attributes);
 
   udFree(pConvertInput->pName);
   udFree(pFBX);
 }
 
-vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename)
+udError vcFBX_AddItem(udConvertContext *pConvertContext, const char *pFilename)
 {
-  vdkConvertCustomItem customItem = {};
+  udConvertCustomItem customItem = {};
 
   vcFBX *pFBX = udAllocType(vcFBX, 1, udAF_Zero);
   if (pFBX == nullptr)
-    return vE_MemoryAllocationFailure;
+    return udE_MemoryAllocationFailure;
 
   // Populate customItem
   customItem.pData = pFBX;
@@ -851,9 +851,9 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
   customItem.pReadPointsInt = vcFBX_ReadPointsInt;
   customItem.pName = udStrdup(pFilename);
   customItem.srid = 0;
-  customItem.sourceProjection = vdkCSP_SourceCartesian;
+  customItem.sourceProjection = udCSP_SourceCartesian;
   customItem.pointCount = -1;
-  vdkAttributeSet_Generate(&customItem.attributes, vdkSAC_ARGB, 0);
+  udAttributeSet_Create(&customItem.attributes, udSAC_ARGB, 0);
 
   customItem.boundsKnown = false;
   for (int i = 0; i < 3; ++i)
@@ -861,7 +861,7 @@ vdkError vcFBX_AddItem(vdkConvertContext *pConvertContext, const char *pFilename
     customItem.boundMax[i] = 5000000;
     customItem.boundMin[i] = -5000000;
   }
-  return vdkConvert_AddCustomItem(pConvertContext, &customItem);
+  return udConvert_AddCustomItem(pConvertContext, &customItem);
 }
 
 #endif

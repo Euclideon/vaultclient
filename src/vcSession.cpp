@@ -6,8 +6,8 @@
 #include "vcConvert.h"
 #include "vcVersion.h"
 
-#include "vdkContext.h"
-#include "vdkServerAPI.h"
+#include "udContext.h"
+#include "udServerAPI.h"
 
 #include "udStringUtil.h"
 
@@ -46,10 +46,10 @@ void vcSession_UpdateProjectsWT(void *pProgramStatePtr)
   {
     udSprintf(reqBuffer, "{ \"lastupdated\": %f, \"count\": 50 }", highestTime);
 
-    if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/projects/changed", reqBuffer, &pProjData) == vE_Success)
+    if (udServerAPI_Query(pProgramState->pUDSDKContext, "v1/projects/changed", reqBuffer, &pProjData) == udE_Success)
     {
       parsed.Parse(pProjData);
-      vdkServerAPI_ReleaseResult(&pProjData);
+      udServerAPI_ReleaseResult(&pProjData);
 
       udJSONArray *pItems = parsed.Get("projects").AsArray();
       if (pItems != nullptr && pItems->length > 0)
@@ -146,10 +146,10 @@ void vcSession_GetGroupsWT(void *pProgramStatePtr)
   {
     udSprintf(reqBuffer, "{ \"index\": %d, \"count\": 50 }", offset);
 
-    if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/groups", reqBuffer, &pProjData) == vE_Success)
+    if (udServerAPI_Query(pProgramState->pUDSDKContext, "v1/groups", reqBuffer, &pProjData) == udE_Success)
     {
       parsed.Parse(pProjData);
-      vdkServerAPI_ReleaseResult(&pProjData);
+      udServerAPI_ReleaseResult(&pProjData);
 
       size_t arrayLen = parsed.Get("groups").ArrayLength();
 
@@ -204,10 +204,10 @@ void vcSession_GetFeaturedProjectsWT(void *pProgramStatePtr)
 
   udJSON parsed;
 
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/projects/featured", nullptr, &pProjData) == vE_Success)
+  if (udServerAPI_Query(pProgramState->pUDSDKContext, "v1/projects/featured", nullptr, &pProjData) == udE_Success)
   {
     parsed.Parse(pProjData);
-    vdkServerAPI_ReleaseResult(&pProjData);
+    udServerAPI_ReleaseResult(&pProjData);
 
     size_t arrayLen = parsed.Get("projects").ArrayLength();
 
@@ -234,10 +234,10 @@ void vcSession_GetPackagesWT(void *pProgramStatePtr)
   vcState *pProgramState = (vcState*)pProgramStatePtr;
   const char *pPackageData = nullptr;
   const char *pPostJSON = udTempStr("{ \"packagename\": \"udStream\", \"packagevariant\": \"%s\" }", vcSession_GetOSName());
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == vE_Success)
+  if (udServerAPI_Query(pProgramState->pUDSDKContext, "v1/packages/latest", pPostJSON, &pPackageData) == udE_Success)
     pProgramState->packageInfo.Parse(pPackageData);
 
-  vdkServerAPI_ReleaseResult(&pPackageData);
+  udServerAPI_ReleaseResult(&pPackageData);
 }
 
 void vcSession_GetPackagesMT(void *pProgramStatePtr)
@@ -264,19 +264,19 @@ void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
   const char *pJSONInfo = nullptr;
   udJSON sessionInfo = {};
 
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/session/info", nullptr, &pJSONInfo) == vE_Success)
+  if (udServerAPI_Query(pProgramState->pUDSDKContext, "v1/session/info", nullptr, &pJSONInfo) == udE_Success)
     sessionInfo.Parse(pJSONInfo);
-  vdkServerAPI_ReleaseResult(&pJSONInfo);
+  udServerAPI_ReleaseResult(&pJSONInfo);
 
   udJSON v;
   const char *pExportString = nullptr;
   v.Set("userid = '%s'", sessionInfo.Get("user.userid").AsString(""));
   v.Export(&pExportString, udJEO_JSON); // or udJEO_XML
 
-  if (vdkServerAPI_Query(pProgramState->pVDKContext, "v1/user", pExportString, &pJSONInfo) == vE_Success)
+  if (udServerAPI_Query(pProgramState->pUDSDKContext, "v1/user", pExportString, &pJSONInfo) == udE_Success)
     pProgramState->profileInfo.Parse(pJSONInfo);
 
-  vdkServerAPI_ReleaseResult(&pJSONInfo);
+  udServerAPI_ReleaseResult(&pJSONInfo);
   udFree(pExportString);
   v.Destroy();
 
@@ -286,7 +286,7 @@ void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
 void vcSession_ChangeSession(vcState *pProgramState)
 {
   vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
-  vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
+  udContext_GetSessionInfo(pProgramState->pUDSDKContext, &pProgramState->sessionInfo);
 
   pProgramState->featuredProjects.Init(8);
   pProgramState->groups.Init(8);
@@ -309,7 +309,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
       memset(pProgramState->settings.loginInfo.email, 0, sizeof(pProgramState->settings.loginInfo.email));
   }
 
-  pProgramState->logoutReason = vE_Success;
+  pProgramState->logoutReason = udE_Success;
   pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
 
@@ -318,25 +318,25 @@ void vcSession_ChangeSession(vcState *pProgramState)
 
 void vcSession_Login(void *pProgramStatePtr)
 {
-  vdkError result;
+  udError result;
   vcState *pProgramState = (vcState*)pProgramStatePtr;
 
-  result = vdkContext_Connect(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, VCAPPNAME, pProgramState->settings.loginInfo.email, pProgramState->password);
-  if (result == vE_ConnectionFailure)
+  result = udContext_Connect(&pProgramState->pUDSDKContext, pProgramState->settings.loginInfo.serverURL, VCAPPNAME, pProgramState->settings.loginInfo.email, pProgramState->password);
+  if (result == udE_ConnectionFailure)
     pProgramState->loginStatus = vcLS_ConnectionError;
-  else if (result == vE_AuthFailure)
+  else if (result == udE_AuthFailure)
     pProgramState->loginStatus = vcLS_AuthError;
-  else if (result == vE_OutOfSync)
+  else if (result == udE_OutOfSync)
     pProgramState->loginStatus = vcLS_TimeSync;
-  else if (result == vE_SecurityFailure)
+  else if (result == udE_SecurityFailure)
     pProgramState->loginStatus = vcLS_SecurityError;
-  else if (result == vE_ServerFailure || result == vE_ParseError)
+  else if (result == udE_ServerFailure || result == udE_ParseError)
     pProgramState->loginStatus = vcLS_NegotiationError;
-  else if (result == vE_ProxyError)
+  else if (result == udE_ProxyError)
     pProgramState->loginStatus = vcLS_ProxyError;
-  else if (result == vE_ProxyAuthRequired)
+  else if (result == udE_ProxyAuthRequired)
     pProgramState->loginStatus = vcLS_ProxyAuthRequired;
-  else if (result != vE_Success)
+  else if (result != udE_Success)
     pProgramState->loginStatus = vcLS_OtherError;
 
   if (pProgramState->loginStatus == vcLS_ConnectionError || pProgramState->loginStatus == vcLS_SecurityError || pProgramState->loginStatus == vcLS_ProxyError || pProgramState->loginStatus == vcLS_ProxyAuthRequired)
@@ -349,7 +349,7 @@ void vcSession_Login(void *pProgramStatePtr)
 
   pProgramState->logoutReason = result;
 
-  if (result != vE_Success)
+  if (result != udE_Success)
     return;
 
   vcSettings_Save(&pProgramState->settings);
@@ -358,7 +358,7 @@ void vcSession_Login(void *pProgramStatePtr)
 
 void vcSession_Logout(vcState *pProgramState)
 {
-  if (pProgramState->pVDKContext != nullptr)
+  if (pProgramState->pUDSDKContext != nullptr)
   {
 #if VC_HASCONVERT
     // Cancel all convert jobs
@@ -367,7 +367,7 @@ void vcSession_Logout(vcState *pProgramState)
       // Cancel all jobs
       for (size_t i = 0; i < pProgramState->pConvertContext->jobs.length; i++)
       {
-        vdkConvert_Cancel(pProgramState->pConvertContext->jobs[i]->pConvertContext);
+        udConvert_Cancel(pProgramState->pConvertContext->jobs[i]->pConvertContext);
       }
 
       // Wait for jobs to finish and destroy them
@@ -392,7 +392,7 @@ void vcSession_Logout(vcState *pProgramState)
     pProgramState->profileInfo.Destroy();
 
     vcRender_RemoveVaultContext(pProgramState->pRenderContext);
-    vdkContext_Disconnect(&pProgramState->pVDKContext, pProgramState->forceLogout);
+    udContext_Disconnect(&pProgramState->pUDSDKContext, pProgramState->forceLogout);
 
     vcModals_OpenModal(pProgramState, vcMT_LoggedOut);
   }
@@ -409,18 +409,18 @@ void vcSession_Resume(vcState *pProgramState)
   tryDongle = !IsDebuggerPresent();
 #endif
 
-  if (vdkContext_TryResume(&pProgramState->pVDKContext, pProgramState->settings.loginInfo.serverURL, VCAPPNAME, pProgramState->settings.loginInfo.email, tryDongle) == vE_Success)
+  if (udContext_TryResume(&pProgramState->pUDSDKContext, pProgramState->settings.loginInfo.serverURL, VCAPPNAME, pProgramState->settings.loginInfo.email, tryDongle) == udE_Success)
     vcSession_ChangeSession(pProgramState);
 }
 
 void vcSession_UpdateInfo(void *pProgramStatePtr)
 {
   vcState *pProgramState = (vcState*)pProgramStatePtr;
-  vdkError response = vdkContext_GetSessionInfo(pProgramState->pVDKContext, &pProgramState->sessionInfo);
+  udError response = udContext_GetSessionInfo(pProgramState->pUDSDKContext, &pProgramState->sessionInfo);
 
   pProgramState->lastSync = udGetEpochSecsUTCf();
 
-  if (response == vE_SessionExpired)
+  if (response == udE_SessionExpired)
   {
     pProgramState->logoutReason = response;
     pProgramState->forceLogout = true;

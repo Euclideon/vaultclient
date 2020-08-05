@@ -3,21 +3,21 @@
 #include "vcState.h"
 #include "vcRender.h"
 
-vdkProjectNode* vcSceneItem_CreateNodeInProject(vdkProject *pProject, const char *pType, const char *pName)
+udProjectNode* vcSceneItem_CreateNodeInProject(udProject *pProject, const char *pType, const char *pName)
 {
-  vdkProjectNode *pNode = nullptr;
-  vdkProjectNode *pRootNode = nullptr;
+  udProjectNode *pNode = nullptr;
+  udProjectNode *pRootNode = nullptr;
 
-  vdkProject_GetProjectRoot(pProject, &pRootNode);
+  udProject_GetProjectRoot(pProject, &pRootNode);
 
-  vdkProjectNode_Create(pProject, &pNode, pRootNode, pType, pName, nullptr, nullptr);
+  udProjectNode_Create(pProject, &pNode, pRootNode, pType, pName, nullptr, nullptr);
 
   UDASSERT(pNode != nullptr, "Remove Path to this- memory alloc failed.");
 
   return pNode;
 }
 
-vcSceneItem::vcSceneItem(vcProject *pProject, vdkProjectNode *pNode, vcState * /*pProgramState*/) :
+vcSceneItem::vcSceneItem(vcProject *pProject, udProjectNode *pNode, vcState * /*pProgramState*/) :
   m_pProject(pProject),
   m_loadStatus(0),
   m_pActiveWarningStatus(nullptr),

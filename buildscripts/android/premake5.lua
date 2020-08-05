@@ -2,15 +2,15 @@
 mergeAndroidPackage = true
 
 newoption {
-	trigger     = "force-vaultsdk",
+	trigger     = "force-udsdk",
 	description = "Force the use of the vaultsdk repository"
 }
 
 newoption {
-	trigger     = "vaultsdk",
+	trigger     = "udSDK",
 	value       = "Path",
-	description = "Path to Vault SDK",
-	default     = os.getenv("VAULTSDK_HOME")
+	description = "Path to udSDK",
+	default     = os.getenv("UDSDK_HOME")
 }
 
 workspace "udStreamPackage"
