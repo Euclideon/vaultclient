@@ -310,7 +310,7 @@ namespace vcHotkey
       ImGui::NextColumn();
     }
 
-    ImGui::EndColumns();
+    ImGui::Columns(1);
   }
 
   int DecodeKeyString(const char *pBind)
