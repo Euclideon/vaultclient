@@ -90,8 +90,6 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
 
   m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
   ChangeProjection(pProgramState->geozone);
-  
-  printf("OnNodeUpdate: (%f, %f)\n", m_headingPitch.x, m_headingPitch.y);
 }
 
 void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -127,8 +125,6 @@ void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
 void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  printf("ApplyDelta 1: (%f, %f) m_center:(%f, %f, %f)\n", m_headingPitch.x, m_headingPitch.y, m_center.x, m_center.y, m_center.z);
-
   udDoubleQuat q = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
   udDouble4x4 matrix = delta * udDouble4x4::rotationQuat(q, m_center) * udDouble4x4::scaleNonUniform(m_extents);
   udDoubleQuat dq = matrix.extractQuaternion(); 
@@ -146,8 +142,6 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
   udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_headingPitch.x);
   udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_headingPitch.y);
-
-  printf("ApplyDelta 2: (%f, %f) m_center:(%f, %f, %f)\n", m_headingPitch.x, m_headingPitch.y, m_center.x, m_center.y, m_center.z);
 }
 
 void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -187,8 +181,6 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (changed)
   {
-    printf("HandleSceneExplorerUI 1: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
-
     udProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
     udProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
     udProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
@@ -199,7 +191,6 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
     this->ApplyDelta(pProgramState, udDouble4x4::identity());
 
-    printf("HandleSceneExplorerUI 2: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
     //TODO: Save extents and rotation
   }
 }
@@ -226,8 +217,6 @@ void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
 {
-  printf("ChangeProjection 1: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
-
   udDouble3 *pPoint = nullptr;
   int numPoints = 0;
 
@@ -264,7 +253,6 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
     break;
   }
 
-  printf("ChangeProjection 2: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
 }
 
 void vcQueryNode::Cleanup(vcState * /*pProgramState*/)
