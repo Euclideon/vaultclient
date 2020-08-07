@@ -2192,7 +2192,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         break;
 
       // click
-      vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+      udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
       if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter"))
       {
         pProgramState->activeTool = vcActiveTool_Select;
@@ -2200,16 +2200,16 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       else
       {
         vcProject_ClearSelection(pProgramState, false);
-        vdkProjectNode *pNode = nullptr;
-        if (vdkProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerCrossSectionDefaultName"), nullptr, nullptr) == vE_Success)
+        udProjectNode *pNode = nullptr;
+        if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerCrossSectionDefaultName"), nullptr, nullptr) == udE_Success)
         {
-          vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, vdkPGT_Point, &pProgramState->worldMousePosCartesian, 1);
-          vdkProjectNode_SetMetadataString(pNode, "shape", "crossSection");
-          vdkProjectNode_SetMetadataDouble(pNode, "size.x", 1);
-          vdkProjectNode_SetMetadataDouble(pNode, "size.y", 2000);
-          vdkProjectNode_SetMetadataDouble(pNode, "size.z", 2000);
-          vdkProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
-          vdkProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
+          vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->worldMousePosCartesian, 1);
+          udProjectNode_SetMetadataString(pNode, "shape", "crossSection");
+          udProjectNode_SetMetadataDouble(pNode, "size.x", 1);
+          udProjectNode_SetMetadataDouble(pNode, "size.y", 20000);
+          udProjectNode_SetMetadataDouble(pNode, "size.z", 20000);
+          udProjectNode_SetMetadataDouble(pNode, "transform.heading", 0.0f);
+          udProjectNode_SetMetadataDouble(pNode, "transform.pitch", 0.0f);
           udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
         }
       }
@@ -2394,7 +2394,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     // preview
     case vcActiveTool_AddCrossSection:
     {
-      vdkProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+      udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
       if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter"))
       {
         vcQueryNode *pNode = (vcQueryNode *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
@@ -2406,9 +2406,9 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         if (plane.intersects(pProgramState->camera.worldMouseRay, &endPoint, nullptr))
         {
           udDouble2 headingPitch = vcGIS_GetHeadingPitchFromLatLong(pProgramState->geozone, pNode->m_center, endPoint);
-          vdkProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.rotation.y", headingPitch.x);
+          udProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.heading", headingPitch.x);
+          udProjectNode_SetMetadataDouble(pNode->m_pNode, "transform.pitch", headingPitch.y);
           pNode->OnNodeUpdate(pProgramState);
-          printf("%f, %f \n", headingPitch.x, pNode->m_ypr.x);
         }
       }
     }

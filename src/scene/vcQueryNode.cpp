@@ -44,13 +44,15 @@ vcQueryNode::vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pPr
   m_currentProjection(udDoubleQuat::identity()),
   m_center(udDouble3::zero()),
   m_extents(udDouble3::one()),
-  m_ypr(udDouble3::zero()),
+  m_headingPitch(udDouble2::zero()),
   m_pFilter(nullptr)
 {
   m_loadStatus = vcSLS_Loaded;
 
   udQueryFilter_Create(&m_pFilter);
-  udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
+  udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_headingPitch.x);
+  m_currentProjection = vcGIS_GetQuaternion(pProgramState->geozone, m_center);
+  m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
 
   OnNodeUpdate(pProgramState);
 }
@@ -80,27 +82,16 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
   udProjectNode_GetMetadataDouble(m_pNode, "size.y", &m_extents.y, 1.0);
   udProjectNode_GetMetadataDouble(m_pNode, "size.z", &m_extents.z, 1.0);
 
-  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_ypr.x, 0.0);
-  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_ypr.y, 0.0);
-  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_ypr.z, 0.0);
+  if(udProjectNode_GetMetadataDouble(m_pNode, "transform.heading", &m_headingPitch.x, 0.0) == udE_NotFound)
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_headingPitch.x, 0.0);
 
+  if (udProjectNode_GetMetadataDouble(m_pNode, "transform.pitch", &m_headingPitch.y, 0.0) == udE_NotFound)
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_headingPitch.y, 0.0);
+
+  m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
   ChangeProjection(pProgramState->geozone);
-
-  switch (m_shape)
-  {
-  case vcQNFS_Box:
-    udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
-    break;
-  case vcQNFS_Cylinder:
-    udQueryFilter_SetAsCylinder(m_pFilter, &m_center.x, m_extents.x, m_extents.z, &m_ypr.x);
-    break;
-  case vcQNFS_Sphere:
-    udQueryFilter_SetAsSphere(m_pFilter, &m_center.x, m_extents.x);
-    break;
-  default:
-    //Something went wrong...
-    break;
-  }
+  
+  printf("OnNodeUpdate: (%f, %f)\n", m_headingPitch.x, m_headingPitch.y);
 }
 
 void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -136,21 +127,27 @@ void vcQueryNode::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
 void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  udDouble4x4 matrix = delta * udDouble4x4::rotationYPR(m_ypr, m_center) * udDouble4x4::scaleNonUniform(m_extents);
+  printf("ApplyDelta 1: (%f, %f) m_center:(%f, %f, %f)\n", m_headingPitch.x, m_headingPitch.y, m_center.x, m_center.y, m_center.z);
 
-  m_ypr = matrix.extractYPR();
+  udDoubleQuat q = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
+  udDouble4x4 matrix = delta * udDouble4x4::rotationQuat(q, m_center) * udDouble4x4::scaleNonUniform(m_extents);
+  udDoubleQuat dq = matrix.extractQuaternion(); 
+
   m_center = matrix.axis.t.toVector3();
   m_extents = udDouble3::create(udMag3(matrix.axis.x), udMag3(matrix.axis.y), udMag3(matrix.axis.z));
-  
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
+  m_headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, m_center, dq);
+  m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
+
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);  
 
   udProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
   udProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
   udProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
-  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
-  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_headingPitch.x);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_headingPitch.y);
+
+  printf("ApplyDelta 2: (%f, %f) m_center:(%f, %f, %f)\n", m_headingPitch.x, m_headingPitch.y, m_center.x, m_center.y, m_center.z);
 }
 
 void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -171,7 +168,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (m_shape != vcQNFS_Sphere)
   {
-    ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_ypr.x, 3);
+    ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_headingPitch.x, 2);
     changed |= ImGui::IsItemDeactivatedAfterEdit();
     ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 3);
     changed |= ImGui::IsItemDeactivatedAfterEdit();
@@ -190,16 +187,19 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (changed)
   {
+    printf("HandleSceneExplorerUI 1: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
+
     udProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
     udProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
     udProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
-    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
-    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_headingPitch.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_headingPitch.y);
+    m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
 
     this->ApplyDelta(pProgramState, udDouble4x4::identity());
 
+    printf("HandleSceneExplorerUI 2: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
     //TODO: Save extents and rotation
   }
 }
@@ -226,6 +226,8 @@ void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
 {
+  printf("ChangeProjection 1: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
+
   udDouble3 *pPoint = nullptr;
   int numPoints = 0;
 
@@ -236,21 +238,23 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
   udFree(pPoint);
 
   udDoubleQuat qNewProjection = vcGIS_GetQuaternion(newZone, m_center);
-  udDoubleQuat qScene = udDoubleQuat::create(m_ypr);
-  m_ypr = (qNewProjection * (m_currentProjection.inverse() * qScene)).eulerAngles();
+  udDoubleQuat dq = qNewProjection * (m_currentProjection.inverse() * m_currScene);
   m_currentProjection = qNewProjection;
+  m_headingPitch = vcGIS_QuaternionToHeadingPitch(newZone, m_center, dq);
+  m_currScene = vcGIS_HeadingPitchToQuaternion(newZone, m_center, m_headingPitch);
 
-  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
-  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
-  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
+  udDouble3 ypr = udDouble3::create(-m_headingPitch.x, m_headingPitch.y, 0.0);
+
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_headingPitch.x);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_headingPitch.y);
 
   switch (m_shape)
   {
   case vcQNFS_Box:
-    udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
+    udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &ypr.x);
     break;
   case vcQNFS_Cylinder:
-    udQueryFilter_SetAsCylinder(m_pFilter, &m_center.x, m_extents.x, m_extents.z, &m_ypr.x);
+    udQueryFilter_SetAsCylinder(m_pFilter, &m_center.x, m_extents.x, m_extents.z, &ypr.x);
     break;
   case vcQNFS_Sphere:
     udQueryFilter_SetAsSphere(m_pFilter, &m_center.x, m_extents.x);
@@ -259,6 +263,8 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
     //Something went wrong...
     break;
   }
+
+  printf("ChangeProjection 2: (%f, %f) \n", m_headingPitch.x, m_headingPitch.y);
 }
 
 void vcQueryNode::Cleanup(vcState * /*pProgramState*/)
@@ -268,12 +274,13 @@ void vcQueryNode::Cleanup(vcState * /*pProgramState*/)
 
 udDouble4x4 vcQueryNode::GetWorldSpaceMatrix()
 {
+  udDouble4x4 matrix = udDouble4x4::rotationQuat(m_currScene, m_center);
   if (m_shape == vcQNFS_Sphere)
-    return udDouble4x4::rotationYPR(m_ypr, m_center) * udDouble4x4::scaleUniform(m_extents.x);
+    return matrix * udDouble4x4::scaleUniform(m_extents.x);
   else if (m_shape == vcQNFS_Cylinder)
-    return udDouble4x4::rotationYPR(m_ypr, m_center) * udDouble4x4::scaleNonUniform(udDouble3::create(m_extents.x, m_extents.x, m_extents.z));
+    return matrix * udDouble4x4::scaleNonUniform(udDouble3::create(m_extents.x, m_extents.x, m_extents.z));
 
-  return udDouble4x4::rotationYPR(m_ypr, m_center) * udDouble4x4::scaleNonUniform(m_extents);
+  return matrix * udDouble4x4::scaleNonUniform(m_extents);
 }
 
 vcGizmoAllowedControls vcQueryNode::GetAllowedControls()

@@ -26,10 +26,11 @@ public:
   bool m_inverted;
 
   udDoubleQuat m_currentProjection;
+  udDoubleQuat m_currScene;
 
   udDouble3 m_center;
   udDouble3 m_extents;
-  udDouble3 m_ypr;
+  udDouble2 m_headingPitch;
 
 public:
   vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);

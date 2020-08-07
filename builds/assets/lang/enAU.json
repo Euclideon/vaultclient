@@ -513,6 +513,7 @@
   "sceneExplorerFilterBoxDefaultName": "Box Filter",
   "sceneExplorerFilterSphereDefaultName": "Sphere Filter",
   "sceneExplorerFilterCylinderDefaultName": "Cylinder Filter",
+  "sceneExplorerCrossSectionDefaultName": "Cross Section Filter",
   "sceneExplorerI3S": "I3S File",
   "scenePOIDefaultName": "Point of Interest",
   "scenePOIAreaDefaultName": "Area of Interest",
