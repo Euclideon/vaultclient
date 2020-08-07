@@ -52,7 +52,7 @@ vcQueryNode::vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pPr
   udQueryFilter_Create(&m_pFilter);
   udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_headingPitch.x);
   m_currentProjection = vcGIS_GetQuaternion(pProgramState->geozone, m_center);
-  m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
+  m_currentHPRQuaternion = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
 
   OnNodeUpdate(pProgramState);
 }
@@ -88,7 +88,7 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
   if (udProjectNode_GetMetadataDouble(m_pNode, "transform.pitch", &m_headingPitch.y, 0.0) == udE_NotFound)
     udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_headingPitch.y, 0.0);
 
-  m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
+  m_currentHPRQuaternion = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
   ChangeProjection(pProgramState->geozone);
 }
 
@@ -132,7 +132,7 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_center = matrix.axis.t.toVector3();
   m_extents = udDouble3::create(udMag3(matrix.axis.x), udMag3(matrix.axis.y), udMag3(matrix.axis.z));
   m_headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, m_center, dq);
-  m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
+  m_currentHPRQuaternion = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
 
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);  
 
@@ -187,7 +187,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
     udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_headingPitch.x);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_headingPitch.y);
-    m_currScene = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
+    m_currentHPRQuaternion = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, m_center, m_headingPitch);
 
     this->ApplyDelta(pProgramState, udDouble4x4::identity());
 
@@ -227,10 +227,10 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
   udFree(pPoint);
 
   udDoubleQuat qNewProjection = vcGIS_GetQuaternion(newZone, m_center);
-  udDoubleQuat dq = qNewProjection * (m_currentProjection.inverse() * m_currScene);
+  udDoubleQuat dq = qNewProjection * (m_currentProjection.inverse() * m_currentHPRQuaternion);
   m_currentProjection = qNewProjection;
   m_headingPitch = vcGIS_QuaternionToHeadingPitch(newZone, m_center, dq);
-  m_currScene = vcGIS_HeadingPitchToQuaternion(newZone, m_center, m_headingPitch);
+  m_currentHPRQuaternion = vcGIS_HeadingPitchToQuaternion(newZone, m_center, m_headingPitch);
 
   udDouble3 ypr = udDouble3::create(-m_headingPitch.x, m_headingPitch.y, 0.0);
 
@@ -262,7 +262,7 @@ void vcQueryNode::Cleanup(vcState * /*pProgramState*/)
 
 udDouble4x4 vcQueryNode::GetWorldSpaceMatrix()
 {
-  udDouble4x4 matrix = udDouble4x4::rotationQuat(m_currScene, m_center);
+  udDouble4x4 matrix = udDouble4x4::rotationQuat(m_currentHPRQuaternion, m_center);
   if (m_shape == vcQNFS_Sphere)
     return matrix * udDouble4x4::scaleUniform(m_extents.x);
   else if (m_shape == vcQNFS_Cylinder)

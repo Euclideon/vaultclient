@@ -26,7 +26,7 @@ public:
   bool m_inverted;
 
   udDoubleQuat m_currentProjection;
-  udDoubleQuat m_currScene;
+  udDoubleQuat m_currentHPRQuaternion;
 
   udDouble3 m_center;
   udDouble3 m_extents;
