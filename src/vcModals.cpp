@@ -26,6 +26,7 @@
 #include "udServerAPI.h"
 
 #include "stb_image.h"
+#include "vcTexture.h"
 
 bool gShowInputControlsNextHack = false;
 
@@ -618,12 +619,12 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   }
 }
 
-
+#include <string>
 void vcModals_DrawProjectInfo(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ProjectInfo))
     ImGui::OpenPopup(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName));
-
+  
   ImGui::SetNextWindowSize(ImVec2(600, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName), nullptr, ImGuiWindowFlags_NoSavedSettings))
   {
@@ -637,7 +638,68 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
     if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true))
     {
       if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
-        ImGui::TextWrapped("%s", pInfo);
+      {
+        if (udStrcmp(pProgramState->projectInfoTextures.pLastInfoText, pInfo) != 0)
+        {
+          pProgramState->projectInfoTextures.pLastInfoText = udStrdup(pInfo);
+          for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
+            vcTexture_Destroy(&pTexture);
+          for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
+            udFree(pStr);
+          pProgramState->projectInfoTextures.infoStrings.Clear();
+          pProgramState->projectInfoTextures.textures.Clear();
+          pProgramState->projectInfoTextures.textureSizes.Clear();
+          
+          // Discover Images
+          std::string infoStr = pInfo;
+          int firstIndex = 0;
+          while (true)
+          {
+            size_t startImagePos = infoStr.find('!', firstIndex);
+            size_t openBracketPos = infoStr.find('[', startImagePos);
+            size_t closeBracketPos = infoStr.find(']', openBracketPos);
+            size_t openParanthesisPos = infoStr.find('(', closeBracketPos);
+            size_t closeParanthesisPos = infoStr.find(')', openParanthesisPos);
+
+            if (startImagePos == std::string::npos ||
+              openBracketPos == std::string::npos ||
+              closeBracketPos == std::string::npos ||
+              openParanthesisPos == std::string::npos ||
+              closeParanthesisPos == std::string::npos)
+              break;
+
+            if (openBracketPos == startImagePos + 1)
+            {
+              std::string substring = infoStr.substr(firstIndex, startImagePos - firstIndex);
+              pProgramState->projectInfoTextures.infoStrings.PushBack(udStrdup(substring.c_str()));
+
+              std::string texPath = infoStr.substr(openParanthesisPos + 1, closeParanthesisPos - openParanthesisPos - 1);
+
+              uint32_t w, h;
+              vcTexture *pNewTexture = nullptr;
+              vcTexture_CreateFromFilename(&pNewTexture, texPath.c_str(), &w, &h);
+              pProgramState->projectInfoTextures.textures.PushBack(pNewTexture);
+              pProgramState->projectInfoTextures.textureSizes.PushBack(ImVec2((float)w, (float)h));
+            }
+
+            firstIndex = (int)(closeParanthesisPos + 1);
+          }
+
+          std::string substring = infoStr.substr(firstIndex);
+          pProgramState->projectInfoTextures.infoStrings.PushBack(udStrdup(substring.c_str()));
+        }
+
+        for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
+        {
+          ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.infoStrings[i]);
+          if (i < pProgramState->projectInfoTextures.infoStrings.length - 1 && pProgramState->projectInfoTextures.textures[i] != nullptr)
+            ImGui::Image(pProgramState->projectInfoTextures.textures[i], pProgramState->projectInfoTextures.textureSizes[i]);
+        }
+
+        // ImGui::TextWrapped("%s", pInfo);
+      }
+
+      ImGui::EndChild();
     }
     ImGui::EndChild();
     
@@ -1155,6 +1217,9 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
 
       ImGui::CloseCurrentPopup();
     }
+
+    if (ImGui::Button(vcString::Get("menuProjectInfoPreview"), ImVec2(-1, 0)))
+      pProgramState->openModals |= 1 << vcMT_ProjectInfo;
 
     ImGui::EndPopup();
   }

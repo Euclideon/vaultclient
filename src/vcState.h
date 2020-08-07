@@ -260,6 +260,14 @@ struct vcState
     vcImageType imageType;
   } image, screenshot;
 
+  struct 
+  {
+    const char *pLastInfoText;
+    udChunkedArray<const char *> infoStrings;
+    udChunkedArray<vcTexture*> textures;
+    udChunkedArray<ImVec2> textureSizes;
+  } projectInfoTextures;
+
   vcFileDialog fileDialog;
 
   vcTranslationInfo languageInfo;
