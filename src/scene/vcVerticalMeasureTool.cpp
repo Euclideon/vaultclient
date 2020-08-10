@@ -85,7 +85,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
   if (m_selected && (m_selectedPoint == -1 || m_selectedPoint == 0 || !m_done))
   {
     vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
-    udDouble3 linearDistance = (pProgramState->camera.position - m_points[0]);
+    udDouble3 linearDistance = (pProgramState->pActiveViewport->camera.position - m_points[0]);
     pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
     pInstance->worldMat = udDouble4x4::translation(m_points[0]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
     pInstance->pSceneItem = this;
@@ -104,7 +104,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     if (m_selected && (m_selectedPoint == -1 || m_selectedPoint == 1 || !m_done))
     {
       vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
-      udDouble3 linearDistance = (pProgramState->camera.position - m_points[2]);
+      udDouble3 linearDistance = (pProgramState->pActiveViewport->camera.position - m_points[2]);
       pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
       pInstance->worldMat = udDouble4x4::translation(m_points[2]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
       pInstance->pSceneItem = this;

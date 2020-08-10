@@ -306,9 +306,12 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
         if (pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0 && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
         {
-          if (vcGIS_ChangeSpace(&pProgramState->geozone, *pSceneItem->m_pPreferredProjection, &pProgramState->camera.position))
+          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
           {
-            pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
+            if (vcGIS_ChangeSpace(&pProgramState->geozone, *pSceneItem->m_pPreferredProjection, &pProgramState->pViewports[viewportIndex].camera.position))
+            {
+              pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
+            }
           }
         }
 
@@ -317,19 +320,19 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           // Trigger a camera movement path
           if (pNode->itemtype != udPNT_Viewpoint)
           {
-            pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
+            pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_MovingToPoint;
           }
           else
           {
-            pProgramState->cameraInput.inputState = vcCIS_MoveToViewpoint;
-            udProjectNode_GetMetadataDouble(pNode, "transform.heading", &pProgramState->cameraInput.headingPitch.x, 0.0);
-            udProjectNode_GetMetadataDouble(pNode, "transform.pitch", &pProgramState->cameraInput.headingPitch.y, 0.0);
-            pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->cameraInput.headingPitch);
+            pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_MoveToViewpoint;
+            udProjectNode_GetMetadataDouble(pNode, "transform.heading", &pProgramState->pActiveViewport->cameraInput.headingPitch.x, 0.0);
+            udProjectNode_GetMetadataDouble(pNode, "transform.pitch", &pProgramState->pActiveViewport->cameraInput.headingPitch.y, 0.0);
+            pProgramState->pActiveViewport->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->cameraInput.headingPitch);
           }
 
-          pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
-          pProgramState->cameraInput.progress = 0.0;
+          pProgramState->pActiveViewport->cameraInput.startPosition = pProgramState->pActiveViewport->camera.position;
+          pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
+          pProgramState->pActiveViewport->cameraInput.progress = 0.0;
 
           pProgramState->isUsingAnchorPoint = true;
           pProgramState->worldAnchorPoint = pSceneItem->GetWorldSpacePivot();

@@ -185,11 +185,11 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     if (m_image.type == vcIT_StandardPhoto || m_image.type == vcIT_ScreenPhoto)
     {
       // For now brute force sorting (n^2)
-      double distToCameraSqr = udMagSq3(m_image.position - pProgramState->camera.position);
+      double distToCameraSqr = udMagSq3(m_image.position - pProgramState->pActiveViewport->camera.position);
       size_t i = 0;
       for (; i < pRenderData->images.length; ++i)
       {
-        if (udMagSq3(pRenderData->images[i]->position - pProgramState->camera.position) < distToCameraSqr)
+        if (udMagSq3(pRenderData->images[i]->position - pProgramState->pActiveViewport->camera.position) < distToCameraSqr)
           break;
       }
 
@@ -217,7 +217,7 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
       double worldScale = 1.0;
       if (m_image.size == vcIS_Native)
-        worldScale = (double)imageSize.x / pProgramState->sceneResolution.x;
+        worldScale = (double)imageSize.x / pProgramState->pActiveViewport->resolution.x;
       else
         worldScale = vcISToWorldSize[m_image.size];
 
@@ -351,7 +351,7 @@ void vcMedia::Cleanup(vcState * /*pProgramState*/)
 
 void vcMedia::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->camera.position = m_image.position;
+  pProgramState->pActiveViewport->camera.position = m_image.position;
 }
 
 udDouble4x4 vcMedia::GetWorldSpaceMatrix()
