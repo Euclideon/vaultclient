@@ -718,7 +718,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
         {
           udGeoZone zone = {};
           udGeoZone_SetFromSRID(&zone, newSRID);
-          vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
+          vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pActiveViewport->camera.position);
           pProgramState->activeProject.pFolder->ChangeProjection(zone);
         }
       }
@@ -772,7 +772,8 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
         {
           udStrcpy(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
           vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
-          vcRender_ClearTiles(pProgramState->pRenderContext);
+          for (int v = 0; v < pProgramState->activeViewportCount; ++v)
+            vcRender_ClearTiles(pProgramState->pViewports[v].pRenderContext);
         }
 
         if (pop)
@@ -815,7 +816,8 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
           if (changed)
           {
             vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
-            vcRender_ClearTiles(pProgramState->pRenderContext);
+            for (int v = 0; v < pProgramState->activeViewportCount; ++v)
+              vcRender_ClearTiles(pProgramState->pViewports[v].pRenderContext);
           }
 
           ImGui::Unindent();

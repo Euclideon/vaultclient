@@ -362,7 +362,7 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
     udPlane<double> plane = udPlane<double>::create(pFilter->pickPoint, up);
 
     pFilter->endPoint = {};
-    if (plane.intersects(pProgramState->camera.worldMouseRay, &pFilter->endPoint, nullptr))
+    if (plane.intersects(pProgramState->pActiveViewport->camera.worldMouseRay, &pFilter->endPoint, nullptr))
     {
       udDouble3 d = pFilter->endPoint - pFilter->pickPoint;
       pFilter->size.x = udMax(d.x, 2.0f) * 2;
@@ -379,7 +379,7 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
   {
     if (isBtnReleased)
     {
-      double scaleFactor = udMag3(pProgramState->camera.position - pProgramState->worldMousePosCartesian) / 10.0; // 1/10th of the screen
+      double scaleFactor = udMag3(pProgramState->pActiveViewport->camera.position - pProgramState->worldMousePosCartesian) / 10.0; // 1/10th of the screen
       pFilter->size = udDouble3::create(scaleFactor, scaleFactor, scaleFactor);
       vcQueryNodeFilter_Update(pFilter, pProgramState);
       vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);

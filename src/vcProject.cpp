@@ -36,7 +36,11 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
   udGeoZone zone = {};
   vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
-  pProgramState->camera.position = udDouble3::zero();
+  for (int v = 0; v < pProgramState->activeViewportCount; ++v)
+  {
+    pProgramState->pViewports[v].camera.position = udDouble3::zero();
+    pProgramState->pViewports[v].camera.headingPitch = udDouble2::zero();
+  }
 
   pProgramState->sceneExplorer.selectedItems.clear();
   pProgramState->sceneExplorer.clickedItem = {};
@@ -72,19 +76,20 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
       int randomIndex = (int)(seed % length);
       double *pPlace = locations[randomIndex];
 
-      pProgramState->camera.position = udDouble3::create(pPlace[0], pPlace[1], pPlace[2]);
-      pProgramState->camera.headingPitch = { UD_DEG2RAD(pPlace[3]), UD_DEG2RAD(pPlace[4]) };
+      for (int v = 0; v < pProgramState->activeViewportCount; ++v)
+      {
+        pProgramState->pViewports[v].camera.position = udDouble3::create(pPlace[0], pPlace[1], pPlace[2]);
+        pProgramState->pViewports[v].camera.headingPitch = { UD_DEG2RAD(pPlace[3]), UD_DEG2RAD(pPlace[4]) };
+      }
     }
     else
     {
-      pProgramState->camera.position = udGeoZone_LatLongToCartesian(cameraZone, udDouble3::create((cameraZone.latLongBoundMin + cameraZone.latLongBoundMax) / 2.0, 10000.0));
-      pProgramState->camera.headingPitch = { 0.0, UD_DEG2RAD(-80.0) };
+      for (int v = 0; v < pProgramState->activeViewportCount; ++v)
+      {
+        pProgramState->pViewports[v].camera.position = udGeoZone_LatLongToCartesian(cameraZone, udDouble3::create((cameraZone.latLongBoundMin + cameraZone.latLongBoundMax) / 2.0, 10000.0));
+        pProgramState->pViewports[v].camera.headingPitch = { 0.0, UD_DEG2RAD(-80.0) };
+      }
     }
-  }
-  else
-  {
-    pProgramState->camera.position = udDouble3::zero();
-    pProgramState->camera.headingPitch = udDouble2::zero();
   }
 
   udProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->geozone.srid);
@@ -181,8 +186,11 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, udProjectNode *pPa
       udProjectNode_GetMetadataDouble(pNode, "transform.heading", &headingPitch.x, 0.0);
       udProjectNode_GetMetadataDouble(pNode, "transform.pitch", &headingPitch.y, 0.0);
 
-      pProgramState->camera.position = position;
-      pProgramState->camera.headingPitch = headingPitch;
+      for (int vp = 0; vp < pProgramState->activeViewportCount; ++vp)
+      {
+        pProgramState->pViewports[vp].camera.position = position;
+        pProgramState->pViewports[vp].camera.headingPitch = headingPitch;
+      }
 
       // unset
       memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
@@ -205,8 +213,11 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, udProjectNode *pPa
 // Try extract a valid viewpoint from the project, based on available nodes
 void vcProject_ExtractCamera(vcState *pProgramState)
 {
-  pProgramState->camera.position = udDouble3::zero();
-  pProgramState->camera.headingPitch = udDouble2::zero();
+  for (int vp = 0; vp < pProgramState->activeViewportCount; ++vp)
+  {
+    pProgramState->pViewports[vp].camera.position = udDouble3::zero();
+    pProgramState->pViewports[vp].camera.headingPitch = udDouble2::zero();
+  }
 
   vcProject_ExtractCameraRecursive(pProgramState, pProgramState->activeProject.pRoot);
 }

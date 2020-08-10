@@ -163,7 +163,7 @@ bool vcPinRenderer_AddPin(vcPinRenderer *pPinRenderer, vcState *pProgramState, v
   {
     vcPinBin *pBin = &pPinRenderer->pinBins[b];
     double distToBinSqr = udMagSq3(position - pBin->position);
-    double cameraDistToBinSqr = udMagSq3(pBin->position - pProgramState->camera.position);
+    double cameraDistToBinSqr = udMagSq3(pBin->position - pProgramState->pActiveViewport->camera.position);
 
     if (pBin->pIcon == pIcon && distToBinSqr <= (cameraDistToBinSqr * COLLAPSE_DISTANCE_RATIO * COLLAPSE_DISTANCE_RATIO))
     {

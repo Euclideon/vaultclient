@@ -285,7 +285,8 @@ void vcSession_GetProfileInfoWT(void *pProgramStatePtr)
 
 void vcSession_ChangeSession(vcState *pProgramState)
 {
-  vcRender_SetVaultContext(pProgramState, pProgramState->pRenderContext);
+  for (int v = 0; v < pProgramState->activeViewportCount; ++v)
+    vcRender_SetVaultContext(pProgramState, pProgramState->pViewports[v].pRenderContext);
   udContext_GetSessionInfo(pProgramState->pUDSDKContext, &pProgramState->sessionInfo);
 
   pProgramState->featuredProjects.Init(8);
@@ -391,7 +392,8 @@ void vcSession_Logout(vcState *pProgramState)
     vcSession_CleanupSession(pProgramState);
     pProgramState->profileInfo.Destroy();
 
-    vcRender_RemoveVaultContext(pProgramState->pRenderContext);
+    for (int v = 0; v < pProgramState->activeViewportCount; ++v)
+      vcRender_RemoveVaultContext(pProgramState->pViewports[v].pRenderContext);
     udContext_Disconnect(&pProgramState->pUDSDKContext, pProgramState->forceLogout);
 
     vcModals_OpenModal(pProgramState, vcMT_LoggedOut);

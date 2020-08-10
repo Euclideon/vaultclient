@@ -360,7 +360,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       continue;
     }
 
-    udDouble3 cameraPosition = pProgramState->camera.position;
+    udDouble3 cameraPosition = pProgramState->pActiveViewport->camera.position;
 
     udDouble3 previousLerpedLatLong = pFeedItem->previousLerpedLatLong;
 
@@ -443,7 +443,7 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
           {
             // Position + orient along map surface
             udDouble3 mapNormal = {};
-            pFeedItem->displayPosition = vcRender_QueryMapAtCartesian(pProgramState->pRenderContext, pFeedItem->displayPosition, nullptr, &mapNormal);
+            pFeedItem->displayPosition = vcRender_QueryMapAtCartesian(pProgramState->pActiveViewport->pRenderContext, pFeedItem->displayPosition, nullptr, &mapNormal);
 
             // Create an axis, with the 'mapNormal' as the up-axis
             udDouble3 z = mapNormal;

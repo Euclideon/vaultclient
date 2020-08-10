@@ -93,6 +93,15 @@ enum vcActiveTool
   vcActiveTool_Count
 };
 
+struct vcViewport
+{
+  vcCamera camera;
+  vcCameraInput cameraInput;
+
+  udUInt2 resolution;
+  vcRenderContext *pRenderContext;
+};
+
 struct vcState
 {
   bool programComplete;
@@ -106,8 +115,6 @@ struct vcState
   int closeModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
-  vcCamera camera;
-  vcCameraInput cameraInput;
   ImFont* pBigFont;
 
   int settingsErrors;
@@ -138,7 +145,13 @@ struct vcState
   } backgroundWork;
 
   double deltaTime;
-  udUInt2 sceneResolution;
+
+  udUInt2 windowResolution;
+
+  int activeViewportCount;
+  vcViewport *pViewports;
+
+  vcViewport *pActiveViewport;
 
   udGeoZone geozone;
 
@@ -172,7 +185,6 @@ struct vcState
   udSessionInfo sessionInfo;
   udContext *pUDSDKContext;
 
-  vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
 
   char password[vcMaxPathLength];
