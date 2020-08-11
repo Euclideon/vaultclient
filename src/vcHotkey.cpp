@@ -49,6 +49,9 @@ namespace vcHotkey
     "ToggleAnnotateTool",
     "OpenSettingsMenu",
     "ToggleMeasureHeightTool",
+    "AddBoxFilter",
+    "AddSphereFilter",
+    "AddCylinderFilter",
   };
   UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 
@@ -307,7 +310,7 @@ namespace vcHotkey
       ImGui::NextColumn();
     }
 
-    ImGui::EndColumns();
+    ImGui::Columns(1);
   }
 
   int DecodeKeyString(const char *pBind)

@@ -8,6 +8,28 @@ struct vc3rdPartyLicenseText
 };
 
 const vc3rdPartyLicenseText ThirdPartyLicenses[] = {
+{ "Euclideon udStream", R"license(MIT License
+
+Copyright (c) 2019-2020 Euclideon Pty Ltd (udStream)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.)license"
+},
 { "Dear ImGui", R"license(The MIT License (MIT)
 
 Copyright (c) 2014-2018 Omar Cornut
@@ -158,9 +180,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.)license" },
 #ifdef FBXSDK_ON
-{ "LibFBXSDK", R"license(This software contains Autodesk(c) FBX(c) code developed by Autodesk, Inc. Copyright 2018 Autodesk, Inc. All rights, reserved. Such code is provided \"as is\" and Autodesk, Inc. disclaims any and all warranties, whether express or implied, including without limitation the implied warranties of merchantability, fitness for a particular purpose or non-infringement of third party rights. In no event shall Autodesk, Inc. be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of such code.)license" },
+{ "LibFBXSDK", R"license(This software contains Autodesk(c) FBX(c) code developed by Autodesk, Inc.
+
+Copyright 2018 Autodesk, Inc. All rights, reserved.
+
+Such code is provided "as is" and Autodesk, Inc. disclaims any and all
+warranties, whether express or implied, including without limitation the
+implied warranties of merchantability, fitness for a particular purpose
+or non-infringement of third party rights. In no event shall Autodesk, Inc.
+be liable for any direct, indirect, incidental, special, exemplary, or
+consequential damages (including, but not limited to, procurement of
+substitute goods or services; loss of use, data, or profits; or business
+interruption) however caused and on any theory of liability, whether in
+contract, strict liability, or tort (including negligence or otherwise)
+arising in any way out of such code.)license" },
 #endif
-// Licenses for VDK
+// Licenses for udSDK
 { "cURL", R"license(COPYRIGHT AND PERMISSION NOTICE
 
 Copyright (c) 1996 - 2018, Daniel Stenberg, <daniel@haxx.se>, and many

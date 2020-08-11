@@ -6,6 +6,7 @@
 #include "udChunkedArray.h"
 #include "udJSON.h"
 #include "udWorkerPool.h"
+#include "udThread.h"
 
 #include "vcImageRenderer.h"
 #include "vcSettings.h"
@@ -15,9 +16,11 @@
 #include "vcFolder.h"
 #include "vcStrings.h"
 #include "vcProject.h"
+#include "vcSession.h"
+#include "vcQueryNode.h"
 
-#include "vdkError.h"
-#include "vdkContext.h"
+#include "udError.h"
+#include "udContext.h"
 
 #include "imgui_ex/ImGuizmo.h"
 #include "imgui_ex/vcFileDialog.h"
@@ -34,8 +37,8 @@ struct vcConvertContext;
 
 struct vcSceneItemRef
 {
-  vdkProjectNode *pParent;
-  vdkProjectNode *pItem;
+  udProjectNode *pParent;
+  udProjectNode *pItem;
 };
 
 enum vcLoginStatus
@@ -53,6 +56,16 @@ enum vcLoginStatus
   vcLS_ProxyAuthRequired,
   vcLS_ProxyAuthFailed,
   vcLS_OtherError,
+
+  vcLS_ForgotPassword,
+  vcLS_ForgotPasswordPending,
+  vcLS_ForgotPasswordCheckEmail,
+  vcLS_ForgotPasswordTryPortal,
+
+  vcLS_Register,
+  vcLS_RegisterPending,
+  vcLS_RegisterCheckEmail,
+  vcLS_RegisterTryPortal,
 
   vcLS_Count
 };
@@ -73,6 +86,9 @@ enum vcActiveTool
 
   vcActiveTool_Annotate, //Single POI
   vcActiveTool_Inspect, // Inspects the voxel under the mouse
+  vcActiveTool_AddBoxFilter, // Add box filter in the current mouse position
+  vcActiveTool_AddSphereFilter,// Add sphere filter in the current mouse position
+  vcActiveTool_AddCylinderFilter,// Add cylinder filter in the current mouse position
 
   vcActiveTool_Count
 };
@@ -87,6 +103,7 @@ struct vcState
   int activeSetting;
 
   int openModals; // This is controlled inside vcModals.cpp
+  int closeModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
   vcCamera camera;
@@ -126,12 +143,15 @@ struct vcState
   udGeoZone geozone;
 
   bool showWatermark;
+  bool isStreaming;
+  int64_t streamingMemory;
+  double lastSuccessfulSave;
 
   vcTexture *pCompanyLogo;
   vcTexture *pCompanyWatermark;
-  vcTexture *pSceneWatermark;
   vcTexture *pUITexture;
   vcTexture *pWhiteTexture;
+  vcTexture *pInputsTexture;
 
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;
@@ -142,15 +162,15 @@ struct vcState
   udDouble3 worldMousePosLongLat;
   bool pickingSuccess;
   int udModelPickedIndex;
-  uint64_t udModelPickedNode;
+  udVoxelID udModelPickedNode;
   udJSON udModelNodeAttributes;
 
   bool finishedStartup;
   bool forceLogout;
 
   bool hasContext;
-  vdkSessionInfo sessionInfo;
-  vdkContext *pVDKContext;
+  udSessionInfo sessionInfo;
+  udContext *pUDSDKContext;
 
   vcRenderContext *pRenderContext;
   vcConvertContext *pConvertContext;
@@ -166,18 +186,26 @@ struct vcState
   } changePassword;
 
   vcLoginStatus loginStatus;
-  vdkError logoutReason;
+  udError logoutReason;
 
   const char *pReleaseNotes; //Only loaded when requested
   bool passwordFieldHasFocus;
 
+  // Statics/Temporaries used in modals
   char modelPath[vcMaxPathLength];
+  bool modalTempBool;
 
   int renaming;
   char renameText[30];
 
   vcSettings settings;
-  udJSON projects;
+
+  udRWLock *pSessionLock; // Used to lock access to session info
+  double lastSync;
+  double highestProjectTime; // Most recently updated project time
+  udChunkedArray<vcFeaturedProjectInfo> featuredProjects;
+  udChunkedArray<vcGroupInfo> groups;
+
   udJSON packageInfo;
   udJSON profileInfo;
 
@@ -220,6 +248,8 @@ struct vcState
   int currentKey;
 
   int previousSRID;
+
+  vcQueryNodeFilterInput filterInput;
 };
 
 #endif // !vcState_h__

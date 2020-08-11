@@ -2,12 +2,22 @@
 #include "udMath.h"
 #include "udStringUtil.h"
 
+
+//I think we need this so we are using static strings. Otherwise the vcUnitConversion_Convert* API will need to change to allow for a significant figure param.
+static const char *gSigFigsFormats[] = {"%0.0f", "%0.1f", "%0.2f", "%0.3f", "%0.4f", "%0.5f", "%0.6f", "%0.7f", "%0.8f", "%0.9f", "%0.10f"};
+static const char *gTimeSigFigsFormats[] = {"%02.0f", "%04.1f", "%05.2f", "%06.3f", "%07.4f", "%08.5f", "%09.6f", "%010.7f", "%011.8f", "%012.9f", "%013.10f"};
+static const uint32_t gSigFigCount = (uint32_t)udLengthOf(gSigFigsFormats);
+
+#define USSINCHES_IN_METRE      39.37
+#define USSINCHES_IN_METRE_SQ  (39.37 * 39.37)
+#define USSINCHES_IN_METRE_CB  (39.37 * 39.37 * 39.37)
+
 double vcUnitConversion_ConvertDistance(double sourceValue, vcDistanceUnit sourceUnit, vcDistanceUnit requiredUnit)
 {
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  const double metreTable[vcDistance_Count] = { 1.0, 1000.0, 0.01, 0.001, 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0, 1.0 / 39.37, 1852.0 };
+  const double metreTable[vcDistance_Count] = { 0.001, 0.01, 1.0, 1000.0, 1.0 / USSINCHES_IN_METRE, 1.0 / USSINCHES_IN_METRE * 12.0, 1.0 / USSINCHES_IN_METRE *12.0 * 5280.0, 1852.0};
 
   return sourceValue * metreTable[sourceUnit] / metreTable[requiredUnit];
 }
@@ -17,7 +27,7 @@ double vcUnitConversion_ConvertArea(double sourceValue, vcAreaUnit sourceUnit, v
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  const double sqmTable[vcArea_Count] = { 1.0, 1000000.0, 10000.0, 1200.0 / 3937.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0 * 1.0 / 640.0 };
+  const double sqmTable[vcArea_Count] = { 1.0, 1000.0 * 1000.0, 100.0 * 100.0, 1200.0 / 3937.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0, 5280.0 * 1200.0 / 3937.0 * 5280.0 * 1200.0 / 3937.0 * 1.0 / 640.0 };
 
   return sourceValue * sqmTable[sourceUnit] / sqmTable[requiredUnit];
 }
@@ -27,7 +37,7 @@ double vcUnitConversion_ConvertVolume(double sourceValue, vcVolumeUnit sourceUni
   if (sourceUnit == requiredUnit)
     return sourceValue;
 
-  const double m3Table[vcVolume_Count] = { 1.0, 1000.0, 1.0 / 1000.0, 1.0 / 61023.744094732297526, 1 / 35.31466621266132221, 1 / 264.17203728418462560, 1 / 1056.6882607957347, 1 / 1.30795061586555094734 };
+  const double m3Table[vcVolume_Count] = { 1.0, 1.0 / 1000.0, 1000.0, 1.0 / USSINCHES_IN_METRE_CB, 1 / (USSINCHES_IN_METRE_CB / 1728), 1 / (USSINCHES_IN_METRE_CB / 1728.0 / 27.0), 1.0 / 1056.6882607957347, 1.0 / 264.17203728418462560};
 
   return sourceValue * m3Table[sourceUnit] / m3Table[requiredUnit];
 }
@@ -64,6 +74,70 @@ double vcUnitConversion_ConvertTemperature(double sourceValue, vcTemperatureUnit
   return celciusVal;
 }
 
+double vcUnitConversion_ConvertAngle(double sourceValue, vcAngleUnit sourceUnit, vcAngleUnit requiredUnit)
+{
+  if (sourceUnit == requiredUnit)
+    return sourceValue;
+
+  static const double angleTable[vcSpeed_Count] = {1.0, 180.0 / UD_PI, 18.0 / 20.0};
+
+  return sourceValue * angleTable[sourceUnit] / angleTable[requiredUnit];
+}
+
+// Algorithm: http: //howardhinnant.github.io/date_algorithms.html
+static int vcUnitConversion_DaysFromCivil(int y, int m, int d)
+{
+  y -= m <= 2 ? 1 : 0;
+  int era = y / 400;
+  int yoe = y - era * 400;                                   // [0, 399]
+  int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;  // [0, 365]
+  int doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;           // [0, 146096]
+  return era * 146097 + doe - 719468;
+}
+
+// Algorithm: http: //howardhinnant.github.io/date_algorithms.html
+static vcTimeReferenceData vcUnitConversion_UnixToUTC(double unixTime)
+{
+  vcTimeReferenceData result = {};
+  int days = (int)unixTime / (60 * 60 * 24);
+  double rem = unixTime - ((double)days * 60.0 * 60.0 * 24.0);
+  result.UTC.hour = (uint8_t)(rem / (60.0 * 60.0));
+  rem -= 60.0 * 60.0 * result.UTC.hour;
+  result.UTC.minute = (uint8_t)(rem / (60.0));
+  rem -= 60.0 * result.UTC.minute;
+  result.UTC.seconds = rem;
+
+  days += 719468;
+  int era = (days >= 0 ? days : days - 146096) / 146097;
+  uint32_t doe = (uint32_t)(days - era * 146097);                         // [0, 146096]
+  uint32_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;   // [0, 399]
+  int y = (int)(yoe)+era * 400;
+  uint32_t doy = doe - (365 * yoe + yoe / 4 - yoe / 100);                 // [0, 365]
+  uint32_t mp = (5 * doy + 2) / 153;                                      // [0, 11]
+  uint32_t d = doy - (153 * mp + 2) / 5 + 1;                              // [1, 31]
+  uint32_t m = mp + (mp < 10 ? 3 : -9);                                   // [1, 12]
+
+  result.UTC.year = (uint16_t)y + (m <= 2 ? 1 : 0);
+  result.UTC.month = (uint8_t)m;
+  result.UTC.day = (uint8_t)d;
+
+  return result;
+}
+
+static double vcUnitConversion_ConvertUTCtoUNIX(vcTimeReferenceData timeData)
+{
+  int year = (int)timeData.UTC.year;
+  uint16_t month = (uint16_t)timeData.UTC.month;          // 0-11
+  if (month > 11)
+  {
+    year += month / 12;
+    month %= 12;
+  }
+  int days_since_1970 = vcUnitConversion_DaysFromCivil(year, month, (int)timeData.UTC.day);
+
+  return (double)60 * (60 * (24L * days_since_1970 + (int)timeData.UTC.hour) + (int)timeData.UTC.minute) + timeData.UTC.seconds;
+}
+
 vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData sourceValue, vcTimeReference sourceReference, vcTimeReference requiredReference)
 {
   vcTimeReferenceData result = {false, {0.0}};
@@ -72,7 +146,7 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
 
   static const double s_weekSeconds = 60.0 * 60.0 * 24.0 * 7.0;
   static const double s_secondsBetweenEpochs_TAI_Unix = 378691200.0;
-  static const double s_secondsBetweenEpochs_TAI_GPS = 694656000.0;
+  static const double s_secondsBetweenEpochs_TAI_GPS = 694656009.0;
 
   //TODO this will have to be updated every time a leap second is introduced.
   //The next leap second date may be December 2020.
@@ -147,6 +221,18 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       TAI_seconds = s_secondsBetweenEpochs_TAI_GPS + s_weekSeconds * double(sourceValue.GPSWeek.weeks) + sourceValue.GPSWeek.secondsOfTheWeek;
       break;
     }
+    case vcTimeReference_UTC:
+    {
+      vcTimeReferenceData tempIn;
+      tempIn.seconds = vcUnitConversion_ConvertUTCtoUNIX(sourceValue);
+      vcTimeReferenceData tempOut = vcUnitConversion_ConvertTimeReference(tempIn, vcTimeReference_Unix, vcTimeReference_TAI);
+      TAI_seconds = tempOut.seconds;
+      break;
+    }
+    default:
+    {
+      goto epilogue;
+    }
   }
 
   //Required Reference
@@ -193,6 +279,18 @@ vcTimeReferenceData vcUnitConversion_ConvertTimeReference(vcTimeReferenceData so
       result.GPSWeek.secondsOfTheWeek = TAI_seconds - (s_weekSeconds * result.GPSWeek.weeks);
       break;
     }
+    case vcTimeReference_UTC:
+    {
+      vcTimeReferenceData tempIn;
+      tempIn.seconds = TAI_seconds;
+      vcTimeReferenceData tempOut = vcUnitConversion_ConvertTimeReference(tempIn, vcTimeReference_TAI, vcTimeReference_Unix);
+      result = vcUnitConversion_UnixToUTC(tempOut.seconds);
+      break;
+    }
+    default:
+    {
+      goto epilogue;
+    }
   }
 
   result.success = true;
@@ -210,6 +308,8 @@ int vcUnitConversion_ConvertTimeToString(char *pBuffer, size_t bufferSize, const
   {
     if (reference == vcTimeReference_GPSWeek)
       return udSprintf(pBuffer, bufferSize, "%i weeks, %fs", value.GPSWeek.weeks, value.GPSWeek.secondsOfTheWeek);
+    else if (reference == vcTimeReference_UTC)
+      return udSprintf(pBuffer, bufferSize, "%04u-%02u-%02uT%02u:%02u:%02uZ", value.UTC.year, value.UTC.month, value.UTC.day, value.UTC.hour, value.UTC.minute, (uint32_t)value.UTC.seconds);
     else
       return udSprintf(pBuffer, bufferSize, "%fs", value.seconds);
   }
@@ -217,6 +317,8 @@ int vcUnitConversion_ConvertTimeToString(char *pBuffer, size_t bufferSize, const
   {
     if (reference == vcTimeReference_GPSWeek)
       return udSprintf(pBuffer, bufferSize, "%i weeks, %ss", value.GPSWeek.weeks, udTempStr(pSecondsFormat, value.GPSWeek.secondsOfTheWeek));
+    else if (reference == vcTimeReference_UTC)
+      return udSprintf(pBuffer, bufferSize, "%04u-%02u-%02uT%02u:%02u:%sZ", value.UTC.year, value.UTC.month, value.UTC.day, value.UTC.hour, value.UTC.minute, udTempStr(pSecondsFormat, value.UTC.seconds));
     else
       return udSprintf(pBuffer, bufferSize, "%ss", udTempStr(pSecondsFormat, value.seconds));
   }
@@ -224,7 +326,7 @@ int vcUnitConversion_ConvertTimeToString(char *pBuffer, size_t bufferSize, const
 
 int vcUnitConversion_ConvertDistanceToString(char *pBuffer, size_t bufferSize, double value, vcDistanceUnit unit, const char *pFormat)
 {
-  static const char *Suffixes[] = {"m", "km", "cm", "mm", "ft (U.S. Survey)", "mi (U.S. Survey)", "in (U.S. Survey)", "nmi"};
+  static const char *Suffixes[] = {"mm", "cm", "m", "km", "in", "ft", "mi", "nmi"};
 
   if (pBuffer == nullptr || unit == vcDistance_Count)
     return -1;
@@ -237,7 +339,7 @@ int vcUnitConversion_ConvertDistanceToString(char *pBuffer, size_t bufferSize, d
 
 int vcUnitConversion_ConvertAreaToString(char *pBuffer, size_t bufferSize, double value, vcAreaUnit unit, const char *pFormat)
 {
-  static const char *Suffixes[] = {"m sq", "km sq", "ha", "ft sq", "mi sq", "ac"};
+  static const char *Suffixes[] = {"sqm", "sqkm", "ha", "sqft", "sqmi", "ac"};
 
   if (pBuffer == nullptr || unit == vcArea_Count)
     return -1;
@@ -250,7 +352,7 @@ int vcUnitConversion_ConvertAreaToString(char *pBuffer, size_t bufferSize, doubl
 
 int vcUnitConversion_ConvertVolumeToString(char *pBuffer, size_t bufferSize, double value, vcVolumeUnit unit, const char *pFormat)
 {
-  static const char *Suffixes[] = {"cbm", "ML", "L", "cbin", "cbft", "gal US", "qt US", "cbyd"};
+  static const char *Suffixes[] = {"cbm", "L", "ML", "cbin", "cbft", "cbyd", "qt US", "gal US"};
 
   if (pBuffer == nullptr || unit == vcVolume_Count)
     return -1;
@@ -263,15 +365,21 @@ int vcUnitConversion_ConvertVolumeToString(char *pBuffer, size_t bufferSize, dou
 
 int vcUnitConversion_ConvertSpeedToString(char *pBuffer, size_t bufferSize, double value, vcSpeedUnit unit, const char *pFormat)
 {
-  static const char *Suffixes[] = {"m/s", "km/h", "mi/h (U.S. Survey)", "ft/s", "nmi/h", "Ma"};
+  static const char *Suffixes[] = {"m/s", "km/h", "mi/h", "ft/s", "nmi/h", "Mach"};
 
   if (pBuffer == nullptr || unit == vcSpeed_Count)
     return -1;
 
   if (pFormat == nullptr)
+  {
+    if (unit == vcSpeed_Mach)
+      return udSprintf(pBuffer, bufferSize, "%s %f", Suffixes[unit], value);
     return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
-  else
-    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+  }
+
+  if (unit == vcSpeed_Mach)
+    return udSprintf(pBuffer, bufferSize, "%s %s", Suffixes[unit], udTempStr(pFormat, value));
+  return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
 }
 
 int vcUnitConversion_ConvertTemperatureToString(char *pBuffer, size_t bufferSize, double value, vcTemperatureUnit unit, const char *pFormat)
@@ -285,4 +393,275 @@ int vcUnitConversion_ConvertTemperatureToString(char *pBuffer, size_t bufferSize
     return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
   else
     return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+}
+
+int vcUnitConversion_ConvertAngleToString(char *pBuffer, size_t bufferSize, double value, vcAngleUnit unit, const char *pFormat)
+{
+  static const char *Suffixes[] = {"deg", "rad", "grad"};
+
+  if (pBuffer == nullptr || unit == vcAngle_Count)
+    return -1;
+
+  if (pFormat == nullptr)
+    return udSprintf(pBuffer, bufferSize, "%f%s", value, Suffixes[unit]);
+  else
+    return udSprintf(pBuffer, bufferSize, "%s%s", udTempStr(pFormat, value), Suffixes[unit]);
+}
+
+udResult vcUnitConversion_SetMetric(vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+
+  if (pData == nullptr)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  pData->distanceUnit[0] = {vcDistance_Millimetres, 10.0};
+  pData->distanceUnit[1] = {vcDistance_Centimetres, 100.0};
+  pData->distanceUnit[2] = {vcDistance_Metres, 1000.0};
+  pData->distanceUnit[3] = {vcDistance_Kilometres, 0.0};
+
+  pData->areaUnit[0] = {vcArea_SquareMetres, 1'000'000.0};
+  pData->areaUnit[1] = {vcArea_SquareKilometres, 0.0};
+  pData->areaUnit[2] = {vcArea_SquareKilometres, 0.0};
+  pData->areaUnit[3] = {vcArea_SquareKilometres, 0.0};
+
+  pData->volumeUnit[0] = {vcVolume_Litre, 1'000'000.0};
+  pData->volumeUnit[1] = {vcVolume_MegaLitre, 0.0};
+  pData->volumeUnit[2] = {vcVolume_MegaLitre, 0.0};
+  pData->volumeUnit[3] = {vcVolume_MegaLitre, 0.0};
+
+  pData->speedUnit = vcSpeed_MetresPerSecond;
+  pData->temperatureUnit = vcTemperature_Celcius;
+  pData->timeReference = vcTimeReference_UTC;
+  pData->angleUnit = vcAngle_Degree;
+
+  pData->distanceSigFigs = 3;
+  pData->areaSigFigs = 3;
+  pData->volumeSigFigs = 3;
+  pData->speedSigFigs = 3;
+  pData->temperatureSigFigs = 3;
+  pData->timeSigFigs = 0;
+  pData->angleSigFigs = 2;
+
+  result = udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_SetUSSurvey(vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+
+  if (pData == nullptr)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  pData->distanceUnit[0] = {vcDistance_USSurveyInches, 12.0};
+  pData->distanceUnit[1] = {vcDistance_USSurveyFeet, 5280.0};   //Do we say 1.33ft or 1 foot, 4 inches?
+  pData->distanceUnit[2] = {vcDistance_USSurveyMiles, 0.0};     //Yards?
+  pData->distanceUnit[3] = {vcDistance_USSurveyMiles, 0.0};
+
+  pData->areaUnit[0] = {vcArea_SquareFoot, 5280.0 * 5280.0};
+  pData->areaUnit[1] = {vcArea_SquareMiles, 0.0};
+  pData->areaUnit[2] = {vcArea_SquareMiles, 0.0};
+  pData->areaUnit[3] = {vcArea_SquareMiles, 0.0};
+
+  pData->volumeUnit[0] = {vcVolume_USGallons, 0.0};
+  pData->volumeUnit[1] = {vcVolume_USGallons, 0.0};
+  pData->volumeUnit[2] = {vcVolume_USGallons, 0.0};
+  pData->volumeUnit[3] = {vcVolume_USGallons, 0.0};
+
+  pData->speedUnit = vcSpeed_FeetPerSecond;
+  pData->temperatureUnit = vcTemperature_Farenheit;
+  pData->timeReference = vcTimeReference_UTC;
+  pData->angleUnit = vcAngle_Degree;
+
+  pData->distanceSigFigs = 3;
+  pData->areaSigFigs = 3;
+  pData->volumeSigFigs = 3;
+  pData->speedSigFigs = 3;
+  pData->temperatureSigFigs = 3;
+  pData->timeSigFigs = 0;
+  pData->angleSigFigs = 2;
+
+  result = udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_ConvertAndFormatDistance(char *pBuffer, size_t bufferSize, double value, vcDistanceUnit unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  vcDistanceUnit finalUnit;
+  double finalValue;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcDistance_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  for (int i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
+  {
+    finalUnit = (vcDistanceUnit)pData->distanceUnit[i].unit;
+    finalValue = vcUnitConversion_ConvertDistance(value, unit, finalUnit);
+
+    if (udAbs(finalValue) < pData->distanceUnit[i].upperLimit)
+      break;
+  }
+
+  sigFigs = udClamp<uint32_t>(pData->distanceSigFigs, 0, gSigFigCount - 1);
+  result = vcUnitConversion_ConvertDistanceToString(pBuffer, bufferSize, finalValue, finalUnit, gSigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+
+udResult vcUnitConversion_ConvertAndFormatArea(char *pBuffer, size_t bufferSize, double value, vcAreaUnit unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  vcAreaUnit finalUnit;
+  double finalValue;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcArea_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  for (int i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
+  {
+    finalUnit = (vcAreaUnit)pData->areaUnit[i].unit;
+    finalValue = vcUnitConversion_ConvertArea(value, unit, finalUnit);
+
+    if (udAbs(finalValue) < pData->areaUnit[i].upperLimit)
+      break;
+  }
+
+  sigFigs = udClamp<uint32_t>(pData->areaSigFigs, 0, gSigFigCount - 1);
+  result = vcUnitConversion_ConvertAreaToString(pBuffer, bufferSize, finalValue, finalUnit, gSigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_ConvertAndFormatVolume(char *pBuffer, size_t bufferSize, double value, vcVolumeUnit unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  vcVolumeUnit finalUnit;
+  double finalValue;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcVolume_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  for (int i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
+  {
+    finalUnit = (vcVolumeUnit)pData->volumeUnit[i].unit;
+    finalValue = vcUnitConversion_ConvertVolume(value, unit, finalUnit);
+
+    if (udAbs(finalValue) < pData->volumeUnit[i].upperLimit)
+      break;
+  }
+
+  sigFigs = udClamp<uint32_t>(pData->volumeSigFigs, 0, gSigFigCount - 1);
+  result = vcUnitConversion_ConvertVolumeToString(pBuffer, bufferSize, finalValue, finalUnit, gSigFigsFormats[sigFigs]) == -1 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_ConvertAndFormatSpeed(char *pBuffer, size_t bufferSize, double value, vcSpeedUnit unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  double finalValue;
+  int convertResult;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcSpeed_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  finalValue = vcUnitConversion_ConvertSpeed(value, unit, pData->speedUnit);
+
+  sigFigs = udClamp<uint32_t>(pData->speedSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertSpeedToString(pBuffer, bufferSize, finalValue, pData->speedUnit, gSigFigsFormats[sigFigs]);
+
+  result = convertResult < 0 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_ConvertAndFormatTemperature(char *pBuffer, size_t bufferSize, double value, vcTemperatureUnit unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  double finalValue;
+  int convertResult;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcTemperature_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  finalValue = vcUnitConversion_ConvertTemperature(value, unit, pData->temperatureUnit);
+
+  sigFigs = udClamp<uint32_t>(pData->temperatureSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertTemperatureToString(pBuffer, bufferSize, finalValue, pData->temperatureUnit, gSigFigsFormats[sigFigs]);
+
+  result = convertResult < 0 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_ConvertAndFormatTimeReference(char *pBuffer, size_t bufferSize, vcTimeReferenceData timeRefData, vcTimeReference unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  vcTimeReferenceData finalValue;
+  int convertResult;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcTimeReference_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  finalValue = vcUnitConversion_ConvertTimeReference(timeRefData, unit, pData->timeReference);
+
+  sigFigs = udClamp<uint32_t>(pData->timeSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertTimeToString(pBuffer, bufferSize, finalValue, pData->timeReference, gTimeSigFigsFormats[sigFigs]);
+
+  result = convertResult < 0 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+udResult vcUnitConversion_ConvertAndFormatAngle(char *pBuffer, size_t bufferSize, double value, vcAngleUnit unit, const vcUnitConversionData *pData)
+{
+  udResult result = udR_Failure_;
+  int sigFigs;
+  double finalValue;
+  int convertResult;
+
+  if (pData == nullptr || pBuffer == nullptr || unit < 0 || unit >= vcAngle_Count)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
+  finalValue = vcUnitConversion_ConvertAngle(value, unit, pData->angleUnit);
+
+  sigFigs = udClamp<uint32_t>(pData->angleSigFigs, 0, gSigFigCount - 1);
+  convertResult = vcUnitConversion_ConvertAngleToString(pBuffer, bufferSize, finalValue, pData->angleUnit, gSigFigsFormats[sigFigs]);
+
+  result = convertResult < 0 ? udR_WriteFailure : udR_Success;
+
+epilogue:
+  return result;
+}
+
+void vcUnitConversion_SetUTC(vcTimeReferenceData *pData, uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, double seconds)
+{
+  if (pData == nullptr)
+    return;
+
+  pData->UTC.year = year;
+  pData->UTC.month = month;
+  pData->UTC.day = day;
+  pData->UTC.hour = hour;
+  pData->UTC.minute = minute;
+  pData->UTC.seconds = seconds;
 }

@@ -16,6 +16,7 @@ struct PS_INPUT
 struct PS_OUTPUT
 {
   float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
 };
 
 sampler sceneDepthSampler;
@@ -102,6 +103,8 @@ PS_OUTPUT main(PS_INPUT input)
     col = lerp(u_visibleColour, u_notVisibleColour, clamp(diff, 0.0, 1.0));
   }
 
-  output.Color0 = float4(col.xyz * col.w, 1.0); //additive
+  //additive
+  output.Color0 = float4(col.xyz * col.w, 1.0);
+  output.Normal = float4(0, 0, 0, 0);
   return output;
 }

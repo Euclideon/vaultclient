@@ -1,6 +1,6 @@
-VAULTSDK_HOME = path.translate(_OPTIONS["vaultsdk"] or '')
+UDSDK_HOME = path.translate(_OPTIONS["udsdk"] or '')
 
-project "EuclideonVaultClient"
+project "udStreamApp"
 	-- Settings
 	kind "packaging"
 	system "android"
@@ -10,8 +10,18 @@ project "EuclideonVaultClient"
 	files { "res/**.xml", "res/**.png" }
 	files { "src/**.java"}
 
+	if mergeAndroidPackage then
+		files { "libs/**.so" }
+
+		-- Create shaders folder for shaders to be copied into
+		os.mkdir("../../builds/assets/shaders")
+	end
+
 	for _, file in ipairs(os.matchfiles("../../src/gl/opengl/shaders/mobile/*")) do
 		local newfile = file:gsub("../../src/gl/opengl/shaders/mobile", "../../builds/assets/shaders")
+		if mergeAndroidPackage then
+			os.copyfile(file, newfile)
+		end
 		files(newfile)
 	end
 
@@ -27,21 +37,21 @@ project "EuclideonVaultClient"
 	files { "project.properties" }
 
 	libdirs { "../../3rdParty/SDL2-2.0.8/lib/android/arm64" }
-	links { "vaultClient", "SDL2", "main" }
+	links { "udStream", "SDL2", "main" }
 
-	filter { "options:force-vaultsdk" }
-		files { "../../../vault/buildscripts/android/src/**" }
+	filter { "options:force-udsdk" }
+		files { "../../../udSDK/buildscripts/android/src/**" }
 		vpaths {
-			["src/*"] = { "../../../vault/buildscripts/android/src/**" }
+			["src/*"] = { "../../../udSDK/buildscripts/android/src/**" }
 		}
-	filter { "options:not force-vaultsdk" }
+	filter { "options:not force-udsdk" }
 		files { "packaging.lua" }
-		files { "%{VAULTSDK_HOME}/lib/android_arm64/src/**" }
-		files { "%{VAULTSDK_HOME}/lib/android_arm64/libvaultSDK.so", "%{VAULTSDK_HOME}/lib/android_x64/libvaultSDK.so" }
+		files { "%{UDSDK_HOME}/lib/android_arm64/src/**" }
+		files { "%{UDSDK_HOME}/lib/android_arm64/libudSDK.so", "%{UDSDK_HOME}/lib/android_x64/libudSDK.so" }
 		vpaths {
-			["src/*"] = { "%{VAULTSDK_HOME}/lib/android_arm64/src/**", "src/**" },
-			["libs/arm64-v8a/*"] = { "%{VAULTSDK_HOME}/lib/android_arm64/**.so" },
-			["libs/x86_64/*"] = { "%{VAULTSDK_HOME}/lib/android_x64/**.so" },
+			["src/*"] = { "%{UDSDK_HOME}/lib/android_arm64/src/**", "src/**" },
+			["libs/arm64-v8a/*"] = { "%{UDSDK_HOME}/lib/android_arm64/**.so" },
+			["libs/x86_64/*"] = { "%{UDSDK_HOME}/lib/android_x64/**.so" },
 		}
 	filter {}
 

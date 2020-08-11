@@ -8,11 +8,34 @@
 #include "udMath.h"
 #include "udStringUtil.h"
 
-#include "vdkQuery.h"
-
 #include "imgui.h"
 
-vcQueryNode::vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+
+const char *GetNodeName(vcQueryNodeFilterShape shape)
+{
+  if(shape == vcQNFS_Box)
+    return vcString::Get("sceneExplorerFilterBoxDefaultName");
+  else if (shape == vcQNFS_Sphere)
+    return vcString::Get("sceneExplorerFilterSphereDefaultName");
+  else if (shape == vcQNFS_Cylinder)
+    return vcString::Get("sceneExplorerFilterCylinderDefaultName");
+  else
+    return "";
+}
+
+const char *GetNodeShape(vcQueryNodeFilterShape shape)
+{
+  if (shape == vcQNFS_Box)
+    return "box";
+  else if (shape == vcQNFS_Sphere)
+    return "sphere";
+  else if (shape == vcQNFS_Cylinder)
+    return "cylinder";
+  else
+    return "";
+}
+
+vcQueryNode::vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_shape(vcQNFS_Box),
   m_inverted(false),
@@ -24,22 +47,22 @@ vcQueryNode::vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pP
 {
   m_loadStatus = vcSLS_Loaded;
 
-  vdkQueryFilter_Create(&m_pFilter);
-  vdkQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
+  udQueryFilter_Create(&m_pFilter);
+  udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
 
   OnNodeUpdate(pProgramState);
 }
 
 vcQueryNode::~vcQueryNode()
 {
-  vdkQueryFilter_Destroy(&m_pFilter);
+  udQueryFilter_Destroy(&m_pFilter);
 }
 
 void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
 {
   const char *pString = nullptr;
 
-  if (vdkProjectNode_GetMetadataString(m_pNode, "shape", &pString, "box") == vE_Success)
+  if (udProjectNode_GetMetadataString(m_pNode, "shape", &pString, "box") == udE_Success)
   {
     if (udStrEquali(pString, "box"))
       m_shape = vcQNFS_Box;
@@ -49,26 +72,26 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
       m_shape = vcQNFS_Cylinder;
   }
 
-  vdkProjectNode_GetMetadataDouble(m_pNode, "size.x", &m_extents.x, 1.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "size.y", &m_extents.y, 1.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "size.z", &m_extents.z, 1.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "size.x", &m_extents.x, 1.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "size.y", &m_extents.y, 1.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "size.z", &m_extents.z, 1.0);
 
-  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_ypr.x, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_ypr.y, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_ypr.z, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_ypr.x, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_ypr.y, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_ypr.z, 0.0);
 
   ChangeProjection(pProgramState->geozone);
 
   switch (m_shape)
   {
   case vcQNFS_Box:
-    vdkQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
+    udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
     break;
   case vcQNFS_Cylinder:
-    vdkQueryFilter_SetAsCylinder(m_pFilter, &m_center.x, m_extents.x, m_extents.z, &m_ypr.x);
+    udQueryFilter_SetAsCylinder(m_pFilter, &m_center.x, m_extents.x, m_extents.z, &m_ypr.x);
     break;
   case vcQNFS_Sphere:
-    vdkQueryFilter_SetAsSphere(m_pFilter, &m_center.x, m_extents.x);
+    udQueryFilter_SetAsSphere(m_pFilter, &m_center.x, m_extents.x);
     break;
   default:
     //Something went wrong...
@@ -113,15 +136,15 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_center = matrix.axis.t.toVector3();
   m_extents = udDouble3::create(udMag3(matrix.axis.x), udMag3(matrix.axis.y), udMag3(matrix.axis.z));
   
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_center, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
 
-  vdkProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
+  udProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
+  udProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
+  udProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 }
 
 void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -134,13 +157,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   {
     changed = true;
     m_shape = (vcQueryNodeFilterShape)shape;
-
-    if (m_shape == vcQNFS_Box)
-      vdkProjectNode_SetMetadataString(m_pNode, "shape", "box");
-    else if (m_shape == vcQNFS_Sphere)
-      vdkProjectNode_SetMetadataString(m_pNode, "shape", "sphere");
-    else if (m_shape == vcQNFS_Cylinder)
-      vdkProjectNode_SetMetadataString(m_pNode, "shape", "cylinder");
+    udProjectNode_SetMetadataString(m_pNode, "shape", GetNodeShape(m_shape));
   }
 
   ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
@@ -162,18 +179,18 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   if (ImGui::Checkbox(udTempStr("%s##FilterInverted%zu", vcString::Get("sceneFilterInverted"), *pItemID), &m_inverted))
   {
     changed = true;
-    vdkQueryFilter_SetInverted(m_pFilter, m_inverted);
+    udQueryFilter_SetInverted(m_pFilter, m_inverted);
   }
 
   if (changed)
   {
-    vdkProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
+    udProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
+    udProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
 
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 
     this->ApplyDelta(pProgramState, udDouble4x4::identity());
 
@@ -181,10 +198,24 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   }
 }
 
-void vcQueryNode::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
+void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
 {
+  ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterPosition"), m_center.x, m_center.y, m_center.z);
+  ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterExtents"), m_extents.x, m_extents.y, m_extents.z);
+
   if (ImGui::Checkbox(udTempStr("%s##EmbeddedUI", vcString::Get("sceneFilterInverted")), &m_inverted))
-    vdkQueryFilter_SetInverted(m_pFilter, m_inverted);
+    udQueryFilter_SetInverted(m_pFilter, m_inverted);
+
+  if (vcQueryNodeFilter_IsDragActive(pProgramState))
+  {
+    ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterEndPosition"), pProgramState->filterInput.endPoint.x, pProgramState->filterInput.endPoint.y, pProgramState->filterInput.endPoint.z);
+    udDouble3 d = pProgramState->filterInput.endPoint - pProgramState->filterInput.pickPoint;
+    if (d.x < 0)
+      ImGui::Text("%s %f", vcString::Get("sceneFilterWidthNegative"), d.x);
+
+    if (d.y < 0)
+      ImGui::Text("%s %f", vcString::Get("sceneFilterLengthNegative"), d.y);
+  }
 }
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
@@ -203,20 +234,20 @@ void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
   m_ypr = (qNewProjection * (m_currentProjection.inverse() * qScene)).eulerAngles();
   m_currentProjection = qNewProjection;
 
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
-  vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_ypr.x);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_ypr.y);
+  udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 
   switch (m_shape)
   {
   case vcQNFS_Box:
-    vdkQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
+    udQueryFilter_SetAsBox(m_pFilter, &m_center.x, &m_extents.x, &m_ypr.x);
     break;
   case vcQNFS_Cylinder:
-    vdkQueryFilter_SetAsCylinder(m_pFilter, &m_center.x, m_extents.x, m_extents.z, &m_ypr.x);
+    udQueryFilter_SetAsCylinder(m_pFilter, &m_center.x, m_extents.x, m_extents.z, &m_ypr.x);
     break;
   case vcQNFS_Sphere:
-    vdkQueryFilter_SetAsSphere(m_pFilter, &m_center.x, m_extents.x);
+    udQueryFilter_SetAsSphere(m_pFilter, &m_center.x, m_extents.x);
     break;
   default:
     //Something went wrong...
@@ -246,3 +277,121 @@ vcGizmoAllowedControls vcQueryNode::GetAllowedControls()
   else
     return vcGAC_All;
 }
+
+static const uint32_t HOLD_TICKS = 10;
+
+void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape)
+{
+  pFilter->shape = shape;
+  pFilter->pickPoint = udDouble3::zero();
+  pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
+  pFilter->endPoint = udDouble3::zero();
+  pFilter->pNode = nullptr;
+  pFilter->holdCount = 0;
+}
+
+void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter)
+{
+  pFilter->shape = vcQNFS_None;
+  pFilter->pickPoint = udDouble3::zero();
+  pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
+  pFilter->endPoint = udDouble3::zero();
+  pFilter->pNode = nullptr;
+  pFilter->holdCount = 0;
+}
+
+udProjectNode *vcQueryNodeFilter_CreateNode(vcQueryNodeFilterInput *pFilter, vcState *pProgramState)
+{
+  udProjectNode *pNode = nullptr;
+  if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", GetNodeName(pFilter->shape), nullptr, nullptr) == udE_Success)
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->worldMousePosCartesian, 1);
+    udProjectNode_SetMetadataString(pNode, "shape", GetNodeShape(pFilter->shape));
+    udProjectNode_SetMetadataDouble(pNode, "size.x", pFilter->size.x);
+    udProjectNode_SetMetadataDouble(pNode, "size.y", pFilter->size.y);
+    udProjectNode_SetMetadataDouble(pNode, "size.z", pFilter->size.z);
+    udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+  }
+
+  return pNode;
+}
+
+void vcQueryNodeFilter_Update(vcQueryNodeFilterInput *pFilter, vcState *pProgramState)
+{
+  if (pFilter->pNode)
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pFilter->pNode, pProgramState->geozone, udPGT_Point, &pFilter->pickPoint, 1);
+    udProjectNode_SetMetadataDouble(pFilter->pNode, "size.x", pFilter->size.x);
+    udProjectNode_SetMetadataDouble(pFilter->pNode, "size.y", pFilter->size.y);
+    udProjectNode_SetMetadataDouble(pFilter->pNode, "size.z", pFilter->size.z);
+  }
+}
+
+void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, bool isBtnReleased)
+{
+  vcQueryNodeFilterInput *pFilter = &pProgramState->filterInput;
+  if (pProgramState->activeTool != vcActiveTool_AddBoxFilter && pProgramState->activeTool != vcActiveTool_AddSphereFilter && pProgramState->activeTool != vcActiveTool_AddCylinderFilter)
+  {
+    if (pFilter->shape != vcQNFS_None)
+      vcQueryNodeFilter_Clear(&pProgramState->filterInput);
+    return;
+  }
+
+  if (isBtnHeld)
+  {
+    // create node
+    if (pProgramState->pickingSuccess)
+    {
+      if (!pFilter->pNode)
+      {
+        pFilter->pNode = vcQueryNodeFilter_CreateNode(pFilter, pProgramState);
+        pFilter->pickPoint = pProgramState->worldMousePosCartesian;
+      }
+    }
+
+    if (pFilter->pNode && !vcQueryNodeFilter_IsDragActive(pProgramState))
+      pFilter->holdCount++;
+  }
+
+  if (pFilter->holdCount == 0)
+    return;
+
+  if (vcQueryNodeFilter_IsDragActive(pProgramState))
+  {
+    udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pFilter->pickPoint);
+    udPlane<double> plane = udPlane<double>::create(pFilter->pickPoint, up);
+
+    pFilter->endPoint = {};
+    if (plane.intersects(pProgramState->camera.worldMouseRay, &pFilter->endPoint, nullptr))
+    {
+      udDouble3 d = pFilter->endPoint - pFilter->pickPoint;
+      pFilter->size.x = udMax(d.x, 2.0f) * 2;
+      pFilter->size.y = udMax(d.y, 2.0f) * 2;
+      pFilter->size.z = udMax(pFilter->size.x, pFilter->size.y);
+    }
+
+    vcQueryNodeFilter_Update(pFilter, pProgramState);
+
+    if (isBtnReleased)
+      vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
+  }
+  else
+  {
+    if (isBtnReleased)
+    {
+      double scaleFactor = udMag3(pProgramState->camera.position - pProgramState->worldMousePosCartesian) / 10.0; // 1/10th of the screen
+      pFilter->size = udDouble3::create(scaleFactor, scaleFactor, scaleFactor);
+      vcQueryNodeFilter_Update(pFilter, pProgramState);
+      vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
+      return;
+    }
+  }
+
+}
+
+bool vcQueryNodeFilter_IsDragActive(vcState *pProgramState)
+{
+  return pProgramState->filterInput.holdCount >= HOLD_TICKS;
+}
+
+

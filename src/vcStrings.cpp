@@ -2,6 +2,7 @@
 
 #include "vcStringFormat.h"
 #include "vcModals.h"
+#include "vcState.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 #include "udFile.h"
@@ -167,6 +168,27 @@ namespace vcString
     ImGui::Checkbox(vcString::Get("translationShowStatus"), &showStatusColumn);
     ImGui::SameLine();
 
+    ImGui::Button("...");
+    if (ImGui::BeginPopupContextItem("langList", 0))
+    {
+      for (auto langItem : pProgramState->settings.languageOptions)
+      {
+        if (ImGui::MenuItem(langItem.languageName))
+        {
+          modified = false;
+          pModifyKey = nullptr;
+          memset(newValue, 0, sizeof(newValue));
+
+          g_targetVersion.SetVoid();
+
+          udStrcpy(loadedLanguage, langItem.filename);
+        }
+      }
+
+      ImGui::EndPopup();
+    }
+    ImGui::SameLine();
+
     if (ImGui::InputText(vcString::Get("translationLoaded"), loadedLanguage, udLengthOf(loadedLanguage)))
     {
       modified = false;
@@ -215,6 +237,7 @@ namespace vcString
         if (udFile_Load(udTempStr("asset://assets/lang/%s.json", loadedLanguage), &pData) == udR_Success)
         {
           g_targetVersion.Parse(pData);
+          g_targetVersion.Set("_LanguageInfo.targetVersion = '%s'", g_enAUCurrent.Get("_LanguageInfo.targetVersion").AsString());
           udFree(pData);
         }
       }

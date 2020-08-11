@@ -13,7 +13,7 @@ class vcPolyModelNode : public vcSceneItem
 public:
   vcPolygonModel *m_pModel;
 
-  vcPolyModelNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcPolyModelNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcPolyModelNode() {};
 
   void OnNodeUpdate(vcState *pProgramState);

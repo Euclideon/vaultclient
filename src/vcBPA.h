@@ -6,7 +6,7 @@
 // https://lidarwidgets.com/samples/bpa_tvcg.pdf
 
 #include "vcFeatures.h"
-#include "vdkPointCloud.h"
+#include "udPointCloud.h"
 struct vcState;
 
 #if VC_HASCONVERT

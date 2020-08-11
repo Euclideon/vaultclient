@@ -93,7 +93,9 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
   float itemSize = ImGui::CalcItemWidth();
   ImGui::SetNextItemWidth(itemSize - ButtonWidth + 3.f);
 
-  if (ImGui::InputText(udTempStr("##%s_fpicker", pLabel), pBuffer, bufferSize) && onChange != nullptr)
+  ImGui::InputText(udTempStr("##%s_fpicker", pLabel), pBuffer, bufferSize);
+
+  if (ImGui::IsItemDeactivatedAfterEdit() && onChange != nullptr)
     onChange();
 
   if (ImGui::BeginPopupContextItem())

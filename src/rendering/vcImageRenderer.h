@@ -55,6 +55,6 @@ struct udWorkerPool;
 udResult vcImageRenderer_Init(udWorkerPool *pWorkerPool);
 udResult vcImageRenderer_Destroy();
 
-bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, float encodedObjectId, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale);
+bool vcImageRenderer_Render(vcImageRenderInfo *pImageInfo, float encodedObjectId, const udDouble4x4 &viewProjectionMatrix, const udUInt2 &screenSize, double zScale, vcTexture *pTextureOverride = nullptr);
 
 #endif//vcImageRenderer_h__

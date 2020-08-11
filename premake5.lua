@@ -11,7 +11,7 @@ end
 
 filter { "system:ios", "action:xcode4" }
 	xcodebuildsettings {
-		['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon Vault Client',
+		['PRODUCT_BUNDLE_IDENTIFIER'] = 'Euclideon udStream',
 		["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "iPhone Developer",
 		['IPHONEOS_DEPLOYMENT_TARGET'] = '10.3',
 		['SDKROOT'] = 'iphoneos',
@@ -37,117 +37,94 @@ function getosinfo()
 	return osname, distroExtension
 end
 
-function injectudbin()
-	-- Calculate the paths
-	local ud2Location = path.getrelative(_SCRIPT_DIR, _MAIN_SCRIPT_DIR .. "/../vault/ud")
-	local osname, distroExtension = getosinfo()
-
-	-- Calculate the libdir location
-	local libPath = "/lib"
-	local system = "/%{cfg.system}"
-	local shortname = iif(osname == "windows", "_%{cfg.shortname}", "_%{cfg.shortname:gsub('clang', '')}")
-	local compilerExtension = iif(osname == "windows", "", "_%{cfg.toolset or 'gcc'}")
-
-	local ud2Libdir = ud2Location .. libPath .. system .. shortname .. compilerExtension .. distroExtension
-
-	-- Call the Premake APIs
-	links { "udPointCloudVDK", "udCoreVDK" }
-	includedirs { ud2Location .. "/udCore/Include", ud2Location .. "/udPointCloud/Include" }
-	libdirs { ud2Libdir }
-end
-
-function injectvaultsdkbin()
+function ProcessudSDK()
 	-- Calculate the paths
 	local osname, distroExtension = getosinfo()
 
 	if os.target() == premake.MACOSX then
-		links { "vaultSDK.framework" }
-	elseif os.target() == "emscripten" and not _OPTIONS["force-vaultsdk"] then
-		linkoptions { "src/libvaultSDK.bc", "src/libudPointCloud.bc", "src/libvaultcore.bc" }
+		links { "udSDK.framework" }
+	elseif os.target() == "emscripten" and not _OPTIONS["force-udSDK"] then
+		linkoptions { "src/libudSDK.bc", "src/libudPointCloud.bc", "src/libvaultcore.bc" }
 	elseif os.target() == "emscripten" then
 		links { "udPointCloudVDK", "udCoreVDK" }
-		links { "vaultSDK" }
+		links { "udSDK" }
 	else
-		links { "vaultSDK" }
+		links { "udSDK" }
 	end
 
-	if _OPTIONS["force-vaultsdk"] then
-		includedirs { "%{wks.location}/../vault/vaultsdk/src" }
-		defines { "BUILDING_VDK" }
-		if os.target() == "emscripten" then
-			links { "udCoreVDK", "vaultcore" }
-			includedirs { "../vault/ud/udCore/Include", "../vault/vaultcore/src" }
-			--buildoptions { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
-			linkoptions  { "--js-library ../vault/vaultcore/src/vHTTPRequest.js" }
+	if _OPTIONS["force-udSDK"] then
+		if udSDKLocalEmbed ~= nil then
+			udSDKLocalEmbed()
+		else
+			error "Attempting to link with an unsupported version of udSDK!"
 		end
 	else
-		if _OPTIONS["vaultsdk"] == nil then
-			error "VaultSDK not installed correctly. (No VAULTSDK_HOME environment variable or --vaultsdk=[PATH] argument!)"
+		if _OPTIONS["udSDK"] == nil then
+			error "udSDK not installed correctly. (No UDSDK_HOME environment variable or --udSDK=[PATH] argument!)"
 		end
 
-		includedirs(_OPTIONS["vaultsdk"] .. "/include")
+		includedirs(_OPTIONS["udSDK"] .. "/include")
 
 		if os.target() == premake.WINDOWS then
 			if _OPTIONS["gfxapi"] == "metal" then
 				_OPTIONS["gfxapi"] = "opengl"
 			end
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/win_x64/vaultSDK.dll", "builds/vaultSDK.dll")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/win_x64/vaultSDK.lib", "src/vaultSDK.lib")
-			libdirs { "src" }
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/win_x64/udSDK.dll", "builds/udSDK.dll")
+			libdirs { _OPTIONS["udSDK"] .. "/lib/win_x64/" }
 		elseif os.target() == premake.MACOSX then
 			os.execute("mkdir -p builds")
 
 			-- copy dmg, mount, extract framework, unmount then remove.
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/osx_x64/vaultSDK.dmg", "builds/vaultSDK.dmg")
-			local device = os.outputof("/usr/bin/hdiutil attach -noverify -noautoopen builds/vaultSDK.dmg | egrep '^/dev/' | sed 1q | awk '{print $1}'")
-			os.execute("cp -a -f /Volumes/vaultSDK/vaultSDK.framework builds/")
-			os.execute("/usr/bin/hdiutil detach /Volumes/vaultSDK")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/osx_x64/udSDK.dmg", "builds/udSDK.dmg")
+			local device = os.outputof("/usr/bin/hdiutil attach -noverify -noautoopen builds/udSDK.dmg | egrep '^/dev/' | sed 1q | awk '{print $1}'")
+			os.execute("cp -a -f /Volumes/udSDK/udSDK.framework builds/")
+			os.execute("/usr/bin/hdiutil detach /Volumes/udSDK")
 			os.execute("/usr/bin/hdiutil detach " .. device)
-			os.execute("rm -r builds/vaultSDK.dmg")
+			os.execute("rm -r builds/udSDK.dmg")
 			prelinkcommands {
 				"rm -rf %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
 				"mkdir -p %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks",
-				"cp -af builds/vaultSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
+				"cp -af builds/udSDK.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
 				"cp -af /Library/Frameworks/SDL2.framework %{prj.targetdir}/%{prj.targetname}.app/Contents/Frameworks/",
 			}
 			linkoptions { "-rpath @executable_path/../Frameworks/" }
 			frameworkdirs { "builds" }
 		elseif os.target() == premake.IOS then
 			os.execute("mkdir -p builds")
-			os.execute("lipo -create " .. _OPTIONS["vaultsdk"] .. "/lib/ios_arm64/libvaultSDK.dylib " .. _OPTIONS["vaultsdk"] .. "/lib/ios_x64/libvaultSDK.dylib -output builds/libvaultSDK.dylib")
-			os.execute("codesign -s T6Q3JCVW77 builds/libvaultSDK.dylib") -- Is this required? Should this move to VaultSDK?
+			os.execute("lipo -create " .. _OPTIONS["udSDK"] .. "/lib/ios_arm64/libudSDK.dylib " .. _OPTIONS["udSDK"] .. "/lib/ios_x64/libudSDK.dylib -output builds/libudSDK.dylib")
+			os.execute("codesign -s T6Q3JCVW77 builds/libudSDK.dylib") -- Is this required? Should this move to VaultSDK?
 			libdirs { "builds" }
 			linkoptions { "-rpath @executable_path/" }
 		elseif os.target() == "emscripten" then
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/libvaultSDK.bc", "src/libvaultSDK.bc")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/libvaultcore.bc", "src/libvaultcore.bc")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/libudPointCloud.bc", "src/libudPointCloud.bc")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vCore.h", "src/vCore.h")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vHTTP.h", "src/vHTTP.h")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vHTTPRequest.h", "src/vHTTPRequest.h")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/emscripten_wasm32/vHTTPRequest.js", "src/vHTTPRequest.js")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/emscripten_wasm32/libudSDK.bc", "src/libudSDK.bc")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/emscripten_wasm32/libvaultcore.bc", "src/libvaultcore.bc")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/emscripten_wasm32/libudPointCloud.bc", "src/libudPointCloud.bc")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/emscripten_wasm32/vCore.h", "src/vCore.h")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/emscripten_wasm32/vHTTP.h", "src/vHTTP.h")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/emscripten_wasm32/vHTTPRequest.h", "src/vHTTPRequest.h")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/emscripten_wasm32/vHTTPRequest.js", "src/vHTTPRequest.js")
 			libdirs { "src" }
 			linkoptions  { "--js-library src/vHTTPRequest.js" }
 		elseif os.target() == premake.ANDROID then
 			filter { "architecture:x64" }
-				libdirs { _OPTIONS["vaultsdk"] .. "/lib/android_x64" }
+				libdirs { _OPTIONS["udSDK"] .. "/lib/android_x64" }
 			filter { "architecture:arm64" }
-				libdirs { _OPTIONS["vaultsdk"] .. "/lib/android_arm64" }
+				libdirs { _OPTIONS["udSDK"] .. "/lib/android_arm64" }
 			filter {}
 		else
 			if _OPTIONS["gfxapi"] == "metal" then
 				_OPTIONS["gfxapi"] = "opengl"
 			end
 			os.execute("mkdir -p builds")
-			os.copyfile(_OPTIONS["vaultsdk"] .. "/lib/" .. osname .. "_GCC_x64/libvaultSDK.so", "builds/libvaultSDK.so")
+			os.copyfile(_OPTIONS["udSDK"] .. "/lib/" .. osname .. "_GCC_x64/libudSDK.so", "builds/libudSDK.so")
 			libdirs { "builds" }
 		end
 	end
 end
 
 newoption {
-	trigger     = "force-vaultsdk",
-	description = "Force the use of the vaultsdk repository"
+	trigger     = "force-udSDK",
+	description = "Force the use of the udSDK repository"
 }
 
 if os.target() == premake.MACOSX or os.target() == premake.IOS then
@@ -171,10 +148,10 @@ newoption {
 }
 
 newoption {
-	trigger     = "vaultsdk",
+	trigger     = "udSDK",
 	value       = "Path",
-	description = "Path to Vault SDK",
-	default     = os.getenv("VAULTSDK_HOME")
+	description = "Path to udSDK",
+	default     = os.getenv("UDSDK_HOME")
 }
 
 if os.target() == premake.WINDOWS then
@@ -198,7 +175,7 @@ if _ACTION == "xcode4" and os.target() == premake.MACOSX then
 	_OPTIONS["fbxsdk"] = _OPTIONS["fbxsdk"]:gsub(" ", "\\ ")
 end
 
-solution "vaultClient"
+solution "udStream"
 	-- This hack just makes the VS project and also the makefile output their configurations in the idiomatic order
 	if (_ACTION == "gmake" or _ACTION == "gmake2") and os.target() == "linux" then
 		configurations { "Release", "Debug", "ReleaseClang", "DebugClang" }
@@ -234,7 +211,7 @@ solution "vaultClient"
 	end
 
 	editorintegration "on"
-	startproject "vaultClient"
+	startproject "udStream"
 	cppdialect "C++14"
 	pic "On"
 	editandcontinue "Off"
@@ -261,32 +238,11 @@ solution "vaultClient"
 	-- Uncomment this to help with finding memory leaks
 	--defines {"__MEMORY_DEBUG__"}
 
-	if _OPTIONS["force-vaultsdk"] then
-		projectSuffix = "VDK"
-
-		if os.target() ~= "emscripten" then
-			dofile "../vault/3rdParty/curl/project.lua"
-		end
-
-		dofile "../vault/ud/udCore/project.lua"
-		dofile "../vault/ud/udPointCloud/project.lua"
-		dofile "../vault/vaultcore/project.lua"
-		dofile "../vault/vaultsdk/project.lua"
-
-		filter { "system:macosx" }
-			xcodebuildsettings {
-				['INSTALL_PATH'] = "@executable_path/../Frameworks",
-				['SKIP_INSTALL'] = "YES"
-			}
-		filter {}
-
-		targetdir "%{wks.location}/builds"
-		debugdir "%{wks.location}/builds"
+	if _OPTIONS["force-udSDK"] then
+		dofile "../udSDK/udSDKImport.lua"
 	end
 
-	projectSuffix = nil
-
-	if not (os.target() == "emscripten" and _OPTIONS["force-vaultsdk"]) then
+	if not (os.target() == "emscripten" and _OPTIONS["force-udSDK"]) then
 		dofile "3rdParty/udcore/project.lua"
 	end
 

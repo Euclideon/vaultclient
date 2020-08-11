@@ -10,7 +10,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-vcI3S::vcI3S(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcI3S::vcI3S(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_pSceneRenderer(nullptr)
 {
@@ -60,6 +60,7 @@ void vcI3S::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
   instance.pSceneItem = this;
   instance.sceneItemInternalId = 0; // TODO: individual node picking
   instance.selectable = true;
+  instance.tint = udFloat4::one();
 
   pRenderData->polyModels.PushBack(instance);
 }

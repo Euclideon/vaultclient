@@ -3,20 +3,20 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
-#include "vdkError.h"
+#include "udRenderContext.h"
+#include "udError.h"
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
 
-struct vdkPointCloud;
+struct udPointCloud;
 struct vcTexture;
 struct vcState;
 
 class vcMedia : public vcSceneItem
 {
 public:
-  vcMedia(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcMedia(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcMedia();
 
   void OnNodeUpdate(vcState *pProgramState);

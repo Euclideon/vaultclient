@@ -3,8 +3,8 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
-#include "vdkError.h"
+#include "udRenderContext.h"
+#include "udError.h"
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
@@ -16,11 +16,12 @@
 class vcPOIState_General;
 struct vcRenderPolyInstance;
 struct udWorkerPool;
-struct vdkPointCloud;
+struct udPointCloud;
 struct vcTexture;
 struct vcState;
 struct vcFenceRenderer;
 struct vcPolygonModel;
+struct vcUnitConversionData;
 
 struct vcLineInfo
 {
@@ -97,8 +98,10 @@ private:
 
   void HandleBasicUI(vcState *pProgramState, size_t itemID);
 
+  vcState *m_pProgramState;
+
 public:
-  vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcPOI(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcPOI();
 
   void OnNodeUpdate(vcState *pProgramState);
@@ -126,23 +129,24 @@ public:
   bool IsSubitemSelected(uint64_t internalId);
 
 private:
+  void RebuildSceneLabel(const vcUnitConversionData *pConversionData);
   void InsertPoint(const udDouble3 &position);
-  void CalculateArea();
+  void CalculateArea(const udDouble4 &projectionPlane);
   void CalculateTotalLength();
   void CalculateCentroid();
-  void AddLengths();
+  void AddLengths(const vcUnitConversionData *pConversionData);
   void UpdateState(vcState *pProgramState);
   double DistanceToPoint(udDouble3 const &point);
   vcRenderPolyInstance *AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i);
   bool IsVisible(vcState *pProgramState);
   void AddFenceToScene(vcRenderData *pRenderData);
-  void AddLabelsToScene(vcRenderData *pRenderData);
+  void AddLabelsToScene(vcRenderData *pRenderData, const vcUnitConversionData *pConversionData);
   void AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRenderData);
   void DoFlythrough(vcState *pProgramState);
   bool LoadAttachedModel(const char *pNewPath);
   bool GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress);
-  void GenerateLineFillPolygon();
+  void GenerateLineFillPolygon(vcState *pProgramState);
 };
 
 #endif //vcPOI_h__

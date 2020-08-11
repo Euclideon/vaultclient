@@ -12,7 +12,7 @@
 const double DistMin = 100.0;
 const double DistMax = 1500.0;
 
-vcViewShed::vcViewShed(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcViewShed::vcViewShed(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_position(udDouble3::zero()),
   m_distance(2500.0),
@@ -25,9 +25,9 @@ vcViewShed::vcViewShed(vcProject *pProject, vdkProjectNode *pNode, vcState *pPro
 
 void vcViewShed::OnNodeUpdate(vcState *pProgramState)
 {
-  vdkProjectNode_GetMetadataDouble(m_pNode, "distance", &m_distance, DistMax);
-  vdkProjectNode_GetMetadataUint(m_pNode, "visibleColour", &m_visibleColour, 0x3F00FF00);
-  vdkProjectNode_GetMetadataUint(m_pNode, "hiddenColour", &m_hiddenColour, 0x3FFF0000);
+  udProjectNode_GetMetadataDouble(m_pNode, "distance", &m_distance, DistMax);
+  udProjectNode_GetMetadataUint(m_pNode, "visibleColour", &m_visibleColour, 0x3F00FF00);
+  udProjectNode_GetMetadataUint(m_pNode, "hiddenColour", &m_hiddenColour, 0x3FFF0000);
 
   ChangeProjection(pProgramState->geozone);
 }
@@ -64,31 +64,31 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 void vcViewShed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   m_position = (delta * udDouble4::create(m_position, 1.0)).toVector3();
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &m_position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
 }
 
 void vcViewShed::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pItemID)
 {
   if (ImGui::SliderScalarN(udTempStr("%s##viewShedHiddenColor%zu", vcString::Get("viewShedDistance"), *pItemID), ImGuiDataType_Double, &m_distance, 1, &DistMin, &DistMax))
-    vdkProjectNode_SetMetadataDouble(m_pNode, "distance", m_distance);
+    udProjectNode_SetMetadataDouble(m_pNode, "distance", m_distance);
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##viewShedVisibleColor%zu", vcString::Get("viewShedVisibleColour"), *pItemID), &m_visibleColour, ImGuiColorEditFlags_None))
-    vdkProjectNode_SetMetadataUint(m_pNode, "visibleColour", m_visibleColour);
+    udProjectNode_SetMetadataUint(m_pNode, "visibleColour", m_visibleColour);
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##viewShedHiddenColor%zu", vcString::Get("viewShedHiddenColour"), *pItemID), &m_hiddenColour, ImGuiColorEditFlags_None))
-    vdkProjectNode_SetMetadataUint(m_pNode, "hiddenColour", m_hiddenColour);
+    udProjectNode_SetMetadataUint(m_pNode, "hiddenColour", m_hiddenColour);
 }
 
 void vcViewShed::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
 {
   if (ImGui::SliderScalarN(udTempStr("%s##EmbeddedUIViewShed", vcString::Get("viewShedDistance")), ImGuiDataType_Double, &m_distance, 1, &DistMin, &DistMax))
-    vdkProjectNode_SetMetadataDouble(m_pNode, "distance", m_distance);
+    udProjectNode_SetMetadataDouble(m_pNode, "distance", m_distance);
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##EmbeddedUIViewShed", vcString::Get("viewShedVisibleColour")), &m_visibleColour, ImGuiColorEditFlags_None))
-    vdkProjectNode_SetMetadataUint(m_pNode, "visibleColour", m_visibleColour);
+    udProjectNode_SetMetadataUint(m_pNode, "visibleColour", m_visibleColour);
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##EmbeddedUIViewShed", vcString::Get("viewShedHiddenColour")), &m_hiddenColour, ImGuiColorEditFlags_None))
-    vdkProjectNode_SetMetadataUint(m_pNode, "hiddenColour", m_hiddenColour);
+    udProjectNode_SetMetadataUint(m_pNode, "hiddenColour", m_hiddenColour);
 }
 
 void vcViewShed::ChangeProjection(const udGeoZone &newZone)

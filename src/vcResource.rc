@@ -68,11 +68,11 @@ BEGIN
         BLOCK "040904E4"
         BEGIN
             VALUE "CompanyName", "Euclideon Pty Ltd"
-            VALUE "FileDescription", "Euclideon Vault Client"
+            VALUE "FileDescription", "udStream"
             VALUE "FileVersion", VCVERSION_PRODUCT_STRING
             VALUE "LegalCopyright", "Copyright © 2020 Euclideon Pty Ltd"
-            VALUE "OriginalFilename", "vaultClient.exe"
-            VALUE "ProductName", "Euclideon Vault Client"
+            VALUE "OriginalFilename", "udStream.exe"
+            VALUE "ProductName", "Euclideon udStream"
             VALUE "ProductVersion", VCVERSION_PRODUCT_STRING
         END
     END

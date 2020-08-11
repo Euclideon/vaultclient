@@ -1,11 +1,11 @@
 [
   {
-    "localname": "Australian English (enAU)",
+    "localname": "English (enAU)",
     "filename": "enAU"
   },
   {
-    "localname": "日本語 (jpJP)",
-    "filename": "jpJP"
+    "localname": "日本語 (jaJP)",
+    "filename": "jaJP"
   },
   {
     "localname": "française (frFR)",
@@ -18,5 +18,17 @@
   {
     "localname": "简体中文 (zhCN)",
     "filename": "zhCN"
+  },
+  {
+    "localname": "Español (esPR)",
+    "filename": "esPR"
+  },
+  {
+    "localname": "Русский язык (ruRU)",
+    "filename": "ruRU"
+  },
+  {
+    "localname": "bahasa melayu (msMY)",
+    "filename": "msMY"
   }
 ]

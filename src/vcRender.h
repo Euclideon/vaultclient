@@ -4,9 +4,9 @@
 #include "vcState.h"
 #include "vcModel.h"
 
-#include "vdkRenderContext.h"
-#include "vdkRenderView.h"
-#include "vdkQuery.h"
+#include "udRenderContext.h"
+#include "udRenderTarget.h"
+#include "udQueryContext.h"
 
 #include "vcMesh.h"
 #include "vcFenceRenderer.h"
@@ -87,7 +87,7 @@ struct vcPins
 struct vcRenderData
 {
   vcMouseData mouse;
-  vdkQueryFilter *pQueryFilter;
+  udQueryFilter *pQueryFilter;
 
   udChunkedArray<vcModel*> models;
   udChunkedArray<vcFenceRenderer*> fences;

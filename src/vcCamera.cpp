@@ -436,7 +436,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
     forceClearMouseState = (forceClearMouseState || gizmoCapturedMouse);
   }
 
-  if (forceClearMouseState)
+  // Handle mouse input for filter tool
+  if (!forceClearMouseState)
+    vcQueryNodeFilter_HandleSceneInput(pProgramState, isBtnHeld[0], isBtnReleased[0]);
+
+  if (forceClearMouseState || vcQueryNodeFilter_IsDragActive(pProgramState))
   {
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));
@@ -646,13 +650,14 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloa
   vcCamera_Apply(pProgramState, &pProgramState->camera, &pProgramState->settings.camera, &pProgramState->cameraInput, pProgramState->deltaTime);
 
   // Calculate camera surface position
-  static const float CameraGroundBufferDistanceMeters = 5.0f;
+  bool keepCameraAboveSurface = pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.camera.keepAboveSurface;
+  float cameraGroundBufferDistanceMeters = keepCameraAboveSurface ? 5.0f : 0.0f;
   udDouble3 cameraSurfacePosition = vcRender_QueryMapAtCartesian(pProgramState->pRenderContext, pProgramState->camera.position);
-  cameraSurfacePosition += pProgramState->camera.cameraUp * CameraGroundBufferDistanceMeters;
+  cameraSurfacePosition += pProgramState->camera.cameraUp * cameraGroundBufferDistanceMeters;
 
   // Calculate if camera is underneath earth surface
   pProgramState->camera.cameraIsUnderSurface = (pProgramState->geozone.projection != udGZPT_Unknown) && (udDot3(pProgramState->camera.cameraUp, udNormalize3(pProgramState->camera.position - cameraSurfacePosition)) < 0);
-  if (pProgramState->settings.maptiles.mapEnabled && pProgramState->settings.camera.keepAboveSurface && pProgramState->camera.cameraIsUnderSurface)
+  if (keepCameraAboveSurface && pProgramState->camera.cameraIsUnderSurface)
   {
     pProgramState->camera.cameraIsUnderSurface = false;
     pProgramState->camera.position = cameraSurfacePosition;

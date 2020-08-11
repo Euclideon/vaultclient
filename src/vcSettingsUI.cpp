@@ -12,8 +12,9 @@
 #include "vcWebFile.h"
 #include "vcFeatures.h"
 #include "vcProxyHelper.h"
+#include "vcStringFormat.h"
 
-#include "vdkConfig.h"
+#include "udConfig.h"
 
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "stb_image.h"
@@ -48,6 +49,12 @@ enum vcLASClassifications
   vcLASClassifications_FirstUserDefined = 64,
   vcLASClassifications_LastClassification = 255 // Because they are always stored in a uint8
 };
+
+void vcSettingsUI_Cleanup(vcState * /*pProgramState*/)
+{
+  for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
+    vcTexture_Destroy(&s_mapTiles[i].pPreviewTexture);
+}
 
 void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, vcSettingCategory category = vcSC_All)
 {
@@ -145,7 +152,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
   {
     ImGui::Columns(2, NULL, false);
     ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
-    ImGui::Text("Euclideon Vault Client %s", VCVERSION_PRODUCT_STRING);
+    ImGui::Text("udStream %s", VCVERSION_PRODUCT_STRING);
 
     char strBuf[128];
     if (pProgramState->packageInfo.Get("success").AsBool())
@@ -180,7 +187,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
         change |= ImGui::RadioButton(udTempStr("%s##MapSettings", vcString::Get("settingsMaps")), &pProgramState->activeSetting, vcSR_Maps);
         change |= ImGui::RadioButton(udTempStr("%s##VisualisationSettings", vcString::Get("settingsVis")), &pProgramState->activeSetting, vcSR_Visualisations);
         change |= ImGui::RadioButton(udTempStr("%s##Tools", vcString::Get("Tools")), &pProgramState->activeSetting, vcSR_Tools);
+        //change |= ImGui::RadioButton(udTempStr("%s##UnitsOfMeasurement", vcString::Get("settingsUnitsOfMeasurement")), &pProgramState->activeSetting, vcSR_UnitsOfMeasurement); //TODO The measurement system will eventually be its own section
+#if VC_HASCONVERT
         change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
+#endif
         change |= ImGui::RadioButton(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")), &pProgramState->activeSetting, vcSR_Screenshot);
         change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);
 
@@ -216,6 +226,21 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::SameLine();
           ImGui::TextUnformatted(vcString::Get("settingsAppearanceLanguage"));
 
+          const char *measurementUnitOptions[] = {vcString::Get("settingsUnitsOfMeasurementMetric"), vcString::Get("settingsUnitsOfMeasurementImperial")};
+          static int measurementSystem = -1;
+
+          //This is a hack to determine which system we are using. This will eventually be meaningless as the user will choose each unit separately.
+          if (measurementSystem)
+            measurementSystem = (pProgramState->settings.unitConversionData.distanceUnit[0].unit == vcDistance_USSurveyInches) ? 1 : 0;
+
+          if (ImGui::Combo(vcString::Get("settingsUnitsOfMeasurement"), &measurementSystem, measurementUnitOptions, (int)udLengthOf(measurementUnitOptions)))
+          {
+            if (measurementSystem == 0)
+              vcUnitConversion_SetMetric(&pProgramState->settings.unitConversionData);
+            else if (measurementSystem == 1)
+              vcUnitConversion_SetUSSurvey(&pProgramState->settings.unitConversionData);
+          }
+
           ImGui::Checkbox(vcString::Get("sceneCameraInfo"), &pProgramState->settings.presentation.showCameraInfo);
           ImGui::Checkbox(vcString::Get("sceneProjectionInfo"), &pProgramState->settings.presentation.showProjectionInfo);
           ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
@@ -226,43 +251,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if(ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", 3.f))
             pProgramState->settings.presentation.imageRescaleDistance = udClamp(pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax);
           ImGui::Checkbox(vcString::Get("settingsAppearanceLimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
-          ImGui::Checkbox(vcString::Get("settingsAppearanceLoginRenderLicense"), &pProgramState->settings.presentation.loginRenderLicense);
 
 #if VC_HASNATIVEFILEPICKER
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowNativeDialogs"), &pProgramState->settings.window.useNativeUI);
 #endif
-
-          const char *skyboxOptions[] = { vcString::Get("settingsAppearanceSkyboxTypeNone"), vcString::Get("settingsAppearanceSkyboxTypeColour"), vcString::Get("settingsAppearanceSkyboxTypeSimple"), vcString::Get("settingsAppearanceSkyboxTypeAtmosphere") };
-          ImGui::Combo(vcString::Get("settingsAppearanceSkyboxType"), (int*)&pProgramState->settings.presentation.skybox.type, skyboxOptions, (int)udLengthOf(skyboxOptions));
-          if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour)
-          {
-            ImGui::Indent();
-            ImGui::ColorEdit3(vcString::Get("settingsAppearanceSkyboxColour"), &pProgramState->settings.presentation.skybox.colour.x);
-            ImGui::Unindent();
-          }
-          else if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Atmosphere)
-          {
-            ImGui::Indent();
-            ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxUseLiveTime"), &pProgramState->settings.presentation.skybox.useLiveTime);
-
-            if (!pProgramState->settings.presentation.skybox.useLiveTime)
-            {
-              ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxLockSunPosition"), &pProgramState->settings.presentation.skybox.keepSameTime);
-              ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
-              ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 0, 12);
-            }
-
-            ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);
-
-            ImGui::Unindent();
-          }
-
-          // limit the value between 0-5.
-          if (ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f))
-            pProgramState->settings.presentation.saturation = udClamp(pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
-
-          const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
-          ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
 
           const char *layoutOptions[] = { vcString::Get("settingsAppearanceWindowLayoutScSx"), vcString::Get("settingsAppearanceWindowLayoutSxSc") };
           if (ImGui::Combo(vcString::Get("settingsAppearanceWindowLayout"), (int*)&pProgramState->settings.presentation.layout, layoutOptions, (int)udLengthOf(layoutOptions)))
@@ -305,183 +297,20 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Combo(vcString::Get("settingsControlsMiddle"), (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
           ImGui::Combo(vcString::Get("settingsControlsRight"), (int*)&pProgramState->settings.camera.cameraMouseBindings[1], mouseModes, (int)udLengthOf(mouseModes));
           ImGui::Combo(vcString::Get("settingsControlsScrollWheel"), (int*)&pProgramState->settings.camera.scrollWheelMode, scrollwheelModes, (int)udLengthOf(scrollwheelModes));
-
-          ImGui::Checkbox(vcString::Get("sceneCameraKeepAboveSurface"), &pProgramState->settings.camera.keepAboveSurface);
         }
 
         if (pProgramState->activeSetting == vcSR_Maps)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsMaps"), vcSC_MapsElevation);
 
-          ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
-
-          if (pProgramState->settings.maptiles.mapEnabled)
-          {
-            vcSettingsUI_BasicMapSettings(pProgramState);
-            
-            if (udStrEqual(pProgramState->settings.maptiles.mapType, "custom"))
-            {
-              ImGui::Indent();
-
-              bool changed = false;
-
-              ImGui::TextWrapped("%s", vcString::Get("settingsMapsTileServerInstructions"));
-
-              changed |= vcIGSW_InputText(vcString::Get("settingsMapsTileServer"), pProgramState->settings.maptiles.customServer.tileServerAddress, vcMaxPathLength);
-              changed |= vcIGSW_InputText(vcString::Get("settingsMapsAttribution"), pProgramState->settings.maptiles.customServer.attribution, vcMaxPathLength);
-
-              if (changed)
-              {
-                vcSettings_ApplyMapChange(&pProgramState->settings);
-                vcRender_ClearTiles(pProgramState->pRenderContext);
-              }
-
-              ImGui::Unindent();
-            }
-
-
-            if (ImGui::SliderFloat(vcString::Get("settingsMapsMapHeight"), &pProgramState->settings.maptiles.mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
-              pProgramState->settings.maptiles.mapHeight = udClamp(pProgramState->settings.maptiles.mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-
-            const char* blendModes[] = { vcString::Get("settingsMapsHybrid"), vcString::Get("settingsMapsOverlay"), vcString::Get("settingsMapsUnderlay") };
-            if (ImGui::BeginCombo(vcString::Get("settingsMapsBlending"), blendModes[pProgramState->settings.maptiles.blendMode]))
-            {
-              for (size_t n = 0; n < udLengthOf(blendModes); ++n)
-              {
-                bool isSelected = (pProgramState->settings.maptiles.blendMode == n);
-
-                if (ImGui::Selectable(blendModes[n], isSelected))
-                  pProgramState->settings.maptiles.blendMode = (vcMapTileBlendMode)n;
-
-                if (isSelected)
-                  ImGui::SetItemDefaultFocus();
-              }
-
-              ImGui::EndCombo();
-            }
-
-            if (ImGui::SliderFloat(vcString::Get("settingsMapsOpacity"), &pProgramState->settings.maptiles.transparency, vcSL_OpacityMin, vcSL_OpacityMax, "%.3f"))
-              pProgramState->settings.maptiles.transparency = udClamp(pProgramState->settings.maptiles.transparency, vcSL_OpacityMin, vcSL_OpacityMax);
-          }
+          vcSettingsUI_BasicMapSettings(pProgramState);
         }
 
         if (pProgramState->activeSetting == vcSR_Visualisations)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsVis"), vcSC_Visualization);
 
-          vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization, true);
-          vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
-
-          const char *lensNameArray[] = {
-            vcString::Get("settingsViewportCameraLensCustom"),
-            vcString::Get("settingsViewportCameraLens15mm"),
-            vcString::Get("settingsViewportCameraLens24mm"),
-            vcString::Get("settingsViewportCameraLens30mm"),
-            vcString::Get("settingsViewportCameraLens50mm"),
-            vcString::Get("settingsViewportCameraLens70mm"),
-            vcString::Get("settingsViewportCameraLens100mm"),
-          };
-          UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
-
-          if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, lensNameArray, (int)udLengthOf(lensNameArray)))
-          {
-            switch (pProgramState->settings.camera.lensIndex)
-            {
-            case vcLS_Custom:
-              /*Custom FoV*/
-              break;
-            case vcLS_15mm:
-              pProgramState->settings.camera.fieldOfView = vcLens15mm;
-              break;
-            case vcLS_24mm:
-              pProgramState->settings.camera.fieldOfView = vcLens24mm;
-              break;
-            case vcLS_30mm:
-              pProgramState->settings.camera.fieldOfView = vcLens30mm;
-              break;
-            case vcLS_50mm:
-              pProgramState->settings.camera.fieldOfView = vcLens50mm;
-              break;
-            case vcLS_70mm:
-              pProgramState->settings.camera.fieldOfView = vcLens70mm;
-              break;
-            case vcLS_100mm:
-              pProgramState->settings.camera.fieldOfView = vcLens100mm;
-              break;
-            }
-          }
-
-          if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
-          {
-            float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
-            if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
-              pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
-          }
-
-          // Selected Object Highlighting
-          ImGui::Checkbox(vcString::Get("settingsVisObjectHighlight"), &pProgramState->settings.objectHighlighting.enable);
-          if (pProgramState->settings.objectHighlighting.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
-            ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
-          }
-
-          // Post visualization - Edge Highlighting
-          ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
-          if (pProgramState->settings.postVisualization.edgeOutlines.enable)
-          {
-            if (ImGui::SliderInt(vcString::Get("settingsVisEdgeWidth"), &pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax))
-              pProgramState->settings.postVisualization.edgeOutlines.width = udClamp(pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax);
-
-            // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
-            if (ImGui::SliderFloat(vcString::Get("settingsVisEdgeThreshold"), &pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.edgeOutlines.threshold = udClamp(pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax);
-            ImGui::ColorEdit4(vcString::Get("settingsVisEdgeColour"), &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
-          }
-
-          // Post visualization - Colour by Height
-          ImGui::Checkbox(vcString::Get("settingsVisHeight"), &pProgramState->settings.postVisualization.colourByHeight.enable);
-          if (pProgramState->settings.postVisualization.colourByHeight.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisHeightStartColour"), &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
-            ImGui::ColorEdit4(vcString::Get("settingsVisHeightEndColour"), &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
-
-            // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
-            if (ImGui::SliderFloat(vcString::Get("settingsVisHeightStart"), &pProgramState->settings.postVisualization.colourByHeight.startHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByHeight.startHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.startHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisHeightEnd"), &pProgramState->settings.postVisualization.colourByHeight.endHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByHeight.endHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.endHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-          }
-
-          // Post visualization - Colour by Depth
-          ImGui::Checkbox(vcString::Get("settingsVisDepth"), &pProgramState->settings.postVisualization.colourByDepth.enable);
-          if (pProgramState->settings.postVisualization.colourByDepth.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisDepthColour"), &pProgramState->settings.postVisualization.colourByDepth.colour.x);
-
-            // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-            if (ImGui::SliderFloat(vcString::Get("settingsVisDepthStart"), &pProgramState->settings.postVisualization.colourByDepth.startDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByDepth.startDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.startDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisDepthEnd"), &pProgramState->settings.postVisualization.colourByDepth.endDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
-              pProgramState->settings.postVisualization.colourByDepth.endDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.endDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-          }
-
-          // Post visualization - Contours
-          ImGui::Checkbox(vcString::Get("settingsVisContours"), &pProgramState->settings.postVisualization.contours.enable);
-          if (pProgramState->settings.postVisualization.contours.enable)
-          {
-            ImGui::ColorEdit4(vcString::Get("settingsVisContoursColour"), &pProgramState->settings.postVisualization.contours.colour.x);
-
-            // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursDistances"), &pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.distances = udClamp(pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_GlobalLimitSmallf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_ContourBandHeightMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimitSmallf);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowRepeatRate"), &pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.rainbowRepeat = udClamp(pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax);
-            if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowIntensity"), &pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f, "%.3f", 2))
-              pProgramState->settings.postVisualization.contours.rainbowIntensity = udClamp(pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f);
-          }
+          vcSettingsUI_SceneVisualizationSettings(pProgramState);
         }
 
         if (pProgramState->activeSetting == vcSR_Tools)
@@ -497,6 +326,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Combo(vcString::Get("scenePOILineStyle"), &pProgramState->settings.tools.line.style, lineOptions, (int)udLengthOf(lineOptions));
 
           ImGui::ColorEdit4(vcString::Get("scenePOILineColour1"), &pProgramState->settings.tools.line.colour[0], ImGuiColorEditFlags_None);
+          ImGui::ColorEdit4(vcString::Get("scenePOIFillColour"), &pProgramState->settings.tools.fill.colour[0], ImGuiColorEditFlags_None);
           ImGui::ColorEdit4(vcString::Get("scenePOILabelColour"), &pProgramState->settings.tools.label.textColour[0], ImGuiColorEditFlags_None);
           ImGui::ColorEdit4(vcString::Get("scenePOILabelBackgroundColour"), &pProgramState->settings.tools.label.backgroundColour[0], ImGuiColorEditFlags_None);
         }
@@ -521,80 +351,6 @@ void vcSettingsUI_Show(vcState *pProgramState)
             // Nothing needs to happen here
             udUnused(pProgramState);
           });
-
-          vcIGSW_FilePicker(pProgramState, vcString::Get("convertChangeDefaultWatermark"), pProgramState->settings.convertdefaults.watermark.filename, SupportedFileTypes_Images, vcFDT_OpenFile, [pProgramState] {
-            //reload stuff
-            udFilename filename = pProgramState->settings.convertdefaults.watermark.filename;
-            uint8_t *pData = nullptr;
-            int64_t dataLength = 0;
-            if (udFile_Load(pProgramState->settings.convertdefaults.watermark.filename, (void**)&pData, &dataLength) == udR_Success)
-            {
-              // TODO: Resize watermark to the same dimensions as vdkConvert does - maybe requires additional VDK functionality?
-              filename.SetFolder(pProgramState->settings.pSaveFilePath);
-              udFile_Save(filename, pData, (size_t)dataLength);
-              udFree(pData);
-            }
-            udStrcpy(pProgramState->settings.convertdefaults.watermark.filename, filename.GetFilenameWithExt());
-            pProgramState->settings.convertdefaults.watermark.isDirty = true;
-          });
-
-          ImGui::Indent();
-          {
-            if (pProgramState->settings.convertdefaults.watermark.isDirty)
-            {
-              pProgramState->settings.convertdefaults.watermark.isDirty = false;
-              vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
-              uint8_t *pData = nullptr;
-              int64_t dataSize = 0;
-              char buffer[vcMaxPathLength];
-              udStrcpy(buffer, pProgramState->settings.pSaveFilePath);
-              udStrcat(buffer, pProgramState->settings.convertdefaults.watermark.filename);
-              if (udFile_Load(buffer, (void**)&pData, &dataSize) == udR_Success)
-              {
-                int comp;
-                stbi_uc *pImg = stbi_load_from_memory(pData, (int)dataSize, &pProgramState->settings.convertdefaults.watermark.width, &pProgramState->settings.convertdefaults.watermark.height, &comp, 4);
-
-                vcTexture_Create(&pProgramState->settings.convertdefaults.watermark.pTexture, pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height, pImg);
-
-                stbi_image_free(pImg);
-              }
-
-              udFree(pData);
-            }
-
-            if (pProgramState->settings.convertdefaults.watermark.pTexture != nullptr)
-            {
-              //Since we're allowing images of any dimensions, we need to make sure it fits in the UI.
-              udInt2 dimension = {pProgramState->settings.convertdefaults.watermark.width, pProgramState->settings.convertdefaults.watermark.height};
-              udInt2 maxDimension = {512, 256};
-              int minDimension = 2;
-
-              for (int i = 0; i < udInt2::ElementCount; i++)
-              {
-                if (dimension[i] > maxDimension[i])
-                {
-                  float factor = float(dimension[i]) / maxDimension[i];
-                  dimension /= factor;
-                  int j = (i + 1) % udInt2::ElementCount;
-
-                  //Is the other dimension too thin now?
-                  if (dimension[j] < minDimension)
-                    dimension[j] = minDimension;
-                }
-              }
-
-              ImGui::Image(pProgramState->settings.convertdefaults.watermark.pTexture, ImVec2(float(dimension[0]), float(dimension[1])));
-
-              if (ImGui::Button(vcString::Get("convertRemoveWatermark")))
-              {
-                memset(pProgramState->settings.convertdefaults.watermark.filename, 0, sizeof(pProgramState->settings.convertdefaults.watermark.filename));
-                pProgramState->settings.convertdefaults.watermark.width = 0;
-                pProgramState->settings.convertdefaults.watermark.height = 0;
-                vcTexture_Destroy(&pProgramState->settings.convertdefaults.watermark.pTexture);
-              }
-            }
-          }
-          ImGui::Unindent();
 
           // Metadata
           vcIGSW_InputText(vcString::Get("convertAuthor"), pProgramState->settings.convertdefaults.author, udLengthOf(pProgramState->settings.convertdefaults.author));
@@ -665,7 +421,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
               pProgramState->settings.loginInfo.testing = false;
               pProgramState->settings.loginInfo.tested = true;
             }, nullptr, true, [pProgramState](void*) {
-              if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
+              if (pProgramState->settings.loginInfo.testStatus == udE_ProxyAuthRequired)
                 pProgramState->settings.loginInfo.requiresProxyAuth = true;
             });
           }
@@ -679,7 +435,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           else if (pProgramState->settings.loginInfo.tested)
           {
             ImGui::SameLine();
-            if (pProgramState->settings.loginInfo.testStatus == vE_Success)
+            if (pProgramState->settings.loginInfo.testStatus == udE_Success)
             {
               vcIGSW_ShowLoadStatusIndicator(vcSLS_Success);
               ImGui::TextUnformatted(vcString::Get("loginProxyTestSuccess"));
@@ -689,13 +445,13 @@ void vcSettingsUI_Show(vcState *pProgramState)
               char buffer[256];
               vcIGSW_ShowLoadStatusIndicator(vcSLS_Failed);
 
-              if (pProgramState->settings.loginInfo.testStatus == vE_SecurityFailure)
+              if (pProgramState->settings.loginInfo.testStatus == udE_SecurityFailure)
                 ImGui::TextUnformatted(vcString::Get("loginErrorSecurity"));
-              else if (pProgramState->settings.loginInfo.testStatus == vE_ConnectionFailure)
+              else if (pProgramState->settings.loginInfo.testStatus == udE_ConnectionFailure)
                 ImGui::TextUnformatted(vcString::Get("loginProxyTestCouldNotConnect"));
-              else if (pProgramState->settings.loginInfo.testStatus == vE_ProxyError)
+              else if (pProgramState->settings.loginInfo.testStatus == udE_ProxyError)
                 ImGui::TextUnformatted(vcString::Get("loginErrorProxy"));
-              else if (pProgramState->settings.loginInfo.testStatus == vE_ProxyAuthRequired)
+              else if (pProgramState->settings.loginInfo.testStatus == udE_ProxyAuthRequired)
                 ImGui::TextUnformatted(vcString::Get("loginErrorProxyAuthFailed"));
               else
                 ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("loginProxyTestFailed"), udTempStr("%d", pProgramState->settings.loginInfo.testStatus)));
@@ -706,25 +462,25 @@ void vcSettingsUI_Show(vcState *pProgramState)
           {
             ImGui::Separator();
 
-            if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy, vcMaxPathLength))
+            if (vcIGSW_InputText(vcString::Get("loginProxyAddress"), pProgramState->settings.loginInfo.proxy))
             {
-              vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+              udConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
               pProgramState->settings.loginInfo.tested = false;
             }
 
             ImGui::SameLine();
             if (ImGui::Button(vcString::Get("loginProxyAutodetect")))
             {
-              if (vcProxyHelper_AutoDetectProxy(pProgramState) == vE_Success)
+              if (vcProxyHelper_AutoDetectProxy(pProgramState) == udE_Success)
               {
                 udStrcpy(pProgramState->settings.loginInfo.proxy, pProgramState->settings.loginInfo.autoDetectProxyURL);
-                vdkConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
+                udConfig_ForceProxy(pProgramState->settings.loginInfo.proxy);
               }
             }
 
-            if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent, vcMaxPathLength))
+            if (vcIGSW_InputText(vcString::Get("loginUserAgent"), pProgramState->settings.loginInfo.userAgent))
             {
-              vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+              udConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
               pProgramState->settings.loginInfo.tested = false;
             }
 
@@ -741,7 +497,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
                 if (ImGui::MenuItem(UAOptions[i]))
                 {
                   udStrcpy(pProgramState->settings.loginInfo.userAgent, UAStrings[i]);
-                  vdkConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
+                  udConfig_SetUserAgent(pProgramState->settings.loginInfo.userAgent);
                   pProgramState->settings.loginInfo.tested = false;
                 }
               }
@@ -750,7 +506,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
 
             if (ImGui::Checkbox(vcString::Get("loginIgnoreCert"), &pProgramState->settings.loginInfo.ignoreCertificateVerification))
             {
-              vdkConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
+              udConfig_IgnoreCertificateVerification(pProgramState->settings.loginInfo.ignoreCertificateVerification);
               pProgramState->settings.loginInfo.tested = false;
             }
 
@@ -785,7 +541,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
               if (updateInfo)
               {
                 pProgramState->settings.loginInfo.tested = false;
-                vdkConfig_SetProxyAuth(pProgramState->settings.loginInfo.proxyUsername, pProgramState->settings.loginInfo.proxyPassword);
+                udConfig_SetProxyAuth(pProgramState->settings.loginInfo.proxyUsername, pProgramState->settings.loginInfo.proxyPassword);
               }
 
               ImGui::Unindent();
@@ -830,7 +586,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if (ImGui::IsItemHovered())
             ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
-          const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), "support@euclideon.com");
+          const char *pSupportStr = vcStringFormat(vcString::Get("loginSupportDirectEmail"), pProgramState->branding.supportEmail);
           ImGui::TextUnformatted(pSupportStr);
           udFree(pSupportStr);
 
@@ -933,107 +689,353 @@ const char *vcSettingsUI_GetClassificationName(vcState *pProgramState, uint8_t c
   }
 }
 
-void vcSettingsUI_BasicMapSettings(vcState *pProgramState)
+void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOptions /*= false*/)
 {
-  ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
+  ImGui::Checkbox(vcString::Get("settingsMapsMapTiles"), &pProgramState->settings.maptiles.mapEnabled);
 
-  ImGui::SameLine();
-  if (ImGui::Button(vcString::Get("settingsMapECEFMode")))
+  if (alwaysShowOptions || pProgramState->settings.maptiles.mapEnabled)
   {
-    int32_t newSRID = -1;
+    ImGui::Checkbox(vcString::Get("settingsMapsDEM"), &pProgramState->settings.maptiles.demEnabled);
+    ImGui::Checkbox(vcString::Get("sceneCameraKeepAboveSurface"), &pProgramState->settings.camera.keepAboveSurface);
 
-    if (pProgramState->geozone.srid == vcPSZ_WGS84ECEF)
+    if (pProgramState->settings.presentation.showDiagnosticInfo)
     {
-      newSRID = pProgramState->previousSRID;
-    }
-    else
-    {
-      pProgramState->previousSRID = pProgramState->geozone.srid;
-      newSRID = vcPSZ_WGS84ECEF;
-    }
+      if (pProgramState->geozone.srid != vcPSZ_NotGeolocated)
+      {
+        int32_t newSRID = -1;
+        char buffer[512];
 
-    if (newSRID != -1)
-    {
-      udGeoZone zone = {};
-      udGeoZone_SetFromSRID(&zone, newSRID);
-      vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
-      pProgramState->activeProject.pFolder->ChangeProjection(zone);
-    }
-  }
+        if (pProgramState->geozone.srid != vcPSZ_WGS84ECEF && ImGui::Button(vcString::Get("settingsMapECEFMode")))
+        {
+          pProgramState->previousSRID = pProgramState->geozone.srid;
+          newSRID = vcPSZ_WGS84ECEF;
+        }
 
-  ImGui::TextUnformatted(vcString::Get("settingsMapType"));
+        if (pProgramState->geozone.srid == vcPSZ_WGS84ECEF && pProgramState->previousSRID != -1 && ImGui::Button(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("settingsMapFlatMode"), udTempStr("%d", pProgramState->previousSRID))))
+          newSRID = pProgramState->previousSRID;
 
-  ImGui::BeginChild("mapSelection", ImVec2(512, 300));
-
-  ImGuiStyle& style = ImGui::GetStyle();
-  ImVec2 button_sz(128, 128);
-  float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-
-  for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
-  {
-    ImGui::PushID((int)i);
-
-    bool pop = udStrEqual(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
-
-    if (pop)
-      ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-
-    if (s_mapTiles[i].pPreviewTexture == nullptr)
-    {
-      s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
-      vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
+        if (newSRID != -1)
+        {
+          udGeoZone zone = {};
+          udGeoZone_SetFromSRID(&zone, newSRID);
+          vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position);
+          pProgramState->activeProject.pFolder->ChangeProjection(zone);
+        }
+      }
     }
 
-    if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
+    ImGui::TextUnformatted(vcString::Get("settingsMapMapLayers"));
+
+    char buffer[128] = {};
+    char mapLayerStr[16] = {};
+
+    pProgramState->settings.maptiles.activeLayerCount = 0;
+    for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
     {
-      udStrcpy(pProgramState->settings.maptiles.mapType, s_mapTiles[i].pModeStr);
-      vcSettings_ApplyMapChange(&pProgramState->settings);
-      vcRender_ClearTiles(pProgramState->pRenderContext);
-    }
+      if (ImGui::Button(udTempStr(pProgramState->settings.maptiles.layers[mapLayer].enabled ? "-##mapLayer%d" : "+##mapLayer%d", mapLayer), ImVec2(24, 24)))
+        pProgramState->settings.maptiles.layers[mapLayer].enabled = !pProgramState->settings.maptiles.layers[mapLayer].enabled;
 
-    if (pop)
-      ImGui::PopStyleColor();
-
-    float last_button_x2 = ImGui::GetItemRectMax().x;
-    float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
-
-    if (i + 1 < udLengthOf(s_mapTiles) && next_button_x2 < window_visible_x2)
       ImGui::SameLine();
+      udStrItoa(mapLayerStr, mapLayer + 1);
+      ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("settingsMapLayer"), mapLayerStr));
 
-    ImGui::PopID();
+      if (!pProgramState->settings.maptiles.layers[mapLayer].enabled)
+        break;
+
+      pProgramState->settings.maptiles.activeLayerCount++;
+
+      ImGui::Indent();
+      ImGui::TextUnformatted(vcString::Get("settingsMapType"));
+
+      ImGui::BeginChild(udTempStr("mapSelection%d", mapLayer), ImVec2(512, 200));
+
+      ImGuiStyle &style = ImGui::GetStyle();
+      ImVec2 button_sz(92, 92);
+      float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+
+      for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
+      {
+        ImGui::PushID((int)i);
+
+        bool pop = udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
+
+        if (pop)
+          ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+
+        if (s_mapTiles[i].pPreviewTexture == nullptr)
+        {
+          vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
+          s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
+        }
+
+        if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
+        {
+          udStrcpy(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
+          vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
+          vcRender_ClearTiles(pProgramState->pRenderContext);
+        }
+
+        if (pop)
+          ImGui::PopStyleColor();
+
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          if (udStrEqual(s_mapTiles[i].pMode, "Custom"))
+            ImGui::TextUnformatted(vcString::Get("settingsMapTypeCustom"));
+          else
+            ImGui::TextUnformatted(s_mapTiles[i].pMode);
+          ImGui::EndTooltip();
+        }
+
+        float last_button_x2 = ImGui::GetItemRectMax().x;
+        float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
+
+        if (i + 1 < udLengthOf(s_mapTiles) && next_button_x2 < window_visible_x2)
+          ImGui::SameLine();
+
+        ImGui::PopID();
+      }
+
+      ImGui::EndChild();
+
+      if (pProgramState->settings.maptiles.mapEnabled)
+      {
+        if (udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, "custom"))
+        {
+          ImGui::Indent();
+
+          bool changed = false;
+
+          ImGui::TextWrapped("%s", vcString::Get("settingsMapsTileServerInstructions"));
+
+          changed |= vcIGSW_InputText(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsTileServer"), mapLayer), pProgramState->settings.maptiles.layers[mapLayer].customServer.tileServerAddress);
+          changed |= vcIGSW_InputText(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsAttribution"), mapLayer), pProgramState->settings.maptiles.layers[mapLayer].customServer.attribution);
+
+          if (changed)
+          {
+            vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
+            vcRender_ClearTiles(pProgramState->pRenderContext);
+          }
+
+          ImGui::Unindent();
+
+        }
+        if (ImGui::SliderFloat(udTempStr("%s##%d", vcString::Get("settingsMapsMapHeight"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
+          pProgramState->settings.maptiles.layers[mapLayer].mapHeight = udClamp(pProgramState->settings.maptiles.layers[mapLayer].mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+
+        if (ImGui::SliderFloat(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsOpacity"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax, "%.3f"))
+          pProgramState->settings.maptiles.layers[mapLayer].transparency = udClamp(pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax);
+      }
+      ImGui::Unindent();
+    }
   }
-
-  ImGui::EndChild();
 }
 
-void vcSettings_ApplyMapChange(vcSettings *pSettings)
+void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
 {
-  bool found = false;
+  vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization, true);
+  vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
 
-  for (size_t i = 0; i < udLengthOf(s_mapTiles); ++i)
+  const char *lensNameArray[] = {
+    vcString::Get("settingsViewportCameraLensCustom"),
+    vcString::Get("settingsViewportCameraLens15mm"),
+    vcString::Get("settingsViewportCameraLens24mm"),
+    vcString::Get("settingsViewportCameraLens30mm"),
+    vcString::Get("settingsViewportCameraLens50mm"),
+    vcString::Get("settingsViewportCameraLens70mm"),
+    vcString::Get("settingsViewportCameraLens100mm"),
+  };
+  UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
+
+  if (ImGui::Combo(vcString::Get("settingsViewportCameraLens"), &pProgramState->settings.camera.lensIndex, lensNameArray, (int)udLengthOf(lensNameArray)))
   {
-    if (udStrEqual(pSettings->maptiles.mapType, s_mapTiles[i].pModeStr))
+    switch (pProgramState->settings.camera.lensIndex)
     {
-      udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, s_mapTiles[i].pServerAddr);
-      udStrcpy(pSettings->maptiles.activeServer.attribution, s_mapTiles[i].pCopyright);
-
-      if (s_mapTiles[i].pTileAddressUUID != nullptr)
-        udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, s_mapTiles[i].pTileAddressUUID);
-      else
-        udUUID_GenerateFromString(&pSettings->maptiles.activeServer.tileServerAddressUUID, s_mapTiles[i].pServerAddr);
-
-      found = true;
+    case vcLS_Custom:
+      /*Custom FoV*/
+      break;
+    case vcLS_15mm:
+      pProgramState->settings.camera.fieldOfView = vcLens15mm;
+      break;
+    case vcLS_24mm:
+      pProgramState->settings.camera.fieldOfView = vcLens24mm;
+      break;
+    case vcLS_30mm:
+      pProgramState->settings.camera.fieldOfView = vcLens30mm;
+      break;
+    case vcLS_50mm:
+      pProgramState->settings.camera.fieldOfView = vcLens50mm;
+      break;
+    case vcLS_70mm:
+      pProgramState->settings.camera.fieldOfView = vcLens70mm;
+      break;
+    case vcLS_100mm:
+      pProgramState->settings.camera.fieldOfView = vcLens100mm;
       break;
     }
   }
 
-  if (!found)// `custom` or not supported
+  if (pProgramState->settings.camera.lensIndex == vcLS_Custom)
   {
-    udStrcpy(pSettings->maptiles.activeServer.tileServerAddress, pSettings->maptiles.customServer.tileServerAddress);
-    udStrcpy(pSettings->maptiles.activeServer.attribution, pSettings->maptiles.customServer.attribution);
-    udUUID_GenerateFromString(&pSettings->maptiles.customServer.tileServerAddressUUID, pSettings->maptiles.customServer.tileServerAddress);
+    float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView);
+    ImGui::Indent();
+    if (ImGui::SliderFloat(vcString::Get("settingsViewportFOV"), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
+      pProgramState->settings.camera.fieldOfView = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
+    ImGui::Unindent();
+  }
 
-    pSettings->maptiles.activeServer.tileServerAddressUUID = pSettings->maptiles.customServer.tileServerAddressUUID;
+  const char *skyboxOptions[] = { vcString::Get("settingsAppearanceSkyboxTypeNone"), vcString::Get("settingsAppearanceSkyboxTypeColour"), vcString::Get("settingsAppearanceSkyboxTypeSimple"), vcString::Get("settingsAppearanceSkyboxTypeAtmosphere") };
+  ImGui::Combo(vcString::Get("settingsAppearanceSkyboxType"), (int*)&pProgramState->settings.presentation.skybox.type, skyboxOptions, (int)udLengthOf(skyboxOptions));
+  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour)
+  {
+    ImGui::Indent();
+    ImGui::ColorEdit3(vcString::Get("settingsAppearanceSkyboxColour"), &pProgramState->settings.presentation.skybox.colour.x);
+    ImGui::Unindent();
+  }
+  else if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_Atmosphere)
+  {
+    ImGui::Indent();
+    ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxUseLiveTime"), &pProgramState->settings.presentation.skybox.useLiveTime);
+
+    if (!pProgramState->settings.presentation.skybox.useLiveTime)
+    {
+      ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxLockSunPosition"), &pProgramState->settings.presentation.skybox.keepSameTime);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
+      pProgramState->settings.presentation.skybox.timeOfDay = udClamp(pProgramState->settings.presentation.skybox.timeOfDay, 1.0f, 24.0f);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 0, 12);
+      pProgramState->settings.presentation.skybox.month = udClamp(pProgramState->settings.presentation.skybox.month, 1.0f, 12.0f);
+    }
+
+    ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);
+
+    ImGui::Unindent();
+  }
+
+  // limit the value between 0-5.
+  if (ImGui::SliderFloat(vcString::Get("settingsAppearanceSaturation"), &pProgramState->settings.presentation.saturation, 0.0f, 5.0f))
+    pProgramState->settings.presentation.saturation = udClamp(pProgramState->settings.presentation.saturation, 0.0f, 5.0f);
+
+  const char *voxelOptions[] = { vcString::Get("settingsAppearanceRectangles"), vcString::Get("settingsAppearanceCubes"), vcString::Get("settingsAppearancePoints") };
+  ImGui::Combo(vcString::Get("settingsAppearanceVoxelShape"), &pProgramState->settings.presentation.pointMode, voxelOptions, (int)udLengthOf(voxelOptions));
+
+  // Selected Object Highlighting
+  ImGui::Checkbox(vcString::Get("settingsVisObjectHighlight"), &pProgramState->settings.objectHighlighting.enable);
+  if (pProgramState->settings.objectHighlighting.enable)
+  {
+    ImGui::Indent();
+    ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
+    ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
+    ImGui::Unindent();
+  }
+
+  // Post visualization - Edge Highlighting
+  ImGui::Checkbox(vcString::Get("settingsVisEdge"), &pProgramState->settings.postVisualization.edgeOutlines.enable);
+  if (pProgramState->settings.postVisualization.edgeOutlines.enable)
+  {
+    ImGui::Indent();
+
+    if (ImGui::SliderInt(vcString::Get("settingsVisEdgeWidth"), &pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax))
+      pProgramState->settings.postVisualization.edgeOutlines.width = udClamp(pProgramState->settings.postVisualization.edgeOutlines.width, vcSL_EdgeHighlightMin, vcSL_EdgeHighlightMax);
+
+    // TODO: Make this less awful. 0-100 would make more sense than 0.0001 to 0.001.
+    if (ImGui::SliderFloat(vcString::Get("settingsVisEdgeThreshold"), &pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.edgeOutlines.threshold = udClamp(pProgramState->settings.postVisualization.edgeOutlines.threshold, vcSL_EdgeHighlightThresholdMin, vcSL_EdgeHighlightThresholdMax);
+    ImGui::ColorEdit4(vcString::Get("settingsVisEdgeColour"), &pProgramState->settings.postVisualization.edgeOutlines.colour.x);
+
+    ImGui::Unindent();
+  }
+
+  // Post visualization - Colour by Height
+  ImGui::Checkbox(vcString::Get("settingsVisHeight"), &pProgramState->settings.postVisualization.colourByHeight.enable);
+  if (pProgramState->settings.postVisualization.colourByHeight.enable)
+  {
+    ImGui::Indent();
+
+    ImGui::ColorEdit4(vcString::Get("settingsVisHeightStartColour"), &pProgramState->settings.postVisualization.colourByHeight.minColour.x);
+    ImGui::ColorEdit4(vcString::Get("settingsVisHeightEndColour"), &pProgramState->settings.postVisualization.colourByHeight.maxColour.x);
+
+    // TODO: Set min/max to the bounds of the model? Currently set to 0m -> 1km with accuracy of 1mm
+    if (ImGui::SliderFloat(vcString::Get("settingsVisHeightStart"), &pProgramState->settings.postVisualization.colourByHeight.startHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByHeight.startHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.startHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisHeightEnd"), &pProgramState->settings.postVisualization.colourByHeight.endHeight, vcSL_ColourByHeightMin, vcSL_ColourByHeightMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByHeight.endHeight = udClamp(pProgramState->settings.postVisualization.colourByHeight.endHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+
+    ImGui::Unindent();
+  }
+
+  // Post visualization - Colour by Depth
+  ImGui::Checkbox(vcString::Get("settingsVisDepth"), &pProgramState->settings.postVisualization.colourByDepth.enable);
+  if (pProgramState->settings.postVisualization.colourByDepth.enable)
+  {
+    ImGui::Indent();
+
+    ImGui::ColorEdit4(vcString::Get("settingsVisDepthColour"), &pProgramState->settings.postVisualization.colourByDepth.colour.x);
+
+    // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
+    if (ImGui::SliderFloat(vcString::Get("settingsVisDepthStart"), &pProgramState->settings.postVisualization.colourByDepth.startDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByDepth.startDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.startDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisDepthEnd"), &pProgramState->settings.postVisualization.colourByDepth.endDepth, vcSL_ColourByDepthMin, vcSL_ColourByDepthMax, "%.3f"))
+      pProgramState->settings.postVisualization.colourByDepth.endDepth = udClamp(pProgramState->settings.postVisualization.colourByDepth.endDepth, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+
+    ImGui::Unindent();
+  }
+
+  // Post visualization - Contours
+  ImGui::Checkbox(vcString::Get("settingsVisContours"), &pProgramState->settings.postVisualization.contours.enable);
+  if (pProgramState->settings.postVisualization.contours.enable)
+  {
+    ImGui::Indent();
+
+    ImGui::ColorEdit4(vcString::Get("settingsVisContoursColour"), &pProgramState->settings.postVisualization.contours.colour.x);
+
+    // TODO: Find better min and max values? Currently set to 0m -> 1km with accuracy of 1mm
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursDistances"), &pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.distances = udClamp(pProgramState->settings.postVisualization.contours.distances, vcSL_ContourDistanceMin, vcSL_GlobalLimitSmallf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursBandHeight"), &pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_ContourBandHeightMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.bandHeight = udClamp(pProgramState->settings.postVisualization.contours.bandHeight, vcSL_ContourBandHeightMin, vcSL_GlobalLimitSmallf);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowRepeatRate"), &pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.rainbowRepeat = udClamp(pProgramState->settings.postVisualization.contours.rainbowRepeat, vcSL_ContourDistanceMin, vcSL_ContourDistanceMax);
+    if (ImGui::SliderFloat(vcString::Get("settingsVisContoursRainbowIntensity"), &pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f, "%.3f", 2))
+      pProgramState->settings.postVisualization.contours.rainbowIntensity = udClamp(pProgramState->settings.postVisualization.contours.rainbowIntensity, 0.f, 1.f);
+
+    ImGui::Unindent();
+  }
+}
+
+void vcSettings_ApplyMapChange(vcSettings *pSettings, int affectedMapLayer)
+{
+  for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
+  {
+    if (mapLayer != affectedMapLayer && affectedMapLayer != -1)
+      continue;
+
+    bool found = false;
+    for (size_t i = 0; i < udLengthOf(s_mapTiles); ++i)
+    {
+      if (udStrEqual(pSettings->maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr) && !udStrEqual(s_mapTiles[i].pModeStr, "custom"))
+      {
+        udStrcpy(pSettings->maptiles.layers[mapLayer].activeServer.tileServerAddress, s_mapTiles[i].pServerAddr);
+        udStrcpy(pSettings->maptiles.layers[mapLayer].activeServer.attribution, s_mapTiles[i].pCopyright);
+
+        if (s_mapTiles[i].pTileAddressUUID != nullptr)
+          udUUID_GenerateFromString(&pSettings->maptiles.layers[mapLayer].activeServer.tileServerAddressUUID, s_mapTiles[i].pTileAddressUUID);
+        else
+          udUUID_GenerateFromString(&pSettings->maptiles.layers[mapLayer].activeServer.tileServerAddressUUID, s_mapTiles[i].pServerAddr);
+
+        found = true;
+        break;
+      }
+    }
+
+    if (!found)// `custom` or not supported
+    {
+      udStrcpy(pSettings->maptiles.layers[mapLayer].activeServer.tileServerAddress, pSettings->maptiles.layers[mapLayer].customServer.tileServerAddress);
+      udStrcpy(pSettings->maptiles.layers[mapLayer].activeServer.attribution, pSettings->maptiles.layers[mapLayer].customServer.attribution);
+      udUUID_GenerateFromString(&pSettings->maptiles.layers[mapLayer].customServer.tileServerAddressUUID, pSettings->maptiles.layers[mapLayer].customServer.tileServerAddress);
+
+      pSettings->maptiles.layers[mapLayer].activeServer.tileServerAddressUUID = pSettings->maptiles.layers[mapLayer].customServer.tileServerAddressUUID;
+    }
   }
 }
 
@@ -1044,6 +1046,8 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   const char *visualizationModes[] = {vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns")};
   retVal |= ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
   UDCOMPILEASSERT(udLengthOf(visualizationModes) == vcVM_Count, "Update combo box!");
+
+  ImGui::Indent();
 
   switch (pVisualizationSettings->mode)
   {
@@ -1081,8 +1085,18 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   }
   case vcVM_GPSTime:
   {
+    vcTimeReference GPSTimeInIntToEnum[] = {vcTimeReference_GPS, vcTimeReference_GPSAdjusted};
+    int GPSTimeInEnumToInt[] = {0, 0, 0, 1, 0, 0};
+
+    static int GPSTimeFormatIn = GPSTimeInEnumToInt[pVisualizationSettings->GPSTime.inputFormat];
+    const char *GPSTimeFormatInOptions[] = {"GPS", "GPS Adjusted"};
+
+    retVal |= ImGui::Combo("Input GPS Time format", &GPSTimeFormatIn, GPSTimeFormatInOptions, (int)udLengthOf(GPSTimeFormatInOptions));
+
     bool minEdited = ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMin"), &pVisualizationSettings->GPSTime.minTime, 0.0, 0.0, "%.1f");
     bool maxEdited = ImGui::InputDouble(vcString::Get("settingsVisGPSTimeMax"), &pVisualizationSettings->GPSTime.maxTime, 0.0, 0.0, "%.1f");
+
+    pVisualizationSettings->GPSTime.inputFormat = GPSTimeInIntToEnum[GPSTimeFormatIn];
 
     retVal |= (minEdited || maxEdited);
 
@@ -1183,6 +1197,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     break;
   }
 
-  ImGui::Separator();
+  ImGui::Unindent();
+
   return retVal;
 }

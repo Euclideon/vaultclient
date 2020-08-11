@@ -10,10 +10,10 @@ trigger:
 
 variables:
 - group: SignToolKey
-- name: linkedVDK
-  value: Euclideon_vdk0.6.0
-- name: VAULTSDK_HOME
-  value: $(Build.SourcesDirectory)/linkedVDK/$(linkedVDK)
+- name: linkedudSDK
+  value: udSDK_2.0_RC2
+- name: UDSDK_HOME
+  value: $(Build.SourcesDirectory)/linkedudSDK/$(linkedudSDK)
 
 stages:
 - stage: build
@@ -53,4 +53,13 @@ stages:
     parameters:
       name: androidarm64
       displayName: 'Android ARM64'
+      platform: 'arm64'
+
+- stage: package
+  displayName: 'Package'
+  jobs:
+  - template: buildscripts/azure-pipelines-jobs-android-package.yml
+    parameters:
+      name: android
+      displayName: 'Android'
       platform: 'arm64'

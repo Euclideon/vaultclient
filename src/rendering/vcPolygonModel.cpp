@@ -380,15 +380,29 @@ udResult vcPolygonModel_CreateFromOBJ(vcPolygonModel **ppPolygonModel, const cha
         // store every position relative to model origin
         pVerts[index].position = udFloat3::create(pOBJReader->positions[pVertex->pos] - pPolygonModel->origin);
 
+        // NOTE: inverted y
+        if (pVertex->uv >= 0)
+          pVerts[index].uv = udFloat2::create(pOBJReader->uvs[pVertex->uv].x, 1.0f - pOBJReader->uvs[pVertex->uv].y);
+      }
+
+      // Handle normals
+      for (int i = 0; i < 3; ++i)
+      {
+        uint32_t index = i + f * 3;
+        vcOBJ::Face::Vert *pVertex = pMaterialVertexList->GetElement(index);
+
         // TODO: Better handle meshes with different vertex layouts
         if (pVertex->nrm >= 0 && pVertex->nrm < (int)pOBJReader->normals.length)
           pVerts[index].normal = udFloat3::create(pOBJReader->normals[pVertex->nrm]);
         else
-          pVerts[index].normal = udFloat3::create(0.0f, 0.0f, 1.0f);
+        {
+          // Generate normals from triangle
+          udFloat3 p0 = pVerts[f * 3 + 0].position;
+          udFloat3 p1 = pVerts[f * 3 + 1].position;
+          udFloat3 p2 = pVerts[f * 3 + 2].position;
 
-        // NOTE: inverted y
-        if (pVertex->uv >= 0)
-          pVerts[index].uv = udFloat2::create(pOBJReader->uvs[pVertex->uv].x, 1.0f - pOBJReader->uvs[pVertex->uv].y);
+          pVerts[index].normal = udNormalize3(udCross(udNormalize3(p1 - p0), udNormalize3(p2 - p0)));
+        }
       }
     }
 
@@ -488,7 +502,7 @@ epilogue:
   return result;
 }
 
-udResult vcPolygonModel_Render(vcPolygonModel *pModel, const float encodedObjectId, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix, const vcPolyModelPass &passType /*= vcPMP_Standard*/, vcTexture *pDiffuseOverride /*= nullptr*/, const udFloat4 *pColourOverride /*= nullptr*/)
+udResult vcPolygonModel_Render(vcPolygonModel *pModel, const float encodedObjectId, const udDouble4x4 &modelMatrix, const udDouble4x4 &viewProjectionMatrix, const vcPolyModelPass &passType /*= vcPMP_Standard*/, const udFloat4 &tint /*= udFloat4::one()*/, vcTexture *pDiffuseOverride /*= nullptr*/, const udFloat4 *pColourOverride /*= nullptr*/)
 {
   if (pModel == nullptr)
     return udR_InvalidParameter_;
@@ -532,7 +546,7 @@ udResult vcPolygonModel_Render(vcPolygonModel *pModel, const float encodedObject
 
     pPolygonShader->everyObject.u_objectInfo.x = encodedObjectId;
     pPolygonShader->everyObject.u_objectInfo.y = (encodedObjectId != 0.0f) ? 1.0f : 0.0f;
-    pPolygonShader->everyObject.u_colour = colour;
+    pPolygonShader->everyObject.u_colour = colour * tint;
     pPolygonShader->everyObject.u_world = udFloat4x4::create(modelMatrix);
     pPolygonShader->everyObject.u_worldViewProjectionMatrix = udFloat4x4::create(viewProjectionMatrix * modelMatrix * pModel->modelOffset);
 

@@ -6,16 +6,20 @@ enum vcModalTypes
   // These are handled by DrawModals
   vcMT_LoggedOut,
   vcMT_AddSceneItem,
-  vcMT_ImportProject,
-  vcMT_NewProject,
+  vcMT_LoadProject,
+  vcMT_CreateProject,
+  vcMT_Welcome,
   vcMT_ExportProject,
   vcMT_ImageViewer,
+  vcMT_ProjectSettings,
   vcMT_ProjectChange,
   vcMT_ProjectReadOnly,
+  vcMT_ProjectInfo,
   vcMT_UnsupportedFile,
   vcMT_Profile,
   vcMT_Convert,
   vcMT_ChangePassword,
+  vcMT_ShowInputInfo,
 
   vcMT_Count
 };
@@ -23,6 +27,7 @@ enum vcModalTypes
 struct vcState;
 
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type);
+void vcModals_CloseModal(vcState *pProgramState, vcModalTypes type);
 void vcModals_DrawModals(vcState *pProgramState);
 
 // Returns true if its safe to write- if exists the user is asked if it can be overriden

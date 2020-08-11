@@ -17,7 +17,7 @@
 #include "imgui_ex/imgui_udValue.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-#include "vdkPointCloud.h"
+#include "udPointCloud.h"
 
 #include "udStringUtil.h"
 #include "udMath.h"
@@ -33,7 +33,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, udDouble3 pos
 {
   const char *pMetadata;
 
-  if (vdkPointCloud_GetMetadata(pModel->m_pPointCloud, &pMetadata) == vE_Success)
+  if (udPointCloud_GetMetadata(pModel->m_pPointCloud, &pMetadata) == udE_Success)
   {
     pModel->m_metadata.Parse(pMetadata);
     pModel->m_hasWatermark = pModel->m_metadata.Get("Watermark").IsString();
@@ -71,7 +71,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, udDouble3 pos
   pModel->m_baseMatrix = pModel->m_defaultMatrix;
 
   if (pModel->m_pPreferredProjection == nullptr && possibleLocation != udDouble3::zero())
-    vcProject_UpdateNodeGeometryFromCartesian(pModel->m_pProject, pModel->m_pNode, pProgramState->geozone, vdkPGT_Point, &possibleLocation, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pModel->m_pProject, pModel->m_pNode, pProgramState->geozone, udPGT_Point, &possibleLocation, 1);
 
   pModel->OnNodeUpdate(pProgramState);
 
@@ -89,17 +89,17 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
 
   if (status == vcSLS_Pending)
   {
-    vdkError modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI, &pLoadInfo->pModel->m_pointCloudHeader);
+    udError modelStatus = udPointCloud_Load(pLoadInfo->pProgramState->pUDSDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI, &pLoadInfo->pModel->m_pointCloudHeader);
 
-    if (modelStatus == vE_OpenFailure)
-      modelStatus = vdkPointCloud_Load(pLoadInfo->pProgramState->pVDKContext, &pLoadInfo->pModel->m_pPointCloud, udTempStr("%s%s", pLoadInfo->pProgramState->activeProject.pRelativeBase, pLoadInfo->pModel->m_pNode->pURI), &pLoadInfo->pModel->m_pointCloudHeader);
+    if (modelStatus == udE_OpenFailure)
+      modelStatus = udPointCloud_Load(pLoadInfo->pProgramState->pUDSDKContext, &pLoadInfo->pModel->m_pPointCloud, udTempStr("%s%s", pLoadInfo->pProgramState->activeProject.pRelativeBase, pLoadInfo->pModel->m_pNode->pURI), &pLoadInfo->pModel->m_pointCloudHeader);
 
-    if (modelStatus == vE_Success)
+    if (modelStatus == udE_Success)
     {
       vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel, pLoadInfo->possibleLocation);
       pLoadInfo->pModel->m_loadStatus = vcSLS_Loaded;
     }
-    else if (modelStatus == vE_OpenFailure)
+    else if (modelStatus == udE_OpenFailure)
     {
       pLoadInfo->pModel->m_loadStatus = vcSLS_OpenFailure;
     }
@@ -110,7 +110,7 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
   }
 }
 
-vcModel::vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcModel::vcModel(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
@@ -147,7 +147,7 @@ vcModel::vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramSt
   }
 }
 
-vcModel::vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud) :
+vcModel::vcModel(vcState *pProgramState, const char *pName, udPointCloud *pCloud) :
   vcSceneItem(pProgramState, "UDS", pName),
   m_pPointCloud(nullptr),
   m_pivot(udDouble3::zero()),
@@ -187,12 +187,12 @@ void vcModel::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (m_pPointCloud == nullptr)
     return; // Nothing else we can do yet
 
-  vdkError status = vdkPointCloud_GetStreamingStatus(m_pPointCloud);
-  if (status != vE_Success)
+  udError status = udPointCloud_GetStreamingStatus(m_pPointCloud);
+  if (status != udE_Success)
   {
-    if (status == vE_ParseError)
+    if (status == udE_ParseError)
       m_pActiveWarningStatus = "sceneExplorerErrorCorrupt";
-    else if (status == vE_OpenFailure)
+    else if (status == udE_OpenFailure)
       m_pActiveWarningStatus = "sceneExplorerErrorOpen";
     else
       m_pActiveWarningStatus = "sceneExplorerErrorLoad";
@@ -227,10 +227,10 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
       m_pCurrentZone = (udGeoZone*)udMemDup(&pProgramState->geozone, sizeof(udGeoZone), 0, udAF_None);
     }
 
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &euler.z, 0.0);
-    vdkProjectNode_GetMetadataDouble(m_pNode, "transform.scale", &scale, udMag3(m_baseMatrix.axis.x));
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &euler.z, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.scale", &scale, udMag3(m_baseMatrix.axis.x));
 
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationYPR(UD_DEG2RAD(euler), *pPosition) * udDouble4x4::scaleUniform(scale) * udDouble4x4::translation(-m_pivot);
   }
@@ -238,11 +238,11 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
   udFree(pPosition);
 
   int mode = 0;
-  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.mode", &mode, 0);
+  udProjectNode_GetMetadataInt(m_pNode, "visualization.mode", &mode, 0);
   m_visualization.mode = (vcVisualizatationMode)mode;
 
-  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.minIntensity", &m_visualization.minIntensity, -1);
-  vdkProjectNode_GetMetadataInt(m_pNode, "visualization.maxIntensity", &m_visualization.maxIntensity, -1);
+  udProjectNode_GetMetadataInt(m_pNode, "visualization.minIntensity", &m_visualization.minIntensity, -1);
+  udProjectNode_GetMetadataInt(m_pNode, "visualization.maxIntensity", &m_visualization.maxIntensity, -1);
   if (m_visualization.minIntensity == -1 && m_visualization.maxIntensity == -1)
   {
     const char *pIntensity = m_metadata.Get("AttrMinMax_udIntensity").AsString();
@@ -267,8 +267,8 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
   }
 
   udDouble2 displacement;
-  vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.x", &displacement.x, 0.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.y", &displacement.y, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.x", &displacement.x, 0.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "visualization.displacement.y", &displacement.y, 0.0);
   if (displacement.x == 0.0 && displacement.y == 0.0)
   {
     const char *pDisplacement = m_metadata.Get("AttrMinMax_udDisplacement").AsString();
@@ -292,7 +292,7 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
-  if (vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", &m_visualization.GPSTime.minTime, pProgramState->settings.visualization.GPSTime.minTime) != vE_Success && vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", &m_visualization.GPSTime.maxTime, pProgramState->settings.visualization.GPSTime.maxTime) != vE_Success)
+  if (udProjectNode_GetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", &m_visualization.GPSTime.minTime, pProgramState->settings.visualization.GPSTime.minTime) != udE_Success && udProjectNode_GetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", &m_visualization.GPSTime.maxTime, pProgramState->settings.visualization.GPSTime.maxTime) != udE_Success)
   {
     const char *pGPSTime = m_metadata.Get("AttrMinMax_udGPSTime").AsString();
     if (pGPSTime != nullptr && udStrcmp(pGPSTime, "") != 0)
@@ -310,7 +310,7 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
-  if (vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", &m_visualization.scanAngle.minAngle, pProgramState->settings.visualization.scanAngle.minAngle) != vE_Success && vdkProjectNode_GetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", &m_visualization.scanAngle.maxAngle, pProgramState->settings.visualization.scanAngle.maxAngle) != vE_Success)
+  if (udProjectNode_GetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", &m_visualization.scanAngle.minAngle, pProgramState->settings.visualization.scanAngle.minAngle) != udE_Success && udProjectNode_GetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", &m_visualization.scanAngle.maxAngle, pProgramState->settings.visualization.scanAngle.maxAngle) != udE_Success)
   {
     const char *pScanAngle = m_metadata.Get("AttrMinMax_udScanAngle").AsString();
     if (pScanAngle != nullptr && udStrcmp(pScanAngle, "") != 0)
@@ -328,20 +328,20 @@ void vcModel::OnNodeUpdate(vcState *pProgramState)
     }
   }
 
-  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", &m_visualization.pointSourceID.defaultColour, pProgramState->settings.visualization.pointSourceID.defaultColour);
+  udProjectNode_GetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", &m_visualization.pointSourceID.defaultColour, pProgramState->settings.visualization.pointSourceID.defaultColour);
 
   for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
   {
-    vdkProjectNode_GetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), &m_visualization.returnNumberColours[i], pProgramState->settings.visualization.returnNumberColours[i]);
-    vdkProjectNode_GetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), &m_visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
+    udProjectNode_GetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), &m_visualization.returnNumberColours[i], pProgramState->settings.visualization.returnNumberColours[i]);
+    udProjectNode_GetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), &m_visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
   }
 
   m_visualization.displacement.bounds = udFloat2::create((float)displacement.x, (float)displacement.y);
 
-  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.minColour", &m_visualization.displacement.min, pProgramState->settings.visualization.displacement.min);
-  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.maxColour", &m_visualization.displacement.max, pProgramState->settings.visualization.displacement.max);
-  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.errorColour", &m_visualization.displacement.error, pProgramState->settings.visualization.displacement.error);
-  vdkProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.midColour", &m_visualization.displacement.mid, pProgramState->settings.visualization.displacement.mid);
+  udProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.minColour", &m_visualization.displacement.min, pProgramState->settings.visualization.displacement.min);
+  udProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.maxColour", &m_visualization.displacement.max, pProgramState->settings.visualization.displacement.max);
+  udProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.errorColour", &m_visualization.displacement.error, pProgramState->settings.visualization.displacement.error);
+  udProjectNode_GetMetadataUint(m_pNode, "visualization.displacement.midColour", &m_visualization.displacement.mid, pProgramState->settings.visualization.displacement.mid);
 
   // TODO: Handle this better (EVC-535)
   pProgramState->settings.visualization.minIntensity = udMax(pProgramState->settings.visualization.minIntensity, m_visualization.minIntensity);
@@ -391,16 +391,16 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
     udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
 
     if (m_pCurrentZone != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, udPGT_Point, &position, 1);
     else if (m_pPreferredProjection != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, udPGT_Point, &position, 1);
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
 
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
   }
 }
 
@@ -420,7 +420,12 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
   ImGui::InputScalarN(vcString::Get("sceneModelPosition"), ImGuiDataType_Double, &position.x, 3);
 
   if (ImGui::IsItemDeactivatedAfterEdit())
+  {
     repackMatrix = true;
+    static udDouble3 minDouble = udDouble3::create(-1e7, -1e7, -1e7);
+    static udDouble3 maxDouble = udDouble3::create(1e7, 1e7, 1e7);
+    position = udClamp(position, minDouble, maxDouble);
+  }    
 
   udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
   ImGui::InputScalarN(vcString::Get("sceneModelRotation"), ImGuiDataType_Double, &eulerRotation.x, 3);
@@ -441,41 +446,41 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
 
     if (m_pCurrentZone != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, udPGT_Point, &position, 1);
     else if (m_pPreferredProjection != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, udPGT_Point, &position, 1);
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, vdkPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
 
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
+    udProjectNode_SetMetadataDouble(m_pNode, "transform.scale", scale.x);
   }
 
   // Show visualization info
   if (vcSettingsUI_VisualizationSettings(&m_visualization))
   {
-    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
+    udProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
     //Set all here
-    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.minIntensity", m_visualization.minIntensity);
-    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.maxIntensity", m_visualization.maxIntensity);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.x", m_visualization.displacement.bounds.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.y", m_visualization.displacement.bounds.y);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.minColour", m_visualization.displacement.min);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.maxColour", m_visualization.displacement.max);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.errorColour", m_visualization.displacement.error);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.midColour", m_visualization.displacement.mid);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", m_visualization.GPSTime.minTime);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", m_visualization.GPSTime.maxTime);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", m_visualization.scanAngle.minAngle);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", m_visualization.scanAngle.maxAngle);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", m_visualization.pointSourceID.defaultColour);
+    udProjectNode_SetMetadataInt(m_pNode, "visualization.minIntensity", m_visualization.minIntensity);
+    udProjectNode_SetMetadataInt(m_pNode, "visualization.maxIntensity", m_visualization.maxIntensity);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.x", m_visualization.displacement.bounds.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.y", m_visualization.displacement.bounds.y);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.minColour", m_visualization.displacement.min);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.maxColour", m_visualization.displacement.max);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.errorColour", m_visualization.displacement.error);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.midColour", m_visualization.displacement.mid);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", m_visualization.GPSTime.minTime);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", m_visualization.GPSTime.maxTime);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", m_visualization.scanAngle.minAngle);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", m_visualization.scanAngle.maxAngle);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", m_visualization.pointSourceID.defaultColour);
 
     for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
     {
-      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), m_visualization.returnNumberColours[i]);
-      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), m_visualization.numberOfReturnsColours[i]);
+      udProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), m_visualization.returnNumberColours[i]);
+      udProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), m_visualization.numberOfReturnsColours[i]);
     }
   }
 
@@ -498,43 +503,43 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
         ImGui::Indent();
         switch (m_pointCloudHeader.attributes.pDescriptors[i].typeInfo)
         {
-        case vdkAttributeTypeInfo_uint8:
+        case udATI_uint8:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint8"));
           break;
-        case vdkAttributeTypeInfo_uint16:
+        case udATI_uint16:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint16"));
           break;
-        case vdkAttributeTypeInfo_uint32:
+        case udATI_uint32:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint32"));
           break;
-        case vdkAttributeTypeInfo_uint64:
+        case udATI_uint64:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeUint64"));
           break;
-        case vdkAttributeTypeInfo_int8:
+        case udATI_int8:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt8"));
           break;
-        case vdkAttributeTypeInfo_int16:
+        case udATI_int16:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt16"));
           break;
-        case vdkAttributeTypeInfo_int32:
+        case udATI_int32:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt32"));
           break;
-        case vdkAttributeTypeInfo_int64:
+        case udATI_int64:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeInt64"));
           break;
-        case vdkAttributeTypeInfo_float32:
+        case udATI_float32:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat32"));
           break;
-        case vdkAttributeTypeInfo_float64:
+        case udATI_float64:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeFloat64"));
           break;
-        case vdkAttributeTypeInfo_color32:
+        case udATI_color32:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeColour"));
           break;
-        case vdkAttributeTypeInfo_normal32:
+        case udATI_normal32:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeNormal"));
           break;
-        case vdkAttributeTypeInfo_vec3f32:
+        case udATI_vec3f32:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeType"), vcString::Get("attributeTypeVec3F32"));
           break;
         default:
@@ -544,12 +549,12 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
 
         ImGui::BulletText("%s", buffer);
 
-        switch (m_pointCloudHeader.attributes.pDescriptors[i].blendMode)
+        switch (m_pointCloudHeader.attributes.pDescriptors[i].blendType)
         {
-        case vdkABM_Mean:
+        case udABT_Mean:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingMean"));
           break;
-        case vdkABM_SingleValue:
+        case udABT_FirstChild:
           vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("attributeBlending"), vcString::Get("attributeBlendingSingle"));
           break;
         default:
@@ -572,37 +577,37 @@ void vcModel::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
 {
   if (vcSettingsUI_VisualizationSettings(&m_visualization))
   {
-    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
+    udProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
     //Set all here
-    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.minIntensity", m_visualization.minIntensity);
-    vdkProjectNode_SetMetadataInt(m_pNode, "visualization.maxIntensity", m_visualization.maxIntensity);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.x", m_visualization.displacement.bounds.x);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.y", m_visualization.displacement.bounds.y);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.minColour", m_visualization.displacement.min);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.maxColour", m_visualization.displacement.max);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.errorColour", m_visualization.displacement.error);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.midColour", m_visualization.displacement.mid);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", m_visualization.GPSTime.minTime);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", m_visualization.GPSTime.maxTime);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", m_visualization.scanAngle.minAngle);
-    vdkProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", m_visualization.scanAngle.maxAngle);
-    vdkProjectNode_SetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", m_visualization.pointSourceID.defaultColour);
+    udProjectNode_SetMetadataInt(m_pNode, "visualization.minIntensity", m_visualization.minIntensity);
+    udProjectNode_SetMetadataInt(m_pNode, "visualization.maxIntensity", m_visualization.maxIntensity);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.x", m_visualization.displacement.bounds.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.displacement.y", m_visualization.displacement.bounds.y);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.minColour", m_visualization.displacement.min);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.maxColour", m_visualization.displacement.max);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.errorColour", m_visualization.displacement.error);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.displacement.midColour", m_visualization.displacement.mid);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.minTime", m_visualization.GPSTime.minTime);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.GPSTime.maxTime", m_visualization.GPSTime.maxTime);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.minAngle", m_visualization.scanAngle.minAngle);
+    udProjectNode_SetMetadataDouble(m_pNode, "visualization.scanAngle.maxAngle", m_visualization.scanAngle.maxAngle);
+    udProjectNode_SetMetadataUint(m_pNode, "visualization.pointSourceID.defaultColour", m_visualization.pointSourceID.defaultColour);
 
     for (uint32_t i = 0; i < vcVisualizationSettings::s_maxReturnNumbers; ++i)
     {
-      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), m_visualization.returnNumberColours[i]);
-      vdkProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), m_visualization.numberOfReturnsColours[i]);
+      udProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.returnNumberColours[%u]", i), m_visualization.returnNumberColours[i]);
+      udProjectNode_SetMetadataUint(m_pNode, udTempStr("visualization.numberOfReturnsColours[%u]", i), m_visualization.numberOfReturnsColours[i]);
     }
   }
 }
 
-void vcModel::ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty)
+void vcModel::ContextMenuListModels(vcState *pProgramState, udProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty)
 {
-  vdkProjectNode *pChildNode = pParentNode->pFirstChild;
+  udProjectNode *pChildNode = pParentNode->pFirstChild;
 
   while (pChildNode != nullptr)
   {
-    if (pChildNode->itemtype == vdkPNT_Folder)
+    if (pChildNode->itemtype == udPNT_Folder)
     {
       ContextMenuListModels(pProgramState, pChildNode, ppCurrentSelectedModel, pProjectNodeType, allowEmpty);
     }
@@ -733,37 +738,37 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
           if (!udStrchr(pProgramState->modelPath, "."))
             udStrcat(pProgramState->modelPath, SupportedTileTypes_QueryExport[0]);
 
-          vdkQueryFilter *pFilter = ((s_pQuery == nullptr) ? nullptr : s_pQuery->m_pFilter);
-          vdkPointCloud *pCloud = m_pPointCloud;
+          udQueryFilter *pFilter = ((s_pQuery == nullptr) ? nullptr : s_pQuery->m_pFilter);
+          udPointCloud *pCloud = m_pPointCloud;
 
           ++pProgramState->backgroundWork.exportsRunning;
 
           udWorkerPoolCallback callback = [pProgramState, pCloud, pFilter](void*)
           {
-            vdkError result = vdkPointCloud_Export(pCloud, pProgramState->modelPath, pFilter);
-            if (result != vE_Success)
+            udError result = udPointCloud_Export(pCloud, pProgramState->modelPath, pFilter);
+            if (result != udE_Success)
             {
               vcState::ErrorItem status;
               status.source = vcES_File;
               status.pData = udStrdup(pProgramState->modelPath);
               switch (result)
               {
-              case vE_OpenFailure:
+              case udE_OpenFailure:
                 status.resultCode = udR_OpenFailure;
                 break;
-              case vE_ReadFailure:
+              case udE_ReadFailure:
                 status.resultCode = udR_ReadFailure;
                 break;
-              case vE_WriteFailure:
+              case udE_WriteFailure:
                 status.resultCode = udR_WriteFailure;
                 break;
-              case vE_OutOfSync:
+              case udE_OutOfSync:
                 status.resultCode = udR_OutOfSync;
                 break;
-              case vE_ParseError:
+              case udE_ParseError:
                 status.resultCode = udR_ParseError;
                 break;
-              case vE_ImageParseError:
+              case udE_ImageParseError:
                 status.resultCode = udR_ImageLoadFailure;
                 break;
               default:
@@ -841,18 +846,10 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 #endif //VC_HASCONVERT
 }
 
-void vcModel::Cleanup(vcState *pProgramState)
+void vcModel::Cleanup(vcState * /*pProgramState*/)
 {
-  vdkPointCloud_Unload(&m_pPointCloud);
+  udPointCloud_Unload(&m_pPointCloud);
   udFree(m_pCurrentZone);
-
-  if (m_pWatermark != nullptr)
-  {
-    if (pProgramState->pSceneWatermark == m_pWatermark)
-      pProgramState->pSceneWatermark = nullptr;
-
-    vcTexture_Destroy(&m_pWatermark);
-  }
 
   m_visualization.pointSourceID.colourMap.Deinit();
 }

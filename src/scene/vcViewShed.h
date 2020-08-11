@@ -3,7 +3,7 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
+#include "udRenderContext.h"
 
 class vcViewShed : public vcSceneItem
 {
@@ -14,7 +14,7 @@ private:
   uint32_t m_hiddenColour;
 
 public:
-  vcViewShed(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcViewShed(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcViewShed() {};
 
   void OnNodeUpdate(vcState *pProgramState);

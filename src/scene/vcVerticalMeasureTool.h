@@ -3,8 +3,8 @@
 
 #include "vcSceneItem.h"
 #include "vcCamera.h"
-#include "vdkRenderContext.h"
-#include "vdkError.h"
+#include "udRenderContext.h"
+#include "udError.h"
 #include "vcFenceRenderer.h"
 #include "vcLabelRenderer.h"
 #include "vcImageRenderer.h"
@@ -15,7 +15,7 @@
 class vcVerticalMeasureTool : public vcSceneItem
 {
 public:
-  vcVerticalMeasureTool(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcVerticalMeasureTool(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   virtual ~vcVerticalMeasureTool();
 
   void Preview(const udDouble3 &position);
@@ -40,9 +40,9 @@ private:
 
 private:
   bool m_done;
-  bool m_pickStart;
-  bool m_pickEnd;
+  int32_t m_selectedPoint;
   bool m_markDelete;
+  bool m_showAllDistances;
   udDouble3 m_points[3];
 
   vcLabelInfo m_labelList[2];
@@ -53,8 +53,11 @@ private:
   uint32_t m_lineColour;
   float m_lineWidth;
 
-  char m_description[vcMaxPathLength];
+  double m_distStraight;
+  double m_distHoriz;
+  double m_distVert;
 
+  char m_description[vcMaxPathLength];
 };
 
 #endif

@@ -1,14 +1,14 @@
 #ifndef vcProxyHelper_h__
 #define vcProxyHelper_h__
 
-#include "vdkError.h"
+#include "udError.h"
 
 struct vcState;
 
-vdkError vcProxyHelper_AutoDetectProxy(vcState *pProgramState);
+udError vcProxyHelper_AutoDetectProxy(vcState *pProgramState);
 
-vdkError vcProxyHelper_TestProxy(vcState *pProgramState);
+udError vcProxyHelper_TestProxy(vcState *pProgramState);
 
-vdkError vcProxyHelper_SetUserAndPass(vcState *pProgramState, const char *pProxyUsername, const char *pProxyPassword);
+udError vcProxyHelper_SetUserAndPass(vcState *pProgramState, const char *pProxyUsername, const char *pProxyPassword);
 
 #endif

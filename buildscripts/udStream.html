@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
 <html>
 <head>
-<title>Vault Client</title>
+<title>udStream</title>
 <style>
 	html, body {
 		width: 100%;
@@ -63,11 +63,11 @@
 <body>
 	<div id="statusLoading" class="statusBox">
 		<div class="loader"></div><br />
-		<span>Loading Euclideon Vault Client...</span>
+		<span>Loading udStream...</span>
 	</div>
 	<div id="statusFailure" class="statusBox" hidden>
 		<div class="failure">X</div><br />
-		<span>Sorry, it look like your browser isn't supported in this version of Euclideon Vault Client!<br /><br />Please use the latest version of Google Chrome on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
+		<span>Sorry, it look like your browser isn't supported in this version of udStream!<br /><br />Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
 	</div>
 	<canvas id="canvas"></canvas>
 	<script>
@@ -103,7 +103,7 @@
 		var Module = {
 			arguments: (arg !== null ? [ arg ] : null),
 			canvas: document.getElementById('canvas'),
-			mainScriptUrlOrBlob:"vaultClient.js",
+			mainScriptUrlOrBlob:"udStream.js",
 			preRun: [
 				function() {
 					FS.mkdir("/libsdl");
@@ -124,15 +124,15 @@
 					text = m[1];
 				}
 
-				if (text == "Running...")
-					document.getElementById("statusLoading").hidden = true;
-
 				console.log(text);
+			},
+			onMainLoopStart: function() {
+				document.getElementById("statusLoading").hidden = true;
 			}
 		};
 
 		Module.setStatus('Downloading...');
 	</script>
-	<script src="vaultClient.js"></script>
+	<script src="udStream.js"></script>
 </body>
 </html>

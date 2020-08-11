@@ -12,6 +12,7 @@
 #include "vcCamera.h"
 #include "vcGLState.h"
 #include "vcTexture.h"
+#include "vcUnitConversion.h"
 
 #include "imgui.h"
 
@@ -51,7 +52,8 @@ enum
 {
   vcMaxPathLength = 512,
   vcMetadataMaxLength = 256,
-  vcMaxProjectHistoryCount = 5
+  vcMaxProjectHistoryCount = 50,
+  vcMaxTileLayerCount = 3
 };
 
 enum vcWindowLayout
@@ -67,6 +69,7 @@ enum vcSettingsUIRegions
   vcSR_Maps,
   vcSR_Visualisations,
   vcSR_Tools,
+  vcSR_UnitsOfMeasurement,
   vcSR_KeyBindings,
   vcSR_ConvertDefaults,
   vcSR_Screenshot,
@@ -124,7 +127,7 @@ enum vcSkyboxType
 struct vcLanguageOption
 {
   // Arbitrary limits
-  char languageName[32];
+  char languageName[40];
   char filename[16];
 };
 
@@ -157,6 +160,7 @@ struct vcVisualizationSettings
   {
     double minTime;
     double maxTime;
+    vcTimeReference inputFormat; //This should ony be GPS or GPSAdjusted 
   } GPSTime;
 
   struct
@@ -200,17 +204,23 @@ struct vcToolSettings
 
   struct
   {
+    udFloat4 colour;
+  } fill;
+
+  struct
+  {
     udFloat4 textColour;
     udFloat4 backgroundColour;
     int textSize;
   } label;
 };
 
-struct ProjectHistoryInfo
+struct vcProjectHistoryInfo
 {
+  bool isServerProject; // or local
   const char *pName;
   const char *pPath;
-  // TODO: Date, etc.
+  // TODO: Local timestamp
 };
 
 struct vcSettings
@@ -221,6 +231,8 @@ struct vcSettings
 
   bool onScreenControls;
 
+  vcUnitConversionData unitConversionData;
+
   struct
   {
     bool showCameraInfo;
@@ -229,7 +241,6 @@ struct vcSettings
     bool showEuclideonLogo;
     bool showAdvancedGIS;
     bool sceneExplorerCollapsed; // True if scene explorer is collapsed.
-    bool loginRenderLicense;
 
     struct
     {
@@ -277,8 +288,8 @@ struct vcSettings
     bool rememberServer;
     char serverURL[vcMaxPathLength];
 
-    bool rememberUsername;
-    char username[vcMaxPathLength];
+    bool rememberEmail;
+    char email[vcMaxPathLength];
 
     char proxy[vcMaxPathLength];
     char proxyTestURL[vcMaxPathLength];
@@ -356,14 +367,19 @@ struct vcSettings
     vcTileRendererMapQuality mapQuality;
     vcTileRendererFlags mapOptions;
 
-    float mapHeight;
+    struct Layer
+    {
+      bool enabled;
+      float mapHeight;
 
-    char mapType[32]; // 'custom', 'euc-osm-base', 'euc-az-aerial', 'euc-az-roads'
-    vcMapServer customServer;
-    vcMapServer activeServer; // The server settings actually in use
+      char mapType[32]; // 'custom', 'euc-osm-base', 'euc-az-aerial', 'euc-az-roads'
+      vcMapServer customServer;
+      vcMapServer activeServer; // The server settings actually in use
 
-    vcMapTileBlendMode blendMode;
-    float transparency;
+      vcMapTileBlendMode blendMode;
+      float transparency;
+    } layers[vcMaxTileLayerCount];
+    int activeLayerCount;
   } maptiles;
 
   struct
@@ -376,15 +392,6 @@ struct vcSettings
   struct
   {
     char tempDirectory[vcMaxPathLength];
-    struct
-    {
-      bool isDirty;
-      char filename[vcMaxPathLength];
-      vcTexture *pTexture;
-      int width;
-      int height;
-    } watermark;
-
     char author[vcMetadataMaxLength];
     char comment[vcMetadataMaxLength];
     char copyright[vcMetadataMaxLength];
@@ -406,8 +413,8 @@ struct vcSettings
 
   struct
   {
-    udChunkedArray<ProjectHistoryInfo> projects;
-  } projectHistory;
+    udChunkedArray<vcProjectHistoryInfo> projects;
+  } projectsHistory;
 
   // These are experimental features that will eventually be removed or moved to another setting.
   // They will mostly be exposed via the System->Experiments menu to hide them away from most users
@@ -466,7 +473,7 @@ const float vcSL_ColourByHeightMax = 1000.f;
 const float vcSL_ColourByDepthMin = 0.f;
 const float vcSL_ColourByDepthMax = 1000.f;
 const float vcSL_ContourDistanceMin = 0.f;
-const float vcSL_ContourDistanceMax = 100.f;
+const float vcSL_ContourDistanceMax = 1000.f;
 const float vcSL_ContourBandHeightMin = 0.f;
 const float vcSL_ContourBandHeightMax = 10.f;
 
@@ -478,19 +485,16 @@ bool vcSettings_Save(vcSettings *pSettings);
 
 void vcSettings_Cleanup(vcSettings *pSettings);
 
-// Uses udTempStr internally.
-const char *vcSettings_GetAssetPath(const char *pFilename);
-
 // Provides a handler for "asset://" files
 udResult vcSettings_RegisterAssetFileHandler();
 
 // Various settings helpers
 udResult vcSettings_UpdateLanguageOptions(vcSettings *pSettings);
-void vcSettings_ApplyMapChange(vcSettings *pSettings);
+void vcSettings_ApplyMapChange(vcSettings *pSettings, int affectedMapLayer);
 
 // Load Branding Info
 void vcSettings_LoadBranding(vcState *pState);
 
-void vcSettings_CleanupHistoryProjectItem(ProjectHistoryInfo *pProjectItem);
+void vcSettings_CleanupHistoryProjectItem(vcProjectHistoryInfo *pProjectItem);
 
 #endif // !vcSettings_h__

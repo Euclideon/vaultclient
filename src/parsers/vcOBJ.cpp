@@ -3,8 +3,6 @@
 #include "udFile.h"
 #include "udStringUtil.h"
 
-#include "vdkTriangleVoxelizer.h"
-
 #define TEXT_BUFFER_SIZE            (1048576) // 1MB buffer
 #define TEXT_BUFFER_REPLENISH_MARK  (65536)   // Move unread data back and re-fill buffer whenever the last 64k is reached
 

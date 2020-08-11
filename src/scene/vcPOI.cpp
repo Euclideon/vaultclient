@@ -15,6 +15,7 @@
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "vcCDT.h"
 
 const char *vcFRVMStrings[] =
 {
@@ -53,9 +54,9 @@ public:
 
   }
 
-  virtual vdkProjectGeometryType GetGeometryType() const
+  virtual udProjectGeometryType GetGeometryType() const
   {
-    return m_pParent->m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString;
+    return m_pParent->m_line.closed ? udPGT_Polygon : udPGT_LineString;
   }
 
   virtual void HandleBasicUI(vcState *pProgramState, size_t itemID)
@@ -63,47 +64,47 @@ public:
     if (m_pParent->m_line.numPoints > 1)
     {
       if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), itemID), &m_pParent->m_showLength))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_pParent->m_showAllLengths))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_pParent->m_showArea))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showArea", m_pParent->m_showArea);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showArea", m_pParent->m_showArea);
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), itemID), &m_pParent->m_line.closed))
         vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, GetGeometryType(), m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
 
-      if (GetGeometryType() == vdkPGT_Polygon)
+      if (GetGeometryType() == udPGT_Polygon)
       {
         if (ImGui::Checkbox(udTempStr("%s##POIShowFill%zu", vcString::Get("scenePOILineShowFill"), itemID), &m_pParent->m_showFill))
-          vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showFill", m_pParent->m_showFill);
+          udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showFill", m_pParent->m_showFill);
       }      
 
       if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), itemID), &m_pParent->m_line.lineWidth, 0.01f, 1000.f, "%.2f", 3.f))
-        vdkProjectNode_SetMetadataDouble(m_pParent->m_pNode, "lineWidth", (double)m_pParent->m_line.lineWidth);
+        udProjectNode_SetMetadataDouble(m_pParent->m_pNode, "lineWidth", (double)m_pParent->m_line.lineWidth);
 
       const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationScreenLine"), vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
       if (ImGui::Combo(udTempStr("%s##POIFenceStyle%zu", vcString::Get("scenePOILineOrientation"), itemID), (int *)&m_pParent->m_line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions)))
-        vdkProjectNode_SetMetadataString(m_pParent->m_pNode, "lineMode", vcFRVMStrings[m_pParent->m_line.fenceMode]);
+        udProjectNode_SetMetadataString(m_pParent->m_pNode, "lineMode", vcFRVMStrings[m_pParent->m_line.fenceMode]);
 
       if (m_pParent->m_line.fenceMode != vcRRVM_ScreenLine)
       {
         const char *lineOptions[] = { vcString::Get("scenePOILineStyleArrow"), vcString::Get("scenePOILineStyleGlow"), vcString::Get("scenePOILineStyleSolid"), vcString::Get("scenePOILineStyleDiagonal") };
         if (ImGui::Combo(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineStyle"), itemID), (int *)&m_pParent->m_line.lineStyle, lineOptions, (int)udLengthOf(lineOptions)))
-          vdkProjectNode_SetMetadataString(m_pParent->m_pNode, "lineStyle", vcFRIMStrings[m_pParent->m_line.lineStyle]);
+          udProjectNode_SetMetadataString(m_pParent->m_pNode, "lineStyle", vcFRIMStrings[m_pParent->m_line.lineStyle]);
       }
 
       if (vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourPrimary%zu", vcString::Get("scenePOILineColour1"), itemID), &m_pParent->m_line.colourPrimary, ImGuiColorEditFlags_None))
-        vdkProjectNode_SetMetadataUint(m_pParent->m_pNode, "lineColourPrimary", m_pParent->m_line.colourPrimary);
+        udProjectNode_SetMetadataUint(m_pParent->m_pNode, "lineColourPrimary", m_pParent->m_line.colourPrimary);
 
       if (m_pParent->m_line.isDualColour && vcIGSW_ColorPickerU32(udTempStr("%s##POILineColourSecondary%zu", vcString::Get("scenePOILineColour2"), itemID), &m_pParent->m_line.colourSecondary, ImGuiColorEditFlags_None))
-        vdkProjectNode_SetMetadataUint(m_pParent->m_pNode, "lineColourSecondary", m_pParent->m_line.colourSecondary);
+        udProjectNode_SetMetadataUint(m_pParent->m_pNode, "lineColourSecondary", m_pParent->m_line.colourSecondary);
 
-      if (GetGeometryType() == vdkPGT_Polygon)
+      if (GetGeometryType() == udPGT_Polygon)
       {
         if (vcIGSW_ColorPickerU32(udTempStr("%s##POIMeasurementAreaFillColour%zu", vcString::Get("scenePOIFillColour"), itemID), &m_pParent->m_measurementAreaFillColour, ImGuiColorEditFlags_None))
-          vdkProjectNode_SetMetadataUint(m_pParent->m_pNode, "measurementAreaFillColour", m_pParent->m_measurementAreaFillColour);
+          udProjectNode_SetMetadataUint(m_pParent->m_pNode, "measurementAreaFillColour", m_pParent->m_measurementAreaFillColour);
       }
     }
   }
@@ -119,7 +120,7 @@ public:
 
     m_pParent->UpdatePoints(pProgramState);
 
-    vcProject_UpdateNodeGeometryFromCartesian( m_pParent->m_pProject,  m_pParent->m_pNode, pProgramState->geozone,  m_pParent->m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString,  m_pParent->m_line.pPoints,  m_pParent->m_line.numPoints);
+    vcProject_UpdateNodeGeometryFromCartesian( m_pParent->m_pProject,  m_pParent->m_pNode, pProgramState->geozone,  m_pParent->m_line.closed ? udPGT_Polygon : udPGT_LineString,  m_pParent->m_line.pPoints,  m_pParent->m_line.numPoints);
     m_pParent->m_line.selectedPoint =  m_pParent->m_line.numPoints - 1;
   }
 
@@ -138,19 +139,20 @@ public:
       }
     }
 
-    if (GetGeometryType() == vdkPGT_Polygon && m_pParent->m_pPolyModel == nullptr)
-      m_pParent->GenerateLineFillPolygon();
+    if (GetGeometryType() == udPGT_Polygon && m_pParent->m_pPolyModel == nullptr)
+      m_pParent->GenerateLineFillPolygon(pProgramState);
 
     if (m_pParent->m_pPolyModel != nullptr && m_pParent->m_showFill)
     {
-      if (GetGeometryType() == vdkPGT_LineString)
+      if (GetGeometryType() == udPGT_LineString)
         m_pParent->m_showFill = false;
 
       m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
     }
 
     m_pParent->AddFenceToScene(pRenderData);
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
     
     m_pParent->AddAttachedModelsToScene(pProgramState, pRenderData);
     m_pParent->DoFlythrough(pProgramState);
@@ -177,9 +179,9 @@ public:
 
   }
 
-  vdkProjectGeometryType GetGeometryType() const override
+  udProjectGeometryType GetGeometryType() const override
   {
-    return vdkPGT_Point;
+    return udPGT_Point;
   }
 
   void HandlePopupUI(vcState * /*pProgramState*/) override
@@ -189,7 +191,7 @@ public:
     if (ImGui::InputText("A label", buf, bufSize))
     {
 
-      vdkProjectNode_SetMetadataString(m_pParent->m_pNode, "name", buf);
+      udProjectNode_SetMetadataString(m_pParent->m_pNode, "name", buf);
     }
   }
 
@@ -208,7 +210,8 @@ public:
       m_pParent->AddNodeToRenderData(pProgramState, pRenderData, 0);
     }
 
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
   }
 
   vcPOIState_General *ChangeState(vcState *pProgramState) override;
@@ -235,9 +238,9 @@ public:
 
   }
 
-  vdkProjectGeometryType GetGeometryType() const override
+  udProjectGeometryType GetGeometryType() const override
   {
-    return m_pParent->m_line.closed ? vdkPGT_Polygon : vdkPGT_LineString;
+    return m_pParent->m_line.closed ? udPGT_Polygon : udPGT_LineString;
   }
 
   void HandlePopupUI(vcState *pProgramState) override
@@ -246,14 +249,14 @@ public:
     if (m_pParent->m_line.numPoints > 1)
     {
       if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), itemID), &m_pParent->m_showLength))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_pParent->m_showAllLengths))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOICloseAndExit"), itemID), &m_pParent->m_line.closed))
       {
-        vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, vdkPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+        vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
         pProgramState->activeTool = vcActiveTool_Select;
       }
     }
@@ -276,7 +279,7 @@ public:
 
     if (!isPreview)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, vdkPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
       m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
     }
   }
@@ -295,7 +298,8 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
   }
 
   vcPOIState_General *ChangeState(vcState *pProgramState) override;
@@ -322,9 +326,9 @@ public:
 
   }
 
-  vdkProjectGeometryType GetGeometryType() const override
+  udProjectGeometryType GetGeometryType() const override
   {
-    return vdkPGT_Polygon;
+    return udPGT_Polygon;
   }
 
   void HandlePopupUI(vcState * /*pProgramState*/) override
@@ -333,13 +337,13 @@ public:
     if (m_pParent->m_line.numPoints > 1)
     {
       if (ImGui::Checkbox(udTempStr("%s##POIShowLength%zu", vcString::Get("scenePOILineShowLength"), itemID), &m_pParent->m_showLength))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showLength", m_pParent->m_showLength);
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowAllLengths%zu", vcString::Get("scenePOILineShowAllLengths"), itemID), &m_pParent->m_showAllLengths))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showAllLengths", m_pParent->m_showAllLengths);
 
       if (ImGui::Checkbox(udTempStr("%s##POIShowArea%zu", vcString::Get("scenePOILineShowArea"), itemID), &m_pParent->m_showArea))
-        vdkProjectNode_SetMetadataBool(m_pParent->m_pNode, "showArea", m_pParent->m_showArea);
+        udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showArea", m_pParent->m_showArea);
     }
   }
 
@@ -358,7 +362,7 @@ public:
 
     if (!isPreview)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, vdkPGT_Polygon, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_Polygon, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
       m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
     }
   }
@@ -377,11 +381,12 @@ public:
     }
 
     m_pParent->AddFenceToScene(pRenderData);
-    m_pParent->AddLabelsToScene(pRenderData);
+    m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
+    m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
 
     if (m_pParent->m_showFill)
     {
-      m_pParent->GenerateLineFillPolygon();
+      m_pParent->GenerateLineFillPolygon(pProgramState);
       m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
     }
   }
@@ -473,10 +478,11 @@ vcPOIState_General *vcPOIState_MeasureArea::ChangeState(vcState *pProgramState)
 // vcPOI
 //----------------------------------------------------------------------------------------------------
 
-vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcPOI::vcPOI(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
   , m_pState(nullptr)
 {
+  m_pProgramState = pProgramState;
   m_nameColour =  0xFFFFFFFF;
   m_backColour = 0x7F000000;
 
@@ -493,7 +499,7 @@ vcPOI::vcPOI(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState)
   m_line.colourPrimary = 0xFF000000;
   m_line.colourSecondary = 0xFFFFFFFF;
   m_line.lineWidth = 1.0;
-  m_line.closed = (m_pNode->geomtype == vdkPGT_Polygon);
+  m_line.closed = (m_pNode->geomtype == udPGT_Polygon);
   m_line.lineStyle = vcRRIM_Arrow;
   m_line.fenceMode = vcRRVM_Fence;
 
@@ -550,55 +556,55 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   }
 
   const char *pTemp;
-  vdkProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
-  vdkProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
-  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
-  vdkProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
-  vdkProjectNode_GetMetadataUint(m_pNode, "measurementAreaFillColour", &m_measurementAreaFillColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
-  vdkProjectNode_GetMetadataString(m_pNode, "hyperlink", &pTemp, "");
+  udProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_nameColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
+  udProjectNode_GetMetadataUint(m_pNode, "backColour", &m_backColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
+  udProjectNode_GetMetadataUint(m_pNode, "lineColourPrimary", &m_line.colourPrimary, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.line.colour));
+  udProjectNode_GetMetadataUint(m_pNode, "lineColourSecondary", &m_line.colourSecondary, 0xFFFFFFFF);
+  udProjectNode_GetMetadataUint(m_pNode, "measurementAreaFillColour", &m_measurementAreaFillColour, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.fill.colour));
+  udProjectNode_GetMetadataString(m_pNode, "hyperlink", &pTemp, "");
   udStrcpy(m_hyperlink, pTemp);
 
-  vdkProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
+  udProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
   udStrcpy(m_description, pTemp);
 
-  if (vdkProjectNode_GetMetadataBool(m_pNode, "lineDualColour", &m_line.isDualColour, false) != vE_Success)
+  if (udProjectNode_GetMetadataBool(m_pNode, "lineDualColour", (uint32_t*)&m_line.isDualColour, false) != udE_Success)
   {
     m_line.isDualColour = (m_line.colourPrimary != m_line.colourSecondary);
-    vdkProjectNode_SetMetadataBool(m_pNode, "lineDualColour", m_line.isDualColour);
+    udProjectNode_SetMetadataBool(m_pNode, "lineDualColour", m_line.isDualColour);
   }
 
-  vdkProjectNode_GetMetadataBool(m_pNode, "showLength", &m_showLength, false);
-  vdkProjectNode_GetMetadataBool(m_pNode, "showAllLengths", &m_showAllLengths, false);
-  vdkProjectNode_GetMetadataBool(m_pNode, "showArea", &m_showArea, false);
-  vdkProjectNode_GetMetadataBool(m_pNode, "showFill", &m_showFill, false);
+  udProjectNode_GetMetadataBool(m_pNode, "showLength", (uint32_t*)&m_showLength, false);
+  udProjectNode_GetMetadataBool(m_pNode, "showAllLengths", (uint32_t*)&m_showAllLengths, false);
+  udProjectNode_GetMetadataBool(m_pNode, "showArea", (uint32_t*)&m_showArea, false);
+  udProjectNode_GetMetadataBool(m_pNode, "showFill", (uint32_t*)&m_showFill, false);
 
-  m_line.closed = (m_pState->GetGeometryType() == vdkPGT_Polygon);
+  m_line.closed = (m_pState->GetGeometryType() == udPGT_Polygon);
 
   double tempDouble;
-  vdkProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, pProgramState->settings.tools.line.width);
+  udProjectNode_GetMetadataDouble(m_pNode, "lineWidth", (double*)&tempDouble, pProgramState->settings.tools.line.width);
   m_line.lineWidth = (float)tempDouble;
 
-  vdkProjectNode_GetMetadataString(m_pNode, "lineStyle", &pTemp, vcFRIMStrings[pProgramState->settings.tools.line.style]);
+  udProjectNode_GetMetadataString(m_pNode, "lineStyle", &pTemp, vcFRIMStrings[pProgramState->settings.tools.line.style]);
   int i = 0;
   for (; i < vcRRIM_Count; ++i)
     if (udStrEquali(pTemp, vcFRIMStrings[i]))
       break;
   m_line.lineStyle = (vcFenceRendererImageMode)i;
 
-  vdkProjectNode_GetMetadataString(m_pNode, "lineMode", &pTemp, vcFRVMStrings[pProgramState->settings.tools.line.fenceMode]);
+  udProjectNode_GetMetadataString(m_pNode, "lineMode", &pTemp, vcFRVMStrings[pProgramState->settings.tools.line.fenceMode]);
   for (i = 0; i < vcRRVM_Count; ++i)
     if (udStrEquali(pTemp, vcFRVMStrings[i]))
       break;
   m_line.fenceMode = (vcFenceRendererVisualMode)i;
 
-  if (vdkProjectNode_GetMetadataString(m_pNode, "attachmentURI", &pTemp, nullptr) == vE_Success)
+  if (udProjectNode_GetMetadataString(m_pNode, "attachmentURI", &pTemp, nullptr) == udE_Success)
   {
     if (!LoadAttachedModel(pTemp))
       LoadAttachedModel(udTempStr("%s%s", pProgramState->activeProject.pRelativeBase, pTemp));
 
-    vdkProjectNode_GetMetadataDouble(m_pNode, "attachmentSpeed", &m_attachment.moveSpeed, 16.667); //60km/hr
+    udProjectNode_GetMetadataDouble(m_pNode, "attachmentSpeed", &m_attachment.moveSpeed, 16.667); //60km/hr
 
-    if (vdkProjectNode_GetMetadataString(m_pNode, "attachmentCulling", &pTemp, "back") == vE_Success)
+    if (udProjectNode_GetMetadataString(m_pNode, "attachmentCulling", &pTemp, "back") == udE_Success)
     {
       if (udStrEquali(pTemp, "none"))
         m_attachment.cullMode = vcGLSCM_None;
@@ -688,24 +694,40 @@ void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
 }
 
-void vcPOI::UpdatePoints(vcState *pProgramState)
+void vcPOI::RebuildSceneLabel(const vcUnitConversionData *pConversionData)
 {
-  CalculateArea();
-  CalculateTotalLength();
-  CalculateCentroid();
-
-  m_pLabelInfo->worldPosition = m_centroid;
-
   char labelBuf[128] = {};
+  char tempBuf[128] = {};
   udStrcat(labelBuf, m_pNode->pName);
 
   if (m_showLength)
-    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("scenePOILineLength"), m_totalLength));
+  {
+    udStrcat(labelBuf, "\n");
+    vcUnitConversion_ConvertAndFormatDistance(tempBuf, 128, m_totalLength, vcDistance_Metres, pConversionData);
+    udStrcat(labelBuf, tempBuf);
+  }
   if (m_showArea)
-    udStrcat(labelBuf, udTempStr("\n%s: %.3f", vcString::Get("scenePOIArea"), m_area));
+  {
+    udStrcat(labelBuf, "\n");
+    vcUnitConversion_ConvertAndFormatArea(tempBuf, 128, m_area, vcArea_SquareMetres, pConversionData);
+    udStrcat(labelBuf, tempBuf);
+  }
 
   udFree(m_pLabelText);
   m_pLabelText = udStrdup(labelBuf);
+}
+
+void vcPOI::UpdatePoints(vcState *pProgramState)
+{
+  CalculateCentroid();
+
+  udDouble3 worldUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid);
+  CalculateArea(udDouble4::create(worldUp, 0.0));
+  CalculateTotalLength();
+
+  m_pLabelInfo->worldPosition = m_centroid;
+
+  RebuildSceneLabel(&pProgramState->settings.unitConversionData);
 
   // update the fence renderer as well
   if (m_line.numPoints > 1)
@@ -724,7 +746,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
       config.ribbonWidth = m_line.lineWidth;
       config.textureScrollSpeed = 1.f;
       config.textureRepeatScale = 1.f;
-      config.worldUp = udFloat3::create(vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid));
+      config.worldUp = udFloat3::create(vcGIS_GetWorldLocalUp(pProgramState->geozone, m_centroid)); //TODO this should be worldUp as calculated above
       
       vcFenceRenderer_SetConfig(m_pFence, config);
 
@@ -757,7 +779,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
 
   // Update Polygon Model
   if (m_pPolyModel != nullptr)
-    GenerateLineFillPolygon();
+    GenerateLineFillPolygon(pProgramState);
 }
 
 void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
@@ -788,17 +810,17 @@ void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_nameColour, ImGuiColorEditFlags_None))
   {
     m_pLabelInfo->textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_nameColour);
-    vdkProjectNode_SetMetadataUint(m_pNode, "nameColour", m_nameColour);
+    udProjectNode_SetMetadataUint(m_pNode, "nameColour", m_nameColour);
   }
 
   if (vcIGSW_ColorPickerU32(udTempStr("%s##POIBackColour%zu", vcString::Get("scenePOILabelBackgroundColour"), *pItemID), &m_backColour, ImGuiColorEditFlags_None))
   {
     m_pLabelInfo->backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_backColour);
-    vdkProjectNode_SetMetadataUint(m_pNode, "backColour", m_backColour);
+    udProjectNode_SetMetadataUint(m_pNode, "backColour", m_backColour);
   }
 
   if (vcIGSW_InputText(vcString::Get("scenePOILabelHyperlink"), m_hyperlink, vcMaxPathLength, ImGuiInputTextFlags_EnterReturnsTrue))
-    vdkProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
+    udProjectNode_SetMetadataString(m_pNode, "hyperlink", m_hyperlink);
 
   if (m_hyperlink[0] != '\0' && ImGui::Button(vcString::Get("scenePOILabelOpenHyperlink")))
   {
@@ -809,7 +831,7 @@ void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   }
 
   if (vcIGSW_InputText(vcString::Get("scenePOILabelDescription"), m_description, sizeof(m_description), ImGuiInputTextFlags_EnterReturnsTrue))
-    vdkProjectNode_SetMetadataString(m_pNode, "description", m_description);
+    udProjectNode_SetMetadataString(m_pNode, "description", m_description);
    
   if (m_attachment.pModel != nullptr)
   {
@@ -819,13 +841,13 @@ void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
     if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
     {
       m_attachment.moveSpeed = udClamp(m_attachment.moveSpeed, minSpeed, maxSpeed);
-      vdkProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
+      udProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
     }
 
     const char *uiStrings[] = { vcString::Get("polyModelCullFaceBack"), vcString::Get("polyModelCullFaceFront"), vcString::Get("polyModelCullFaceNone") };
     const char *optStrings[] = { "back", "front", "none" };
     if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int *)&m_attachment.cullMode, uiStrings, (int)udLengthOf(uiStrings)))
-      vdkProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_attachment.cullMode]);
+      udProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_attachment.cullMode]);
   }
 }
 
@@ -837,7 +859,7 @@ void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_showArea)
   {
-    vcUnitConversion_ConvertAreaToString(buffer, udLengthOf(buffer), m_area, vcArea_SquareMetres);
+    vcUnitConversion_ConvertAndFormatArea(buffer, udLengthOf(buffer), m_area, vcArea_SquareMetres, &pProgramState->settings.unitConversionData);
 
     ImGui::TextUnformatted(vcString::Get("scenePOIArea"));
     ImGui::Indent();
@@ -849,7 +871,7 @@ void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_showLength)
   {
-    vcUnitConversion_ConvertDistanceToString(buffer, udLengthOf(buffer), m_totalLength, vcDistance_Metres);
+    vcUnitConversion_ConvertAndFormatDistance(buffer, udLengthOf(buffer), m_totalLength, vcDistance_Metres, &pProgramState->settings.unitConversionData);
 
     ImGui::TextUnformatted(vcString::Get("scenePOILineLength"));
     ImGui::Indent();
@@ -905,7 +927,7 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
 
         if (result)
         {
-          vdkProjectNode_SetMetadataString(m_pNode, "attachmentURI", uriBuffer);
+          udProjectNode_SetMetadataString(m_pNode, "attachmentURI", uriBuffer);
           ImGui::CloseCurrentPopup();
         }
         else
@@ -935,7 +957,7 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
     if (ImGui::SliderScalar(vcString::Get("scenePOIAttachmentSpeed"), ImGuiDataType_Double, &m_attachment.moveSpeed, &minSpeed, &maxSpeed))
     {
       m_attachment.moveSpeed = udClamp(m_attachment.moveSpeed, minSpeed, maxSpeed);
-      vdkProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
+      udProjectNode_SetMetadataDouble(m_pNode, "attachmentSpeed", m_attachment.moveSpeed);
     }
   }
   else
@@ -947,6 +969,7 @@ void vcPOI::HandleAttachmentUI(vcState * /*pProgramState*/)
 void vcPOI::HandleToolUI(vcState *pProgramState)
 {
   m_pState->HandlePopupUI(pProgramState);
+  HandleSceneEmbeddedUI(pProgramState);
 }
 
 void vcPOI::InsertPoint(const udDouble3 &position)
@@ -975,6 +998,9 @@ void vcPOI::RemovePoint(vcState *pProgramState, int index)
 
   --m_line.numPoints;
 
+  if (m_line.selectedPoint == m_line.numPoints)
+    --m_line.selectedPoint;
+
   UpdatePoints(pProgramState);
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
 
@@ -988,6 +1014,7 @@ void vcPOI::ChangeProjection(const udGeoZone &newZone)
 {
   udFree(m_line.pPoints);
   vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, newZone, &m_line.pPoints, &m_line.numPoints);
+  UpdatePoints(m_pProgramState);
 }
 
 void vcPOI::Cleanup(vcState *pProgramState)
@@ -1054,17 +1081,14 @@ vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRende
   return pInstance;
 }
 
-void vcPOI::CalculateArea()
+void vcPOI::CalculateArea(const udDouble4 &projectionPlane)
 {
   m_area = 0.0;
 
   if (m_line.numPoints < 3)
     return;
 
-  //TODO This assumes we have a simple polygon.
-  //     Also we currently project the points onto the ground plane to find area,
-  //     we should be able to project these onto any plane.
-  m_area = udAbs(udSignedSimplePolygonArea3(m_line.pPoints, (size_t)m_line.numPoints));
+  m_area = udProjectedArea(projectionPlane, m_line.pPoints, (size_t)m_line.numPoints);
 }
 
 void vcPOI::CalculateTotalLength()
@@ -1104,7 +1128,7 @@ void vcPOI::CalculateCentroid()
   m_centroid = (aabbMin + aabbMax) * 0.5;
 }
 
-void vcPOI::AddLengths()
+void vcPOI::AddLengths(const vcUnitConversionData *pConversionData)
 {
   // j = previous, i = current
   int j = udMax(0, m_line.numPoints - 1);
@@ -1130,7 +1154,10 @@ void vcPOI::AddLengths()
 
       vcLabelInfo* pLabel = m_lengthLabels.GetElement(i);
       pLabel->worldPosition = (m_line.pPoints[j] + m_line.pPoints[i]) / 2;
-      udSprintf(&pLabel->pText, "%.3f", lineLength);
+
+      char buffer[128] = {};
+      vcUnitConversion_ConvertAndFormatDistance(buffer, 128, lineLength, vcDistance_Metres, pConversionData);
+      udSprintf(&pLabel->pText, "%s", buffer);
     }
 
     j = i;
@@ -1204,13 +1231,13 @@ void vcPOI::AddFenceToScene(vcRenderData *pRenderData)
     pRenderData->lines.PushBack(m_pLine);
 }
 
-void vcPOI::AddLabelsToScene(vcRenderData *pRenderData)
+void vcPOI::AddLabelsToScene(vcRenderData *pRenderData, const vcUnitConversionData *pConversionData)
 {
   if (m_pLabelInfo != nullptr)
   {
     if (m_showAllLengths && m_line.numPoints > 1)
     {
-      AddLengths();
+      AddLengths(pConversionData);
 
       for (size_t i = 0; i < m_lengthLabels.length; ++i)
       {
@@ -1245,54 +1272,74 @@ void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderD
   pInstance->selectable = true;
 }
 
-void vcPOI::GenerateLineFillPolygon()
+void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 {
   if (m_line.numPoints >= 3)
   {
-    udDouble3 min = m_line.pPoints[0];
-    udDouble3 max = m_line.pPoints[0];
-
-    for (int pointIndex = 1; pointIndex < m_line.numPoints; ++pointIndex)
-      for (int xyz = 0; xyz < 3; ++xyz)
-      {
-        min[xyz] = udMin(min[xyz], m_line.pPoints[pointIndex][xyz]);
-        max[xyz] = udMax(max[xyz], m_line.pPoints[pointIndex][xyz]);
-      }
-
-    udFloat3 center = udFloat3::create((min + max) / 2.0 - m_line.pPoints[0]);
-
-    // Add triangle(s)
-    int numVerts = m_line.numPoints + 1;
-    int numIndices = m_line.numPoints * 3;
-
-    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numVerts, udAF_Zero);
-    uint32_t *pIndices = udAllocType(uint32_t, numIndices, udAF_Zero);
-
     udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
+    udDouble2 min = {};
+    udDouble2 max = {};
+    std::vector<udDouble2> trianglePointList;
+    
+    udDouble3 centerPoint = udDouble3::zero();
+    double invNumPoints = 1.0 / (double)m_line.numPoints;
+    for (int64_t i = 0; i < m_line.numPoints; ++i)
+      centerPoint += m_line.pPoints[i] * invNumPoints;
+    
+    // Rotate
+    udDoubleQuat rotate = vcGIS_GetQuaternion(pProgramState->geozone, centerPoint);
+    udDoubleQuat rotateInverse = udInverse(rotate);
 
-    pVerts[0] = { center, defaultNormal, defaultUV };
+    udDouble3 *pModifiedVerts = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
     for (int i = 0; i < m_line.numPoints; ++i)
-      pVerts[i + 1] = { udFloat3::create(m_line.pPoints[i] - m_line.pPoints[0]), defaultNormal, defaultUV };
+      pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
 
-    for (int i = 0; i < m_line.numPoints; ++i)
+    // Generate Triangles
+    vcCDT_ProcessOrignal(pModifiedVerts, m_line.numPoints, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointList);
+       
+    int numPoints = (int)trianglePointList.size();
+
+    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numPoints, udAF_Zero);
+
+    for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
     {
-      int indicesIndex = i * 3;
-      pIndices[indicesIndex + 0] = 0; // center
-      pIndices[indicesIndex + 1] = i + 1;
-      pIndices[indicesIndex + 2] = i + 2;
+      udFloat3 pos = udFloat3::create((float)trianglePointList[i].x, (float)trianglePointList[i].y, 0);      
+      pVerts[i] = { pos, defaultNormal, defaultUV };
+    }
+    
+    // Un-flatten 2D Result
+    for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
+    {
+      double closestDist = FLT_MAX;
+      float closestZ = 0;
+      for (int pointIndex = 0; pointIndex < m_line.numPoints; ++pointIndex)
+      {
+        udDouble2 pos = (pModifiedVerts[pointIndex] - pModifiedVerts[0]).toVector2();
+    
+        double dist = udMag2<double>(pos - trianglePointList[i]);
+        if (dist < closestDist)
+        {
+          closestDist = dist;
+          closestZ = (float)(pModifiedVerts[pointIndex].z - pModifiedVerts[0].z);
+        }
+      }
+    
+      pVerts[i].position.z = closestZ;
     }
 
-    // Wrap last triangle around to first vertex
-    pIndices[m_line.numPoints * 3 - 1] = 1;
+    // Un-Rotate
+    udFloatQuat rotatef = udFloatQuat::create(rotate);
+    for (int64_t i = 0; i < (int64_t)trianglePointList.size(); ++i)
+      pVerts[i].position = rotatef.apply(pVerts[i].position);
 
     vcPolygonModel_Destroy(&m_pPolyModel);
-    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numVerts, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), pIndices, numIndices);
+    vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numPoints, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)));
 
     m_pPolyModel->modelOffset = udDouble4x4::translation(m_line.pPoints[0]);
 
+    udFree(pModifiedVerts);
     udFree(pVerts);
-    udFree(pIndices);
   }
 }
 
@@ -1333,6 +1380,7 @@ void vcPOI::AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRend
     pModel->worldMat = attachmentMat;
     pModel->cullFace = m_attachment.cullMode;
     pModel->selectable = true;
+    pModel->tint = udFloat4::one();
 
     // Update the camera if the camera is coming along
     if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)

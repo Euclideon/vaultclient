@@ -1,6 +1,6 @@
 #include "vcLiveFeed.h"
 
-#include "vdkServerAPI.h"
+#include "udServerAPI.h"
 
 #include "vcState.h"
 #include "vcRender.h"
@@ -117,13 +117,13 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   const char *pServerAddr = "v1/feeds/fetch";
   const char *pMessage = udTempStr("{ \"groupid\": \"%s\", \"time\": %f, \"newer\": %s }", udUUID_GetAsString(&pInfo->pFeed->m_groupID), pInfo->newer ? pInfo->pFeed->m_newestFeedUpdate : pInfo->pFeed->m_oldestFeedUpdate, pInfo->newer ? "true" : "false");
 
-  vdkError vError = vdkServerAPI_Query(pInfo->pProgramState->pVDKContext, pServerAddr, pMessage, &pFeedsJSON);
+  udError vError = udServerAPI_Query(pInfo->pProgramState->pUDSDKContext, pServerAddr, pMessage, &pFeedsJSON);
 
   double updatedTime = 0.0;
 
   pInfo->pFeed->m_lastFeedSync = udGetEpochSecsUTCf();
 
-  if (vError == vE_Success)
+  if (vError == udE_Success)
   {
     udJSON data;
     if (data.Parse(pFeedsJSON) == udR_Success)
@@ -274,13 +274,13 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
   }
 
 epilogue:
-  vdkServerAPI_ReleaseResult(&pFeedsJSON);
+  udServerAPI_ReleaseResult(&pFeedsJSON);
 
   pInfo->pFeed->m_loadStatus = vcSLS_Loaded;
 }
 
 
-vcLiveFeed::vcLiveFeed(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcLiveFeed::vcLiveFeed(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_selectedItem(0),
   m_visibleItems(0),
@@ -309,17 +309,17 @@ void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
 {
   const char *pTempStr = nullptr;
 
-  vdkProjectNode_GetMetadataString(m_pNode, "groupid", &pTempStr, nullptr);
+  udProjectNode_GetMetadataString(m_pNode, "groupid", &pTempStr, nullptr);
   udUUID_Clear(&m_groupID);
   udUUID_SetFromString(&m_groupID, pTempStr);
 
-  vdkProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 300.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
-  vdkProjectNode_GetMetadataDouble(m_pNode, "lodModifier", &m_labelLODModifier, 1.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "updateFrequency", &m_updateFrequency, 30.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "maxDisplayTime", &m_decayFrequency, 300.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
+  udProjectNode_GetMetadataDouble(m_pNode, "lodModifier", &m_labelLODModifier, 1.0);
 
-  vdkProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
-  vdkProjectNode_GetMetadataBool(m_pNode, "snapToMap", &m_snapToMap, false);
+  udProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", (uint32_t*)&m_tweenPositionAndOrientation, true);
+  udProjectNode_GetMetadataBool(m_pNode, "snapToMap", (uint32_t*)&m_snapToMap, false);
 
   ChangeProjection(pProgramState->geozone);
 }
@@ -504,7 +504,7 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
     if (ImGui::SliderScalar(vcString::Get("liveFeedUpdateFrequency"), ImGuiDataType_Double, &m_updateFrequency, &updateFrequencyMinValue, &updateFrequencyMaxValue, "%.0f s"))
     {
       m_updateFrequency = udClamp(m_updateFrequency, updateFrequencyMinValue, updateFrequencyMaxValue);
-      vdkProjectNode_SetMetadataDouble(m_pNode, "updateFrequency", m_updateFrequency);
+      udProjectNode_SetMetadataDouble(m_pNode, "updateFrequency", m_updateFrequency);
     }
   }
 
@@ -516,7 +516,7 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
     if (ImGui::SliderScalar(vcString::Get("liveFeedMaxDisplayTime"), ImGuiDataType_Double, &m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f s", 4.f))
     {
       m_decayFrequency = udClamp(m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
-      vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayTime", m_decayFrequency);
+      udProjectNode_SetMetadataDouble(m_pNode, "maxDisplayTime", m_decayFrequency);
 
       double recently = udGetEpochSecsUTCf() - m_decayFrequency;
 
@@ -539,7 +539,7 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
       if (ImGui::SliderScalar(vcString::Get("liveFeedDisplayDistance"), ImGuiDataType_Double, &m_maxDisplayDistance, &displayDistanceMinValue, &displayDistanceMaxValue, "%.0f", 3.f))
       {
         m_maxDisplayDistance = udClamp(m_maxDisplayDistance, displayDistanceMinValue, displayDistanceMaxValue);
-        vdkProjectNode_SetMetadataDouble(m_pNode, "maxDisplayDistance", m_maxDisplayDistance);
+        udProjectNode_SetMetadataDouble(m_pNode, "maxDisplayDistance", m_maxDisplayDistance);
       }
     }
 
@@ -551,17 +551,17 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
       if (ImGui::SliderScalar(vcString::Get("liveFeedLODModifier"), ImGuiDataType_Double, &m_labelLODModifier, &minLODModifier, &maxLODModifier, "%.2f", 2.f))
       {
         m_labelLODModifier = udClamp(m_labelLODModifier, minLODModifier, maxLODModifier);
-        vdkProjectNode_SetMetadataDouble(m_pNode, "lodModifier", m_labelLODModifier);
+        udProjectNode_SetMetadataDouble(m_pNode, "lodModifier", m_labelLODModifier);
       }
     }
 
     // Tween
     if (ImGui::Checkbox(vcString::Get("liveFeedTween"), &m_tweenPositionAndOrientation))
-      vdkProjectNode_SetMetadataBool(m_pNode, "tweenEnabled", m_tweenPositionAndOrientation);
+      udProjectNode_SetMetadataBool(m_pNode, "tweenEnabled", m_tweenPositionAndOrientation);
 
     // Snap to map
     if (ImGui::Checkbox(vcString::Get("liveFeedSnapMap"), &m_snapToMap))
-      vdkProjectNode_SetMetadataBool(m_pNode, "snapToMap", m_snapToMap);
+      udProjectNode_SetMetadataBool(m_pNode, "snapToMap", m_snapToMap);
 
     char groupStr[udUUID::udUUID_Length+1];
     udStrcpy(groupStr, udUUID_GetAsString(&m_groupID));
@@ -570,7 +570,7 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
       if (udUUID_IsValid(groupStr))
       {
         udUUID_SetFromString(&m_groupID, groupStr);
-        vdkProjectNode_SetMetadataString(m_pNode, "groupid", groupStr);
+        udProjectNode_SetMetadataString(m_pNode, "groupid", groupStr);
       }
     }
   }

@@ -1,7 +1,7 @@
 #ifndef vcConvert_h__
 #define vcConvert_h__
 
-#include "vdkConvert.h"
+#include "udConvert.h"
 
 #include "vcFeatures.h"
 #include "vcState.h"
@@ -31,8 +31,8 @@ struct vcConvertItem
 {
   udMutex *pMutex;
 
-  vdkConvertContext *pConvertContext;
-  const vdkConvertInfo *pConvertInfo;
+  udConvertContext *pConvertContext;
+  const udConvertInfo *pConvertInfo;
   volatile vcConvertQueueStatus status;
   bool previewRequested;
 
@@ -43,16 +43,7 @@ struct vcConvertItem
 
   const char *pItemProcessing;
   udChunkedArray<const char*> itemsToProcess;
-  udChunkedArray<vdkConvertSourceProjection> detectedProjections;
-
-  struct
-  {
-    bool isDirty;
-    const char *pFilename;
-    vcTexture *pTexture;
-    int width;
-    int height;
-  } watermark;
+  udChunkedArray<udConvertSourceProjection> detectedProjections;
 };
 
 struct vcConvertContext

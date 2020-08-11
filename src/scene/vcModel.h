@@ -3,18 +3,18 @@
 
 #include "vcSceneItem.h"
 #include "vcSettings.h"
-#include "vdkRenderContext.h"
-#include "vdkPointCloud.h"
+#include "udRenderContext.h"
+#include "udPointCloud.h"
 
-struct vdkPointCloud;
+struct udPointCloud;
 struct vcTexture;
 struct vcState;
 
 class vcModel : public vcSceneItem
 {
 public:
-  vdkPointCloud *m_pPointCloud;
-  vdkPointCloudHeader m_pointCloudHeader;
+  udPointCloud *m_pPointCloud;
+  udPointCloudHeader m_pointCloudHeader;
 
   udDouble3 m_pivot; // The models pivot in local space
   udDouble4x4 m_defaultMatrix; // This is the matrix from the model header- in m_pPreferredZone space
@@ -32,8 +32,8 @@ public:
 
   vcVisualizationSettings m_visualization; // Overrides global visualization settings
 
-  vcModel(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
-  vcModel(vcState *pProgramState, const char *pName, vdkPointCloud *pCloud);
+  vcModel(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
+  vcModel(vcState *pProgramState, const char *pName, udPointCloud *pCloud);
   ~vcModel() {};
 
   void OnNodeUpdate(vcState *pProgramState);
@@ -53,7 +53,7 @@ public:
   udDouble4x4 GetWorldSpaceMatrix();
   vcGizmoAllowedControls GetAllowedControls();
 
-  void ContextMenuListModels(vcState *pProgramState, vdkProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty);
+  void ContextMenuListModels(vcState *pProgramState, udProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty);
 
 private:
   void Init(vcState *pProgramState);

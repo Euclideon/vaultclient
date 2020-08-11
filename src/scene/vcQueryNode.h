@@ -4,10 +4,11 @@
 #include "vcSceneItem.h"
 
 struct vcState;
-struct vdkQueryFilter;
+struct udQueryFilter;
 
 enum vcQueryNodeFilterShape
 {
+  vcQNFS_None = -1,
   vcQNFS_Box,
   vcQNFS_Cylinder,
   vcQNFS_Sphere,
@@ -29,7 +30,7 @@ private:
   udDouble3 m_ypr;
 
 public:
-  vcQueryNode(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState);
+  vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcQueryNode();
 
   void OnNodeUpdate(vcState *pProgramState);
@@ -44,7 +45,24 @@ public:
   udDouble4x4 GetWorldSpaceMatrix();
   vcGizmoAllowedControls GetAllowedControls();
 
-  vdkQueryFilter *m_pFilter;
+  udQueryFilter *m_pFilter;
 };
+
+struct udProjectNode;
+struct vcQueryNodeFilterInput
+{
+  vcQueryNodeFilterShape shape;
+  udDouble3 pickPoint;
+  udDouble3 size;
+  udDouble3 endPoint;
+  udProjectNode *pNode;
+  uint32_t holdCount;
+};
+
+void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape);
+void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter);
+
+void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, bool isBtnReleased);
+bool vcQueryNodeFilter_IsDragActive(vcState *pProgramState);
 
 #endif //vcViewpoint_h__

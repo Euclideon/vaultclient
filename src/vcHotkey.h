@@ -46,6 +46,9 @@ enum vcBind
   vcB_ToggleAnnotateTool,
   vcB_OpenSettingsMenu,
   vcB_ToggleMeasureHeightTool,
+  vcB_AddBoxFilter,
+  vcB_AddSphereFilter,
+  vcB_AddCylinderFilter,
 
   vcB_Count
 };

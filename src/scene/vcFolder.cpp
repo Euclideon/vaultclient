@@ -27,7 +27,7 @@
 #include "vcPlaceLayer.h"
 #include "vcVerticalMeasureTool.h"
 
-void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkProjectNode* pNode)
+void HandleNodeSelection(vcState* pProgramState, udProjectNode *pParent, udProjectNode* pNode)
 {
   if (pProgramState->sceneExplorer.selectUUIDWhenPossible[0] == '\0' || !udStrEqual(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID) || pNode->pUserData == nullptr)
     return;
@@ -51,7 +51,7 @@ void HandleNodeSelection(vcState* pProgramState, vdkProjectNode *pParent, vdkPro
   memset(pProgramState->sceneExplorer.selectUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.selectUUIDWhenPossible));
 }
 
-vcFolder::vcFolder(vcProject *pProject, vdkProjectNode *pNode, vcState *pProgramState) :
+vcFolder::vcFolder(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
   m_loadStatus = vcSLS_Loaded;
@@ -62,7 +62,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible)
     return;
 
-  vdkProjectNode *pNode = m_pNode->pFirstChild;
+  udProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
     if (pNode->pUserData != nullptr)
@@ -76,7 +76,7 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       if (!pSceneItem->IsValid())
       {
         pSceneItem->Cleanup(pProgramState);
-        vdkProjectNode *nextNode = pNode->pNextSibling;
+        udProjectNode *nextNode = pNode->pNextSibling;
         vcProject_RemoveItem(pProgramState, m_pNode, pNode);
         pNode = nextNode;
         continue;
@@ -91,17 +91,17 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     else
     {
       // We need to create one
-      if (pNode->itemtype == vdkPNT_Folder)
+      if (pNode->itemtype == udPNT_Folder)
         pNode->pUserData = new vcFolder(&pProgramState->activeProject, pNode, pProgramState);
-      else if (pNode->itemtype == vdkPNT_PointOfInterest)
+      else if (pNode->itemtype == udPNT_PointOfInterest)
         pNode->pUserData = new vcPOI(&pProgramState->activeProject, pNode, pProgramState);
-      else if (pNode->itemtype == vdkPNT_PointCloud)
+      else if (pNode->itemtype == udPNT_PointCloud)
         pNode->pUserData = new vcModel(&pProgramState->activeProject, pNode, pProgramState);
-      else if (pNode->itemtype == vdkPNT_LiveFeed)
+      else if (pNode->itemtype == udPNT_LiveFeed)
         pNode->pUserData = new vcLiveFeed(&pProgramState->activeProject, pNode, pProgramState);
-      else if (pNode->itemtype == vdkPNT_Media)
+      else if (pNode->itemtype == udPNT_Media)
         pNode->pUserData = new vcMedia(&pProgramState->activeProject, pNode, pProgramState);
-      else if (pNode->itemtype == vdkPNT_Viewpoint)
+      else if (pNode->itemtype == udPNT_Viewpoint)
         pNode->pUserData = new vcViewpoint(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "I3S"))
         pNode->pUserData = new vcI3S(&pProgramState->activeProject, pNode, pProgramState);
@@ -134,7 +134,7 @@ void vcFolder::OnNodeUpdate(vcState * /*pProgramState*/)
 
 void vcFolder::ChangeProjection(const udGeoZone &newZone)
 {
-  vdkProjectNode *pNode = m_pNode->pFirstChild;
+  udProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
     if (pNode->pUserData)
@@ -145,7 +145,7 @@ void vcFolder::ChangeProjection(const udGeoZone &newZone)
 
 void vcFolder::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
-  vdkProjectNode *pNode = m_pNode->pFirstChild;
+  udProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
     if (pNode->pUserData)
@@ -168,7 +168,7 @@ void vcFolder_AddInsertSeparator()
 
 void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
-  vdkProjectNode *pNode = m_pNode->pFirstChild;
+  udProjectNode *pNode = m_pNode->pFirstChild;
   while (pNode != nullptr)
   {
     ++(*pItemID);
@@ -185,7 +185,16 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       pSceneItem->m_editName = (pSceneItem->m_editName && pSceneItem->m_selected);
 
       // Visibility
-      ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &pSceneItem->m_visible);
+      if (ImGui::Checkbox(udTempStr("###SXIVisible%zu", *pItemID), &pSceneItem->m_visible) && pSceneItem->m_selected)
+      {
+        // Multiselect match selection
+        for (vcSceneItemRef &sceneItemRef : pProgramState->sceneExplorer.selectedItems)
+        {
+          vcSceneItem *pOtherSceneItem = (vcSceneItem *)sceneItemRef.pItem->pUserData;
+          pOtherSceneItem->m_visible = pSceneItem->m_visible;
+        }
+      }
+
       ImGui::SameLine();
 
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
@@ -213,7 +222,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         vcIGSW_InputTextWithResize(udTempStr("###FolderName%zu", *pItemID), &pSceneItem->m_pName, &pSceneItem->m_nameCapacity);
         if (ImGui::IsItemDeactivatedAfterEdit())
         {
-          if (vdkProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != vE_Success)
+          if (udProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != udE_Success)
           {
             vcState::ErrorItem projectError;
             projectError.source = vcES_ProjectChange;
@@ -275,7 +284,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         ImVec2 maxPos = ImGui::GetItemRectMax();
         ImVec2 mousePos = ImGui::GetMousePos();
 
-        if (pNode->itemtype == vdkPNT_Folder && mousePos.y > minPos.y && mousePos.y < maxPos.y)
+        if (pNode->itemtype == udPNT_Folder && mousePos.y > minPos.y && mousePos.y < maxPos.y)
           pProgramState->sceneExplorer.insertItem = { pNode, nullptr };
         else
           pProgramState->sceneExplorer.insertItem = { m_pNode, pNode }; // This will become pNode->pNextSibling after drop
@@ -303,18 +312,18 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           }
         }
 
-        if (pNode->itemtype != vdkPNT_Folder && pSceneItem->GetWorldSpacePivot() != udDouble3::zero() && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
+        if (pNode->itemtype != udPNT_Folder && pSceneItem->GetWorldSpacePivot() != udDouble3::zero() && ImGui::Selectable(vcString::Get("sceneExplorerMoveTo")))
         {
           // Trigger a camera movement path
-          if (pNode->itemtype != vdkPNT_Viewpoint)
+          if (pNode->itemtype != udPNT_Viewpoint)
           {
             pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
           }
           else
           {
             pProgramState->cameraInput.inputState = vcCIS_MoveToViewpoint;
-            vdkProjectNode_GetMetadataDouble(pNode, "transform.heading", &pProgramState->cameraInput.headingPitch.x, 0.0);
-            vdkProjectNode_GetMetadataDouble(pNode, "transform.pitch", &pProgramState->cameraInput.headingPitch.y, 0.0);
+            udProjectNode_GetMetadataDouble(pNode, "transform.heading", &pProgramState->cameraInput.headingPitch.x, 0.0);
+            udProjectNode_GetMetadataDouble(pNode, "transform.pitch", &pProgramState->cameraInput.headingPitch.y, 0.0);
             pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->cameraInput.headingPitch);
           }
 
@@ -391,7 +400,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
 void vcFolder::Cleanup(vcState *pProgramState)
 {
-  vdkProjectNode *pNode = m_pNode->pFirstChild;
+  udProjectNode *pNode = m_pNode->pFirstChild;
 
   while (pNode != nullptr)
   {

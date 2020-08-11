@@ -1,4 +1,4 @@
-project "vaultClient"
+project "udStream"
 	--Settings
 	kind "WindowedApp"
 
@@ -34,7 +34,7 @@ project "vaultClient"
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "ImDrawIdx=int" }
 
-	injectvaultsdkbin()
+	ProcessudSDK()
 
 	local excludedSourceFileNames = {}
 	if _OPTIONS["gfxapi"] ~= "opengl" then
@@ -111,9 +111,21 @@ project "vaultClient"
 
 	filter { "system:linux" }
 		linkoptions { "-Wl,-rpath '-Wl,$$ORIGIN'" } -- Check beside the executable for the SDK
-		links { "SDL2", "GL" }
+		linkoptions { "-no-pie" } -- Enable double click on binary in Ubuntu
+		links { "SDL2", "GL", "z" }
 		includedirs { "3rdParty" }
 		files { "3rdParty/GL/glext.h" }
+
+	-- Clang on Ubuntu 16.04 doesn't support -no-pie
+	if os.host() == premake.LINUX then
+		status = os.execute('echo "int main() { return 0; }" | clang -o a.out -no-pie -xc - > /dev/null 2>2&1')
+		if not status then
+			filter { "system:linux", "toolset:clang" }
+				removelinkoptions { "-no-pie" }
+			filter {}
+		end
+		os.execute("rm a.out")
+	end
 
 	filter { "system:android" }
 		links { "m", "android", "SDL2", "GLESv3" }
@@ -133,9 +145,9 @@ project "vaultClient"
 		}
 
 	filter { "system:ios" }
-		files { "iOS-Info.plist", "builds/libvaultSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
+		files { "iOS-Info.plist", "builds/libudSDK.dylib", "icons/Images.xcassets", "src/vcWebFile.mm" }
 		sysincludedirs { "3rdParty/SDL2-2.0.8/include" }
-		xcodebuildresources { "libvaultSDK", "Images.xcassets" }
+		xcodebuildresources { "libudSDK", "Images.xcassets" }
 		xcodebuildsettings { ["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon" }
 		removefiles { "3rdParty/glew/glew.c" }
 		libdirs { "3rdParty/SDL2-2.0.8/lib/ios" }
@@ -151,18 +163,15 @@ project "vaultClient"
 		links { "GLEW" }
 		linkoptions  { "-s USE_WEBGL2=1", "-s FULL_ES3=1", --[["-s DEMANGLE_SUPPORT=1",]] "-s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\", \"getValue\", \"setValue\", \"UTF8ToString\", \"stringToUTF8\"]'" }
 
-	filter { "system:emscripten", "options:force-vaultsdk" }
+	filter { "system:emscripten", "options:force-udsdk" }
 		removeincludedirs { "3rdParty/udcore/Include" }
 		removelinks { "udCore" .. (projectSuffix or "") }
 
-	filter { "system:emscripten", "options:not force-vaultsdk" }
+	filter { "system:emscripten", "options:not force-udsdk" }
 		removefiles { "src/vCore/vUUID.cpp", "src/vCore/vWorkerThread.cpp" }
 
 	filter { "system:not windows" }
 		links { "dl" }
-
-	filter { "system:linux" }
-		links { "z" }
 
 	filter { "options:gfxapi=opengl" }
 		defines { "GRAPHICS_API_OPENGL=1" }
@@ -243,12 +252,12 @@ project "vaultClient"
 	filter { "files:3rdParty/**" }
 		warnings "Off"
 
-	filter { "not options:gfxapi=opengl" }
+	filter { "not options:gfxapi=" .. gfxDefault }
 		objdir ("Output/intermediate/%{prj.name}/%{cfg.buildcfg}_%{cfg.platform}" .. _OPTIONS["gfxapi"])
 		targetname ("%{prj.name}_" .. _OPTIONS["gfxapi"])
 
 	filter {}
-	
+
 	symbols "On"
 	targetdir "builds"
 	debugdir "builds"
