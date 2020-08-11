@@ -46,6 +46,7 @@
 #include "vcConstants.h"
 #include "vcVerticalMeasureTool.h"
 #include "vcQueryNode.h"
+#include "vcViewpoint.h"
 
 #include "vcGLState.h"
 #include "vcFramebuffer.h"
@@ -2400,6 +2401,31 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       vcState::ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
+      projectError.resultCode = udR_Failure_;
+
+      pProgramState->errorItems.PushBack(projectError);
+
+      vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+    }
+  }
+
+  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpointWithVisSetting"), nullptr, vcMBBI_SaveViewport, vcMBBG_SameGroup))
+  {
+    udProjectNode *pNode = nullptr;
+    if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == udE_Success)
+    {
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->camera.position, 1);
+
+      udProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
+      udProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
+
+      vcViewpoint::SaveSettings(pProgramState, pNode);
+    }
+    else
+    {
+      vcState::ErrorItem projectError = {};
+      projectError.source = vcES_ProjectChange;
+      projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpointWithVisSetting"));
       projectError.resultCode = udR_Failure_;
 
       pProgramState->errorItems.PushBack(projectError);
