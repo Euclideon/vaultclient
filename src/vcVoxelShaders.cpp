@@ -61,9 +61,9 @@ uint32_t vcVoxelShader_DisplacementDistance(udPointCloud *pPointCloud, const udV
   {
     if (*pDisplacement == FLT_MAX)
       displacementColour = pData->data.displacementAmount.errorColour;
-    else if (*pDisplacement <= pData->data.displacementAmount.minThreshold)
+    else if (udAbs(*pDisplacement) <= pData->data.displacementAmount.minThreshold)
       displacementColour = pData->data.displacementAmount.minColour;
-    else if (*pDisplacement >= pData->data.displacementAmount.maxThreshold)
+    else if (udAbs(*pDisplacement) >= pData->data.displacementAmount.maxThreshold)
       displacementColour = pData->data.displacementAmount.maxColour;
     else
       displacementColour = pData->data.displacementAmount.midColour;
@@ -105,7 +105,7 @@ uint32_t vcVoxelShader_DisplacementDirection(udPointCloud *pPointCloud, const ud
       {
         uint32_t shift = i * 8;
         uint32_t mask = ~(0xFF << shift);
-        uint32_t val = (uint32_t(((displacementColour >> shift) & 0xFF) * udMin(*pDisplacement, 1.f) * 255) << shift);
+        uint32_t val = (uint32_t(((displacementColour >> shift) & 0xFF) * udMin(udAbs(*pDisplacement), 1.f) * 255) << shift);
         displacementColour = (displacementColour & mask) | val;
       }
 
