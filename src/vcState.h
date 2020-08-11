@@ -262,6 +262,8 @@ struct vcState
     vcImageType imageType;
   } image, screenshot;
 
+  bool exportVideo;
+
   struct 
   {
     udChunkedArray<const char *> infoStrings;
