@@ -29,6 +29,8 @@ public:
 
   void SetCameraPosition(vcState *pProgramState);
   udDouble4x4 GetWorldSpaceMatrix();
+  void ApplySettings(vcState *pProgramState);
+  static void SaveSettings(vcState *pProgramState, udProjectNode *pNode);
 };
 
 #endif //vcViewpoint_h__
