@@ -651,42 +651,63 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
           pProgramState->projectInfoTextures.textureSizes.Clear();
           
           // Discover Images
-          std::string infoStr = pInfo;
           int firstIndex = 0;
+          int startStrIndex = 0;
           while (true)
           {
-            size_t startImagePos = infoStr.find('!', firstIndex);
-            size_t openBracketPos = infoStr.find('[', startImagePos);
-            size_t closeBracketPos = infoStr.find(']', openBracketPos);
-            size_t openParanthesisPos = infoStr.find('(', closeBracketPos);
-            size_t closeParanthesisPos = infoStr.find(')', openParanthesisPos);
+            size_t startImagePos = 0;
+            size_t openBracketPos = 0;
+            size_t closeBracketPos = 0;
+            size_t openParanthesisPos = 0;
+            size_t closeParanthesisPos = 0;
 
-            if (startImagePos == std::string::npos ||
-              openBracketPos == std::string::npos ||
-              closeBracketPos == std::string::npos ||
-              openParanthesisPos == std::string::npos ||
-              closeParanthesisPos == std::string::npos)
+            udStrchr(pInfo + firstIndex, "!", &startImagePos);
+            startImagePos += firstIndex;
+            udStrchr(pInfo + startImagePos, "[", &openBracketPos);
+            openBracketPos += startImagePos;
+            udStrchr(pInfo + openBracketPos, "]", &closeBracketPos);
+            closeBracketPos += openBracketPos;
+            udStrchr(pInfo + closeBracketPos, "(", &openParanthesisPos);
+            openParanthesisPos += closeBracketPos;
+            udStrchr(pInfo + openParanthesisPos, ")", &closeParanthesisPos);
+            closeParanthesisPos += openParanthesisPos;
+            
+            const int64_t invalidLen = udStrlen(pInfo);
+
+            if (startImagePos == invalidLen ||
+              openBracketPos == invalidLen ||
+              closeBracketPos == invalidLen ||
+              openParanthesisPos == invalidLen ||
+              closeParanthesisPos == invalidLen)
               break;
 
-            if (openBracketPos == startImagePos + 1)
+            size_t lastCharPos = closeParanthesisPos;
+            if (openBracketPos == startImagePos + 1 &&
+              closeBracketPos > openBracketPos &&
+              openParanthesisPos == closeBracketPos + 1 &&
+              closeParanthesisPos > openParanthesisPos)
             {
-              std::string substring = infoStr.substr(firstIndex, startImagePos - firstIndex);
-              pProgramState->projectInfoTextures.infoStrings.PushBack(udStrdup(substring.c_str()));
+              const char *pSubStr = udStrndup(pInfo + startStrIndex, startImagePos - startStrIndex);
+              pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
 
-              std::string texPath = infoStr.substr(openParanthesisPos + 1, closeParanthesisPos - openParanthesisPos - 1);
-
+              const char *pTexPath = udStrndup(pInfo + (openParanthesisPos + 1), closeParanthesisPos - openParanthesisPos - 1);
               uint32_t w, h;
               vcTexture *pNewTexture = nullptr;
-              vcTexture_CreateFromFilename(&pNewTexture, texPath.c_str(), &w, &h);
+              vcTexture_CreateFromFilename(&pNewTexture, pTexPath, &w, &h);
               pProgramState->projectInfoTextures.textures.PushBack(pNewTexture);
               pProgramState->projectInfoTextures.textureSizes.PushBack(ImVec2((float)w, (float)h));
+
+              firstIndex = (int)(lastCharPos + 1);
+              startStrIndex = firstIndex;
             }
-
-            firstIndex = (int)(closeParanthesisPos + 1);
+            else
+            {
+              firstIndex = (int)(lastCharPos + 1);
+            }
           }
-
-          std::string substring = infoStr.substr(firstIndex);
-          pProgramState->projectInfoTextures.infoStrings.PushBack(udStrdup(substring.c_str()));
+          
+          const char *pSubStr = udStrndup(pInfo + firstIndex, udStrlen(pInfo) - firstIndex);
+          pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
         }
 
         for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
@@ -695,8 +716,6 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
           if (i < pProgramState->projectInfoTextures.infoStrings.length - 1 && pProgramState->projectInfoTextures.textures[i] != nullptr)
             ImGui::Image(pProgramState->projectInfoTextures.textures[i], pProgramState->projectInfoTextures.textureSizes[i]);
         }
-
-        // ImGui::TextWrapped("%s", pInfo);
       }
 
       ImGui::EndChild();
