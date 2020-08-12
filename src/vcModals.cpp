@@ -619,12 +619,11 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   }
 }
 
-#include <string>
 void vcModals_DrawProjectInfo(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ProjectInfo))
     ImGui::OpenPopup(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName));
-  
+
   ImGui::SetNextWindowSize(ImVec2(600, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName), nullptr, ImGuiWindowFlags_NoSavedSettings))
   {
@@ -1235,9 +1234,6 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
 
       ImGui::CloseCurrentPopup();
     }
-
-    if (ImGui::Button(vcString::Get("menuProjectInfoPreview"), ImVec2(-1, 0)))
-      pProgramState->openModals |= 1 << vcMT_ProjectInfo;
 
     ImGui::EndPopup();
   }
