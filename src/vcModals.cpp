@@ -720,8 +720,7 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
 
       ImGui::EndChild();
     }
-    ImGui::EndChild();
-    
+
     if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr || pInfo[0] == '\0')
       ImGui::CloseCurrentPopup();
 
