@@ -223,6 +223,170 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   udProjectNode_GetMetadataUint(m_pNode, "visualisation.number_of_returns.colours_count", &count, count);
   for (uint32_t i = 0; i < count && i < pProgramState->settings.visualization.s_maxReturnNumbers; ++i)
     udProjectNode_GetMetadataUint(m_pNode, udTempStr("visualisation.number_of_returns.colours[%i]", i), &pProgramState->settings.visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
+
+  // Camera lens
+  pStringVal = nullptr;
+  udProjectNode_GetMetadataString(m_pNode, "visualisation.camera_lens.preset", &pStringVal, nullptr);
+  if (udStrEqual(pStringVal, "custom"))
+    pProgramState->settings.camera.lensIndex = vcLS_Custom;
+  else if (udStrEqual(pStringVal, "15mm"))
+    pProgramState->settings.camera.lensIndex = vcLS_15mm;
+  else if (udStrEqual(pStringVal, "24mm"))
+    pProgramState->settings.camera.lensIndex = vcLS_24mm;
+  else if (udStrEqual(pStringVal, "30mm"))
+    pProgramState->settings.camera.lensIndex = vcLS_30mm;
+  else if (udStrEqual(pStringVal, "50mm"))
+    pProgramState->settings.camera.lensIndex = vcLS_50mm;
+  else if (udStrEqual(pStringVal, "70mm"))
+    pProgramState->settings.camera.lensIndex = vcLS_70mm;
+  else if (udStrEqual(pStringVal, "100mm"))
+    pProgramState->settings.camera.lensIndex = vcLS_100mm;
+
+  doubleVal = pProgramState->settings.camera.fieldOfView;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.camera_lens.custom_radians", &doubleVal, doubleVal);
+  pProgramState->settings.camera.fieldOfView = (float)doubleVal;
+
+  // Skybox
+  pStringVal = nullptr;
+  udProjectNode_GetMetadataString(m_pNode, "visualisation.skybox.type", &pStringVal, nullptr);
+  if (udStrEqual(pStringVal, "none"))
+    pProgramState->settings.presentation.skybox.type = vcSkyboxType_None;
+  else if(udStrEqual(pStringVal, "colour"))
+    pProgramState->settings.presentation.skybox.type = vcSkyboxType_Colour;
+  else if (udStrEqual(pStringVal, "simple"))
+    pProgramState->settings.presentation.skybox.type = vcSkyboxType_None;
+  else if (udStrEqual(pStringVal, "atmosphere"))
+    pProgramState->settings.presentation.skybox.type = vcSkyboxType_None;
+
+  for (size_t i = 0; i < pProgramState->settings.presentation.skybox.colour.ElementCount; ++i)
+  {
+    doubleVal = pProgramState->settings.presentation.skybox.colour[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.skybox.colour[%zu]", i), &doubleVal, doubleVal);
+    pProgramState->settings.presentation.skybox.colour[i] = (float)doubleVal;
+  }
+
+  boolVal = pProgramState->settings.presentation.skybox.useLiveTime ? 1 : 0;
+  udProjectNode_GetMetadataBool(m_pNode, "visualisation.skybox.use_live_time", &boolVal, boolVal);
+  pProgramState->settings.presentation.skybox.useLiveTime = (boolVal != 0);
+  boolVal = pProgramState->settings.presentation.skybox.keepSameTime ? 1 : 0;
+  udProjectNode_GetMetadataBool(m_pNode, "visualisation.skybox.lock_sun_position", &boolVal, boolVal);
+  pProgramState->settings.presentation.skybox.keepSameTime = (boolVal != 0);
+  doubleVal = pProgramState->settings.presentation.skybox.timeOfDay;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.skybox.time_of_day", &doubleVal, doubleVal);
+  pProgramState->settings.presentation.skybox.timeOfDay = (float)doubleVal;
+  doubleVal = pProgramState->settings.presentation.skybox.month;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.skybox.time_of_year", &doubleVal, doubleVal);
+  pProgramState->settings.presentation.skybox.month = (float)doubleVal;
+  doubleVal = pProgramState->settings.presentation.skybox.exposure;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.skybox.exposure", &doubleVal, doubleVal);
+  pProgramState->settings.presentation.skybox.exposure = (float)doubleVal;
+
+  // Saturation
+  doubleVal = pProgramState->settings.presentation.saturation;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.saturation", &doubleVal, doubleVal);
+  pProgramState->settings.presentation.saturation = (float)doubleVal;
+
+  // Voxel Shape
+  pStringVal = nullptr;
+  udProjectNode_GetMetadataString(m_pNode, "visualisation.point_mode", &pStringVal, nullptr);
+  if (udStrEqual(pStringVal, "rectangles"))
+    pProgramState->settings.presentation.pointMode = udRCPM_Rectangles;
+  else if (udStrEqual(pStringVal, "cubes"))
+    pProgramState->settings.presentation.pointMode = udRCPM_Cubes;
+  else if (udStrEqual(pStringVal, "points"))
+    pProgramState->settings.presentation.pointMode = udRCPM_Points;
+
+  // Selected Object Highlighting
+  boolVal = pProgramState->settings.objectHighlighting.enable ? 1 : 0;
+  udProjectNode_GetMetadataBool(m_pNode, "visualisation.object_highlighting.enable", &boolVal, boolVal);
+  pProgramState->settings.objectHighlighting.enable = (boolVal != 0);
+  for (size_t i = 0; i < pProgramState->settings.objectHighlighting.colour.ElementCount; ++i)
+  {
+    doubleVal = pProgramState->settings.objectHighlighting.colour[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.object_highlighting.colour[%zu]", i), &doubleVal, doubleVal);
+    pProgramState->settings.objectHighlighting.colour[i] = (float)doubleVal;
+  }
+  doubleVal = pProgramState->settings.objectHighlighting.thickness;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.object_highlighting.thickness", &doubleVal, doubleVal);
+  pProgramState->settings.objectHighlighting.thickness = (float)doubleVal;
+
+  // Post visualization - Edge Highlighting
+  boolVal = pProgramState->settings.postVisualization.edgeOutlines.enable ? 1 : 0;
+  udProjectNode_GetMetadataBool(m_pNode, "visualisation.edge_highlighting.enable", &boolVal, boolVal);
+  pProgramState->settings.postVisualization.edgeOutlines.enable = (boolVal != 0);
+  udProjectNode_GetMetadataInt(m_pNode, "visualisation.edge_highlighting.width", &pProgramState->settings.postVisualization.edgeOutlines.width, pProgramState->settings.postVisualization.edgeOutlines.width);
+  doubleVal = pProgramState->settings.postVisualization.edgeOutlines.threshold;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.edge_highlighting.threshold", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.edgeOutlines.threshold = (float)doubleVal;
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.edgeOutlines.colour.ElementCount; ++i)
+  {
+    doubleVal = pProgramState->settings.postVisualization.edgeOutlines.colour[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.edge_highlighting.colour[%zu]", i), &doubleVal, doubleVal);
+    pProgramState->settings.postVisualization.edgeOutlines.colour[i] = (float)doubleVal;
+  }
+
+  // Post visualization - Colour by Height
+  boolVal = pProgramState->settings.postVisualization.colourByHeight.enable ? 1 : 0;
+  udProjectNode_GetMetadataBool(m_pNode, "visualisation.colour_by_height.enable", &boolVal, boolVal);
+  pProgramState->settings.postVisualization.colourByHeight.enable = (boolVal != 0);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByHeight.minColour.ElementCount; ++i)
+  {
+    doubleVal = pProgramState->settings.postVisualization.colourByHeight.minColour[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.colour_by_height.min_colour[%zu]", i), &doubleVal, doubleVal);
+    pProgramState->settings.postVisualization.colourByHeight.minColour[i] = (float)doubleVal;
+  }
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByHeight.maxColour.ElementCount; ++i)
+  {
+    doubleVal = pProgramState->settings.postVisualization.colourByHeight.maxColour[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.colour_by_height.max_colour[%zu]", i), &doubleVal, doubleVal);
+    pProgramState->settings.postVisualization.colourByHeight.maxColour[i] = (float)doubleVal;
+  }
+  doubleVal = pProgramState->settings.postVisualization.colourByHeight.startHeight;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.colour_by_height.min_height", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.colourByHeight.startHeight = (float)doubleVal;
+  doubleVal = pProgramState->settings.postVisualization.colourByHeight.endHeight;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.colour_by_height.max_height", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.colourByHeight.endHeight = (float)doubleVal;
+
+  // Post visualization - Colour by Depth
+  boolVal = pProgramState->settings.postVisualization.colourByDepth.enable ? 1 : 0;
+  udProjectNode_GetMetadataBool(m_pNode, "visualisation.colour_by_depth.enable", &boolVal, boolVal);
+  pProgramState->settings.postVisualization.colourByDepth.enable = (boolVal != 0);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByDepth.colour.ElementCount; ++i)
+  {
+    doubleVal = pProgramState->settings.postVisualization.colourByDepth.colour[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.colour_by_depth.colour[%zu]", i), &doubleVal, doubleVal);
+    pProgramState->settings.postVisualization.colourByDepth.colour[i] = (float)doubleVal;
+  }
+  doubleVal = pProgramState->settings.postVisualization.colourByDepth.startDepth;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.colour_by_depth.min_depth", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.colourByDepth.startDepth = (float)doubleVal;
+  doubleVal = pProgramState->settings.postVisualization.colourByDepth.endDepth;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.colour_by_depth.max_depth", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.colourByDepth.endDepth = (float)doubleVal;
+
+  // Post visualization - Contours
+  boolVal = pProgramState->settings.postVisualization.contours.enable ? 1 : 0;
+  udProjectNode_GetMetadataBool(m_pNode, "visualisation.contours.enable", &boolVal, boolVal);
+  pProgramState->settings.postVisualization.contours.enable = (boolVal != 0);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByDepth.colour.ElementCount; ++i)
+  {
+    doubleVal = pProgramState->settings.postVisualization.contours.colour[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.contours.colour[%zu]", i), &doubleVal, doubleVal);
+    pProgramState->settings.postVisualization.contours.colour[i] = (float)doubleVal;
+  }
+  doubleVal = pProgramState->settings.postVisualization.contours.distances;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.contours.distances", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.contours.distances = (float)doubleVal;
+  doubleVal = pProgramState->settings.postVisualization.contours.bandHeight;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.contours.band_height", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.contours.bandHeight = (float)doubleVal;
+  doubleVal = pProgramState->settings.postVisualization.contours.rainbowRepeat;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.contours.rainbow_repeat_rate", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.contours.rainbowRepeat = (float)doubleVal;
+  doubleVal = pProgramState->settings.postVisualization.contours.rainbowIntensity;
+  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.contours.rainbow_intensity", &doubleVal, doubleVal);
+  pProgramState->settings.postVisualization.contours.rainbowIntensity = (float)doubleVal;
 }
 
 void vcViewpoint::SaveSettings(vcState *pProgramState, udProjectNode *pNode)
@@ -312,4 +476,74 @@ void vcViewpoint::SaveSettings(vcState *pProgramState, udProjectNode *pNode)
   udProjectNode_SetMetadataUint(pNode, "visualisation.number_of_returns.colours_count", pProgramState->settings.visualization.s_maxReturnNumbers);
   for (uint32_t i = 0; i < pProgramState->settings.visualization.s_maxReturnNumbers; ++i)
     udProjectNode_SetMetadataUint(pNode, udTempStr("visualisation.number_of_returns.colours[%i]", i), pProgramState->settings.visualization.numberOfReturnsColours[i]);
+
+  // Camera lens
+  const char *lensNameArray[] = {
+    "custom",
+    "15mm",
+    "24mm",
+    "30mm",
+    "50mm",
+    "70mm",
+    "100mm",
+  };
+  UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
+  udProjectNode_SetMetadataString(pNode, "visualisation.camera_lens.preset", lensNameArray[pProgramState->settings.camera.lensIndex]);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.camera_lens.custom_radians", pProgramState->settings.camera.fieldOfView);
+
+  // Skybox
+  const char *skyboxOptions[] = { "none", "colour", "simple", "atmosphere" };
+  udProjectNode_SetMetadataString(pNode, "visualisation.skybox.type", skyboxOptions[pProgramState->settings.presentation.skybox.type]);
+  for (size_t i = 0; i < pProgramState->settings.presentation.skybox.colour.ElementCount; ++i)
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.skybox.colour[%zu]", i), pProgramState->settings.presentation.skybox.colour[i]);
+  udProjectNode_SetMetadataBool(pNode, "visualisation.skybox.use_live_time", pProgramState->settings.presentation.skybox.useLiveTime ? 1 : 0);
+  udProjectNode_SetMetadataBool(pNode, "visualisation.skybox.lock_sun_position", pProgramState->settings.presentation.skybox.keepSameTime ? 1 : 0);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.skybox.time_of_day", pProgramState->settings.presentation.skybox.timeOfDay);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.skybox.time_of_year", pProgramState->settings.presentation.skybox.month);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.skybox.exposure", pProgramState->settings.presentation.skybox.exposure);
+
+  // Saturation
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.saturation", pProgramState->settings.presentation.saturation);
+
+  // Voxel Shape
+  const char *voxelOptions[] = { "rectangles", "cubes", "points" };
+  udProjectNode_SetMetadataString(pNode, "visualisation.point_mode", voxelOptions[pProgramState->settings.presentation.pointMode]);
+
+  // Selected Object Highlighting
+  udProjectNode_SetMetadataBool(pNode, "visualisation.object_highlighting.enable", pProgramState->settings.objectHighlighting.enable ? 1 : 0);
+  for (size_t i = 0; i < pProgramState->settings.objectHighlighting.colour.ElementCount; ++i)
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.object_highlighting.colour[%zu]", i), pProgramState->settings.objectHighlighting.colour[i]);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.object_highlighting.thickness", pProgramState->settings.objectHighlighting.thickness);
+
+  // Post visualization - Edge Highlighting
+  udProjectNode_SetMetadataBool(pNode, "visualisation.edge_highlighting.enable", pProgramState->settings.postVisualization.edgeOutlines.enable ? 1 : 0);
+  udProjectNode_SetMetadataInt(pNode, "visualisation.edge_highlighting.width", pProgramState->settings.postVisualization.edgeOutlines.width);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.edge_highlighting.threshold", pProgramState->settings.postVisualization.edgeOutlines.threshold);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.edgeOutlines.colour.ElementCount; ++i)
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.edge_highlighting.colour[%zu]", i), pProgramState->settings.postVisualization.edgeOutlines.colour[i]);
+
+  // Post visualization - Colour by Height
+  udProjectNode_SetMetadataBool(pNode, "visualisation.colour_by_height.enable", pProgramState->settings.postVisualization.colourByHeight.enable ? 1 : 0);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByHeight.minColour.ElementCount; ++i)
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.colour_by_height.min_colour[%zu]", i), pProgramState->settings.postVisualization.colourByHeight.minColour[i]);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByHeight.maxColour.ElementCount; ++i)
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.colour_by_height.max_colour[%zu]", i), pProgramState->settings.postVisualization.colourByHeight.maxColour[i]);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.colour_by_height.min_height", pProgramState->settings.postVisualization.colourByHeight.startHeight);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.colour_by_height.max_height", pProgramState->settings.postVisualization.colourByHeight.endHeight);
+
+  // Post visualization - Colour by Depth
+  udProjectNode_SetMetadataBool(pNode, "visualisation.colour_by_depth.enable", pProgramState->settings.postVisualization.colourByDepth.enable ? 1 : 0);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByDepth.colour.ElementCount; ++i)
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.colour_by_depth.colour[%zu]", i), pProgramState->settings.postVisualization.colourByDepth.colour[i]);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.colour_by_depth.min_depth", pProgramState->settings.postVisualization.colourByDepth.startDepth);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.colour_by_depth.max_depth", pProgramState->settings.postVisualization.colourByDepth.endDepth);
+
+  // Post visualization - Contours
+  udProjectNode_SetMetadataBool(pNode, "visualisation.contours.enable", pProgramState->settings.postVisualization.contours.enable ? 1 : 0);
+  for (size_t i = 0; i < pProgramState->settings.postVisualization.contours.colour.ElementCount; ++i)
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.contours.colour[%zu]", i), pProgramState->settings.postVisualization.contours.colour[i]);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.contours.distances", pProgramState->settings.postVisualization.contours.distances);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.contours.band_height", pProgramState->settings.postVisualization.contours.bandHeight);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.contours.rainbow_repeat_rate", pProgramState->settings.postVisualization.contours.rainbowRepeat);
+  udProjectNode_SetMetadataDouble(pNode, "visualisation.contours.rainbow_intensity", pProgramState->settings.postVisualization.contours.rainbowIntensity);
 }
