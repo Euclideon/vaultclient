@@ -2842,7 +2842,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     ImGui::PopStyleVar(); // Item Spacing
   }
 
-  // TODO: Don't like this...
+  // TODO: I don't like this...
   pProgramState->pActiveViewport = &pProgramState->pViewports[0];
 
   // Can only assign longlat positions in projected space

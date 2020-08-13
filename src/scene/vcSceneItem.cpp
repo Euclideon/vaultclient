@@ -68,7 +68,8 @@ void vcSceneItem::HandleToolUI(vcState * /*pProgramState*/)
 
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->pActiveViewport->camera.position = GetWorldSpacePivot();
+  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+    pProgramState->pViewports[viewportIndex].camera.position = GetWorldSpacePivot();
 }
 
 udDouble3 vcSceneItem::GetWorldSpacePivot()
