@@ -899,8 +899,8 @@ int main(int argc, char **args)
   // default values
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID
   // TODO: Query device and fill screen
-  programState.sceneResolution.x = 1920;
-  programState.sceneResolution.y = 1080;
+  programState.windowResolution.x = 1920;
+  programState.windowResolution.y = 1080;
   programState.settings.onScreenControls = true;
 #elif UDPLATFORM_EMSCRIPTEN
   emscripten_sync_run_in_main_runtime_thread(EM_FUNC_SIG_VI, vcMain_GetScreenResolution, &programState);
@@ -2461,10 +2461,10 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     udProjectNode *pNode = nullptr;
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == udE_Success)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->camera.position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->camera.position, 1);
 
-      udProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
-      udProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
+      udProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->pActiveViewport->camera.headingPitch.x);
+      udProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->pActiveViewport->camera.headingPitch.y);
 
       vcViewpoint::SaveSettings(pProgramState, pNode);
     }
@@ -2607,7 +2607,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
     {
       ImVec2 viewportportPos = ImVec2(windowPos.x + ImGui::GetCursorPosX(), windowPos.y + ImGui::GetCursorPosY());
-      udUInt2 viewportportResolution = udUInt2::create(ImGui::GetColumnWidth(), windowSize.y);
+      udFloat2 viewportportResolution = udFloat2::create(ImGui::GetColumnWidth(), windowSize.y);
 
       vcRenderData renderData = {};
 
@@ -2639,7 +2639,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       vcRender_BeginFrame(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData);
 
       // Actual rendering to this texture is deferred
-      ImGui::Image(renderData.pSceneTexture, ImVec2(pProgramState->pActiveViewport->resolution.x, pProgramState->pActiveViewport->resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
+      ImGui::Image(renderData.pSceneTexture, ImVec2((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
 
       if (viewportIndex == 0 && pProgramState->settings.screenshot.taking)
         pProgramState->screenshot.pImage = renderData.pSceneTexture;
@@ -2842,8 +2842,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     ImGui::PopStyleVar(); // Item Spacing
   }
 
+  // TODO: Don't like this...
   pProgramState->pActiveViewport = &pProgramState->pViewports[0];
-  //  vcGLState_SetViewport(0, 0, pProgramState->windowResolution.x, pProgramState->windowResolution.y);// pRenderContext->sceneResolution.x, pRenderContext->sceneResolution.y);
 
   // Can only assign longlat positions in projected space
   if (pProgramState->geozone.projection != udGZPT_Unknown)

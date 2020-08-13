@@ -1245,6 +1245,9 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   {
     float encodedLabelId = vcRender_EncodeModelId(labelIds + i);
 
+    udUnused(drawList);
+    udUnused(encodedLabelId);
+
     // TODO: Label rendering is disabled 
     //vcLabelRenderer_Render(drawList, renderData.labels[i], encodedLabelId, pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->pActiveViewport->sceneResolution);
   }
