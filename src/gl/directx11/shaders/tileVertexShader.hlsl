@@ -95,7 +95,7 @@ PS_INPUT main(VS_INPUT input)
   tileHeight += input.pos.z * u_objectInfo.y;
 
   float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
-  finalClipPos.z = CalcuteLogDepth(finalClipPos);
+  //finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
   output.colour = u_colour;

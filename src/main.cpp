@@ -2757,9 +2757,21 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       }
       else
       {
+        pProgramState->pActiveViewport->camera.projection = vcCameraProjection_Orthographic;
         pProgramState->pActiveViewport->camera.position = pProgramState->pViewports[0].camera.position;
         pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(pProgramState->pViewports[0].camera.headingPitch.x, -UD_HALF_PI);
 
+        // duplicated code
+        udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
+        cameraPositionInLongLat.z = 0.0;
+        udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
+
+        double cameraHeightAboveEarthSurface = -pProgramState->settings.maptiles.layers[0].mapHeight;
+        udDouble3 earthSurfaceToCamera = pProgramState->pActiveViewport->camera.matrices.camera.axis.t.toVector3() - cameraZeroAltitude;
+        if (udMagSq3(earthSurfaceToCamera) > 0)
+          cameraHeightAboveEarthSurface += udMag3(earthSurfaceToCamera);
+
+        pProgramState->pActiveViewport->camera.orthoSize = cameraHeightAboveEarthSurface * 1.5;
 
         vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), nullptr);
       }
