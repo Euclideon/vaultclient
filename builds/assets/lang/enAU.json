@@ -769,7 +769,7 @@
   "shareMakeShare": "Share with anyone with the share code",
   "shareMakeUnshare": "Share only with the group",
   "shareStatusUnknown": "The sharing status and visibility of this project is unknown. The links may work but will need to be tested.",
-  "shareStatusPublic": "This project is in a public and can be opened by anyone on the server.",
+  "shareStatusPublic": "This project is in a public group and can be opened by anyone on the server.",
   "shareStatusShared": "This project can be opened by anyone on the server using the share code or browser link.",
   "shareStatusNotShared": "This project can only be opened by people in the same group.",
   "_last": "Last item so no one forgets the comma on the line above"
