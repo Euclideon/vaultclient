@@ -2647,7 +2647,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       static bool wasContextMenuOpenLastFrame = false;
       bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
 
-      if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
+      if (viewportIndex == 0 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
       {
         static bool hadMouse = false;
         static udDouble3 mousePosCartesian;
@@ -2746,15 +2746,23 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
       // Render scene to texture
       vcRender_RenderScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-     
-      if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+
+      if (viewportIndex == 0)
       {
-        vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+          vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
+
+        // Camera update has to be here because it depends on previous ImGui state
+        vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
       }
+      else
+      {
+        pProgramState->pActiveViewport->camera.position = pProgramState->pViewports[0].camera.position;
+        pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(pProgramState->pViewports[0].camera.headingPitch.x, -UD_HALF_PI);
 
-      // Camera update has to be here because it depends on previous ImGui state
-      vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
+        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), nullptr);
+      }
 
       // Clean up
       renderData.models.Deinit();

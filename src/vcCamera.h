@@ -46,9 +46,6 @@ struct vcCamera
 
   // input state
   bool isMouseBtnBeingHeld;
-
-  // for ortho
-  double orthoSize;
 };
 
 struct vcState;

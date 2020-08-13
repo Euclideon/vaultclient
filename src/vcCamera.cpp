@@ -507,7 +507,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, udDoub
   }
 
   // Allow camera movement when left mouse button is holding down.
-  if (!pProgramState->modalOpen && isFocused)
+  if (!pProgramState->modalOpen)
   {
     bool enableMove = true;
     ImGuiContext *p = ImGui::GetCurrentContext();
