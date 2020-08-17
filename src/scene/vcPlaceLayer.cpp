@@ -69,7 +69,7 @@ void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   for (size_t i = 0; i < m_places.length; ++i)
   {
-    double distSq = udMagSq(pProgramState->camera.position - m_places[i].localSpace);
+    double distSq = udMagSq(pProgramState->pActiveViewport->camera.position - m_places[i].localSpace);
 
     if (distSq < m_labelDistance * m_labelDistance)
     {

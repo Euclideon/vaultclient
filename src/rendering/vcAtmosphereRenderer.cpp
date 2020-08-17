@@ -300,7 +300,7 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   }
   else if (pProgramState->settings.presentation.skybox.keepSameTime && pProgramState->geozone.projection != udGZPT_Unknown)
   {
-    udDouble3 latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
+    udDouble3 latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
     hourAngleRadians -= UD_DEG2RAD(latLong.y);
 
     terrestrialDateJ2000 = BaseTime + hourAngleRadians / UD_2PI + yearNormalized * DaysPerYear;
@@ -351,9 +351,9 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
     udGeoZone zone = {};
     udGeoZone_SetFromSRID(&zone, 4978);
 
-    udDouble3 camPos = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->geozone, zone);
+    udDouble3 camPos = udGeoZone_TransformPoint(pProgramState->pActiveViewport->camera.position, pProgramState->geozone, zone);
 
-    pAtmosphereRenderer->sunDirection = udGeoZone_TransformPoint(camPos + pAtmosphereRenderer->sunDirection, zone, pProgramState->geozone) - pProgramState->camera.position;
+    pAtmosphereRenderer->sunDirection = udGeoZone_TransformPoint(camPos + pAtmosphereRenderer->sunDirection, zone, pProgramState->geozone) - pProgramState->pActiveViewport->camera.position;
   }
 
   pAtmosphereRenderer->sunDirection = udNormalize(pAtmosphereRenderer->sunDirection);
@@ -367,7 +367,7 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
 {
   bool result = true;
 
-  udDouble3 earthCenter = pProgramState->camera.position;
+  udDouble3 earthCenter = pProgramState->pActiveViewport->camera.position;
   if (pProgramState->geozone.projection == udGZPT_Unknown || pProgramState->geozone.projection >= udGZPT_TransverseMercator)
   {
     if (pProgramState->geozone.projection == udGZPT_Unknown)
@@ -383,13 +383,13 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   {
     udGeoZone destZone = {};
     udGeoZone_SetFromSRID(&destZone, 4978);
-    earthCenter = udGeoZone_TransformPoint(pProgramState->camera.position, pProgramState->geozone, destZone);
+    earthCenter = udGeoZone_TransformPoint(pProgramState->pActiveViewport->camera.position, pProgramState->geozone, destZone);
   }
 
-  earthCenter += pProgramState->camera.cameraUp * pProgramState->settings.maptiles.layers[0].mapHeight;
+  earthCenter += pProgramState->pActiveViewport->camera.cameraUp * pProgramState->settings.maptiles.layers[0].mapHeight;
 
   // calculate the earth radius at in this zone
-  udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
+  udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
   cameraPositionInLongLat.z = 0.0;
   udDouble3 pointOnAltitudeZero = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
   double earthRadius = udClamp(udMag3(pointOnAltitudeZero), pProgramState->geozone.semiMinorAxis, pProgramState->geozone.semiMajorAxis);
@@ -397,10 +397,10 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   earthCenter.z /= kLengthUnitInMeters;
 
   // This commented code is a WIP - working on doing some calculations in eye space
-  udDouble4 earthCenterEyePos = udDouble4::create(earthCenter, 1.0);//pProgramState->camera.matrices.view *udDouble4::create(earthCenter, 1.0);
+  udDouble4 earthCenterEyePos = udDouble4::create(earthCenter, 1.0);//pProgramState->pActiveViewport->camera.matrices.view *udDouble4::create(earthCenter, 1.0);
 
-  udFloat4x4 inverseProjection = udFloat4x4::create(udInverse(pProgramState->camera.matrices.projection));
-  udFloat4x4 inverseView = udFloat4x4::create(udInverse(pProgramState->camera.matrices.view));
+  udFloat4x4 inverseProjection = udFloat4x4::create(udInverse(pProgramState->pActiveViewport->camera.matrices.projection));
+  udFloat4x4 inverseView = udFloat4x4::create(udInverse(pProgramState->pActiveViewport->camera.matrices.view));
 
   vcShader_Bind(pAtmosphereRenderer->renderShader.pProgram);
   pAtmosphereRenderer->renderShader.vertParams.viewFromClip = inverseProjection;
@@ -410,9 +410,9 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.y = (float)earthCenterEyePos.y;
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.z = (float)earthCenterEyePos.z;
   pAtmosphereRenderer->renderShader.fragParams.earthCenter.w = (float)earthRadius;
-  pAtmosphereRenderer->renderShader.fragParams.camera.x = (float)pProgramState->camera.position.x;
-  pAtmosphereRenderer->renderShader.fragParams.camera.y = (float)pProgramState->camera.position.y;
-  pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->camera.position.z;
+  pAtmosphereRenderer->renderShader.fragParams.camera.x = (float)pProgramState->pActiveViewport->camera.position.x;
+  pAtmosphereRenderer->renderShader.fragParams.camera.y = (float)pProgramState->pActiveViewport->camera.position.y;
+  pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->pActiveViewport->camera.position.z;
   pAtmosphereRenderer->renderShader.fragParams.camera.w = (float)(pAtmosphereRenderer->use_luminance != NONE ? pAtmosphereRenderer->exposure * 1e-5 : pAtmosphereRenderer->exposure);
 
   pAtmosphereRenderer->renderShader.fragParams.sunDirection = udFloat4::create(udFloat3::create(pAtmosphereRenderer->sunDirection), 0);

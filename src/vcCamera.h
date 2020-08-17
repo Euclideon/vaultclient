@@ -43,6 +43,9 @@ struct vcCamera
     udDouble4x4 viewProjection;
     udDouble4x4 inverseViewProjection;
   } matrices;
+
+  // input state
+  bool isMouseBtnBeingHeld;
 };
 
 struct vcState;
@@ -128,7 +131,7 @@ enum vcLensSizes
 };
 
 // Applies movement to camera
-void vcCamera_HandleSceneInput(vcState *pProgramState, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
+void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCameraInput *pCameraInput, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
 void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 

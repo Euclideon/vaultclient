@@ -62,15 +62,15 @@ void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
   {
     changed = true;
-    m_CameraHeadingPitch = pProgramState->camera.headingPitch;
-    m_CameraPosition = pProgramState->camera.position;
+    m_CameraHeadingPitch = pProgramState->pActiveViewport->camera.headingPitch;
+    m_CameraPosition = pProgramState->pActiveViewport->camera.position;
   }
 
   if (ImGui::Button(vcString::Get("sceneViewpointSetCameraAndVisSetting")))
   {
     changed = true;
-    m_CameraHeadingPitch = pProgramState->camera.headingPitch;
-    m_CameraPosition = pProgramState->camera.position;
+    m_CameraHeadingPitch = pProgramState->pActiveViewport->camera.headingPitch;
+    m_CameraPosition = pProgramState->pActiveViewport->camera.position;
     SaveSettings(pProgramState, m_pNode);
   }
 
@@ -89,8 +89,8 @@ void vcViewpoint::HandleSceneEmbeddedUI(vcState *pProgramState)
   bool saveVis = ImGui::Button(vcString::Get("sceneViewpointSetCameraAndVisSetting"));
   if (saveCam || saveVis)
   {
-    m_CameraHeadingPitch = pProgramState->camera.headingPitch;
-    m_CameraPosition = pProgramState->camera.position;
+    m_CameraHeadingPitch = pProgramState->pActiveViewport->camera.headingPitch;
+    m_CameraPosition = pProgramState->pActiveViewport->camera.position;
 
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
 
@@ -121,8 +121,11 @@ void vcViewpoint::Cleanup(vcState * /*pProgramState*/)
 
 void vcViewpoint::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->camera.position = m_CameraPosition;
-  pProgramState->camera.headingPitch = m_CameraHeadingPitch;
+  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  {
+    pProgramState->pViewports[viewportIndex].camera.position = m_CameraPosition;
+    pProgramState->pViewports[viewportIndex].camera.headingPitch = m_CameraHeadingPitch;
+  }
 
   ApplySettings(pProgramState);
 }

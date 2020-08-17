@@ -145,6 +145,11 @@ enum vcLoginBackgroundSettings
   vcLBS_LogoAreaSize = 500,
 };
 
+enum
+{
+  vcMaxViewportCount = 2,
+};
+
 const uint32_t WhitePixel = 0xFFFFFFFF;
 
 void vcMain_ShowStartupScreen(vcState *pProgramState);
@@ -202,7 +207,7 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
 
   udSprintf(buffer, "%s/%.4d-%.2d-%.2d-%.2d-%.2d-%.2d.png", pProgramState->settings.screenshot.outputPath, 1900+pTime->tm_year, 1+pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec);
 
-  udResult result = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pRenderContext), buffer);
+  udResult result = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), buffer);
 
   // This must be run here as vcTexture_SaveImage will change which framebuffer is bound but not reset it
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
@@ -349,7 +354,11 @@ void vcMain_MainLoop(vcState *pProgramState)
 
 #ifndef GIT_BUILD
   if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_P))
-    vcRender_ReloadShaders(pProgramState->pRenderContext, pProgramState->pWorkerPool);
+  {
+    for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+      vcRender_ReloadShaders(pProgramState->pViewports[viewportIndex].pRenderContext, pProgramState->pWorkerPool);
+  }
+
 #endif
 
   ImGuiGL_NewFrame(pProgramState->pWindow);
@@ -484,9 +493,9 @@ void vcMain_MainLoop(vcState *pProgramState)
               }
               else
               {
-                pNode->boundingBox[0] = pProgramState->camera.position.x;
-                pNode->boundingBox[1] = pProgramState->camera.position.y;
-                pNode->boundingBox[2] = pProgramState->camera.position.z;
+                pNode->boundingBox[0] = pProgramState->pActiveViewport->camera.position.x;
+                pNode->boundingBox[1] = pProgramState->pActiveViewport->camera.position.y;
+                pNode->boundingBox[2] = pProgramState->pActiveViewport->camera.position.z;
               }
             }
           }
@@ -509,7 +518,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else // Was successful
             {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->camera.position, 1);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
 
               if (firstLoad)
                 udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
@@ -575,7 +584,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 if (hasLocation && pProgramState->geozone.projection != udGZPT_Unknown)
                   vcProject_UpdateNodeGeometryFromLatLong(&pProgramState->activeProject, pNode, udPGT_Point, &geolocationLatLong, 1);
                 else
-                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->camera.position, 1);
+                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
 
                 if (imageType == vcIT_PhotoSphere)
                   udProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
@@ -646,8 +655,8 @@ void vcMain_MainLoop(vcState *pProgramState)
 
         stbi_image_free(pImg);
 
-        pProgramState->image.width = pProgramState->sceneResolution.x;
-        pProgramState->image.height = pProgramState->sceneResolution.y;
+        pProgramState->image.width = pProgramState->pActiveViewport->resolution.x;
+        pProgramState->image.height = pProgramState->pActiveViewport->resolution.y;
       }
 
       udFree(pFileData);
@@ -668,10 +677,10 @@ void vcMain_MainLoop(vcState *pProgramState)
 #if UDPLATFORM_EMSCRIPTEN
 void vcMain_GetScreenResolution(vcState * pProgramState)
 {
-  pProgramState->sceneResolution.x = EM_ASM_INT_V({
+  pProgramState->pActiveViewport->sceneResolution.x = EM_ASM_INT_V({
     return window.innerWidth;
   });
-  pProgramState->sceneResolution.y = EM_ASM_INT_V({
+  pProgramState->pActiveViewport->sceneResolution.y = EM_ASM_INT_V({
     return window.innerHeight;
   });
 }
@@ -890,14 +899,14 @@ int main(int argc, char **args)
   // default values
 #if UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR || UDPLATFORM_ANDROID
   // TODO: Query device and fill screen
-  programState.sceneResolution.x = 1920;
-  programState.sceneResolution.y = 1080;
+  programState.windowResolution.x = 1920;
+  programState.windowResolution.y = 1080;
   programState.settings.onScreenControls = true;
 #elif UDPLATFORM_EMSCRIPTEN
   emscripten_sync_run_in_main_runtime_thread(EM_FUNC_SIG_VI, vcMain_GetScreenResolution, &programState);
 #else
-  programState.sceneResolution.x = 1280;
-  programState.sceneResolution.y = 720;
+  programState.windowResolution.x = 1280;
+  programState.windowResolution.y = 720;
   programState.settings.onScreenControls = false;
 #endif
 
@@ -928,6 +937,10 @@ int main(int argc, char **args)
   programState.previousSRID = -1;
 
   programState.pSessionLock = udCreateRWLock();
+
+  programState.activeViewportCount = 1; // TODO: Load from settings
+  programState.pViewports = udAllocType(vcViewport, vcMaxViewportCount, udAF_Zero);
+  programState.pActiveViewport = &programState.pViewports[0];
 
   vcQueryNodeFilter_Clear(&programState.filterInput);
 
@@ -979,7 +992,7 @@ int main(int argc, char **args)
   // Stop window from being minimized while fullscreened and focus is lost
   SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
-  programState.pWindow = ImGui_ImplSDL2_CreateWindow("udStream", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.sceneResolution.x, programState.sceneResolution.y, windowFlags);
+  programState.pWindow = ImGui_ImplSDL2_CreateWindow("udStream", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, programState.windowResolution.x, programState.windowResolution.y, windowFlags);
   if (!programState.pWindow)
     goto epilogue;
 
@@ -999,8 +1012,8 @@ int main(int argc, char **args)
 
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
-  programState.settings.window.width = (int)programState.sceneResolution.x;
-  programState.settings.window.height = (int)programState.sceneResolution.y;
+  programState.settings.window.width = (int)programState.windowResolution.x;
+  programState.settings.window.height = (int)programState.windowResolution.y;
 #endif
 
   if (!vcGLState_Init(programState.pWindow, &programState.pDefaultFramebuffer))
@@ -1011,8 +1024,15 @@ int main(int argc, char **args)
   if (!ImGuiGL_Init(programState.pWindow))
     goto epilogue;
 
-  if (vcRender_Init(&programState, &(programState.pRenderContext), programState.pWorkerPool, programState.sceneResolution) != udR_Success)
-    goto epilogue;
+  for (int viewportIndex = 0; viewportIndex < vcMaxViewportCount; ++viewportIndex)
+  {
+    // TODO: Load from settings
+    programState.pViewports[viewportIndex].resolution.y = programState.windowResolution.y;
+    programState.pViewports[viewportIndex].resolution.x = programState.windowResolution.x;
+
+    if (vcRender_Init(&programState, &programState.pViewports[viewportIndex].pRenderContext, programState.pWorkerPool, programState.pViewports[viewportIndex].resolution) != udR_Success)
+      goto epilogue;
+  }
 
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
@@ -1083,7 +1103,10 @@ epilogue:
 
   udWorkerPool_Destroy(&programState.pWorkerPool); // This needs to occur before logout
   vcProject_Deinit(&programState, &programState.activeProject); // This needs to be destroyed before the renderer is shutdown
-  vcRender_Destroy(&programState, &programState.pRenderContext);
+  for (int viewportIndex = 0; viewportIndex < vcMaxViewportCount; ++viewportIndex)
+    vcRender_Destroy(&programState, &programState.pViewports[viewportIndex].pRenderContext);
+  programState.activeViewportCount = 0;
+  udFree(programState.pViewports);
   vcString::FreeTable(&programState.languageInfo);
   vcSession_Logout(&programState);
 
@@ -1166,7 +1189,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   float attachmentPanelSize = 0.f;
   const float panelPadding = 5.f;
 
-  if (pProgramState->cameraInput.pAttachedToSceneItem != nullptr)
+  if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem != nullptr)
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.f, 0.f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
@@ -1174,14 +1197,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
     if (ImGui::Begin("exitAttachedModeWindow", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
-      const char *pStr = vcStringFormat(vcString::Get("sceneCameraAttachmentWarning"), pProgramState->cameraInput.pAttachedToSceneItem->m_pNode->pName);
+      const char *pStr = vcStringFormat(vcString::Get("sceneCameraAttachmentWarning"), pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem->m_pNode->pName);
       ImGui::TextUnformatted(pStr);
       udFree(pStr);
 
-      pProgramState->cameraInput.pAttachedToSceneItem->HandleAttachmentUI(pProgramState);
+      pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem->HandleAttachmentUI(pProgramState);
 
       if (ImGui::Button(vcString::Get("sceneCameraAttachmentDetach"), ImVec2(-1, 0)))
-        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+        pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = nullptr;
     }
 
     attachmentPanelSize = ImGui::GetWindowSize().y + panelPadding;
@@ -1393,24 +1416,24 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       if (pProgramState->settings.presentation.showCameraInfo)
       {
-        if (ImGui::InputScalarN(vcString::Get("sceneCameraPosition"), ImGuiDataType_Double, &pProgramState->camera.position.x, 3))
+        if (ImGui::InputScalarN(vcString::Get("sceneCameraPosition"), ImGuiDataType_Double, &pProgramState->pActiveViewport->camera.position.x, 3))
         {
           // limit the manual entry of camera position to +/- 40000000
-          pProgramState->camera.position.x = udClamp(pProgramState->camera.position.x, -vcSL_GlobalLimit, vcSL_GlobalLimit);
-          pProgramState->camera.position.y = udClamp(pProgramState->camera.position.y, -vcSL_GlobalLimit, vcSL_GlobalLimit);
-          pProgramState->camera.position.z = udClamp(pProgramState->camera.position.z, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+          pProgramState->pActiveViewport->camera.position.x = udClamp(pProgramState->pActiveViewport->camera.position.x, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+          pProgramState->pActiveViewport->camera.position.y = udClamp(pProgramState->pActiveViewport->camera.position.y, -vcSL_GlobalLimit, vcSL_GlobalLimit);
+          pProgramState->pActiveViewport->camera.position.z = udClamp(pProgramState->pActiveViewport->camera.position.z, -vcSL_GlobalLimit, vcSL_GlobalLimit);
         }
 
         if (pProgramState->geozone.projection != udGZPT_Unknown)
         {
-          cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->camera.position);
+          cameraLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
           if (ImGui::InputScalarN(vcString::Get("sceneCameraPositionGIS"), ImGuiDataType_Double, &cameraLatLong.x, 3))
-            pProgramState->camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraLatLong);
+            pProgramState->pActiveViewport->camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraLatLong);
         }
 
-        udDouble2 headingPitch = UD_RAD2DEG(pProgramState->camera.headingPitch);
+        udDouble2 headingPitch = UD_RAD2DEG(pProgramState->pActiveViewport->camera.headingPitch);
         if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2, nullptr, nullptr, "%.2f"))
-          pProgramState->camera.headingPitch = UD_DEG2RAD(headingPitch);
+          pProgramState->pActiveViewport->camera.headingPitch = UD_DEG2RAD(headingPitch);
 
         if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", 4.f))
           pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
@@ -1451,7 +1474,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
         if (ImGui::InputInt(vcString::Get("sceneOverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
         {
-          if (vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->camera.position))
+          if (vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pActiveViewport->camera.position))
           {
             pProgramState->activeProject.pFolder->ChangeProjection(zone);
           }
@@ -1958,10 +1981,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     {
       // Compass
       {
-        udDouble3 cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch).apply({ 0, 1, 0 });
+        udDouble3 cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch).apply({ 0, 1, 0 });
 
-        udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->camera.position);
-        udDouble3 northDir = vcGIS_GetWorldLocalNorth(pProgramState->geozone, pProgramState->camera.position);
+        udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
+        udDouble3 northDir = vcGIS_GetWorldLocalNorth(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
 
         udDouble3 camRight = udCross(cameraDirection, up);
         udDouble3 camFlat = udCross(up, camRight);
@@ -1973,10 +1996,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         ImGui::PushID("compassButton");
         if (ImGui::ButtonEx("", ImVec2(28, 28)))
         {
-          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
-          pProgramState->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, udDouble2::create(0, pProgramState->camera.headingPitch.y));
-          pProgramState->cameraInput.inputState = vcCIS_Rotate;
-          pProgramState->cameraInput.progress = 0.0;
+          pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
+          pProgramState->pActiveViewport->cameraInput.targetAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, udDouble2::create(0, pProgramState->pActiveViewport->camera.headingPitch.y));
+          pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_Rotate;
+          pProgramState->pActiveViewport->cameraInput.progress = 0.0;
         }
         if (ImGui::IsItemHovered())
         {
@@ -2042,13 +2065,13 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
   // We have to resolve UD vs. Polygon
   bool selectUD = pProgramState->pickingSuccess && (pProgramState->udModelPickedIndex != -1); // UD was successfully picked (last frame)
-  double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePosCartesian - pProgramState->camera.position) : farPlaneDist);
+  double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePosCartesian - pProgramState->pActiveViewport->camera.position) : farPlaneDist);
 
   bool getResultsImmediately = useTool || ImGui::IsMouseClicked(0, false) || ImGui::IsMouseClicked(1, false) || ImGui::IsMouseClicked(2, false);
-  vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pRenderContext, renderData, getResultsImmediately);
+  vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, getResultsImmediately);
 
   bool selectPolygons = pickResult.success;
-  double polyDist = (selectPolygons ? udMagSq3(pickResult.position - pProgramState->camera.position) : farPlaneDist);
+  double polyDist = (selectPolygons ? udMagSq3(pickResult.position - pProgramState->pActiveViewport->camera.position) : farPlaneDist);
 
   // resolve pick
   selectUD = selectUD && (udDist < polyDist);
@@ -2391,10 +2414,10 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     udProjectNode *pNode = nullptr;
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == udE_Success)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->camera.position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->camera.position, 1);
 
-      udProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
-      udProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
+      udProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->pActiveViewport->camera.headingPitch.x);
+      udProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->pActiveViewport->camera.headingPitch.y);
     }
     else
     {
@@ -2414,10 +2437,10 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     udProjectNode *pNode = nullptr;
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == udE_Success)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->camera.position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->camera.position, 1);
 
-      udProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->camera.headingPitch.x);
-      udProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->camera.headingPitch.y);
+      udProjectNode_SetMetadataDouble(pNode, "transform.heading", pProgramState->pActiveViewport->camera.headingPitch.x);
+      udProjectNode_SetMetadataDouble(pNode, "transform.pitch", pProgramState->pActiveViewport->camera.headingPitch.y);
 
       vcViewpoint::SaveSettings(pProgramState, pNode);
     }
@@ -2551,24 +2574,24 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
 
-  if (!pProgramState->settings.screenshot.taking && (pProgramState->sceneResolution.x != windowSize.x || pProgramState->sceneResolution.y != windowSize.y)) //Resize buffers
+  if (!pProgramState->settings.screenshot.taking && (pProgramState->pActiveViewport->resolution.x != windowSize.x || pProgramState->pActiveViewport->resolution.y != windowSize.y)) //Resize buffers
   {
-    pProgramState->sceneResolution = udUInt2::create((uint32_t)windowSize.x, (uint32_t)windowSize.y);
-    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->sceneResolution.x, pProgramState->sceneResolution.y);
+    pProgramState->pActiveViewport->resolution = udUInt2::create((uint32_t)windowSize.x, (uint32_t)windowSize.y);
+    vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->pActiveViewport->resolution.x, pProgramState->pActiveViewport->resolution.y);
 
     // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
     // this isn't valid on iOS when using UIKit.
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
   }
-  else if (pProgramState->settings.screenshot.taking && pProgramState->sceneResolution != pProgramState->settings.screenshot.resolution)
+  else if (pProgramState->settings.screenshot.taking && pProgramState->pActiveViewport->resolution != pProgramState->settings.screenshot.resolution)
   {
-    pProgramState->sceneResolution = pProgramState->settings.screenshot.resolution;
+    pProgramState->pActiveViewport->resolution = pProgramState->settings.screenshot.resolution;
 
-    vcRender_ResizeScene(pProgramState, pProgramState->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
+    vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
     // Immediately update camera
-    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->sceneResolution));
+    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->pActiveViewport->resolution));
   }
 
   if (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released))
@@ -2577,7 +2600,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
   {
-    vcRender_BeginFrame(pProgramState, pProgramState->pRenderContext, renderData);
+    vcRender_BeginFrame(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData);
 
     // Actual rendering to this texture is deferred
     ImGui::Image(renderData.pSceneTexture, windowSize, ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
@@ -2586,9 +2609,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       pProgramState->screenshot.pImage = renderData.pSceneTexture;
 
     static bool wasContextMenuOpenLastFrame = false;
-    bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold*io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
- 
-    if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold*io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
+    bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
+
+    if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
     {
       static bool hadMouse = false;
       static udDouble3 mousePosCartesian;
@@ -2618,7 +2641,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         if (ImGui::BeginMenu(vcString::Get("sceneAddMenu")))
         {
           udProjectNode *pNode = nullptr;
-          
+
           if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
           {
             vcProject_ClearSelection(pProgramState);
@@ -2637,10 +2660,10 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
         if (ImGui::MenuItem(vcString::Get("sceneMoveTo")))
         {
-          pProgramState->cameraInput.inputState = vcCIS_MovingToPoint;
-          pProgramState->cameraInput.startPosition = pProgramState->camera.position;
-          pProgramState->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
-          pProgramState->cameraInput.progress = 0.0;
+          pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_MovingToPoint;
+          pProgramState->pActiveViewport->cameraInput.startPosition = pProgramState->pActiveViewport->camera.position;
+          pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
+          pProgramState->pActiveViewport->cameraInput.progress = 0.0;
 
           pProgramState->isUsingAnchorPoint = true;
           pProgramState->worldAnchorPoint = mousePosCartesian;
@@ -2649,7 +2672,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
         {
           //TODO: Smooth this over time after fixing inputs
-          pProgramState->camera.headingPitch = udDouble2::zero();
+          pProgramState->pActiveViewport->camera.headingPitch = udDouble2::zero();
         }
       }
       else
@@ -2686,12 +2709,12 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
 
     // Render scene to texture
-    vcRender_RenderScene(pProgramState, pProgramState->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+    vcRender_RenderScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
     vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
 
     // Camera update has to be here because it depends on previous ImGui state
-    vcCamera_HandleSceneInput(pProgramState, cameraMoveOffset, udFloat2::create((float)pProgramState->sceneResolution.x, (float)pProgramState->sceneResolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
+    vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
     bool couldOpen = true;
     if (pProgramState->modalOpen)
@@ -2741,7 +2764,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
           vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
         }
 
-        vcGizmo_Manipulate(&pProgramState->camera, pProgramState->gizmo.direction, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
+        vcGizmo_Manipulate(&pProgramState->pActiveViewport->camera, pProgramState->gizmo.direction, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
 
         if (!(delta == udDouble4x4::identity()))
         {

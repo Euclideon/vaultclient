@@ -898,13 +898,13 @@ void vcPOI::HandleContextMenu(vcState *pProgramState)
 
     if (ImGui::MenuItem(vcString::Get("scenePOIPerformFlyThrough")))
     {
-      pProgramState->cameraInput.pAttachedToSceneItem = this;
+      pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = this;
       m_cameraFollowingAttachment = false;
     }
 
     if (m_attachment.pModel != nullptr && ImGui::MenuItem(vcString::Get("scenePOIAttachCameraToAttachment")))
     {
-      pProgramState->cameraInput.pAttachedToSceneItem = this;
+      pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = this;
       m_cameraFollowingAttachment = true;
     }
 
@@ -1033,16 +1033,19 @@ void vcPOI::Cleanup(vcState *pProgramState)
   vcLineRenderer_DestroyLine(&m_pLine);
   udFree(m_pLabelInfo);
 
-  if (pProgramState->cameraInput.pAttachedToSceneItem == this)
-    pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+  if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem == this)
+    pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = nullptr;
 }
 
 void vcPOI::SetCameraPosition(vcState *pProgramState)
 {
-  if (m_attachment.pModel)
-    pProgramState->camera.position = m_attachment.currentPos;
-  else
-    pProgramState->camera.position = m_pLabelInfo->worldPosition;
+  udDouble3 newPosition = m_attachment.currentPos;
+  if (!m_attachment.pModel)
+    newPosition = m_pLabelInfo->worldPosition;
+
+  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+    pProgramState->pViewports[viewportIndex].camera.position = newPosition;
+
 }
 
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()
@@ -1067,7 +1070,7 @@ vcRenderPolyInstance *vcPOI::AddNodeToRenderData(vcState *pProgramState, vcRende
 {
   vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
 
-  udDouble3 linearDistance = (pProgramState->camera.position - m_line.pPoints[i]);
+  udDouble3 linearDistance = (pProgramState->pActiveViewport->camera.position - m_line.pPoints[i]);
 
   pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
   pInstance->worldMat = udDouble4x4::translation(m_line.pPoints[i]) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
@@ -1215,7 +1218,7 @@ bool vcPOI::IsVisible(vcState *pProgramState)
 {
   // if POI is invisible or if it exceeds maximum visible POI distance (unless selected)
   bool visible = m_visible;
-  visible = visible && (DistanceToPoint(pProgramState->camera.position) < pProgramState->settings.presentation.POIFadeDistance);
+  visible = visible && (DistanceToPoint(pProgramState->pActiveViewport->camera.position) < pProgramState->settings.presentation.POIFadeDistance);
   visible = visible || m_selected;
   return visible;
 }
@@ -1349,7 +1352,7 @@ void vcPOI::AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRend
   {
     double remainingMovementThisFrame = m_attachment.moveSpeed * pProgramState->deltaTime;
     udDouble3 startYPR = m_attachment.eulerAngles;
-    udDouble3 startPosDiff = pProgramState->camera.position - m_attachment.currentPos;
+    udDouble3 startPosDiff = pProgramState->pActiveViewport->camera.position - m_attachment.currentPos;
 
     udDouble3 updatedPosition = {};
 
@@ -1383,43 +1386,43 @@ void vcPOI::AddAttachedModelsToScene(vcState *pProgramState, vcRenderData *pRend
     pModel->tint = udFloat4::one();
 
     // Update the camera if the camera is coming along
-    if (pProgramState->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
+    if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem == this && m_cameraFollowingAttachment)
     {
-      udOrientedPoint<double> rotRay = udOrientedPoint<double>::create(startPosDiff, vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch));
+      udOrientedPoint<double> rotRay = udOrientedPoint<double>::create(startPosDiff, vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch));
       rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.z.toVector3(), m_attachment.eulerAngles.x - startYPR.x);
       rotRay = rotRay.rotationAround(rotRay, udDouble3::zero(), attachmentMat.axis.x.toVector3(), m_attachment.eulerAngles.y - startYPR.y);
-      pProgramState->camera.position = m_attachment.currentPos + rotRay.position;
-      pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->camera.position, rotRay.orientation);
+      pProgramState->pActiveViewport->camera.position = m_attachment.currentPos + rotRay.position;
+      pProgramState->pActiveViewport->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, rotRay.orientation);
     }
   }
 }
 
 void vcPOI::DoFlythrough(vcState *pProgramState)
 {
-  if (pProgramState->cameraInput.pAttachedToSceneItem == this && !m_cameraFollowingAttachment)
+  if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem == this && !m_cameraFollowingAttachment)
   {
     if (m_line.numPoints <= 1)
     {
-      pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+      pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = nullptr;
     }
     else
     {
       double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
-      udDoubleQuat startQuat = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->camera.position, pProgramState->camera.headingPitch);
+      udDoubleQuat startQuat = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
 
       udDouble3 updatedPosition = {};
 
       if (!GetPointAtDistanceAlongLine(remainingMovementThisFrame, &updatedPosition, &m_flyThrough.segmentIndex, &m_flyThrough.segmentProgress))
       {
-        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->camera.position, udDoubleQuat::create(udNormalize(m_line.pPoints[1] - m_line.pPoints[0]), 0.0));
-        pProgramState->cameraInput.pAttachedToSceneItem = nullptr;
+        pProgramState->pActiveViewport->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, udDoubleQuat::create(udNormalize(m_line.pPoints[1] - m_line.pPoints[0]), 0.0));
+        pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = nullptr;
       }
       else
       {
-        pProgramState->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->camera.position, udSlerp(startQuat, udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->camera.position)), 0.2));
+        pProgramState->pActiveViewport->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, udSlerp(startQuat, udDoubleQuat::create(udDirectionToYPR(updatedPosition - pProgramState->pActiveViewport->camera.position)), 0.2));
       }
 
-      pProgramState->camera.position = updatedPosition;
+      pProgramState->pActiveViewport->camera.position = updatedPosition;
     }
   }
 }
