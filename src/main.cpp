@@ -2768,7 +2768,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
         double cameraHeightAboveEarthSurface = -pProgramState->settings.maptiles.layers[0].mapHeight;
         udDouble3 earthSurfaceToCamera = pProgramState->pActiveViewport->camera.matrices.camera.axis.t.toVector3() - cameraZeroAltitude;
-        if (udMagSq3(earthSurfaceToCamera) > 0)
+        if (udMagSq3(earthSurfaceToCamera) > 0) 
           cameraHeightAboveEarthSurface += udMag3(earthSurfaceToCamera);
 
         pProgramState->pActiveViewport->camera.orthoSize = cameraHeightAboveEarthSurface * 1.5;
