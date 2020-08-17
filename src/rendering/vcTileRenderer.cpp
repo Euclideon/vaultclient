@@ -117,7 +117,7 @@ struct vcTileRenderer
   struct vcTileCache
   {
     volatile bool keepLoading;
-    udThread *pThreads[8];
+    udThread *pThreads[4];
     udSemaphore *pSemaphore;
     udMutex *pMutex;
     udChunkedArray<vcQuadTreeNode*> tileLoadList;
@@ -951,7 +951,7 @@ void vcTileRenderer_RecursiveUpUpdateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeN
   vcTileRenderer_RecursiveUpUpdateNodeAABB(pQuadTree, pParentNode);
 }
 
-void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
+void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, float *pUploadBudgetRemainingMS)
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
   bool queueTile = (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_None);
@@ -977,8 +977,10 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
   }
 
   pNode->demInfo.tryLoad = true;
-  if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloaded)
+  if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Downloaded && *pUploadBudgetRemainingMS > 0.0f)
   {
+    uint64_t uploadStartTime = udPerfCounterStart();
+
     pNode->demInfo.tryLoad = false;
 
     vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->demInfo.data.pData, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
@@ -995,10 +997,12 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
 
     pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Loaded);
+
+    *pUploadBudgetRemainingMS -= udPerfCounterMilliseconds(uploadStartTime);
   }
 }
 
-bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
+bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, float *pUploadBudgetRemainingMS)
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
   for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
@@ -1031,14 +1035,18 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
     }
 
     pNode->pPayloads[layer].tryLoad = true;
-    if (loadStatus == vcNodeRenderInfo::vcTLS_Downloaded)
+    if (loadStatus == vcNodeRenderInfo::vcTLS_Downloaded && *pUploadBudgetRemainingMS > 0.0f)
     {
+      uint64_t uploadStartTime = udPerfCounterStart();
+
       pNode->pPayloads[layer].tryLoad = false;
 
       vcTexture_CreateAdv(&pNode->pPayloads[layer].data.pTexture, vcTextureType_Texture2D, pNode->pPayloads[layer].data.width, pNode->pPayloads[layer].data.height, 1, pNode->pPayloads[layer].data.pData, vcTextureFormat_RGBA8, vcTFM_Linear, true, vcTWM_Clamp, vcTCF_None, 16);
       udFree(pNode->pPayloads[layer].data.pData);
 
       pNode->pPayloads[layer].loadStatus.Set(vcNodeRenderInfo::vcTLS_Loaded);
+
+      *pUploadBudgetRemainingMS -= udPerfCounterMilliseconds(uploadStartTime);
       return true;
     }
   }
@@ -1046,12 +1054,12 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
   return false;
 }
 
-void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode)
+void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, float *pUploadBudgetRemainingMS)
 {
   if (!vcQuadTree_IsLeafNode(pNode))
   {
     for (int c = 0; c < 4; ++c)
-      vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c]);
+      vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c], pUploadBudgetRemainingMS);
   }
 
   if (vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode))
@@ -1060,7 +1068,7 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
     {
       if (pNode->pPayloads[j].loadStatus.Get() != vcNodeRenderInfo::vcTLS_Loaded)
       {
-        vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode);
+        vcTileRenderer_UpdateTileTexture(pTileRenderer, pNode, pUploadBudgetRemainingMS);
         break;
       }
     }
@@ -1072,7 +1080,7 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
     bool demLeaf = vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode) || (pNode->slippyPosition.z == HACK_DEM_LEVEL);
     if (demLeaf && pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_Loaded)
     {
-      vcTileRenderer_UpdateTileDEMTexture(pTileRenderer, pNode);
+      vcTileRenderer_UpdateTileDEMTexture(pTileRenderer, pNode, pUploadBudgetRemainingMS);
     }
   }
 }
@@ -1089,11 +1097,11 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer, bool *pIs
     pTileRenderer->cache.tileLoadList[i]->demInfo.tryLoad = false;
   }
 
-  // Limit the max number of tiles uploaded per frame
-  // TODO: use timings instead
+  // Limit the frame time taken up by texture uploads
+  float totalUploadTimeRemainingMS = 1.0f; // note: it can go above this
 
   // update visible tiles textures
-  vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex]);
+  vcTileRenderer_UpdateTextureQueuesRecursive(pTileRenderer, &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex], &totalUploadTimeRemainingMS);
 
   // remove from the queue any tiles that are invalid
   for (int i = 0; i < (int)pTileRenderer->cache.tileLoadList.length; ++i)
