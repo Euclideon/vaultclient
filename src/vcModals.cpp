@@ -1762,7 +1762,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawChangePassword(pProgramState);
   vcModals_DrawConvert(pProgramState);
 
-  if (gShowInputControlsNextHack && !pProgramState->modalOpen)
+  if (gShowInputControlsNextHack && !pProgramState->modalOpen && pProgramState->hasUsedMouse)
   {
     gShowInputControlsNextHack = false;
     vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
