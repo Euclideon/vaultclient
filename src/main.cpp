@@ -297,6 +297,19 @@ void vcMain_MainLoop(vcState *pProgramState)
     if (event.type == SDL_KEYDOWN)
       pProgramState->currentKey = vcHotkey::GetMod(event.key.keysym.scancode);
 
+    if (!pProgramState->hasUsedMouse)
+    {
+      if ((event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) && event.button.which != SDL_TOUCH_MOUSEID)
+        pProgramState->hasUsedMouse = true;
+
+      // When SDL_WarpMouseInWindow or SDL_WarpMouseGlobal is called on startup, it triggers this event with no motion
+      if (event.type == SDL_MOUSEMOTION && event.motion.which != SDL_TOUCH_MOUSEID && (event.motion.x != 0 || event.motion.xrel != 0 || event.motion.y != 0 || event.motion.yrel != 0))
+        pProgramState->hasUsedMouse = true;
+
+      if (event.type == SDL_MOUSEWHEEL && event.wheel.which != SDL_TOUCH_MOUSEID)
+        pProgramState->hasUsedMouse = true;
+    }
+
     if (!ImGui_ImplSDL2_ProcessEvent(&event))
     {
       if (event.type == SDL_WINDOWEVENT)

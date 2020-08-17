@@ -108,6 +108,7 @@ struct vcState
   SDL_Window *pWindow;
   vcFramebuffer *pDefaultFramebuffer;
 
+  bool hasUsedMouse;
   bool openSettings;
   int activeSetting;
 
