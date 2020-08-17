@@ -254,9 +254,9 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   else if(udStrEqual(pStringVal, "colour"))
     pProgramState->settings.presentation.skybox.type = vcSkyboxType_Colour;
   else if (udStrEqual(pStringVal, "simple"))
-    pProgramState->settings.presentation.skybox.type = vcSkyboxType_None;
+    pProgramState->settings.presentation.skybox.type = vcSkyboxType_Simple;
   else if (udStrEqual(pStringVal, "atmosphere"))
-    pProgramState->settings.presentation.skybox.type = vcSkyboxType_None;
+    pProgramState->settings.presentation.skybox.type = vcSkyboxType_Atmosphere;
 
   for (size_t i = 0; i < pProgramState->settings.presentation.skybox.colour.ElementCount; ++i)
   {
