@@ -351,7 +351,8 @@ void vcMedia::Cleanup(vcState * /*pProgramState*/)
 
 void vcMedia::SetCameraPosition(vcState *pProgramState)
 {
-  pProgramState->pActiveViewport->camera.position = m_image.position;
+  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+    pProgramState->pViewports[viewportIndex].camera.position = m_image.position;
 }
 
 udDouble4x4 vcMedia::GetWorldSpaceMatrix()

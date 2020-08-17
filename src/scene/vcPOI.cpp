@@ -1039,10 +1039,13 @@ void vcPOI::Cleanup(vcState *pProgramState)
 
 void vcPOI::SetCameraPosition(vcState *pProgramState)
 {
-  if (m_attachment.pModel)
-    pProgramState->pActiveViewport->camera.position = m_attachment.currentPos;
-  else
-    pProgramState->pActiveViewport->camera.position = m_pLabelInfo->worldPosition;
+  udDouble3 newPosition = m_attachment.currentPos;
+  if (!m_attachment.pModel)
+    newPosition = m_pLabelInfo->worldPosition;
+
+  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+    pProgramState->pViewports[viewportIndex].camera.position = newPosition;
+
 }
 
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()
