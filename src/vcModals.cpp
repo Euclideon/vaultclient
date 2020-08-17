@@ -64,15 +64,6 @@ bool vcModals_OverwriteExistingFile(vcState *pProgramState, const char *pFilenam
       { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, vcString::Get("popupConfirmNo") },
       { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, vcString::Get("popupConfirmYes") },
     };
-    SDL_MessageBoxColorScheme colorScheme = {
-      {
-        { 255, 0, 0 },
-        { 0, 255, 0 },
-        { 255, 255, 0 },
-        { 0, 0, 255 },
-        { 255, 0, 255 }
-      }
-    };
     pFileExistsMsg = vcStringFormat(vcString::Get("convertFileExistsMessage"), pFilename);
     SDL_MessageBoxData messageboxdata = {
       SDL_MESSAGEBOX_INFORMATION,
@@ -81,7 +72,7 @@ bool vcModals_OverwriteExistingFile(vcState *pProgramState, const char *pFilenam
       pFileExistsMsg,
       SDL_arraysize(buttons),
       buttons,
-      &colorScheme
+      nullptr
     };
     int buttonid = 0;
     if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
@@ -108,16 +99,6 @@ bool vcModals_AllowDestructiveAction(vcState *pProgramState, const char *pTitle,
     { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, vcString::Get("popupConfirmYes") },
   };
 
-  SDL_MessageBoxColorScheme colorScheme = {
-    {
-      { 255, 0, 0 },
-      { 0, 255, 0 },
-      { 255, 255, 0 },
-      { 0, 0, 255 },
-      { 255, 0, 255 }
-    }
-  };
-
   SDL_MessageBoxData messageboxdata = {
     SDL_MESSAGEBOX_WARNING,
     pProgramState->pWindow,
@@ -125,7 +106,7 @@ bool vcModals_AllowDestructiveAction(vcState *pProgramState, const char *pTitle,
     pMessage,
     SDL_arraysize(buttons),
     buttons,
-    &colorScheme
+    nullptr
   };
 
   int buttonid = 0;
