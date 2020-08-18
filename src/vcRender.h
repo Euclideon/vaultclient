@@ -116,7 +116,7 @@ udResult vcRender_RemoveVaultContext(vcRenderContext *pRenderContext);
 
 udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderContext, const uint32_t width, const uint32_t height);
 
-void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData);
+void vcRender_BeginFrame(vcRenderContext *pRenderContext, vcRenderData &renderData);
 
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer);
 

@@ -215,6 +215,7 @@ struct vcRenderContext
   float previousFrameDepth;
   udFloat2 currentMouseUV;
   int asyncReadTarget;
+  udUInt2 lastPickLocation;
 
   struct
   {
@@ -725,15 +726,13 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   if (pRenderContext->currentMouseUV.x < 0 || pRenderContext->currentMouseUV.x > 1 || pRenderContext->currentMouseUV.y < 0 || pRenderContext->currentMouseUV.y > 1)
     return result;
 
-  static udUInt2 lastPickLocation = udUInt2::zero();
-
   uint8_t pixelBytes[8] = {};
 
   pRenderContext->previousFrameDepth = 1.0f;
   pRenderContext->previousPickedId = vcObjectId_Null;
   if (pRenderContext->asyncReadTarget != -1)
   {
-    UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pNormal, lastPickLocation.x, lastPickLocation.y, 1, 1, pixelBytes), udR_InternalError); // read previous copy
+    UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pNormal, pRenderContext->lastPickLocation.x, pRenderContext->lastPickLocation.y, 1, 1, pixelBytes), udR_InternalError); // read previous copy
     vcRender_DecodeModelId(pixelBytes, &pRenderContext->previousPickedId, &pRenderContext->previousFrameDepth);
 
     pRenderContext->asyncReadTarget = -1;
@@ -742,7 +741,7 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
   pRenderContext->asyncReadTarget = pRenderContext->activeRenderTarget;
   UD_ERROR_IF(!vcTexture_BeginReadPixels(pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pNormal, pRenderContext->picking.location.x, pRenderContext->picking.location.y, 1, 1, pixelBytes, pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pFramebuffer), udR_InternalError); // begin copy for next frame read
 
-  lastPickLocation = pRenderContext->picking.location;
+  pRenderContext->lastPickLocation = pRenderContext->picking.location;
 
 epilogue:
   return result;
@@ -1244,12 +1243,7 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   for (uint32_t i = 0; i < renderData.labels.length; ++i)
   {
     float encodedLabelId = vcRender_EncodeModelId(labelIds + i);
-
-    udUnused(drawList);
-    udUnused(encodedLabelId);
-
-    // TODO: Label rendering is disabled 
-    //vcLabelRenderer_Render(drawList, renderData.labels[i], encodedLabelId, pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->pActiveViewport->sceneResolution);
+    vcLabelRenderer_Render(drawList, renderData.labels[i], encodedLabelId, pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->pActiveViewport->resolution);
   }
 
   vcGLState_ResetState();
@@ -1321,10 +1315,8 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
 }
 
-void vcRender_BeginFrame(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
+void vcRender_BeginFrame(vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
-  udUnused(pProgramState);
-
   pRenderContext->currentMouseUV = udFloat2::create((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x, (float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y);
   pRenderContext->picking.location.x = (uint32_t)(pRenderContext->currentMouseUV.x * pRenderContext->sceneResolution.x);
   pRenderContext->picking.location.y = (uint32_t)(pRenderContext->currentMouseUV.y * pRenderContext->sceneResolution.y);
