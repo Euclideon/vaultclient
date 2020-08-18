@@ -1629,7 +1629,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
   double maxDistSqr = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane;
   if (doPick)
-    pProgramState->udModelPickedIndex = -1;
+    pProgramState->pActiveViewport->udModelPickedIndex = -1;
 
   for (size_t i = 0; i < renderData.models.length; ++i)
   {
@@ -1804,8 +1804,8 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     if (doPick && picking.hit)
     {
       // More to be done here
-      pProgramState->pickingSuccess = true;
-      pProgramState->worldMousePosCartesian = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
+      pProgramState->pActiveViewport->pickingSuccess = true;
+      pProgramState->pActiveViewport->worldMousePosCartesian = udDouble3::create(picking.pointCenter[0], picking.pointCenter[1], picking.pointCenter[2]);
 
       uint32_t j = 0;
       for (size_t i = 0; i < renderData.models.length; ++i)
@@ -1814,8 +1814,8 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         {
           if (j == picking.modelIndex)
           {
-            pProgramState->udModelPickedIndex = (int)i;
-            pProgramState->udModelPickedNode = picking.voxelID;
+            pProgramState->pActiveViewport->udModelPickedIndex = (int)i;
+            pProgramState->pActiveViewport->udModelPickedNode = picking.voxelID;
             break;
           }
           ++j;

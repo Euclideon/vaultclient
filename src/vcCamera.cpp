@@ -73,10 +73,10 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
   switch (pProgramState->settings.camera.cameraMouseBindings[bindingIndex])
   {
   case vcCPM_Orbit:
-    if (pProgramState->pickingSuccess)
+    if (pProgramState->pActiveViewport->pickingSuccess)
     {
-      pProgramState->isUsingAnchorPoint = true;
-      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+      pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+      pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
       pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_Orbiting;
       vcCamera_StopSmoothing(&pProgramState->pActiveViewport->cameraInput);
     }
@@ -85,11 +85,11 @@ void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, int bindi
     pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_None;
     break;
   case vcCPM_Pan:
-    if (pProgramState->pickingSuccess)
+    if (pProgramState->pActiveViewport->pickingSuccess)
     {
-      pProgramState->isUsingAnchorPoint = true;
-      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
-      pProgramState->anchorMouseRay = pProgramState->pActiveViewport->camera.worldMouseRay;
+      pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+      pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
+      pProgramState->pActiveViewport->anchorMouseRay = pProgramState->pActiveViewport->camera.worldMouseRay;
       pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_Panning;
     }
     break;
@@ -155,7 +155,7 @@ void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcC
 
 void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings *pCamSettings, vcCameraInput *pCamInput, double deltaTime)
 {
-  udDouble3 worldAnchorNormal = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->worldAnchorPoint);
+  udDouble3 worldAnchorNormal = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->pActiveViewport->worldAnchorPoint);
   udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pCamera->position, pCamera->headingPitch);
 
   pCamera->cameraUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, pCamera->position);
@@ -204,18 +204,18 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
   case vcCIS_Orbiting:
   {
-    double distanceToPointSqr = udMagSq3(pProgramState->worldAnchorPoint - pCamera->position);
+    double distanceToPointSqr = udMagSq3(pProgramState->pActiveViewport->worldAnchorPoint - pCamera->position);
     if (distanceToPointSqr != 0.0 && (pCamInput->mouseInput.x != 0 || pCamInput->mouseInput.y != 0))
     {
       // Orbit Left/Right
       if (pCamInput->mouseInput.x != 0)
       {
       udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, pCamInput->mouseInput.x);
-      udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
+      udDouble3 direction = pCamera->position - pProgramState->pActiveViewport->worldAnchorPoint; // find current direction relative to center
 
       orientation = (rotation * orientation);
 
-      pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
+      pCamera->position = pProgramState->pActiveViewport->worldAnchorPoint + rotation.apply(direction); // define new position
       pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pCamera->position, orientation);
       }
 
@@ -227,12 +227,12 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
       // Orbit Up/Down
       udDoubleQuat rotation = udDoubleQuat::create(orientation.apply({ 1, 0, 0 }), pCamInput->mouseInput.y);
-      udDouble3 direction = pCamera->position - pProgramState->worldAnchorPoint; // find current direction relative to center
+      udDouble3 direction = pCamera->position - pProgramState->pActiveViewport->worldAnchorPoint; // find current direction relative to center
 
       orientation = (rotation * orientation);
 
       // Save it back to the camera
-      pCamera->position = pProgramState->worldAnchorPoint + rotation.apply(direction); // define new position
+      pCamera->position = pProgramState->pActiveViewport->worldAnchorPoint + rotation.apply(direction); // define new position
       pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pCamera->position, orientation);
 
     }
@@ -241,7 +241,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
   case vcCIS_MovingToPoint:
   {
-    udDouble3 moveVector = pProgramState->worldAnchorPoint - pCamInput->startPosition;
+    udDouble3 moveVector = pProgramState->pActiveViewport->worldAnchorPoint - pCamInput->startPosition;
 
     if (moveVector == udDouble3::zero())
       break;
@@ -271,7 +271,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
   case vcCIS_MoveToViewpoint:
   {
-    udDouble3 moveVector = pProgramState->worldAnchorPoint - pCamInput->startPosition;
+    udDouble3 moveVector = pProgramState->pActiveViewport->worldAnchorPoint - pCamInput->startPosition;
     pCamInput->progress += deltaTime / 2; // 2 second travel time
 
     if (pCamInput->progress > 1.0)
@@ -281,7 +281,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
       pCamInput->inputState = vcCIS_None;
       pCamera->headingPitch = pCamInput->headingPitch;
-      pCamera->position = pProgramState->worldAnchorPoint;
+      pCamera->position = pProgramState->pActiveViewport->worldAnchorPoint;
       
       break;
     }
@@ -297,7 +297,7 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
   case vcCIS_ZoomTo:
   {
     udDouble3 addPos = udDouble3::zero();
-    udDouble3 towards = pProgramState->worldAnchorPoint - pCamera->position;
+    udDouble3 towards = pProgramState->pActiveViewport->worldAnchorPoint - pCamera->position;
     if (udMagSq3(towards) > 0)
     {
       double maxDistance = 0.9 * pCamSettings->farPlane; // limit to 90% of visible distance
@@ -339,14 +339,14 @@ void vcCamera_Apply(vcState *pProgramState, vcCamera *pCamera, vcCameraSettings 
 
   case vcCIS_Panning:
   {
-    udPlane<double> plane = udPlane<double>::create(pProgramState->worldAnchorPoint, worldAnchorNormal);
+    udPlane<double> plane = udPlane<double>::create(pProgramState->pActiveViewport->worldAnchorPoint, worldAnchorNormal);
 
     if (!pCamSettings->lockAltitude) // generate a plane facing the camera
       plane.normal = orientation.apply({ 0, 1, 0 });
 
     udDouble3 offset = udDouble3::create(0, 0, 0);
     udDouble3 anchorOffset = udDouble3::create(0, 0, 0);
-    if (plane.intersects(pCamera->worldMouseRay, &offset, nullptr) && plane.intersects(pProgramState->anchorMouseRay, &anchorOffset, nullptr))
+    if (plane.intersects(pCamera->worldMouseRay, &offset, nullptr) && plane.intersects(pProgramState->pActiveViewport->anchorMouseRay, &anchorOffset, nullptr))
       pCamInput->smoothTranslation = (anchorOffset - offset);
   }
   break;
@@ -469,10 +469,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
 
     if (pCameraInput->isRightTriggerHeld)
     {
-      if (pProgramState->pickingSuccess && pCameraInput->inputState == vcCIS_None)
+      if (pProgramState->pActiveViewport->pickingSuccess && pCameraInput->inputState == vcCIS_None)
       {
-        pProgramState->isUsingAnchorPoint = true;
-        pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+        pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+        pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
         pCameraInput->inputState = vcCIS_Orbiting;
         vcCamera_StopSmoothing(pCameraInput);
       }
@@ -582,15 +582,15 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     }
 
     // Double Clicking left mouse
-    if (isBtnDoubleClicked[0] && pProgramState->pickingSuccess)
+    if (isBtnDoubleClicked[0] && pProgramState->pActiveViewport->pickingSuccess)
     {
       pCameraInput->inputState = vcCIS_MovingToPoint;
       pCameraInput->startPosition = pCamera->position;
       pCameraInput->startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pCamera->position, pCamera->headingPitch);
       pCameraInput->progress = 0.0;
 
-      pProgramState->isUsingAnchorPoint = true;
-      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+      pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+      pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
     }
 
     // Mouse Wheel
@@ -604,10 +604,10 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
       zooming = true;
       if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
       {
-        if (pCameraInput->previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess) && pCameraInput->inputState == vcCIS_None)
+        if (pCameraInput->previousLockTime < currentTime - timeout && (pProgramState->pActiveViewport->pickingSuccess) && pCameraInput->inputState == vcCIS_None)
         {
-          pProgramState->isUsingAnchorPoint = true;
-          pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+          pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+          pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
           pCameraInput->inputState = vcCIS_ZoomTo;
         }
 
@@ -638,7 +638,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     }
 
     if (pCameraInput->inputState == vcCIS_ZoomTo && pCameraInput->smoothTranslation != udDouble3::zero())
-      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+      pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
   }
 
   // Apply movement and rotation
@@ -664,7 +664,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
   }
 
   if (pCameraInput->isFocused && pCameraInput->inputState == vcCIS_None)
-    pProgramState->isUsingAnchorPoint = false;
+    pProgramState->pActiveViewport->isUsingAnchorPoint = false;
 
   vcCamera_UpdateMatrices(pProgramState->geozone, pCamera, pProgramState->settings.camera, windowSize, &mousePos);
 }

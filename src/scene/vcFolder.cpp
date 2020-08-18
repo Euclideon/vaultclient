@@ -334,8 +334,8 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
           pProgramState->pActiveViewport->cameraInput.progress = 0.0;
 
-          pProgramState->isUsingAnchorPoint = true;
-          pProgramState->worldAnchorPoint = pSceneItem->GetWorldSpacePivot();
+          pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+          pProgramState->pActiveViewport->worldAnchorPoint = pSceneItem->GetWorldSpacePivot();
         }
 
         pSceneItem->HandleContextMenu(pProgramState);
