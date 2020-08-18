@@ -75,6 +75,7 @@ static bool         g_MousePressed[3] = { false, false, false };
 static SDL_Cursor*  g_MouseCursors[ImGuiMouseCursor_COUNT] = { 0 };
 static char*        g_ClipboardTextData = NULL;
 static float        g_Scaling = 1.0;
+static bool         g_MouseIsTouch = false;
 
 #ifdef _WIN32
 static uint16_t     g_PrevCursorPos = 0;
@@ -190,9 +191,16 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
         }
     case SDL_MOUSEBUTTONDOWN:
         {
+            g_MouseIsTouch = false;
             if (event->button.button == SDL_BUTTON_LEFT) g_MousePressed[0] = true;
             if (event->button.button == SDL_BUTTON_RIGHT) g_MousePressed[1] = true;
             if (event->button.button == SDL_BUTTON_MIDDLE) g_MousePressed[2] = true;
+            return true;
+        }
+    case SDL_MOUSEBUTTONUP:
+        {
+            if (event->button.which == SDL_TOUCH_MOUSEID)
+                g_MouseIsTouch = true;
             return true;
         }
     case SDL_TEXTINPUT:
@@ -528,8 +536,15 @@ void ImGui_ImplSDL2_NewFrame(SDL_Window* window)
     io.DeltaTime = g_Time > 0 ? (float)((double)(current_time - g_Time) / frequency) : (float)(1.0f / 60.0f);
     g_Time = current_time;
 
+    bool mouseWasDown = io.MouseDown[0];
     ImGui_ImplSDL2_UpdateMousePosAndButtons();
     ImGui_ImplSDL2_UpdateMouseCursor();
+
+    // Needs to be reset on the frame _after_ the mouse is released - see https://github.com/ocornut/imgui/issues/1470
+    // The SDL example doesn't set the position through the events, but instead constantly polls the position in
+    // ImGui_ImplSDL2_UpdateMousePosAndButtons and needs to be between that function and the end of this function.
+    if (g_MouseIsTouch && !mouseWasDown)
+      io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
 
     // Update game controllers (if enabled and available)
     ImGui_ImplSDL2_UpdateGamepads();
