@@ -874,41 +874,25 @@ void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
       while (true)
       {
         size_t startImagePos = 0;
-        size_t openBracketPos = 0;
-        size_t closeBracketPos = 0;
-        size_t openParenthesisPos = 0;
-        size_t closeParenthesisPos = 0;
-
         if (udStrchr(pInfo + firstIndex, "!", &startImagePos) == nullptr)
           break;
         startImagePos += firstIndex;
-        if (udStrchr(pInfo + startImagePos, "[", &openBracketPos) == nullptr)
+        size_t closeBracketPos = 0;
+        if (udStrchr(pInfo + startImagePos + 1, "]", &closeBracketPos) == nullptr)
           break;
-        openBracketPos += startImagePos;
-        if (udStrchr(pInfo + openBracketPos, "]", &closeBracketPos) == nullptr)
+        closeBracketPos += startImagePos + 1;
+        size_t closeParenthesisPos = 0;
+        if (udStrchr(pInfo + closeBracketPos + 1, ")", &closeParenthesisPos) == nullptr)
           break;
-        closeBracketPos += openBracketPos;
-        if (udStrchr(pInfo + closeBracketPos, "(", &openParenthesisPos) == nullptr)
-          break;
-        openParenthesisPos += closeBracketPos;
-        if (udStrchr(pInfo + openParenthesisPos, ")", &closeParenthesisPos) == nullptr)
-          break;
-        closeParenthesisPos += openParenthesisPos;
-
-        if (startImagePos == invalidLen ||
-          openBracketPos == invalidLen ||
-          closeBracketPos == invalidLen ||
-          openParenthesisPos == invalidLen ||
-          closeParenthesisPos == invalidLen)
-          break;
-
+        closeParenthesisPos += closeBracketPos + 1;
+        
         size_t lastCharPos = closeParenthesisPos;
         firstIndex = (int)(lastCharPos + 1);
 
-        if (openBracketPos == startImagePos + 1 &&
-          closeBracketPos > openBracketPos &&
-          openParenthesisPos == closeBracketPos + 1 &&
-          closeParenthesisPos > openParenthesisPos)
+        if (pInfo[startImagePos + 1] == '[' &&
+          closeBracketPos > startImagePos &&
+          pInfo[closeBracketPos + 1] == '(' &&
+          closeParenthesisPos > closeBracketPos)
         {
           // Text
           size_t prevStrLen = startImagePos - startStrIndex;
@@ -919,18 +903,18 @@ void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
           }
 
           // Texture Alt Text
-          if (closeBracketPos == openBracketPos + 1)
+          if (closeBracketPos == startImagePos + 2)
           {
             pProgramState->projectInfoTextures.textureAltStrings.PushBack((const char *)nullptr);
           }
           else
           {
-            const char *pSubStr = udStrndup(pInfo + openBracketPos + 1, closeBracketPos - openBracketPos - 1);
+            const char *pSubStr = udStrndup(pInfo + startImagePos + 2, closeBracketPos - startImagePos - 2);
             pProgramState->projectInfoTextures.textureAltStrings.PushBack(pSubStr);
           }
 
           // Texture
-          const char *pTexPath = udStrndup(pInfo + (openParenthesisPos + 1), closeParenthesisPos - openParenthesisPos - 1);
+          const char *pTexPath = udStrndup(pInfo + (closeBracketPos + 2), closeParenthesisPos - closeBracketPos - 2);
           uint32_t w, h;
           vcTexture *pNewTexture = nullptr;
           vcTexture_CreateFromFilename(&pNewTexture, pTexPath, &w, &h);
