@@ -339,7 +339,13 @@ void vcMain_MainLoop(vcState *pProgramState)
       }
       else if (event.type == SDL_MULTIGESTURE)
       {
-        // TODO: pinch to zoom
+        if (event.mgesture.numFingers == 2)
+        {
+          ImGuiIO &io = ImGui::GetIO();
+          io.MousePos.x = event.mgesture.x;
+          io.MousePos.y = event.mgesture.y;
+          io.MouseWheel += event.mgesture.dDist * 10;
+        }
       }
       else if (event.type == SDL_DROPFILE && pProgramState->hasContext)
       {
