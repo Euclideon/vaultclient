@@ -2611,9 +2611,12 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   udDouble3 cameraMoveOffset = udDouble3::zero();
   vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
 
+  static int wasContextMenuOpenLastFrame = -1;
+
   {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Columns(pProgramState->activeViewportCount);
+
 
     // At the moment some functionality is restricted to certain viewports
     for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
@@ -2662,85 +2665,82 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       if (viewportIndex == 0 && pProgramState->settings.screenshot.taking)
         pProgramState->screenshot.pImage = renderData.pSceneTexture;
 
-      static bool wasContextMenuOpenLastFrame = false;
       bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
 
-      // TODO: TODO: global state in here makes it not work for multiple viewports
-      if (viewportIndex == 0 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
+      if (wasContextMenuOpenLastFrame == -1 || wasContextMenuOpenLastFrame == viewportIndex)
       {
-        static bool hadMouse = false;
-        static udDouble3 mousePosCartesian;
-        static udDouble3 mousePosLongLat;
-
-        if (!wasContextMenuOpenLastFrame || ImGui::IsMouseClicked(1))
+        if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
-          hadMouse = pProgramState->pickingSuccess;
-          mousePosCartesian = pProgramState->worldMousePosCartesian;
-          mousePosLongLat = pProgramState->worldMousePosLongLat;
-        }
+          udDouble3 mousePosCartesian = pProgramState->worldMousePosCartesian;
+          udDouble3 mousePosLongLat = pProgramState->worldMousePosLongLat;
 
-        if (hadMouse)
-        {
-          if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+          if ((pProgramState->pActiveViewport->cameraInput.isFocused && pProgramState->pickingSuccess))
+            wasContextMenuOpenLastFrame = viewportIndex;
+
+          if (wasContextMenuOpenLastFrame == viewportIndex)
           {
-            const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-            if (item.pItem->itemtype == udPNT_PointOfInterest && item.pItem->pUserData != nullptr && item.pItem->geomtype != udPGT_Point)
+            if (pProgramState->sceneExplorer.selectedItems.size() == 1)
             {
-              vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
-
-              if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-                pPOI->AddPoint(pProgramState, mousePosCartesian);
-            }
-          }
-
-          if (ImGui::BeginMenu(vcString::Get("sceneAddMenu")))
-          {
-            udProjectNode *pNode = nullptr;
-
-            if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
-            {
-              vcProject_ClearSelection(pProgramState);
-
-              if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == udE_Success)
+              const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+              if (item.pItem->itemtype == udPNT_PointOfInterest && item.pItem->pUserData != nullptr && item.pItem->geomtype != udPGT_Point)
               {
-                vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &mousePosCartesian, 1);
-                udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+                vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
+
+                if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+                  pPOI->AddPoint(pProgramState, mousePosCartesian);
+              }
+            }
+
+            if (ImGui::BeginMenu(vcString::Get("sceneAddMenu")))
+            {
+              udProjectNode *pNode = nullptr;
+
+              if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
+              {
+                vcProject_ClearSelection(pProgramState);
+
+                if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == udE_Success)
+                {
+                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &mousePosCartesian, 1);
+                  udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+                }
+
+                ImGui::CloseCurrentPopup();
               }
 
-              ImGui::CloseCurrentPopup();
+              ImGui::EndMenu();
             }
 
-            ImGui::EndMenu();
-          }
+            if (ImGui::MenuItem(vcString::Get("sceneMoveTo")))
+            {
+              pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_MovingToPoint;
+              pProgramState->pActiveViewport->cameraInput.startPosition = pProgramState->pActiveViewport->camera.position;
+              pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
+              pProgramState->pActiveViewport->cameraInput.progress = 0.0;
 
-          if (ImGui::MenuItem(vcString::Get("sceneMoveTo")))
+              pProgramState->isUsingAnchorPoint = true;
+              pProgramState->worldAnchorPoint = mousePosCartesian;
+            }
+
+            if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
+            {
+              //TODO: Smooth this over time after fixing inputs
+              pProgramState->pActiveViewport->camera.headingPitch = udDouble2::zero();
+            }
+          }
+          else
           {
-            pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_MovingToPoint;
-            pProgramState->pActiveViewport->cameraInput.startPosition = pProgramState->pActiveViewport->camera.position;
-            pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
-            pProgramState->pActiveViewport->cameraInput.progress = 0.0;
-
-            pProgramState->isUsingAnchorPoint = true;
-            pProgramState->worldAnchorPoint = mousePosCartesian;
+            ImGui::CloseCurrentPopup();
           }
 
-          if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
-          {
-            //TODO: Smooth this over time after fixing inputs
-            pProgramState->pActiveViewport->camera.headingPitch = udDouble2::zero();
-          }
+          ImGui::EndPopup();
+          //wasContextMenuOpenLastFrame = true;
         }
         else
         {
-          ImGui::CloseCurrentPopup();
+          wasContextMenuOpenLastFrame = -1;
+          printf("B: %d\n", viewportIndex);
         }
-
-        ImGui::EndPopup();
-        wasContextMenuOpenLastFrame = true;
-      }
-      else
-      {
-        wasContextMenuOpenLastFrame = false;
       }
 
       // Orbit around centre when fully pressed, show crosshair when partially pressed (also see vcCamera_HandleSceneInput())
@@ -2767,19 +2767,10 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       vcRender_RenderScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
       if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
-      {
         vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
-        
-      // Having some issues in here - don't even know if we want to have 'other' viewports taking
-      // mouse input - so disable
-      //if (viewportIndex == 0)
-      }
+
+      // Camera update has to be here because it depends on previous ImGui state
       vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), mousePos);
-
-
-      //    {
-            // Camera update has to be here because it depends on previous ImGui state
-     // vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
       // Clean up
       renderData.models.Deinit();
