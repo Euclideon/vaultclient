@@ -86,13 +86,13 @@ struct vcTileShader
   {
     udFloat4x4 projectionMatrix;
     udFloat4x4 viewMatrix;
-    udFloat4 eyePositions[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
+    udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
     udFloat4 colour;
     udFloat4 objectInfo; // objectId.x, tileSkirtLength
     udFloat4 uvOffsetScale;
     udFloat4 demUVOffsetScale;
-    udFloat4 worldNormals[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
-    udFloat4 worldBitangents[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
+    udFloat4 worldNormals[TileVertexControlPointRes * TileVertexControlPointRes];
+    udFloat4 worldBitangents[TileVertexControlPointRes * TileVertexControlPointRes];
   } everyObject;
 };
 

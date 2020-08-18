@@ -121,6 +121,9 @@ bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, f
   pcmd->ClipRect.z = halfLabelSize.x + offset.x + 1;
   pcmd->ClipRect.w = halfLabelSize.y + offset.y + 1;
 
+  int startVertexCount = drawList->VtxBuffer.Size;
+  int startIndexCount = drawList->IdxBuffer.Size;
+
   drawList->AddQuadFilled(ImVec2(-halfLabelSize.x + offset.x, -halfLabelSize.y + offset.y), ImVec2(halfLabelSize.x + offset.x, -halfLabelSize.y + offset.y), ImVec2(halfLabelSize.x + offset.x, halfLabelSize.y + offset.y), ImVec2(-halfLabelSize.x + offset.x, halfLabelSize.y + offset.y), pLabelRenderer->backColourRGBA);
   drawList->AddText(ImVec2(-halfLabelSize.x + offset.x, -halfLabelSize.y + offset.y), pLabelRenderer->textColourRGBA, pLabelRenderer->pText);
 
@@ -136,7 +139,14 @@ bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, f
   vcShader_BindTexture(gShader.pShader, (vcTexture *)pcmd->TextureId, 0, gShader.pDiffuseSampler);
 
   vcMesh_Render(g_LabelMesh);
-  pcmd->ElemCount = 0;
+
+  // Undo changes to imgui vertex lists
+  int addedVertices = drawList->VtxBuffer.Size - startVertexCount;
+  int addedIndices = drawList->IdxBuffer.Size - startIndexCount;
+  drawList->PrimUnreserve(addedIndices, addedVertices);
+  drawList->_IdxWritePtr -= addedIndices;
+  drawList->_VtxWritePtr -= addedVertices;
+  drawList->_VtxCurrentIdx -= addedVertices;
 
   ImGui::SetWindowFontScale(1.f);
 

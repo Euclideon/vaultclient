@@ -2619,7 +2619,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
     {
       ImVec2 viewportportPos = ImVec2(windowPos.x + ImGui::GetCursorPosX(), windowPos.y + ImGui::GetCursorPosY());
-      udFloat2 viewportportResolution = udFloat2::create(ImGui::GetColumnWidth(), windowSize.y);
+      udUInt2 viewportportResolution = udUInt2::create((uint32_t)ImGui::GetColumnWidth(), (uint32_t)windowSize.y);
 
       vcRenderData renderData = {};
 
@@ -2637,19 +2637,23 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       renderData.mouse.clicked = io.MouseClicked[1];
 
       pProgramState->pActiveViewport = &pProgramState->pViewports[viewportIndex];
+      udFloat2 mousePos = udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y);
 
       // TODO: Screenshot which viewport?
       if ((viewportIndex != 0 || !pProgramState->settings.screenshot.taking) && (pProgramState->pActiveViewport->resolution.x != viewportportResolution.x || pProgramState->pActiveViewport->resolution.y != viewportportResolution.y)) //Resize buffers
-      {
-        pProgramState->pActiveViewport->resolution = udUInt2::create((uint32_t)viewportportResolution.x, (uint32_t)viewportportResolution.y);
+      { 
+        pProgramState->pActiveViewport->resolution = viewportportResolution;
         vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->pActiveViewport->resolution.x, pProgramState->pActiveViewport->resolution.y);
 
         // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
         // this isn't valid on iOS when using UIKit.
         vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+        // Update camera immediately
+        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), &mousePos);
       }
 
-      vcRender_BeginFrame(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData);
+      vcRender_BeginFrame(pProgramState->pActiveViewport->pRenderContext, renderData);
 
       // Actual rendering to this texture is deferred
       ImGui::Image(renderData.pSceneTexture, ImVec2((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
@@ -2763,11 +2767,19 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       vcRender_RenderScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
 
       if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+      {
         vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
+        
+      // Having some issues in here - don't even know if we want to have 'other' viewports taking
+      // mouse input - so disable
+      //if (viewportIndex == 0)
+      }
+      vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), mousePos);
 
-      // Camera update has to be here because it depends on previous ImGui state
-      vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
+      //    {
+            // Camera update has to be here because it depends on previous ImGui state
+     // vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
       // Clean up
       renderData.models.Deinit();

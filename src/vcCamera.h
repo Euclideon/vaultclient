@@ -86,7 +86,7 @@ struct vcCameraInput
   
   vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 
-  // mouse wheel
+  bool isFocused;
   bool isMouseBtnBeingHeld;
   double previousLockTime;
   bool isRightTriggerHeld = false;

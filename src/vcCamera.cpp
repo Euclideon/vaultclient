@@ -390,20 +390,20 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
   pCameraInput->isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  bool isFocused = (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) || pCameraInput->isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  pCameraInput->isFocused = (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) || pCameraInput->isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   int totalButtonsHeld = 0;
   for (size_t i = 0; i < udLengthOf(isBtnHeld); ++i)
     totalButtonsHeld += isBtnHeld[i] ? 1 : 0;
 
   // Start hold time
-  if (isFocused && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
+  if (pCameraInput->isFocused && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
   {
     pCameraInput->isMouseBtnBeingHeld = true;
     mouseDelta = { 0, 0 };
   }
 
-  bool forceClearMouseState = !isFocused;
+  bool forceClearMouseState = !pCameraInput->isFocused;
 
   // Was the gizmo just clicked on?
   vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
@@ -502,44 +502,44 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     pProgramState->settings.camera.moveSpeed = udMin(pProgramState->settings.camera.moveSpeed, vcSL_CameraMaxMoveSpeed);
   }
 
-  // Allow camera movement when left mouse button is holding down.
-  if (!pProgramState->modalOpen)
+  if (pCameraInput->isFocused)
   {
-    bool enableMove = true;
-    ImGuiContext *p = ImGui::GetCurrentContext();
-    if (p && p->ActiveIdWindow)
+    // Allow camera movement when left mouse button is holding down.
+    if (!pProgramState->modalOpen)
     {
-      const char *activeIdName = p->ActiveIdWindow->Name;
-      size_t len = udStrlen(activeIdName);
-      if (len > 0 && udStrstr(activeIdName, len, "###sceneDock") == nullptr)
-        enableMove = false;
-    }
-
-    if(enableMove)
-    {
-      keyboardInput.y += vcHotkey::IsDown(vcB_Forward) - vcHotkey::IsDown(vcB_Backward);
-      keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
-      keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
+      bool enableMove = true;
+      ImGuiContext *p = ImGui::GetCurrentContext();
+      if (p && p->ActiveIdWindow)
+      {
+        const char *activeIdName = p->ActiveIdWindow->Name;
+        size_t len = udStrlen(activeIdName);
+        if (len > 0 && udStrstr(activeIdName, len, "###sceneDock") == nullptr)
+          enableMove = false;
+      }
+    
+      if(enableMove)
+      {
+        keyboardInput.y += vcHotkey::IsDown(vcB_Forward) - vcHotkey::IsDown(vcB_Backward);
+        keyboardInput.x += vcHotkey::IsDown(vcB_Right) - vcHotkey::IsDown(vcB_Left);
+        keyboardInput.z += vcHotkey::IsDown(vcB_Up) - vcHotkey::IsDown(vcB_Down);
+      }
+      
     }
     
-  }
+    if ((!ImGui::GetIO().WantCaptureKeyboard || pCameraInput->isFocused) && !pProgramState->modalOpen && !ImGui::IsAnyItemActive())
+    {
+      if (vcHotkey::IsPressed(vcB_LockAltitude, false))
+        pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
+      if (vcHotkey::IsPressed(vcB_GizmoTranslate))
+        pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Translate) ? vcGO_NoGizmo : vcGO_Translate);
+      if (vcHotkey::IsPressed(vcB_GizmoRotate))
+        pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Rotate) ? vcGO_NoGizmo : vcGO_Rotate);
+      if (vcHotkey::IsPressed(vcB_GizmoScale))
+        pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Scale) ? vcGO_NoGizmo : vcGO_Scale);
+      if (vcHotkey::IsPressed(vcB_GizmoLocalSpace))
+        pProgramState->gizmo.coordinateSystem = ((pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
+    }
 
-  if ((!ImGui::GetIO().WantCaptureKeyboard || isFocused) && !pProgramState->modalOpen && !ImGui::IsAnyItemActive())
-  {
-    if (vcHotkey::IsPressed(vcB_LockAltitude, false))
-      pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
-    if (vcHotkey::IsPressed(vcB_GizmoTranslate))
-      pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Translate) ? vcGO_NoGizmo : vcGO_Translate);
-    if (vcHotkey::IsPressed(vcB_GizmoRotate))
-      pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Rotate) ? vcGO_NoGizmo : vcGO_Rotate);
-    if (vcHotkey::IsPressed(vcB_GizmoScale))
-      pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Scale) ? vcGO_NoGizmo : vcGO_Scale);
-    if (vcHotkey::IsPressed(vcB_GizmoLocalSpace))
-      pProgramState->gizmo.coordinateSystem = ((pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
-  }
-
-  if (isFocused)
-  {
     if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
     {
       if (pCameraInput->inputState == vcCIS_MovingToPoint)
@@ -551,92 +551,95 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     }
   }
 
-  for (int i = 0; i < 3; ++i)
+  if (pCameraInput->isFocused)
   {
-    // Single Clicking
-    if (isBtnClicked[i] && (pCameraInput->inputState == vcCIS_None || totalButtonsHeld == 1)) // immediately override current input if this is a new button down
-      vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, i);
-
-    if (isBtnReleased[i])
+    for (int i = 0; i < 3; ++i)
     {
-      if ((pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pCameraInput->inputState == vcCIS_Orbiting) ||
+      // Single Clicking
+      if (isBtnClicked[i] && (pCameraInput->inputState == vcCIS_None || totalButtonsHeld == 1)) // immediately override current input if this is a new button down
+        vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, i);
+
+      if (isBtnReleased[i])
+      {
+        if ((pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Orbit && pCameraInput->inputState == vcCIS_Orbiting) ||
           (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Pan && pCameraInput->inputState == vcCIS_Panning) ||
           (pProgramState->settings.camera.cameraMouseBindings[i] == vcCPM_Forward && pCameraInput->inputState == vcCIS_MovingForward) ||
-           pCameraInput->inputState == vcCIS_ZoomTo)
-      {
-        pCameraInput->inputState = vcCIS_None;
-
-        // Should another mouse action take over? (it's being held down)
-        for (int j = 0; j < 3; ++j)
+          pCameraInput->inputState == vcCIS_ZoomTo)
         {
-          if (isBtnHeld[j])
+          pCameraInput->inputState = vcCIS_None;
+
+          // Should another mouse action take over? (it's being held down)
+          for (int j = 0; j < 3; ++j)
           {
-            vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, j);
-            break;
+            if (isBtnHeld[j])
+            {
+              vcCamera_BeginCameraPivotModeMouseBinding(pProgramState, j);
+              break;
+            }
           }
         }
       }
     }
-  }
 
-  // Double Clicking left mouse
-  if (isBtnDoubleClicked[0] && pProgramState->pickingSuccess)
-  {
-    pCameraInput->inputState = vcCIS_MovingToPoint;
-    pCameraInput->startPosition = pCamera->position;
-    pCameraInput->startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pCamera->position, pCamera->headingPitch);
-    pCameraInput->progress = 0.0;
-
-    pProgramState->isUsingAnchorPoint = true;
-    pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
-  }
-
-  // Mouse Wheel
-  const double defaultTimeouts = 0.25;
-  double timeout = defaultTimeouts; // How long you have to stop scrolling the scroll wheel before the point unlocks
-  double currentTime = ImGui::GetTime();
-  bool zooming = false;
-
-  if (mouseWheel != 0)
-  {
-    zooming = true;
-    if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
+    // Double Clicking left mouse
+    if (isBtnDoubleClicked[0] && pProgramState->pickingSuccess)
     {
-      if (pCameraInput->previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess) && pCameraInput->inputState == vcCIS_None)
-      {
-        pProgramState->isUsingAnchorPoint = true;
-        pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
-        pCameraInput->inputState = vcCIS_ZoomTo;
-      }
+      pCameraInput->inputState = vcCIS_MovingToPoint;
+      pCameraInput->startPosition = pCamera->position;
+      pCameraInput->startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pCamera->position, pCamera->headingPitch);
+      pCameraInput->progress = 0.0;
 
-      if (pCameraInput->inputState == vcCIS_ZoomTo)
-      {
-        mouseInput.x = 0.0;
-        mouseInput.y = mouseWheel / 5.0;
-        mouseInput.z = 0.0;
-        pCameraInput->previousLockTime = currentTime;
-
-        pCameraInput->startPosition = pCamera->position;
-      }
+      pProgramState->isUsingAnchorPoint = true;
+      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
     }
-    else
+
+    // Mouse Wheel
+    const double defaultTimeouts = 0.25;
+    double timeout = defaultTimeouts; // How long you have to stop scrolling the scroll wheel before the point unlocks
+    double currentTime = ImGui::GetTime();
+    bool zooming = false;
+
+    if (mouseWheel != 0)
     {
-      if (mouseWheel > 0)
-        pProgramState->settings.camera.moveSpeed *= (1.f + mouseWheel / 10.f);
+      zooming = true;
+      if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
+      {
+        if (pCameraInput->previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess) && pCameraInput->inputState == vcCIS_None)
+        {
+          pProgramState->isUsingAnchorPoint = true;
+          pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+          pCameraInput->inputState = vcCIS_ZoomTo;
+        }
+
+        if (pCameraInput->inputState == vcCIS_ZoomTo)
+        {
+          mouseInput.x = 0.0;
+          mouseInput.y = mouseWheel / 5.0;
+          mouseInput.z = 0.0;
+          pCameraInput->previousLockTime = currentTime;
+
+          pCameraInput->startPosition = pCamera->position;
+        }
+      }
       else
-        pProgramState->settings.camera.moveSpeed /= (1.f - mouseWheel / 10.f);
+      {
+        if (mouseWheel > 0)
+          pProgramState->settings.camera.moveSpeed *= (1.f + mouseWheel / 10.f);
+        else
+          pProgramState->settings.camera.moveSpeed /= (1.f - mouseWheel / 10.f);
 
-      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+        pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+      }
     }
-  }
 
-  if (!zooming && pCameraInput->inputState == vcCIS_ZoomTo && pCameraInput->previousLockTime < currentTime - timeout)
-  {
-    pCameraInput->inputState = vcCIS_None;
-  }
+    if (!zooming && pCameraInput->inputState == vcCIS_ZoomTo && pCameraInput->previousLockTime < currentTime - timeout)
+    {
+      pCameraInput->inputState = vcCIS_None;
+    }
 
-  if (pCameraInput->inputState == vcCIS_ZoomTo && pCameraInput->smoothTranslation != udDouble3::zero())
-    pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+    if (pCameraInput->inputState == vcCIS_ZoomTo && pCameraInput->smoothTranslation != udDouble3::zero())
+      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+  }
 
   // Apply movement and rotation
   pCameraInput->keyboardInput = keyboardInput;
@@ -660,7 +663,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     // TODO: re-orient camera during orbit control to correctly focus on worldAnchorPoint
   }
 
-  if (pCameraInput->inputState == vcCIS_None)
+  if (pCameraInput->isFocused && pCameraInput->inputState == vcCIS_None)
     pProgramState->isUsingAnchorPoint = false;
 
   vcCamera_UpdateMatrices(pProgramState->geozone, pCamera, pProgramState->settings.camera, windowSize, &mousePos);
