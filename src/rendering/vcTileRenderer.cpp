@@ -86,13 +86,13 @@ struct vcTileShader
   {
     udFloat4x4 projectionMatrix;
     udFloat4x4 viewMatrix;
-    udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
+    udFloat4 eyePositions[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
     udFloat4 colour;
     udFloat4 objectInfo; // objectId.x, tileSkirtLength
     udFloat4 uvOffsetScale;
     udFloat4 demUVOffsetScale;
-    udFloat4 worldNormals[TileVertexControlPointRes * TileVertexControlPointRes];
-    udFloat4 worldBitangents[TileVertexControlPointRes * TileVertexControlPointRes];
+    udFloat4 worldNormals[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
+    udFloat4 worldBitangents[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
   } everyObject;
 };
 
@@ -995,6 +995,8 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     // conditonal update AABBs of tree (up and down)
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
+
+    *pUploadBudgetRemainingMS -= udPerfCounterMilliseconds(uploadStartTime);
 
     pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Loaded);
 

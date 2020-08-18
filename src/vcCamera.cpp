@@ -384,16 +384,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
   ImVec2 mouseDelta = io.MouseDelta;
   float mouseWheel = io.MouseWheel;
 
-  static bool isRightTriggerHeld = false;
-  static bool gizmoCapturedMouse = false;
-
   bool isBtnClicked[3] = { ImGui::IsMouseClicked(0, false), ImGui::IsMouseClicked(1, false), ImGui::IsMouseClicked(2, false) };
   bool isBtnDoubleClicked[3] = { ImGui::IsMouseDoubleClicked(0), ImGui::IsMouseDoubleClicked(1), ImGui::IsMouseDoubleClicked(2) };
   bool isBtnHeld[3] = { ImGui::IsMouseDown(0), ImGui::IsMouseDown(1), ImGui::IsMouseDown(2) };
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
-  pCamera->isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  bool isFocused = (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) || pCamera->isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  pCameraInput->isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
+  bool isFocused = (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) || pCameraInput->isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
 
   int totalButtonsHeld = 0;
   for (size_t i = 0; i < udLengthOf(isBtnHeld); ++i)
@@ -402,7 +399,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
   // Start hold time
   if (isFocused && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]))
   {
-    pCamera->isMouseBtnBeingHeld = true;
+    pCameraInput->isMouseBtnBeingHeld = true;
     mouseDelta = { 0, 0 };
   }
 
@@ -427,12 +424,12 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
       }
     }
   }
-  gizmoCapturedMouse = gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered(pProgramState->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
-  if (gizmoCapturedMouse)
+  pCameraInput->gizmoCapturedMouse = pCameraInput->gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered(pProgramState->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
+  if (pCameraInput->gizmoCapturedMouse)
   {
     // was the gizmo just released?
-    gizmoCapturedMouse = isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2];
-    forceClearMouseState = (forceClearMouseState || gizmoCapturedMouse);
+    pCameraInput->gizmoCapturedMouse = isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2];
+    forceClearMouseState = (forceClearMouseState || pCameraInput->gizmoCapturedMouse);
   }
 
   // Handle mouse input for filter tool
@@ -446,12 +443,12 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     memset(isBtnHeld, 0, sizeof(isBtnHeld));
     mouseDelta = ImVec2();
     mouseWheel = 0.0f;
-    pCamera->isMouseBtnBeingHeld = false;
+    pCameraInput->isMouseBtnBeingHeld = false;
     // Leaving isBtnReleased unchanged as there should be no reason to ignore a mouse release while the window has mouse focus
   }
 
   // Accept mouse input
-  if (pCamera->isMouseBtnBeingHeld)
+  if (pCameraInput->isMouseBtnBeingHeld)
   {
     mouseInput.x = (pProgramState->settings.camera.invertMouseX ? mouseDelta.x : -mouseDelta.x) / 100.0;
     mouseInput.y = (pProgramState->settings.camera.invertMouseY ? mouseDelta.y : -mouseDelta.y) / 100.0;
@@ -470,7 +467,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     // In Imgui the DPAD is bound to navigation, so disable DPAD panning until the issue is resolved
     //pCameraInput->controllerDPADInput = udDouble3::create(io.NavInputs[ImGuiNavInput_DpadRight] - io.NavInputs[ImGuiNavInput_DpadLeft], 0, io.NavInputs[ImGuiNavInput_DpadUp] - io.NavInputs[ImGuiNavInput_DpadDown]);
 
-    if (isRightTriggerHeld)
+    if (pCameraInput->isRightTriggerHeld)
     {
       if (pProgramState->pickingSuccess && pCameraInput->inputState == vcCIS_None)
       {
@@ -482,12 +479,12 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
       if (io.NavInputs[ImGuiNavInput_FocusNext] < 0.85f) // Right Trigger
       {
         pCameraInput->inputState = vcCIS_None;
-        isRightTriggerHeld = false;
+        pCameraInput->isRightTriggerHeld = false;
       }
     }
     else if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.85f) // Right Trigger
     {
-      isRightTriggerHeld = true;
+      pCameraInput->isRightTriggerHeld = true;
     }
 
     if (io.NavInputs[ImGuiNavInput_Activate] && !io.NavInputsDownDuration[ImGuiNavInput_Activate]) // A Button
@@ -597,7 +594,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
   // Mouse Wheel
   const double defaultTimeouts = 0.25;
   double timeout = defaultTimeouts; // How long you have to stop scrolling the scroll wheel before the point unlocks
-  static double previousLockTime = 0.0;
   double currentTime = ImGui::GetTime();
   bool zooming = false;
 
@@ -606,7 +602,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     zooming = true;
     if (pProgramState->settings.camera.scrollWheelMode == vcCSWM_Dolly)
     {
-      if (previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess) && pCameraInput->inputState == vcCIS_None)
+      if (pCameraInput->previousLockTime < currentTime - timeout && (pProgramState->pickingSuccess) && pCameraInput->inputState == vcCIS_None)
       {
         pProgramState->isUsingAnchorPoint = true;
         pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
@@ -618,7 +614,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
         mouseInput.x = 0.0;
         mouseInput.y = mouseWheel / 5.0;
         mouseInput.z = 0.0;
-        previousLockTime = currentTime;
+        pCameraInput->previousLockTime = currentTime;
 
         pCameraInput->startPosition = pCamera->position;
       }
@@ -634,7 +630,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     }
   }
 
-  if (!zooming && pCameraInput->inputState == vcCIS_ZoomTo && previousLockTime < currentTime - timeout)
+  if (!zooming && pCameraInput->inputState == vcCIS_ZoomTo && pCameraInput->previousLockTime < currentTime - timeout)
   {
     pCameraInput->inputState = vcCIS_None;
   }

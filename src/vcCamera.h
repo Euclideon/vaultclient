@@ -43,9 +43,6 @@ struct vcCamera
     udDouble4x4 viewProjection;
     udDouble4x4 inverseViewProjection;
   } matrices;
-
-  // input state
-  bool isMouseBtnBeingHeld;
 };
 
 struct vcState;
@@ -88,6 +85,12 @@ struct vcCameraInput
   udDouble2 smoothRotation;
   
   vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
+
+  // mouse wheel
+  bool isMouseBtnBeingHeld;
+  double previousLockTime;
+  bool isRightTriggerHeld = false;
+  bool gizmoCapturedMouse = false;
 };
 
 struct vcCameraSettings
