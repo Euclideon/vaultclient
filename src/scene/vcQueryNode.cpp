@@ -305,7 +305,7 @@ udProjectNode *vcQueryNodeFilter_CreateNode(vcQueryNodeFilterInput *pFilter, vcS
   udProjectNode *pNode = nullptr;
   if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", GetNodeName(pFilter->shape), nullptr, nullptr) == udE_Success)
   {
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->worldMousePosCartesian, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
     udProjectNode_SetMetadataString(pNode, "shape", GetNodeShape(pFilter->shape));
     udProjectNode_SetMetadataDouble(pNode, "size.x", pFilter->size.x);
     udProjectNode_SetMetadataDouble(pNode, "size.y", pFilter->size.y);
@@ -340,12 +340,12 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
   if (isBtnHeld)
   {
     // create node
-    if (pProgramState->pickingSuccess)
+    if (pProgramState->pActiveViewport->pickingSuccess)
     {
       if (!pFilter->pNode)
       {
         pFilter->pNode = vcQueryNodeFilter_CreateNode(pFilter, pProgramState);
-        pFilter->pickPoint = pProgramState->worldMousePosCartesian;
+        pFilter->pickPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
       }
     }
 
@@ -379,7 +379,7 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
   {
     if (isBtnReleased)
     {
-      double scaleFactor = udMag3(pProgramState->pActiveViewport->camera.position - pProgramState->worldMousePosCartesian) / 10.0; // 1/10th of the screen
+      double scaleFactor = udMag3(pProgramState->pActiveViewport->camera.position - pProgramState->pActiveViewport->worldMousePosCartesian) / 10.0; // 1/10th of the screen
       pFilter->size = udDouble3::create(scaleFactor, scaleFactor, scaleFactor);
       vcQueryNodeFilter_Update(pFilter, pProgramState);
       vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);

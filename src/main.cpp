@@ -504,11 +504,11 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               // Let is know about the mouse position- using bounding box currently
               //TODO: Don't use the boundingBox
-              if (pProgramState->pickingSuccess)
+              if (pProgramState->pActiveViewport->pickingSuccess)
               {
-                pNode->boundingBox[0] = pProgramState->worldMousePosCartesian.x;
-                pNode->boundingBox[1] = pProgramState->worldMousePosCartesian.y;
-                pNode->boundingBox[2] = pProgramState->worldMousePosCartesian.z;
+                pNode->boundingBox[0] = pProgramState->pActiveViewport->worldMousePosCartesian.x;
+                pNode->boundingBox[1] = pProgramState->pActiveViewport->worldMousePosCartesian.y;
+                pNode->boundingBox[2] = pProgramState->pActiveViewport->worldMousePosCartesian.z;
               }
               else
               {
@@ -537,7 +537,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else // Was successful
             {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
+              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
 
               if (firstLoad)
                 udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
@@ -603,7 +603,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 if (hasLocation && pProgramState->geozone.projection != udGZPT_Unknown)
                   vcProject_UpdateNodeGeometryFromLatLong(&pProgramState->activeProject, pNode, udPGT_Point, &geolocationLatLong, 1);
                 else
-                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pickingSuccess ? &pProgramState->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
+                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
 
                 if (imageType == vcIT_PhotoSphere)
                   udProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
@@ -1356,8 +1356,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           ImGui::TextUnformatted(vcString::Get("toolInspectRunning"));
           ImGui::Separator();
 
-          if (pProgramState->udModelNodeAttributes.IsObject())
-            vcImGuiValueTreeObject(&pProgramState->udModelNodeAttributes);
+          if (pProgramState->pActiveViewport->udModelNodeAttributes.IsObject())
+            vcImGuiValueTreeObject(&pProgramState->pActiveViewport->udModelNodeAttributes);
         }
         break;
 
@@ -1497,12 +1497,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         ImGui::Separator();
         if (ImGui::IsMousePosValid())
         {
-          if (pProgramState->pickingSuccess)
+          if (pProgramState->pActiveViewport->pickingSuccess)
           {
-            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->worldMousePosCartesian.x, pProgramState->worldMousePosCartesian.y, pProgramState->worldMousePosCartesian.z);
+            ImGui::Text("%s: %.2f, %.2f, %.2f", vcString::Get("sceneMousePointInfo"), pProgramState->pActiveViewport->worldMousePosCartesian.x, pProgramState->pActiveViewport->worldMousePosCartesian.y, pProgramState->pActiveViewport->worldMousePosCartesian.z);
 
             if (pProgramState->geozone.projection != udGZPT_Unknown)
-              ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), pProgramState->worldMousePosLongLat.y, pProgramState->worldMousePosLongLat.x);
+              ImGui::Text("%s: %.6f, %.6f", vcString::Get("sceneMousePointWGS"), pProgramState->pActiveViewport->worldMousePosLongLat.y, pProgramState->pActiveViewport->worldMousePosLongLat.x);
           }
         }
       }
@@ -2107,8 +2107,8 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
   const double farPlaneDist = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane;
 
   // We have to resolve UD vs. Polygon
-  bool selectUD = pProgramState->pickingSuccess && (pProgramState->udModelPickedIndex != -1); // UD was successfully picked (last frame)
-  double udDist = (selectUD ? udMagSq3(pProgramState->worldMousePosCartesian - pProgramState->pActiveViewport->camera.position) : farPlaneDist);
+  bool selectUD = pProgramState->pActiveViewport->pickingSuccess && (pProgramState->pActiveViewport->udModelPickedIndex != -1); // UD was successfully picked (last frame)
+  double udDist = (selectUD ? udMagSq3(pProgramState->pActiveViewport->worldMousePosCartesian - pProgramState->pActiveViewport->camera.position) : farPlaneDist);
 
   bool getResultsImmediately = useTool || ImGui::IsMouseClicked(0, false) || ImGui::IsMouseClicked(1, false) || ImGui::IsMouseClicked(2, false);
   vcRenderPickResult pickResult = vcRender_PolygonPick(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, getResultsImmediately);
@@ -2122,20 +2122,20 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
   if (selectPolygons)
   {
-    pProgramState->pickingSuccess = true;
-    pProgramState->udModelPickedIndex = -1;
-    pProgramState->worldMousePosCartesian = pickResult.position;
+    pProgramState->pActiveViewport->pickingSuccess = true;
+    pProgramState->pActiveViewport->udModelPickedIndex = -1;
+    pProgramState->pActiveViewport->worldMousePosCartesian = pickResult.position;
   }
 
   if (!pickResult.success && !selectPolygons && !selectUD)
-    pProgramState->pickingSuccess = false;
+    pProgramState->pActiveViewport->pickingSuccess = false;
 
   if (useTool)
   {
-    if (!pProgramState->isUsingAnchorPoint)
+    if (!pProgramState->pActiveViewport->isUsingAnchorPoint)
     {
-      pProgramState->isUsingAnchorPoint = true;
-      pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
+      pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+      pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
     }
 
     switch (pProgramState->activeTool)
@@ -2143,8 +2143,8 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
     case vcActiveTool_Select:
       if (selectUD)
       {
-        if (pProgramState->udModelPickedIndex < (int)renderData.models.length)
-          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[pProgramState->udModelPickedIndex]->m_pNode->UUID);
+        if (pProgramState->pActiveViewport->udModelPickedIndex < (int)renderData.models.length)
+          udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, renderData.models[pProgramState->pActiveViewport->udModelPickedIndex]->m_pNode->UUID);
       }
       else if (selectPolygons)
       {
@@ -2171,7 +2171,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
       if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == udPNT_PointOfInterest)
       {
         vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-        pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian);
+        pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian);
       }
       else
       {
@@ -2182,7 +2182,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         {
           if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == udE_Success)
           {
-            vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, &pProgramState->worldMousePosCartesian, 1);
+            vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
             udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             udProjectNode_SetMetadataBool(pNode, "showLength", true);
           }
@@ -2191,7 +2191,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         {
           if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOIAreaDefaultName"), nullptr, nullptr) == udE_Success)
           {
-            vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &pProgramState->worldMousePosCartesian, 1);
+            vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
             udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
             udProjectNode_SetMetadataBool(pNode, "showArea", true);
             udProjectNode_SetMetadataBool(pNode, "showFill", true);
@@ -2207,7 +2207,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
       if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("toolAnnotateDefaultText"), nullptr, nullptr) == udE_Success)
       {
-        vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->worldMousePosCartesian, 1);
+        vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
       }
     }
@@ -2218,14 +2218,14 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
     case vcActiveTool_MeasureHeight:
     {
-      if (!pProgramState->pickingSuccess)
+      if (!pProgramState->pActiveViewport->pickingSuccess)
         break;
 
       udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
       if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "MHeight"))
       {
         vcVerticalMeasureTool *pTool = (vcVerticalMeasureTool *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-        pTool->EndMeasure(pProgramState, pProgramState->worldMousePosCartesian);
+        pTool->EndMeasure(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian);
       }
       else
       {
@@ -2233,7 +2233,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
         udProjectNode *pNode = nullptr;
         if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "MHeight", vcString::Get("sceneVerticalMeasurementTool"), nullptr, nullptr) == udE_Success)
         {
-          vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, &pProgramState->worldMousePosCartesian, 1);
+          vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
           udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
         }
       }
@@ -2267,22 +2267,22 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
         // Preview Point
         vcPOI *pPOI = (vcPOI*)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-        pPOI->AddPoint(pProgramState, pProgramState->worldMousePosCartesian, true);
+        pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian, true);
       }
       break;
 
     case vcActiveTool_Inspect:
-      if (pProgramState->udModelPickedIndex >= 0 && pProgramState->udModelPickedNode.pTrav)
+      if (pProgramState->pActiveViewport->udModelPickedIndex >= 0 && pProgramState->pActiveViewport->udModelPickedNode.pTrav)
       {
         uint8_t *pAttributePtr = nullptr;
         static int lastIndex = -1;
         static udVoxelID lastNode = {};
 
-        if ((lastIndex != pProgramState->udModelPickedIndex || memcmp(&lastNode, &pProgramState->udModelPickedNode, sizeof(lastNode))) && udPointCloud_GetAttributeAddress(renderData.models[pProgramState->udModelPickedIndex]->m_pPointCloud, &pProgramState->udModelPickedNode, 0, (const void**)&pAttributePtr) == udE_Success)
+        if ((lastIndex != pProgramState->pActiveViewport->udModelPickedIndex || memcmp(&lastNode, &pProgramState->pActiveViewport->udModelPickedNode, sizeof(lastNode))) && udPointCloud_GetAttributeAddress(renderData.models[pProgramState->pActiveViewport->udModelPickedIndex]->m_pPointCloud, &pProgramState->pActiveViewport->udModelPickedNode, 0, (const void**)&pAttributePtr) == udE_Success)
         {
-          pProgramState->udModelNodeAttributes.SetVoid();
+          pProgramState->pActiveViewport->udModelNodeAttributes.SetVoid();
 
-          udPointCloudHeader *pHeader = &renderData.models[pProgramState->udModelPickedIndex]->m_pointCloudHeader;
+          udPointCloudHeader *pHeader = &renderData.models[pProgramState->pActiveViewport->udModelPickedIndex]->m_pointCloudHeader;
 
           for (uint32_t i = 0; i < pHeader->attributes.count; ++i)
           {
@@ -2293,7 +2293,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
               const char *pClassificationName = vcSettingsUI_GetClassificationName(pProgramState, classificationID);
 
-              pProgramState->udModelNodeAttributes.Set("%s = '%s'", pHeader->attributes.pDescriptors[i].name, pClassificationName);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = '%s'", pHeader->attributes.pDescriptors[i].name, pClassificationName);
               continue;
             }
 
@@ -2306,7 +2306,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
               vcTimeReferenceData timeData;
               timeData.seconds = GPSTime;
               vcUnitConversion_ConvertAndFormatTimeReference(buffer, 128, timeData, pProgramState->settings.visualization.GPSTime.inputFormat, &pProgramState->settings.unitConversionData);
-              pProgramState->udModelNodeAttributes.Set("%s = '%s'", pHeader->attributes.pDescriptors[i].name, buffer);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = '%s'", pHeader->attributes.pDescriptors[i].name, buffer);
               continue;
             }
 
@@ -2317,75 +2317,75 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
             {
               uint8_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_uint16:
             {
               uint16_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_uint32:
             {
               uint32_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %u", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_uint64:
             {
               uint64_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %" PRIu64, pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %" PRIu64, pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_int8:
             {
               int8_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_int16:
             {
               int16_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_int32:
             {
               int16_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %d", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_int64:
             {
               int64_t val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %" PRId64, pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %" PRId64, pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_float32:
             {
               float val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_float64:
             {
               double val;
               udReadFromPointer(&val, pAttributePtr);
-              pProgramState->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, val);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = %f", pHeader->attributes.pDescriptors[i].name, val);
               break;
             }
             case udATI_color32:
             {
-              pProgramState->udModelNodeAttributes.Set("%s = \"RGB(%u, %u, %u)\"", pHeader->attributes.pDescriptors[i].name, pAttributePtr[2], pAttributePtr[1], pAttributePtr[0]); //BGRA internally
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = \"RGB(%u, %u, %u)\"", pHeader->attributes.pDescriptors[i].name, pAttributePtr[2], pAttributePtr[1], pAttributePtr[0]); //BGRA internally
               pAttributePtr += 4;
               break;
             }
@@ -2393,7 +2393,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
             case udATI_vec3f32: // Not currently supported
             default:
             {
-              pProgramState->udModelNodeAttributes.Set("%s = 'UNKNOWN'", pHeader->attributes.pDescriptors[i].name);
+              pProgramState->pActiveViewport->udModelNodeAttributes.Set("%s = 'UNKNOWN'", pHeader->attributes.pDescriptors[i].name);
               pAttributePtr += ((pHeader->attributes.pDescriptors[i].typeInfo & udATI_SizeMask) >> udATI_SizeShift);
               break;
             }
@@ -2401,8 +2401,8 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
           }
         }
 
-        lastIndex = pProgramState->udModelPickedIndex;
-        lastNode = pProgramState->udModelPickedNode;
+        lastIndex = pProgramState->pActiveViewport->udModelPickedIndex;
+        lastNode = pProgramState->pActiveViewport->udModelPickedNode;
       }
       break;
 
@@ -2416,7 +2416,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
           pProgramState->activeTool = vcActiveTool_Select;
 
         vcVerticalMeasureTool *pTool = (vcVerticalMeasureTool *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-        pTool->Preview(pProgramState->worldMousePosCartesian);
+        pTool->Preview(pProgramState->pActiveViewport->worldMousePosCartesian);
       }
     }
     break;
@@ -2511,7 +2511,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
         vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
         if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-          pPOI->AddPoint(pProgramState, pProgramState->worldAnchorPoint);
+          pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldAnchorPoint);
       }
     }
 
@@ -2660,7 +2660,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y));
       }
 
-      pProgramState->pickingSuccess = false;
+      pProgramState->pActiveViewport->pickingSuccess = false;
       vcRender_BeginFrame(pProgramState->pActiveViewport->pRenderContext, renderData);
 
       // Actual rendering to this texture is deferred
@@ -2717,9 +2717,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       {
         if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
-          udDouble3 mousePosCartesian = pProgramState->worldMousePosCartesian;
+          udDouble3 mousePosCartesian = pProgramState->pActiveViewport->worldMousePosCartesian;
 
-          if ((pProgramState->pActiveViewport->cameraInput.isFocused && pProgramState->pickingSuccess))
+          if ((pProgramState->pActiveViewport->cameraInput.isFocused && pProgramState->pActiveViewport->pickingSuccess))
             wasViewportContextMenuOpenLastFrame = viewportIndex;
 
           if (pProgramState->sceneExplorer.selectedItems.size() == 1)
@@ -2761,8 +2761,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
             pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
             pProgramState->pActiveViewport->cameraInput.progress = 0.0;
 
-            pProgramState->isUsingAnchorPoint = true;
-            pProgramState->worldAnchorPoint = mousePosCartesian;
+            pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+            pProgramState->pActiveViewport->worldAnchorPoint = mousePosCartesian;
           }
 
           if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
@@ -2859,9 +2859,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
   // Can only assign longlat positions in projected space
   if (pProgramState->geozone.projection != udGZPT_Unknown)
-    pProgramState->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->worldMousePosCartesian, true);
+    pProgramState->pActiveViewport->worldMousePosLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->worldMousePosCartesian, true);
   else
-    pProgramState->worldMousePosLongLat = pProgramState->worldMousePosCartesian;
+    pProgramState->pActiveViewport->worldMousePosLongLat = pProgramState->pActiveViewport->worldMousePosCartesian;
 
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 }

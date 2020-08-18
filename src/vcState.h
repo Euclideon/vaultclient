@@ -100,6 +100,18 @@ struct vcViewport
 
   udUInt2 resolution;
   vcRenderContext *pRenderContext;
+
+  bool isUsingAnchorPoint;
+  udDouble3 worldAnchorPoint;
+  udRay<double> anchorMouseRay;
+  udRay<double> worldMouseRay;
+
+  udDouble3 worldMousePosCartesian;
+  udDouble3 worldMousePosLongLat;
+  bool pickingSuccess;
+  int udModelPickedIndex;
+  udVoxelID udModelPickedNode;
+  udJSON udModelNodeAttributes;
 };
 
 struct vcState
@@ -167,18 +179,6 @@ struct vcState
   vcTexture *pUITexture;
   vcTexture *pWhiteTexture;
   vcTexture *pInputsTexture;
-
-  bool isUsingAnchorPoint;
-  udDouble3 worldAnchorPoint;
-  udRay<double> anchorMouseRay;
-  udRay<double> worldMouseRay;
-
-  udDouble3 worldMousePosCartesian;
-  udDouble3 worldMousePosLongLat;
-  bool pickingSuccess;
-  int udModelPickedIndex;
-  udVoxelID udModelPickedNode;
-  udJSON udModelNodeAttributes;
 
   bool finishedStartup;
   bool forceLogout;
