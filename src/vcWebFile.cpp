@@ -7,6 +7,10 @@
 #include "udFileHandler.h"
 #include "udStringUtil.h"
 
+#if UDPLATFORM_WINDOWS
+# include <shellapi.h>
+#endif
+
 static udResult vcWebFile_Load(udFile *pFile, void **ppBuffer, int64_t *pBufferLength)
 {
   UDTRACE();
@@ -153,19 +157,17 @@ epilogue:
 
 #if (UDPLATFORM_IOS || UDPLATFORM_IOS_SIMULATOR)
 // See vcWebFile.mm for implementation
-#elif UDPLATFORM_EMSCRIPTEN
-void vcWebFile_OpenBrowser(const char *pWebpageAddress)
-{
-  MAIN_THREAD_EM_ASM(window.open(UTF8ToString($0)), pWebpageAddress);
-}
 #else
 void vcWebFile_OpenBrowser(const char *pWebpageAddress)
 {
+#if UDPLATFORM_WINDOWS
+  ShellExecute(NULL, L"open", udOSString(pWebpageAddress), NULL, NULL, SW_SHOWNORMAL);
+#elif UDPLATFORM_EMSCRIPTEN
+  MAIN_THREAD_EM_ASM(window.open(UTF8ToString($0)), pWebpageAddress);
+#else
   const char *pBuffer = nullptr;
 
-#if UDPLATFORM_WINDOWS
-  udSprintf(&pBuffer, "START %s", pWebpageAddress);
-#elif UDPLATFORM_OSX
+#if UDPLATFORM_OSX
   udSprintf(&pBuffer, "open %s", pWebpageAddress);
 #elif UDPLATFORM_LINUX
   udSprintf(&pBuffer, "xdg-open %s", pWebpageAddress);
@@ -179,6 +181,7 @@ void vcWebFile_OpenBrowser(const char *pWebpageAddress)
 
     udFree(pBuffer);
   }
+#endif
 }
 #endif
 
