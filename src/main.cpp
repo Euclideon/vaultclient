@@ -2640,7 +2640,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
       // TODO: Screenshot which viewport?
       if ((viewportIndex != 0 || !pProgramState->settings.screenshot.taking) && (pProgramState->pActiveViewport->resolution.x != viewportportResolution.x || pProgramState->pActiveViewport->resolution.y != viewportportResolution.y)) //Resize buffers
-      { 
+      {
         pProgramState->pActiveViewport->resolution = viewportportResolution;
         vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->pActiveViewport->resolution.x, pProgramState->pActiveViewport->resolution.y);
 

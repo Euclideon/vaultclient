@@ -514,7 +514,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
       if (len > 0 && udStrstr(activeIdName, len, "###sceneDock") == nullptr)
         enableMove = false;
     }
-  
+
     if(enableMove)
     {
       keyboardInput.y += vcHotkey::IsDown(vcB_Forward) - vcHotkey::IsDown(vcB_Backward);
@@ -523,7 +523,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
     }
     
   }
-  
+
   if ((!ImGui::GetIO().WantCaptureKeyboard || pCameraInput->isFocused) && !pProgramState->modalOpen && !ImGui::IsAnyItemActive())
   {
     if (vcHotkey::IsPressed(vcB_LockAltitude, false))
@@ -637,7 +637,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCame
 
   if (pCameraInput->inputState == vcCIS_ZoomTo && pCameraInput->smoothTranslation != udDouble3::zero())
     pProgramState->worldAnchorPoint = pProgramState->worldMousePosCartesian;
-  
+
   // Apply movement and rotation
   pCameraInput->keyboardInput = keyboardInput;
   pCameraInput->mouseInput = mouseInput;
