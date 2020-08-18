@@ -638,87 +638,20 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
     {
       if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
       {
-        if (udStrcmp(pProgramState->projectInfoTextures.pLastInfoText, pInfo) != 0)
-        {
-          pProgramState->projectInfoTextures.pLastInfoText = udStrdup(pInfo);
-          for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
-            vcTexture_Destroy(&pTexture);
-          for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
-            udFree(pStr);
-          pProgramState->projectInfoTextures.infoStrings.Clear();
-          pProgramState->projectInfoTextures.textures.Clear();
-          pProgramState->projectInfoTextures.textureSizes.Clear();
-          
-          // Discover Images
-          int firstIndex = 0;
-          int startStrIndex = 0;
-          while (true)
-          {
-            size_t startImagePos = 0;
-            size_t openBracketPos = 0;
-            size_t closeBracketPos = 0;
-            size_t openParanthesisPos = 0;
-            size_t closeParanthesisPos = 0;
-
-            udStrchr(pInfo + firstIndex, "!", &startImagePos);
-            startImagePos += firstIndex;
-            udStrchr(pInfo + startImagePos, "[", &openBracketPos);
-            openBracketPos += startImagePos;
-            udStrchr(pInfo + openBracketPos, "]", &closeBracketPos);
-            closeBracketPos += openBracketPos;
-            udStrchr(pInfo + closeBracketPos, "(", &openParanthesisPos);
-            openParanthesisPos += closeBracketPos;
-            udStrchr(pInfo + openParanthesisPos, ")", &closeParanthesisPos);
-            closeParanthesisPos += openParanthesisPos;
-            
-            const int64_t invalidLen = udStrlen(pInfo);
-
-            if (startImagePos == invalidLen ||
-              openBracketPos == invalidLen ||
-              closeBracketPos == invalidLen ||
-              openParanthesisPos == invalidLen ||
-              closeParanthesisPos == invalidLen)
-              break;
-
-            size_t lastCharPos = closeParanthesisPos;
-            if (openBracketPos == startImagePos + 1 &&
-              closeBracketPos > openBracketPos &&
-              openParanthesisPos == closeBracketPos + 1 &&
-              closeParanthesisPos > openParanthesisPos)
-            {
-              const char *pSubStr = udStrndup(pInfo + startStrIndex, startImagePos - startStrIndex);
-              pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
-
-              const char *pTexPath = udStrndup(pInfo + (openParanthesisPos + 1), closeParanthesisPos - openParanthesisPos - 1);
-              uint32_t w, h;
-              vcTexture *pNewTexture = nullptr;
-              vcTexture_CreateFromFilename(&pNewTexture, pTexPath, &w, &h);
-              pProgramState->projectInfoTextures.textures.PushBack(pNewTexture);
-              pProgramState->projectInfoTextures.textureSizes.PushBack(ImVec2((float)w, (float)h));
-
-              firstIndex = (int)(lastCharPos + 1);
-              startStrIndex = firstIndex;
-            }
-            else
-            {
-              firstIndex = (int)(lastCharPos + 1);
-            }
-          }
-          
-          const char *pSubStr = udStrndup(pInfo + firstIndex, udStrlen(pInfo) - firstIndex);
-          pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
-        }
-
         for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
         {
           ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.infoStrings[i]);
-          if (i < pProgramState->projectInfoTextures.infoStrings.length - 1 && pProgramState->projectInfoTextures.textures[i] != nullptr)
-            ImGui::Image(pProgramState->projectInfoTextures.textures[i], pProgramState->projectInfoTextures.textureSizes[i]);
+          if (i < pProgramState->projectInfoTextures.infoStrings.length - 1)
+          {
+            if (pProgramState->projectInfoTextures.textures[i] == nullptr)
+              ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
+            else
+              ImGui::Image(pProgramState->projectInfoTextures.textures[i], pProgramState->projectInfoTextures.textureSizes[i]);
+          }
         }
       }
-
-      ImGui::EndChild();
     }
+    ImGui::EndChild();
 
     if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr || pInfo[0] == '\0')
       ImGui::CloseCurrentPopup();
@@ -1231,6 +1164,8 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
     {
       udProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
       udProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
+
+      vcProject_UpdateProjectInformationDisplayTextures(pProgramState);
 
       ImGui::CloseCurrentPopup();
     }

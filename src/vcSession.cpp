@@ -316,6 +316,7 @@ void vcSession_ChangeSession(vcState *pProgramState)
 
   pProgramState->projectInfoTextures.pLastInfoText = nullptr;
   pProgramState->projectInfoTextures.infoStrings.Init(64);
+  pProgramState->projectInfoTextures.textureAltStrings.Init(64);
   pProgramState->projectInfoTextures.textures.Init(64);
   pProgramState->projectInfoTextures.textureSizes.Init(64);
 
@@ -482,9 +483,13 @@ void vcSession_CleanupSession(vcState *pProgramState)
     vcTexture_Destroy(&pTexture);
   for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
     udFree(pStr);
+  for (const char *pStr : pProgramState->projectInfoTextures.textureAltStrings)
+    udFree(pStr);
   pProgramState->projectInfoTextures.infoStrings.Deinit();
+  pProgramState->projectInfoTextures.textureAltStrings.Deinit();
   pProgramState->projectInfoTextures.textures.Deinit();
   pProgramState->projectInfoTextures.textureSizes.Deinit();
+  udFree(pProgramState->projectInfoTextures.pLastInfoText);
 
   udWriteUnlockRWLock(pProgramState->pSessionLock);
 }

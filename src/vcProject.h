@@ -73,4 +73,6 @@ inline udError vcProject_GetNodeMetadata(udProjectNode *pNode, const char *pMeta
   return ret;
 }
 
+void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState);
+
 #endif // vcProject_h__
