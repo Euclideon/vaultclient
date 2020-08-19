@@ -2622,6 +2622,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Columns(pProgramState->activeViewportCount);
+    ImGui::PopStyleVar(); // Item Spacing
 
     // At the moment some functionality is restricted to certain viewports
     for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
@@ -2663,8 +2664,12 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       pProgramState->pActiveViewport->pickingSuccess = false;
       vcRender_BeginFrame(pProgramState->pActiveViewport->pRenderContext, renderData);
 
-      // Actual rendering to this texture is deferred
-      ImGui::Image(renderData.pSceneTexture, ImVec2((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
+      if (ImGui::BeginChild(udTempStr("###sceneViewport%d", viewportIndex)))
+      {
+        // Actual rendering to this texture is deferred
+        ImGui::Image(renderData.pSceneTexture, ImVec2((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
+      }
+      ImGui::EndChild();
 
       // TODO: Screenshot which viewport?
       if (viewportIndex == 0 && pProgramState->settings.screenshot.taking)
@@ -2846,12 +2851,13 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         }
       }
 
+
+      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
       ImGui::NextColumn();
+      ImGui::PopStyleVar(); // Item Spacing
     }
 
     ImGui::Columns(1);
-
-    ImGui::PopStyleVar(); // Item Spacing
   }
 
   // Future-proofing - viewport 0 is the primary viewport.
