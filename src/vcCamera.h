@@ -46,6 +46,7 @@ struct vcCamera
 };
 
 struct vcState;
+struct vcViewport;
 class vcSceneItem;
 
 enum vcInputState
@@ -86,7 +87,6 @@ struct vcCameraInput
   
   vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 
-  bool isFocused;
   bool isMouseBtnBeingHeld;
   double previousLockTime;
   bool isRightTriggerHeld;
@@ -134,7 +134,7 @@ enum vcLensSizes
 };
 
 // Applies movement to camera
-void vcCamera_HandleSceneInput(vcState *pProgramState, vcCamera *pCamera, vcCameraInput *pCameraInput, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
+void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, int viewportIndex, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
 void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 
