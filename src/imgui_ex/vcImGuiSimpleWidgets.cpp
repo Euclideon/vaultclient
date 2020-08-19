@@ -139,10 +139,10 @@ bool vcIGSW_ColorPickerU32(const char *pLabel, uint32_t *pColor, ImGuiColorEditF
   {
     uint32_t val = 0;
 
-    val |= ((int)(colors[0] * 255) << 16); // Blue
-    val |= ((int)(colors[1] * 255) << 8); // Green
-    val |= ((int)(colors[2] * 255) << 0); // Red
-    val |= ((int)(colors[3] * 255) << 24); // Alpha
+    val |= ((int)(ImSaturate(colors[0]) * 255) << 16); // Blue
+    val |= ((int)(ImSaturate(colors[1]) * 255) << 8); // Green
+    val |= ((int)(ImSaturate(colors[2]) * 255) << 0); // Red
+    val |= ((int)(ImSaturate(colors[3]) * 255) << 24); // Alpha
 
     *pColor = val;
 
