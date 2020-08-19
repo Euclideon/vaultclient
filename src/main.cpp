@@ -2592,6 +2592,8 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 
 void vcMain_RenderSceneWindow(vcState *pProgramState)
 {
+  static int wasViewportContextMenuOpenLastFrame = -1;
+
   //Rendering
   ImGuiIO &io = ImGui::GetIO();
   ImVec2 windowSize = ImGui::GetContentRegionAvail();
@@ -2658,6 +2660,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y));
       }
 
+      pProgramState->pickingSuccess = false;
       vcRender_BeginFrame(pProgramState->pActiveViewport->pRenderContext, renderData);
 
       // Actual rendering to this texture is deferred
@@ -2667,25 +2670,58 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       if (viewportIndex == 0 && pProgramState->settings.screenshot.taking)
         pProgramState->screenshot.pImage = renderData.pSceneTexture;
 
-      static bool wasContextMenuOpenLastFrame = false;
       bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
 
-      // TODO: TODO: global state in here makes it not work for multiple viewports
-      if (viewportIndex == 0 && (io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
+      // Orbit around centre when fully pressed, show crosshair when partially pressed (also see vcCamera_HandleSceneInput())
+      if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.15f) // Right Trigger
       {
-        static bool hadMouse = false;
-        static udDouble3 mousePosCartesian;
-        static udDouble3 mousePosLongLat;
+        udInt2 centrePoint = { (int)windowSize.x / 2, (int)windowSize.y / 2 };
+        renderData.mouse.position = centrePoint;
 
-        if (!wasContextMenuOpenLastFrame || ImGui::IsMouseClicked(1))
-        {
-          hadMouse = pProgramState->pickingSuccess;
-          mousePosCartesian = pProgramState->worldMousePosCartesian;
-          mousePosLongLat = pProgramState->worldMousePosLongLat;
-        }
+        // Need to adjust crosshair position slightly
+        centrePoint += pProgramState->settings.window.isFullscreen ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
 
-        if (hadMouse)
+        ImVec2 sceneWindowPos = ImGui::GetWindowPos();
+        sceneWindowPos = ImVec2(sceneWindowPos.x + centrePoint.x, sceneWindowPos.y + centrePoint.y);
+
+        ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
+      }
+
+      if (vcHotkey::IsPressed(vcB_Remove) && !ImGui::IsAnyItemActive() && !pProgramState->modalOpen)
+        vcProject_RemoveSelected(pProgramState);
+
+      pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
+
+      // Render scene to texture
+      vcRender_RenderScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+
+      if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+        vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
+
+      // Camera update has to be here because it depends on previous ImGui state
+      vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
+
+      // Clean up
+      renderData.models.Deinit();
+      renderData.fences.Deinit();
+      renderData.labels.Deinit();
+      renderData.waterVolumes.Deinit();
+      renderData.polyModels.Deinit();
+      renderData.images.Deinit();
+      renderData.lines.Deinit();
+      renderData.viewSheds.Deinit();
+      renderData.pins.Deinit();
+
+      // Handle context menu
+      if (wasViewportContextMenuOpenLastFrame == -1 || wasViewportContextMenuOpenLastFrame == viewportIndex)
+      {
+        if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
+          udDouble3 mousePosCartesian = pProgramState->worldMousePosCartesian;
+
+          if ((pProgramState->pActiveViewport->cameraInput.isFocused && pProgramState->pickingSuccess))
+            wasViewportContextMenuOpenLastFrame = viewportIndex;
+
           if (pProgramState->sceneExplorer.selectedItems.size() == 1)
           {
             const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
@@ -2734,59 +2770,14 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
             //TODO: Smooth this over time after fixing inputs
             pProgramState->pActiveViewport->camera.headingPitch = udDouble2::zero();
           }
+
+          ImGui::EndPopup();
         }
         else
         {
-          ImGui::CloseCurrentPopup();
+          wasViewportContextMenuOpenLastFrame = -1;
         }
-
-        ImGui::EndPopup();
-        wasContextMenuOpenLastFrame = true;
       }
-      else
-      {
-        wasContextMenuOpenLastFrame = false;
-      }
-
-      // Orbit around centre when fully pressed, show crosshair when partially pressed (also see vcCamera_HandleSceneInput())
-      if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.15f) // Right Trigger
-      {
-        udInt2 centrePoint = { (int)windowSize.x / 2, (int)windowSize.y / 2 };
-        renderData.mouse.position = centrePoint;
-
-        // Need to adjust crosshair position slightly
-        centrePoint += pProgramState->settings.window.isFullscreen ? udInt2::create(-8, -8) : udInt2::create(-2, -2);
-
-        ImVec2 sceneWindowPos = ImGui::GetWindowPos();
-        sceneWindowPos = ImVec2(sceneWindowPos.x + centrePoint.x, sceneWindowPos.y + centrePoint.y);
-
-        ImGui::GetWindowDrawList()->AddImage(pProgramState->pUITexture, ImVec2((float)sceneWindowPos.x, (float)sceneWindowPos.y), ImVec2((float)sceneWindowPos.x + 24, (float)sceneWindowPos.y + 24), ImVec2(0, 0.375), ImVec2(0.09375, 0.46875));
-      }
-
-      if (vcHotkey::IsPressed(vcB_Remove) && !ImGui::IsAnyItemActive() && !pProgramState->modalOpen)
-        vcProject_RemoveSelected(pProgramState);
-
-      pProgramState->activeProject.pFolder->AddToScene(pProgramState, &renderData);
-
-      // Render scene to texture
-      vcRender_RenderScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
-
-      if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
-        vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
-
-      // Camera update has to be here because it depends on previous ImGui state
-      vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
-
-      // Clean up
-      renderData.models.Deinit();
-      renderData.fences.Deinit();
-      renderData.labels.Deinit();
-      renderData.waterVolumes.Deinit();
-      renderData.polyModels.Deinit();
-      renderData.images.Deinit();
-      renderData.lines.Deinit();
-      renderData.viewSheds.Deinit();
-      renderData.pins.Deinit();
 
       // TODO: There is global state in the gizmo, which prevents it from working with multiple viewports
       if (viewportIndex == 0)
