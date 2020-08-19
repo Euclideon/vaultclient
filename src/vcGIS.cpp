@@ -10,12 +10,13 @@ bool vcGIS_AcceptableSRID(int32_t sridCode)
   return (udGeoZone_SetFromSRID(&zone, sridCode) == udR_Success);
 }
 
-bool vcGIS_ChangeSpace(udGeoZone *pZone, const udGeoZone &newZone, udDouble3 *pCameraPosition /*= nullptr*/)
+bool vcGIS_ChangeSpace(udGeoZone *pZone, const udGeoZone &newZone, udDouble3 *pCameraPosition /*= nullptr*/, bool changeZone /*= true*/)
 {
   if (pCameraPosition != nullptr)
     *pCameraPosition = udGeoZone_TransformPoint(*pCameraPosition, *pZone, newZone);
 
-  *pZone = newZone;
+  if (changeZone)
+    *pZone = newZone;
 
   return true;
 }

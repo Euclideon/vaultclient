@@ -718,7 +718,10 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
         {
           udGeoZone zone = {};
           udGeoZone_SetFromSRID(&zone, newSRID);
-          vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pActiveViewport->camera.position);
+
+          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+            vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pViewports[viewportIndex].camera.position, viewportIndex + 1 == pProgramState->activeViewportCount);
+
           pProgramState->activeProject.pFolder->ChangeProjection(zone);
         }
       }
