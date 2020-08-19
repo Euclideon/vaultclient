@@ -1,0 +1,71 @@
+#include "vcMeasureLine.h"
+
+#include "vcState.h"
+#include "vcStrings.h"
+#include "vcHotkey.h"
+#include "vcStringFormat.h"
+#include "vcPOI.h"
+
+#include "udStringUtil.h"
+
+#include "imgui.h"
+
+vcMeasureLine vcMeasureLine::m_instance;
+
+void vcMeasureLine::SceneUI(vcState *pProgramState)
+{
+  if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == udPNT_PointOfInterest && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+  {
+    vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+
+    char bufferA[128];
+    char bufferB[128];
+    vcHotkey::GetKeyName(vcB_Cancel, bufferB);
+    ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+
+    ImGui::Separator();
+
+    pSceneItem->HandleToolUI(pProgramState);
+  }
+  else
+  {
+    ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
+  }
+}
+
+void vcMeasureLine::HandlePicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  //Are these checks necessary? If a tool is being used would that not suggest we indeed have a valid clickedItem?
+  if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == udPNT_PointOfInterest)
+  {
+    vcPOI *pPOI = (vcPOI *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+    pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian);
+  }
+  else
+  {
+    vcProject_ClearSelection(pProgramState, false);
+    udProjectNode *pNode = nullptr;
+
+    if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == udE_Success)
+    {
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
+      udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+      udProjectNode_SetMetadataBool(pNode, "showLength", true);
+    }
+  }
+}
+
+void vcMeasureLine::PreviewPicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == udPNT_PointOfInterest)
+  {
+    vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+
+    if (!pSceneItem->m_visible)
+      pProgramState->activeTool = vcActiveTool_Select;
+
+    // Preview Point
+    vcPOI *pPOI = (vcPOI *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+    pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian, true);
+  }
+}
