@@ -166,6 +166,7 @@ struct vcState
 
   // The systems only have a concept of a single active viewport, so maintain that
   vcViewport *pActiveViewport;
+  int focusedViewportIndex;
 
   udGeoZone geozone;
 

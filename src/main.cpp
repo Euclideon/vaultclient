@@ -2699,7 +2699,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
 
       // Camera update has to be here because it depends on previous ImGui state
-      vcCamera_HandleSceneInput(pProgramState, &pProgramState->pActiveViewport->camera, &pProgramState->pActiveViewport->cameraInput, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
+      vcCamera_HandleSceneInput(pProgramState, pProgramState->pActiveViewport, viewportIndex, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
       // Clean up
       renderData.models.Deinit();
@@ -2719,7 +2719,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         {
           udDouble3 mousePosCartesian = pProgramState->pActiveViewport->worldMousePosCartesian;
 
-          if ((pProgramState->pActiveViewport->cameraInput.isFocused && pProgramState->pActiveViewport->pickingSuccess))
+          if ((pProgramState->focusedViewportIndex == viewportIndex && pProgramState->pActiveViewport->pickingSuccess))
             wasViewportContextMenuOpenLastFrame = viewportIndex;
 
           if (pProgramState->sceneExplorer.selectedItems.size() == 1)
