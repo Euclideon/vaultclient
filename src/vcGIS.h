@@ -7,7 +7,7 @@
 bool vcGIS_AcceptableSRID(int32_t sridCode);
 
 // Changes pSpace from its current zone to the new zone, pCameraPosition if set gets moved to the new zone
-bool vcGIS_ChangeSpace(udGeoZone *pGeozone, const udGeoZone &newZone, udDouble3 *pCameraPosition = nullptr);
+bool vcGIS_ChangeSpace(udGeoZone *pGeozone, const udGeoZone &newZone, udDouble3 *pCameraPosition = nullptr, bool changeZone = true);
 
 bool vcGIS_LatLongToSlippy(udInt2 *pSlippyCoords, udDouble3 latLong, int zoomLevel);
 bool vcGIS_LatLongToSlippy(udDouble2 *pSlippyCoords, udDouble3 latLong, int zoomLevel);
