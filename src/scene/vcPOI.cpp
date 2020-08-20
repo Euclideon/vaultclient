@@ -567,16 +567,16 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   udProjectNode_GetMetadataString(m_pNode, "description", &pTemp, "");
   udStrcpy(m_description, pTemp);
 
-  if (udProjectNode_GetMetadataBool(m_pNode, "lineDualColour", (uint32_t*)&m_line.isDualColour, false) != udE_Success)
+  if (vcProject_GetNodeMetadata(m_pNode, "lineDualColour", &m_line.isDualColour, false) != udE_Success)
   {
     m_line.isDualColour = (m_line.colourPrimary != m_line.colourSecondary);
     udProjectNode_SetMetadataBool(m_pNode, "lineDualColour", m_line.isDualColour);
   }
 
-  udProjectNode_GetMetadataBool(m_pNode, "showLength", (uint32_t*)&m_showLength, false);
-  udProjectNode_GetMetadataBool(m_pNode, "showAllLengths", (uint32_t*)&m_showAllLengths, false);
-  udProjectNode_GetMetadataBool(m_pNode, "showArea", (uint32_t*)&m_showArea, false);
-  udProjectNode_GetMetadataBool(m_pNode, "showFill", (uint32_t*)&m_showFill, false);
+  vcProject_GetNodeMetadata(m_pNode, "showLength", &m_showLength, false);
+  vcProject_GetNodeMetadata(m_pNode, "showAllLengths", &m_showAllLengths, false);
+  vcProject_GetNodeMetadata(m_pNode, "showArea", &m_showArea, false);
+  vcProject_GetNodeMetadata(m_pNode, "showFill", &m_showFill, false);
 
   m_line.closed = (m_pState->GetGeometryType() == udPGT_Polygon);
 

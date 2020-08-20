@@ -70,7 +70,7 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
       m_cullFace = vcGLSCM_Back;
   }
 
-  udProjectNode_GetMetadataBool(m_pNode, "ignoreTint", (uint32_t*)&m_ignoreTint, false);
+  vcProject_GetNodeMetadata(m_pNode, "ignoreTint", &m_ignoreTint, false);
 
   if (m_pNode->geomCount != 0)
   {
