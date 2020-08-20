@@ -32,16 +32,21 @@ enum vcGizmoAllowedControls
   vcGAC_All = vcGAC_Translation | vcGAC_Rotation | vcGAC_Scale
 };
 
-void vcGizmo_SetDrawList(); // call inside your own window and before vcGizmo_Manipulate() in order to draw gizmo to that window.
+struct vcGizmoContext;
 
-void vcGizmo_BeginFrame(); // call vcGizmo_BeginFrame right after ImGui_XXXX_NewFrame();
-bool vcGizmo_IsHovered(const udDouble3 direction[]); // return true if mouse cursor is over any gizmo control (axis, plan or screen component)
-bool vcGizmo_IsActive(); // return true if mouse vcGizmo_IsHovered or if the gizmo is in moving state
+void vcGizmo_Create(vcGizmoContext **ppContext);
+void vcGizmo_Destroy(vcGizmoContext **ppContext);
 
-void vcGizmo_SetRect(float x, float y, float width, float height);
+void vcGizmo_SetDrawList(vcGizmoContext *pContext); // call inside your own window and before vcGizmo_Manipulate() in order to draw gizmo to that window.
 
-void vcGizmo_Manipulate(const vcCamera *pCamera, const udDouble3 direction[], vcGizmoOperation operation, vcGizmoCoordinateSystem mode, const udDouble4x4 &matrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap = 0.0);
-void vcGizmo_ResetState();
+void vcGizmo_BeginFrame(vcGizmoContext *pContext); // call vcGizmo_BeginFrame right after ImGui_XXXX_NewFrame();
+bool vcGizmo_IsHovered(vcGizmoContext *pContext, const udDouble3 direction[]); // return true if mouse cursor is over any gizmo control (axis, plan or screen component)
+bool vcGizmo_IsActive(vcGizmoContext *pContext); // return true if mouse vcGizmo_IsHovered or if the gizmo is in moving state
+
+void vcGizmo_SetRect(vcGizmoContext *pContext, float x, float y, float width, float height);
+
+void vcGizmo_Manipulate(vcGizmoContext *pContext, const vcCamera *pCamera, const udDouble3 direction[], vcGizmoOperation operation, vcGizmoCoordinateSystem mode, const udDouble4x4 &matrix, udDouble4x4 *pDeltaMatrix, vcGizmoAllowedControls allowedControls, double snap = 0.0);
+void vcGizmo_ResetState(vcGizmoContext *pContext);
 
 #endif
 

@@ -390,7 +390,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
   bool isBtnReleased[3] = { ImGui::IsMouseReleased(0), ImGui::IsMouseReleased(1), ImGui::IsMouseReleased(2) };
 
   pViewport->cameraInput.isMouseBtnBeingHeld &= (isBtnHeld[0] || isBtnHeld[1] || isBtnHeld[2]);
-  bool isFocused = (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) || pViewport->cameraInput.isMouseBtnBeingHeld) && !vcGizmo_IsActive() && !pProgramState->modalOpen;
+  bool isFocused = (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) || pViewport->cameraInput.isMouseBtnBeingHeld) && !vcGizmo_IsActive(pViewport->gizmo.pContext) && !pProgramState->modalOpen;
 
   if (isFocused)
     pProgramState->focusedViewportIndex = viewportIndex;
@@ -417,19 +417,19 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
     vcSceneItem *pItem = (vcSceneItem *)clickedItemRef.pItem->pUserData;
     if (pItem != nullptr)
     {
-      if (pProgramState->gizmo.operation == vcGO_Scale || pProgramState->gizmo.coordinateSystem == vcGCS_Local)
+      if (pViewport->gizmo.operation == vcGO_Scale || pViewport->gizmo.coordinateSystem == vcGCS_Local)
       {
-        pProgramState->gizmo.direction[0] = udDouble3::create(1, 0, 0);
-        pProgramState->gizmo.direction[1] = udDouble3::create(0, 1, 0);
-        pProgramState->gizmo.direction[2] = udDouble3::create(0, 0, 1);
+        pViewport->gizmo.direction[0] = udDouble3::create(1, 0, 0);
+        pViewport->gizmo.direction[1] = udDouble3::create(0, 1, 0);
+        pViewport->gizmo.direction[2] = udDouble3::create(0, 0, 1);
       }
       else
       {
-        vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
+        vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pViewport->gizmo.direction[2], &pViewport->gizmo.direction[1], &pViewport->gizmo.direction[0]);
       }
     }
   }
-  pViewport->cameraInput.gizmoCapturedMouse = pViewport->cameraInput.gizmoCapturedMouse || (pProgramState->gizmo.operation != 0 && vcGizmo_IsHovered(pProgramState->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
+  pViewport->cameraInput.gizmoCapturedMouse = pViewport->cameraInput.gizmoCapturedMouse || (pViewport->gizmo.operation != 0 && vcGizmo_IsHovered(pViewport->gizmo.pContext, pViewport->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
   if (pViewport->cameraInput.gizmoCapturedMouse)
   {
     // was the gizmo just released?
@@ -536,13 +536,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
       if (vcHotkey::IsPressed(vcB_LockAltitude, false))
         pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
       if (vcHotkey::IsPressed(vcB_GizmoTranslate))
-        pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Translate) ? vcGO_NoGizmo : vcGO_Translate);
+        pViewport->gizmo.operation = ((pViewport->gizmo.operation == vcGO_Translate) ? vcGO_NoGizmo : vcGO_Translate);
       if (vcHotkey::IsPressed(vcB_GizmoRotate))
-        pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Rotate) ? vcGO_NoGizmo : vcGO_Rotate);
+        pViewport->gizmo.operation = ((pViewport->gizmo.operation == vcGO_Rotate) ? vcGO_NoGizmo : vcGO_Rotate);
       if (vcHotkey::IsPressed(vcB_GizmoScale))
-        pProgramState->gizmo.operation = ((pProgramState->gizmo.operation == vcGO_Scale) ? vcGO_NoGizmo : vcGO_Scale);
+        pViewport->gizmo.operation = ((pViewport->gizmo.operation == vcGO_Scale) ? vcGO_NoGizmo : vcGO_Scale);
       if (vcHotkey::IsPressed(vcB_GizmoLocalSpace))
-        pProgramState->gizmo.coordinateSystem = ((pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
+        pViewport->gizmo.coordinateSystem = ((pViewport->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
     }
 
     if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection

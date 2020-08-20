@@ -384,7 +384,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   ImGuiGL_NewFrame(pProgramState->pWindow);
 
-  vcGizmo_BeginFrame();
+  vcGizmo_BeginFrame(pProgramState->pActiveViewport->gizmo.pContext);
   vcGLState_ResetState(true);
 
   vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
@@ -1047,6 +1047,8 @@ int main(int argc, char **args)
 
   for (int viewportIndex = 0; viewportIndex < vcMaxViewportCount; ++viewportIndex)
   {
+    vcGizmo_Create(&programState.pViewports[viewportIndex].gizmo.pContext);
+
     // TODO: Load from settings
     programState.pViewports[viewportIndex].resolution.y = programState.windowResolution.y;
     programState.pViewports[viewportIndex].resolution.x = programState.windowResolution.x;
@@ -1125,7 +1127,10 @@ epilogue:
   udWorkerPool_Destroy(&programState.pWorkerPool); // This needs to occur before logout
   vcProject_Deinit(&programState, &programState.activeProject); // This needs to be destroyed before the renderer is shutdown
   for (int viewportIndex = 0; viewportIndex < vcMaxViewportCount; ++viewportIndex)
+  {
+    vcGizmo_Destroy(&programState.pViewports[viewportIndex].gizmo.pContext);
     vcRender_Destroy(&programState, &programState.pViewports[viewportIndex].pRenderContext);
+  }
   programState.activeViewportCount = 0;
   udFree(programState.pViewports);
   vcString::FreeTable(&programState.languageInfo);
@@ -1210,6 +1215,10 @@ void vcMain_ToggleViewport(vcState *pProgramState)
     pProgramState->activeViewportCount = 2;
 
     memcpy(&pProgramState->pViewports[1].camera, &pProgramState->pViewports[0].camera, sizeof(vcCamera));
+    pProgramState->pViewports[1].gizmo.inUse = pProgramState->pViewports[0].gizmo.inUse;
+    pProgramState->pViewports[1].gizmo.coordinateSystem = pProgramState->pViewports[0].gizmo.coordinateSystem;
+    pProgramState->pViewports[1].gizmo.operation = pProgramState->pViewports[0].gizmo.operation;
+    memcpy(&pProgramState->pViewports[1].gizmo.direction, &pProgramState->pViewports[0].gizmo.direction, sizeof(pProgramState->pViewports[0].gizmo.direction));
     vcRender_ClearTiles(pProgramState->pViewports[1].pRenderContext);
 
     //TODO: Is this necessary?
@@ -1221,6 +1230,20 @@ void vcMain_ToggleViewport(vcState *pProgramState)
 
     // TODO: Is this necessary?
     vcRender_RemoveVaultContext(pProgramState->pViewports[1].pRenderContext);
+  }
+}
+
+void vcMain_ToggleGizmoOperation(vcState *pProgramState, vcGizmoOperation op)
+{
+  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  {
+    vcViewport *pViewport = &pProgramState->pViewports[viewportIndex];
+
+    // TODO: Leaving this commented until viewport UI is implemented
+    //if (pProgramState->focusedViewportIndex != viewportIndex)
+    //  continue;
+
+    pViewport->gizmo.operation = pViewport->gizmo.operation == op ? vcGO_NoGizmo : op;
   }
 }
 
@@ -1255,7 +1278,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
   bool showToolWindow = false;
   showToolWindow |= (pProgramState->activeTool != vcActiveTool_Select || pProgramState->sceneExplorer.selectedItems.size() > 0);
-  showToolWindow |= pProgramState->gizmo.inUse;
+  showToolWindow |= pProgramState->pActiveViewport->gizmo.inUse;
   showToolWindow |= (pProgramState->backgroundWork.exportsRunning.Get() > 0);
 
 #if VC_HASCONVERT
@@ -1273,19 +1296,22 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     if (ImGui::Begin("###toolInfoPanel", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
       // Gizmo Settings
-      if (pProgramState->gizmo.inUse)
+      if (pProgramState->pActiveViewport->gizmo.inUse)
       {
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoTranslate)), vcMBBI_Translate, vcMBBG_FirstItem, pProgramState->gizmo.operation == vcGO_Translate))
-          pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Translate ? vcGO_NoGizmo : vcGO_Translate;
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoTranslate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoTranslate)), vcMBBI_Translate, vcMBBG_FirstItem, pProgramState->pActiveViewport->gizmo.operation == vcGO_Translate))
+          vcMain_ToggleGizmoOperation(pProgramState, vcGO_Translate);
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoRotate)), vcMBBI_Rotate, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Rotate))
-          pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Rotate ? vcGO_NoGizmo : vcGO_Rotate;
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoRotate"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoRotate)), vcMBBI_Rotate, vcMBBG_SameGroup, pProgramState->pActiveViewport->gizmo.operation == vcGO_Rotate))
+          vcMain_ToggleGizmoOperation(pProgramState, vcGO_Rotate);
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoScale)), vcMBBI_Scale, vcMBBG_SameGroup, pProgramState->gizmo.operation == vcGO_Scale))
-          pProgramState->gizmo.operation = pProgramState->gizmo.operation == vcGO_Scale ? vcGO_NoGizmo : vcGO_Scale;
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoScale"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoScale)), vcMBBI_Scale, vcMBBG_SameGroup, pProgramState->pActiveViewport->gizmo.operation == vcGO_Scale))
+          vcMain_ToggleGizmoOperation(pProgramState, vcGO_Scale);
 
-        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->gizmo.coordinateSystem == vcGCS_Local))
-          pProgramState->gizmo.coordinateSystem = (pProgramState->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->pActiveViewport->gizmo.coordinateSystem == vcGCS_Local))
+        {
+          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+            pProgramState->pViewports[viewportIndex].gizmo.coordinateSystem = (pProgramState->pViewports[viewportIndex].gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
+        }
 
         ImGui::Separator();
       }
@@ -2404,74 +2430,69 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
           wasViewportContextMenuOpenLastFrame = -1;
         }
       }
+   
+      // GIZMOS
+      bool couldOpen = true;
+      if (pProgramState->modalOpen)
+        couldOpen = false;
+      ImGuiWindow *pSetting = ImGui::FindWindowByName("###settingsDock");
+      if (pSetting != nullptr && (pSetting->Active || pSetting->WasActive))
+        couldOpen = false;
 
-      // TODO: There is global state in the gizmo, which prevents it from working with multiple viewports
-      if (viewportIndex == 0)
+      pProgramState->pActiveViewport->gizmo.inUse = false;
+      if (couldOpen && pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
       {
-        // GIZMOS
-        bool couldOpen = true;
-        if (pProgramState->modalOpen)
-          couldOpen = false;
-        ImGuiWindow *pSetting = ImGui::FindWindowByName("###settingsDock");
-        if (pSetting != nullptr && (pSetting->Active || pSetting->WasActive))
-          couldOpen = false;
+        vcGizmo_SetRect(pProgramState->pActiveViewport->gizmo.pContext, viewportportPos.x, viewportportPos.y, (float)viewportportResolution.x, (float)viewportportResolution.y);
+        vcGizmo_SetDrawList(pProgramState->pActiveViewport->gizmo.pContext);
 
-        pProgramState->gizmo.inUse = false;
-        if (couldOpen && pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
+        vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
+        vcSceneItem *pItem = (vcSceneItem*)clickedItemRef.pItem->pUserData;
+
+        if (pItem != nullptr)
         {
-          vcGizmo_SetRect(viewportportPos.x, viewportportPos.y, (float)viewportportResolution.x, (float)viewportportResolution.y);
-          vcGizmo_SetDrawList();
+          pProgramState->pActiveViewport->gizmo.inUse = true;
 
-          vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
-          vcSceneItem *pItem = (vcSceneItem*)clickedItemRef.pItem->pUserData;
+          udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
+          temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
 
-          if (pItem != nullptr)
+          udDouble4x4 delta = udDouble4x4::identity();
+
+          double snapAmt = 0.1;
+
+          if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Rotate)
+            snapAmt = 15.0;
+          else if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Translate)
+            snapAmt = 0.25;
+
+          vcGizmoAllowedControls allowedControls = vcGAC_All;
+          for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
+            allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
+
+          //read direction axes again.
+          if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Scale || pProgramState->pActiveViewport->gizmo.coordinateSystem == vcGCS_Local)
           {
-            pProgramState->gizmo.inUse = true;
+            pProgramState->pActiveViewport->gizmo.direction[0] = udDouble3::create(1, 0, 0);
+            pProgramState->pActiveViewport->gizmo.direction[1] = udDouble3::create(0, 1, 0);
+            pProgramState->pActiveViewport->gizmo.direction[2] = udDouble3::create(0, 0, 1);
+          }
+          else
+          {
+            vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->pActiveViewport->gizmo.direction[2], &pProgramState->pActiveViewport->gizmo.direction[1], &pProgramState->pActiveViewport->gizmo.direction[0]);
+          }
 
-            udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
-            temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
+          vcGizmo_Manipulate(pProgramState->pActiveViewport->gizmo.pContext, &pProgramState->pActiveViewport->camera, pProgramState->pActiveViewport->gizmo.direction, pProgramState->pActiveViewport->gizmo.operation, pProgramState->pActiveViewport->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
 
-            udDouble4x4 delta = udDouble4x4::identity();
-
-            double snapAmt = 0.1;
-
-            if (pProgramState->gizmo.operation == vcGO_Rotate)
-              snapAmt = 15.0;
-            else if (pProgramState->gizmo.operation == vcGO_Translate)
-              snapAmt = 0.25;
-
-            vcGizmoAllowedControls allowedControls = vcGAC_All;
+          if (!(delta == udDouble4x4::identity()))
+          {
             for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
-              allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
-
-            //read direction axes again.
-            if (pProgramState->gizmo.operation == vcGO_Scale || pProgramState->gizmo.coordinateSystem == vcGCS_Local)
-            {
-              pProgramState->gizmo.direction[0] = udDouble3::create(1, 0, 0);
-              pProgramState->gizmo.direction[1] = udDouble3::create(0, 1, 0);
-              pProgramState->gizmo.direction[2] = udDouble3::create(0, 0, 1);
-            }
-            else
-            {
-              vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->gizmo.direction[2], &pProgramState->gizmo.direction[1], &pProgramState->gizmo.direction[0]);
-            }
-
-            vcGizmo_Manipulate(&pProgramState->pActiveViewport->camera, pProgramState->gizmo.direction, pProgramState->gizmo.operation, pProgramState->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
-
-            if (!(delta == udDouble4x4::identity()))
-            {
-              for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
-                ((vcSceneItem*)ref.pItem->pUserData)->ApplyDelta(pProgramState, delta);
-            }
+              ((vcSceneItem*)ref.pItem->pUserData)->ApplyDelta(pProgramState, delta);
           }
         }
-        else
-        {
-          vcGizmo_ResetState();
-        }
       }
-
+      else
+      {
+        vcGizmo_ResetState(pProgramState->pActiveViewport->gizmo.pContext);
+      }
 
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
       ImGui::NextColumn();
