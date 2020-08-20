@@ -929,6 +929,10 @@ void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
   if (pProgramState->settings.objectHighlighting.enable)
   {
     ImGui::Indent();
+
+    // colour[] need to be between 0-1
+    pProgramState->settings.objectHighlighting.colour = udClamp(pProgramState->settings.objectHighlighting.colour, udFloat4::create(0.0f), udFloat4::create(1.0f));
+
     ImGui::ColorEdit4(vcString::Get("settingsVisHighlightColour"), &pProgramState->settings.objectHighlighting.colour.x);
     ImGui::SliderFloat(vcString::Get("settingsVisHighlightThickness"), &pProgramState->settings.objectHighlighting.thickness, 1.0f, 3.0f);
     ImGui::Unindent();
