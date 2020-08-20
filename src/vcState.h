@@ -265,8 +265,7 @@ struct vcState
     const char *pLastInfoText;
     udChunkedArray<const char *> infoStrings;
     udChunkedArray<const char *> textureAltStrings;
-    udChunkedArray<vcTexture *> textures;
-    udChunkedArray<ImVec2> textureSizes;
+    udChunkedArray<vcTexture**> textures;
   } projectInfoTextures;
 
   vcFileDialog fileDialog;

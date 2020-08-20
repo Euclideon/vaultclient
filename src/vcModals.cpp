@@ -26,7 +26,6 @@
 #include "udServerAPI.h"
 
 #include "stb_image.h"
-#include "vcTexture.h"
 
 bool gShowInputControlsNextHack = false;
 
@@ -632,28 +631,31 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    const char *pInfo = nullptr;
-
     if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true))
     {
-      if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
+      for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
       {
-        for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
+        ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.infoStrings[i]);
+        if (i < pProgramState->projectInfoTextures.infoStrings.length - 1)
         {
-          ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.infoStrings[i]);
-          if (i < pProgramState->projectInfoTextures.infoStrings.length - 1)
+          if (*pProgramState->projectInfoTextures.textures[i] == nullptr)
           {
-            if (pProgramState->projectInfoTextures.textures[i] == nullptr)
-              ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
+            ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
+          }
+          else
+          {
+            int w, h;
+            if (vcTexture_GetSize(*pProgramState->projectInfoTextures.textures[i], &w, &h) == udR_Success && (w > 1 || h > 1))
+              ImGui::Image(*pProgramState->projectInfoTextures.textures[i], ImVec2((float)w, (float)h));
             else
-              ImGui::Image(pProgramState->projectInfoTextures.textures[i], pProgramState->projectInfoTextures.textureSizes[i]);
+              ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
           }
         }
       }
     }
     ImGui::EndChild();
 
-    if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr || pInfo[0] == '\0')
+    if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pProgramState->projectInfoTextures.infoStrings.length == 0)
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
