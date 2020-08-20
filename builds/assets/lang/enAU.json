@@ -774,5 +774,6 @@
   "shareStatusPublic": "This project is in a public group and can be opened by anyone on the server.",
   "shareStatusShared": "This project can be opened by anyone on the server using the share code or browser link.",
   "shareStatusNotShared": "This project can only be opened by people in the same group.",
-  "_last": "Last item so no one forgets the comma on the line above"
+  "_last": "Last item so no one forgets the comma on the line above",
+  "yUp": "Y up"
 }

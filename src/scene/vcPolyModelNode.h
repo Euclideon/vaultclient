@@ -32,6 +32,7 @@ private:
 
   vcGLStateCullMode m_cullFace;
   bool m_ignoreTint;
+  bool m_flipAxis;
 };
 
 #endif //vcPolyModelNode_h__

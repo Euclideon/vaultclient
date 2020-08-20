@@ -10,6 +10,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
+
 struct vcPolygonModelLoadInfo
 {
   vcState *pProgramState;
@@ -39,6 +40,7 @@ vcPolyModelNode::vcPolyModelNode(vcProject *pProject, udProjectNode *pNode, vcSt
   m_cullFace = vcGLSCM_Back;
   m_ignoreTint = false;
   m_loadStatus = vcSLS_Pending;
+  m_flipAxis = false;
 
   vcPolygonModelLoadInfo *pLoadInfo = udAllocType(vcPolygonModelLoadInfo, 1, udAF_Zero);
   if (pLoadInfo != nullptr)
@@ -71,6 +73,8 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
   }
 
   vcProject_GetNodeMetadata(m_pNode, "ignoreTint", &m_ignoreTint, false);
+
+  vcProject_GetNodeMetadata(m_pNode, "yUp", &m_flipAxis, false);
 
   if (m_pNode->geomCount != 0)
   {
@@ -174,6 +178,16 @@ void vcPolyModelNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pIte
     ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 3);
     if (ImGui::IsItemDeactivatedAfterEdit())
       repackMatrix = true;
+
+    if (ImGui::Checkbox(udTempStr("%s##%zu", vcString::Get("yUp"), *pItemID), &m_flipAxis))
+    {
+      udProjectNode_SetMetadataBool(m_pNode, "yUp", m_flipAxis);
+      eulerRotation.y = m_flipAxis ? 90.0 : 0.0;
+      eulerRotation.z = 0.0;
+      orientation = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
+      repackMatrix = true;
+    }
+
 
     if (repackMatrix)
     {
