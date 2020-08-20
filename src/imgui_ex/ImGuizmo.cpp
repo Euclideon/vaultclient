@@ -571,6 +571,8 @@ void vcGizmo_DrawTranslationGizmo(vcGizmoContext *pContext, const udDouble3 dire
   if (!drawList)
     return;
 
+  drawList->PushClipRect(ImVec2(pContext->mX, pContext->mY), ImVec2(pContext->mX + pContext->mWidth, pContext->mY + pContext->mHeight), false);
+
   // colors
   ImU32 colors[7];
   vcGizmo_ComputeColors(pContext, colors, udLengthOf(colors), type, vcGO_Translate);
@@ -646,6 +648,8 @@ void vcGizmo_DrawTranslationGizmo(vcGizmoContext *pContext, const udDouble3 dire
       drawList->AddText(ImVec2(destinationPosOnScreen.x + 14, destinationPosOnScreen.y + 14), 0xFFFFFFFF, tmps);
     }
   }
+
+  drawList->PopClipRect();
 }
 
 bool vcGizmo_CanActivate()
