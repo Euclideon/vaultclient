@@ -63,6 +63,7 @@
   "loginErrorProxy": "Unable to negotiate with proxy server, please confirm the proxy server address",
   "loginErrorProxyAuthPending": "Waiting for valid proxy credentials...",
   "loginErrorProxyAuthFailed": "No valid proxy credentials were supplied, please try another proxy or supply valid proxy credentials",
+  "loginErrorTimeout": "Connection to server took too long to connect, please try again.",
   "loginErrorOther": "Unknown error occurred, please try again later.",
   "gettingStarted": "Community Hub",
   "gettingStartedDesc": "Click here for videos, tutorials and other information to help you hit the ground running.",

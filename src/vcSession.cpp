@@ -337,6 +337,8 @@ void vcSession_Login(void *pProgramStatePtr)
     pProgramState->loginStatus = vcLS_ProxyError;
   else if (result == udE_ProxyAuthRequired)
     pProgramState->loginStatus = vcLS_ProxyAuthRequired;
+  else if (result == udE_Timeout)
+    pProgramState->loginStatus = vcLS_Timeout;
   else if (result != udE_Success)
     pProgramState->loginStatus = vcLS_OtherError;
 
