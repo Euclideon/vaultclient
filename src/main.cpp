@@ -1462,12 +1462,18 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         }
 
         // Error List
-        if (pProgramState->errorItems.length > 0)
+        size_t fileCount = 0;
+        for (auto errorItem : pProgramState->errorItems)
+        {
+          if (errorItem.source == vcES_File)
+            ++fileCount;
+        }
+        if (fileCount > 0)
         {
           bool isHovered = false;
           bool isClicked = false;
 
-          const char *strings[] = { udTempStr("%zu", pProgramState->errorItems.length) };
+          const char *strings[] = { udTempStr("%zu", fileCount) };
           vcStringFormat(tempData, udLengthOf(tempData), vcString::Get("menuBarFilesFailed"), strings, udLengthOf(strings));
           ImGui::TextUnformatted(tempData);
 
