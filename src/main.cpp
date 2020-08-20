@@ -2234,6 +2234,73 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
   ImGui::EndChild();
 }
 
+void vcRenderGizmo(vcState *pProgramState, const ImVec2 &viewportPosition, const udUInt2 &viewportResolution)
+{
+  ImGuiIO &io = ImGui::GetIO();
+
+  bool couldOpen = true;
+  if (pProgramState->modalOpen)
+    couldOpen = false;
+  ImGuiWindow *pSetting = ImGui::FindWindowByName("###settingsDock");
+  if (pSetting != nullptr && (pSetting->Active || pSetting->WasActive))
+    couldOpen = false;
+
+  pProgramState->pActiveViewport->gizmo.inUse = false;
+  if (couldOpen && pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
+  {
+    vcGizmo_SetRect(pProgramState->pActiveViewport->gizmo.pContext, viewportPosition.x, viewportPosition.y, (float)viewportResolution.x, (float)viewportResolution.y);
+    vcGizmo_SetDrawList(pProgramState->pActiveViewport->gizmo.pContext);
+
+    vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
+    vcSceneItem *pItem = (vcSceneItem*)clickedItemRef.pItem->pUserData;
+
+    if (pItem != nullptr)
+    {
+      pProgramState->pActiveViewport->gizmo.inUse = true;
+
+      udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
+      temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
+
+      udDouble4x4 delta = udDouble4x4::identity();
+
+      double snapAmt = 0.1;
+
+      if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Rotate)
+        snapAmt = 15.0;
+      else if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Translate)
+        snapAmt = 0.25;
+
+      vcGizmoAllowedControls allowedControls = vcGAC_All;
+      for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
+        allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
+
+      //read direction axes again.
+      if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Scale || pProgramState->pActiveViewport->gizmo.coordinateSystem == vcGCS_Local)
+      {
+        pProgramState->pActiveViewport->gizmo.direction[0] = udDouble3::create(1, 0, 0);
+        pProgramState->pActiveViewport->gizmo.direction[1] = udDouble3::create(0, 1, 0);
+        pProgramState->pActiveViewport->gizmo.direction[2] = udDouble3::create(0, 0, 1);
+      }
+      else
+      {
+        vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->pActiveViewport->gizmo.direction[2], &pProgramState->pActiveViewport->gizmo.direction[1], &pProgramState->pActiveViewport->gizmo.direction[0]);
+      }
+
+      vcGizmo_Manipulate(pProgramState->pActiveViewport->gizmo.pContext, &pProgramState->pActiveViewport->camera, pProgramState->pActiveViewport->gizmo.direction, pProgramState->pActiveViewport->gizmo.operation, pProgramState->pActiveViewport->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
+
+      if (!(delta == udDouble4x4::identity()))
+      {
+        for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
+          ((vcSceneItem*)ref.pItem->pUserData)->ApplyDelta(pProgramState, delta);
+      }
+    }
+  }
+  else
+  {
+    vcGizmo_ResetState(pProgramState->pActiveViewport->gizmo.pContext);
+  }
+}
+
 void vcMain_RenderSceneWindow(vcState *pProgramState)
 {
   static int wasViewportContextMenuOpenLastFrame = -1;
@@ -2271,8 +2338,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     // At the moment some functionality is restricted to certain viewports
     for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
     {
-      ImVec2 viewportportPos = ImVec2(windowPos.x + ImGui::GetCursorPosX(), windowPos.y + ImGui::GetCursorPosY());
-      udUInt2 viewportportResolution = udUInt2::create((uint32_t)ImGui::GetColumnWidth(), (uint32_t)windowSize.y);
+      ImVec2 viewportPosition = ImVec2(windowPos.x + ImGui::GetCursorPosX(), windowPos.y + ImGui::GetCursorPosY());
+      udUInt2 viewportResolution = udUInt2::create((uint32_t)ImGui::GetColumnWidth(), (uint32_t)windowSize.y);
 
       vcRenderData renderData = {};
 
@@ -2285,16 +2352,16 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       renderData.lines.Init(32);
       renderData.viewSheds.Init(32);
       renderData.pins.Init(512);
-      renderData.mouse.position.x = (uint32_t)(io.MousePos.x - viewportportPos.x);
-      renderData.mouse.position.y = (uint32_t)(io.MousePos.y - viewportportPos.y);
+      renderData.mouse.position.x = (uint32_t)(io.MousePos.x - viewportPosition.x);
+      renderData.mouse.position.y = (uint32_t)(io.MousePos.y - viewportPosition.y);
       renderData.mouse.clicked = io.MouseClicked[1];
 
       pProgramState->pActiveViewport = &pProgramState->pViewports[viewportIndex];
 
       // TODO: Screenshot which viewport?
-      if ((viewportIndex != 0 || !pProgramState->settings.screenshot.taking) && (pProgramState->pActiveViewport->resolution.x != viewportportResolution.x || pProgramState->pActiveViewport->resolution.y != viewportportResolution.y)) //Resize buffers
+      if ((viewportIndex != 0 || !pProgramState->settings.screenshot.taking) && (pProgramState->pActiveViewport->resolution.x != viewportResolution.x || pProgramState->pActiveViewport->resolution.y != viewportResolution.y)) //Resize buffers
       {
-        pProgramState->pActiveViewport->resolution = viewportportResolution;
+        pProgramState->pActiveViewport->resolution = viewportResolution;
         vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->pActiveViewport->resolution.x, pProgramState->pActiveViewport->resolution.y);
 
         // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
@@ -2343,6 +2410,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
       // Render scene to texture
       vcRender_RenderScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, renderData, pProgramState->pDefaultFramebuffer);
+
+      vcRenderGizmo(pProgramState, viewportPosition, viewportResolution);
 
       if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
         vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
@@ -2429,69 +2498,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         {
           wasViewportContextMenuOpenLastFrame = -1;
         }
-      }
-   
-      // GIZMOS
-      bool couldOpen = true;
-      if (pProgramState->modalOpen)
-        couldOpen = false;
-      ImGuiWindow *pSetting = ImGui::FindWindowByName("###settingsDock");
-      if (pSetting != nullptr && (pSetting->Active || pSetting->WasActive))
-        couldOpen = false;
-
-      pProgramState->pActiveViewport->gizmo.inUse = false;
-      if (couldOpen && pProgramState->sceneExplorer.clickedItem.pParent && pProgramState->sceneExplorer.clickedItem.pItem && !pProgramState->modalOpen)
-      {
-        vcGizmo_SetRect(pProgramState->pActiveViewport->gizmo.pContext, viewportportPos.x, viewportportPos.y, (float)viewportportResolution.x, (float)viewportportResolution.y);
-        vcGizmo_SetDrawList(pProgramState->pActiveViewport->gizmo.pContext);
-
-        vcSceneItemRef clickedItemRef = pProgramState->sceneExplorer.clickedItem;
-        vcSceneItem *pItem = (vcSceneItem*)clickedItemRef.pItem->pUserData;
-
-        if (pItem != nullptr)
-        {
-          pProgramState->pActiveViewport->gizmo.inUse = true;
-
-          udDouble4x4 temp = pItem->GetWorldSpaceMatrix();
-          temp.axis.t.toVector3() = pItem->GetWorldSpacePivot();
-
-          udDouble4x4 delta = udDouble4x4::identity();
-
-          double snapAmt = 0.1;
-
-          if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Rotate)
-            snapAmt = 15.0;
-          else if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Translate)
-            snapAmt = 0.25;
-
-          vcGizmoAllowedControls allowedControls = vcGAC_All;
-          for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
-            allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
-
-          //read direction axes again.
-          if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Scale || pProgramState->pActiveViewport->gizmo.coordinateSystem == vcGCS_Local)
-          {
-            pProgramState->pActiveViewport->gizmo.direction[0] = udDouble3::create(1, 0, 0);
-            pProgramState->pActiveViewport->gizmo.direction[1] = udDouble3::create(0, 1, 0);
-            pProgramState->pActiveViewport->gizmo.direction[2] = udDouble3::create(0, 0, 1);
-          }
-          else
-          {
-            vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->pActiveViewport->gizmo.direction[2], &pProgramState->pActiveViewport->gizmo.direction[1], &pProgramState->pActiveViewport->gizmo.direction[0]);
-          }
-
-          vcGizmo_Manipulate(pProgramState->pActiveViewport->gizmo.pContext, &pProgramState->pActiveViewport->camera, pProgramState->pActiveViewport->gizmo.direction, pProgramState->pActiveViewport->gizmo.operation, pProgramState->pActiveViewport->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
-
-          if (!(delta == udDouble4x4::identity()))
-          {
-            for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
-              ((vcSceneItem*)ref.pItem->pUserData)->ApplyDelta(pProgramState, delta);
-          }
-        }
-      }
-      else
-      {
-        vcGizmo_ResetState(pProgramState->pActiveViewport->gizmo.pContext);
       }
 
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
