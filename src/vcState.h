@@ -34,6 +34,7 @@ struct vcRenderContext;
 struct vcCamera;
 struct vcTexture;
 struct vcConvertContext;
+struct vcGizmoContext;
 
 struct vcSceneItemRef
 {
@@ -100,6 +101,16 @@ struct vcViewport
 
   udUInt2 resolution;
   vcRenderContext *pRenderContext;
+
+  struct
+  {
+    bool inUse;
+    vcGizmoOperation operation;
+    vcGizmoCoordinateSystem coordinateSystem;
+    udDouble3 direction[3]; // 0-x-east; 1-y-north; 2-z-up
+
+    vcGizmoContext *pContext;
+  } gizmo;
 
   bool isUsingAnchorPoint;
   udDouble3 worldAnchorPoint;
@@ -223,14 +234,6 @@ struct vcState
 
   udJSON packageInfo;
   udJSON profileInfo;
-
-  struct
-  {
-    bool inUse;
-    vcGizmoOperation operation;
-    vcGizmoCoordinateSystem coordinateSystem;
-    udDouble3 direction[3]; // 0-x-east; 1-y-north; 2-z-up
-  } gizmo;
 
   vcActiveTool activeTool;
 
