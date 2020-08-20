@@ -56,6 +56,7 @@ enum vcLoginStatus
   vcLS_ProxyError,
   vcLS_ProxyAuthRequired,
   vcLS_ProxyAuthFailed,
+  vcLS_Timeout,
   vcLS_OtherError,
 
   vcLS_ForgotPassword,
