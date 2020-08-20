@@ -65,4 +65,12 @@ void vcProject_ExtractAttributionText(udProjectNode *pFolderNode, const char **p
 
 void vcProject_RemoveHistoryItem(vcState *pProgramState, size_t itemPosition);
 
+inline udError vcProject_GetNodeMetadata(udProjectNode *pNode, const char *pMetadataKey, bool *pBool, bool defaultValue)
+{
+  uint32_t boolVal = defaultValue;
+  udError ret = udProjectNode_GetMetadataBool(pNode, pMetadataKey, &boolVal, boolVal);
+  (*pBool) = (boolVal != 0);
+  return ret;
+}
+
 #endif // vcProject_h__

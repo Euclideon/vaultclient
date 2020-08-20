@@ -63,8 +63,8 @@ void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &
 
 void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
 {
-  udProjectNode_GetMetadataBool(m_pNode, "measureEnd", (uint32_t*)&m_done, false);
-  udProjectNode_GetMetadataBool(m_pNode, "showAllDistances", (uint32_t*)&m_showAllDistances, false);
+  vcProject_GetNodeMetadata(m_pNode, "measureEnd", &m_done, false);
+  vcProject_GetNodeMetadata(m_pNode, "showAllDistances", &m_showAllDistances, false);
 
   ChangeProjection(pProgramState->geozone);
   UpdateSetting(pProgramState);

@@ -168,9 +168,7 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   udProjectNode_GetMetadataInt(m_pNode, "visualisation.intensity.max", &pProgramState->settings.visualization.maxIntensity, pProgramState->settings.visualization.maxIntensity);
 
   // Classification
-  uint32_t boolVal = (pProgramState->settings.visualization.useCustomClassificationColours ? 1 : 0);
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.classification.enabled", &boolVal, boolVal);
-  pProgramState->settings.visualization.useCustomClassificationColours = (boolVal != 0);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.classification.enabled", &pProgramState->settings.visualization.useCustomClassificationColours, pProgramState->settings.visualization.useCustomClassificationColours);
 
   // Displacement Distance/Direction
   double doubleVal = pProgramState->settings.visualization.displacement.bounds.x;
@@ -268,12 +266,8 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
     pProgramState->settings.presentation.skybox.colour[i] = (float)doubleVal;
   }
 
-  boolVal = pProgramState->settings.presentation.skybox.useLiveTime ? 1 : 0;
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.skybox.use_live_time", &boolVal, boolVal);
-  pProgramState->settings.presentation.skybox.useLiveTime = (boolVal != 0);
-  boolVal = pProgramState->settings.presentation.skybox.keepSameTime ? 1 : 0;
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.skybox.lock_sun_position", &boolVal, boolVal);
-  pProgramState->settings.presentation.skybox.keepSameTime = (boolVal != 0);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.skybox.use_live_time", &pProgramState->settings.presentation.skybox.useLiveTime, pProgramState->settings.presentation.skybox.useLiveTime);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.skybox.lock_sun_position", &pProgramState->settings.presentation.skybox.keepSameTime, pProgramState->settings.presentation.skybox.keepSameTime);
   doubleVal = pProgramState->settings.presentation.skybox.timeOfDay;
   udProjectNode_GetMetadataDouble(m_pNode, "visualisation.skybox.time_of_day", &doubleVal, doubleVal);
   pProgramState->settings.presentation.skybox.timeOfDay = (float)doubleVal;
@@ -300,9 +294,7 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
     pProgramState->settings.presentation.pointMode = udRCPM_Points;
 
   // Selected Object Highlighting
-  boolVal = pProgramState->settings.objectHighlighting.enable ? 1 : 0;
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.object_highlighting.enable", &boolVal, boolVal);
-  pProgramState->settings.objectHighlighting.enable = (boolVal != 0);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.object_highlighting.enable", &pProgramState->settings.objectHighlighting.enable, pProgramState->settings.objectHighlighting.enable);
   for (size_t i = 0; i < pProgramState->settings.objectHighlighting.colour.ElementCount; ++i)
   {
     doubleVal = pProgramState->settings.objectHighlighting.colour[i];
@@ -314,9 +306,7 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   pProgramState->settings.objectHighlighting.thickness = (float)doubleVal;
 
   // Post visualization - Edge Highlighting
-  boolVal = pProgramState->settings.postVisualization.edgeOutlines.enable ? 1 : 0;
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.edge_highlighting.enable", &boolVal, boolVal);
-  pProgramState->settings.postVisualization.edgeOutlines.enable = (boolVal != 0);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.edge_highlighting.enable", &pProgramState->settings.postVisualization.edgeOutlines.enable, pProgramState->settings.postVisualization.edgeOutlines.enable);
   udProjectNode_GetMetadataInt(m_pNode, "visualisation.edge_highlighting.width", &pProgramState->settings.postVisualization.edgeOutlines.width, pProgramState->settings.postVisualization.edgeOutlines.width);
   doubleVal = pProgramState->settings.postVisualization.edgeOutlines.threshold;
   udProjectNode_GetMetadataDouble(m_pNode, "visualisation.edge_highlighting.threshold", &doubleVal, doubleVal);
@@ -329,9 +319,7 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   }
 
   // Post visualization - Colour by Height
-  boolVal = pProgramState->settings.postVisualization.colourByHeight.enable ? 1 : 0;
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.colour_by_height.enable", &boolVal, boolVal);
-  pProgramState->settings.postVisualization.colourByHeight.enable = (boolVal != 0);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.colour_by_height.enable", &pProgramState->settings.postVisualization.colourByHeight.enable, pProgramState->settings.postVisualization.colourByHeight.enable);
   for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByHeight.minColour.ElementCount; ++i)
   {
     doubleVal = pProgramState->settings.postVisualization.colourByHeight.minColour[i];
@@ -352,9 +340,7 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   pProgramState->settings.postVisualization.colourByHeight.endHeight = (float)doubleVal;
 
   // Post visualization - Colour by Depth
-  boolVal = pProgramState->settings.postVisualization.colourByDepth.enable ? 1 : 0;
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.colour_by_depth.enable", &boolVal, boolVal);
-  pProgramState->settings.postVisualization.colourByDepth.enable = (boolVal != 0);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.colour_by_depth.enable", &pProgramState->settings.postVisualization.colourByDepth.enable, pProgramState->settings.postVisualization.colourByDepth.enable);
   for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByDepth.colour.ElementCount; ++i)
   {
     doubleVal = pProgramState->settings.postVisualization.colourByDepth.colour[i];
@@ -369,9 +355,7 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   pProgramState->settings.postVisualization.colourByDepth.endDepth = (float)doubleVal;
 
   // Post visualization - Contours
-  boolVal = pProgramState->settings.postVisualization.contours.enable ? 1 : 0;
-  udProjectNode_GetMetadataBool(m_pNode, "visualisation.contours.enable", &boolVal, boolVal);
-  pProgramState->settings.postVisualization.contours.enable = (boolVal != 0);
+  vcProject_GetNodeMetadata(m_pNode, "visualisation.contours.enable", &pProgramState->settings.postVisualization.contours.enable, pProgramState->settings.postVisualization.contours.enable);
   for (size_t i = 0; i < pProgramState->settings.postVisualization.colourByDepth.colour.ElementCount; ++i)
   {
     doubleVal = pProgramState->settings.postVisualization.contours.colour[i];

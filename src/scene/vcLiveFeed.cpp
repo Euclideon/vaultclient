@@ -318,8 +318,8 @@ void vcLiveFeed::OnNodeUpdate(vcState *pProgramState)
   udProjectNode_GetMetadataDouble(m_pNode, "maxDisplayDistance", &m_maxDisplayDistance, 50000.0);
   udProjectNode_GetMetadataDouble(m_pNode, "lodModifier", &m_labelLODModifier, 1.0);
 
-  udProjectNode_GetMetadataBool(m_pNode, "tweenEnabled", (uint32_t*)&m_tweenPositionAndOrientation, true);
-  udProjectNode_GetMetadataBool(m_pNode, "snapToMap", (uint32_t*)&m_snapToMap, false);
+  vcProject_GetNodeMetadata(m_pNode, "tweenEnabled", &m_tweenPositionAndOrientation, true);
+  vcProject_GetNodeMetadata(m_pNode, "snapToMap", &m_snapToMap, false);
 
   ChangeProjection(pProgramState->geozone);
 }
