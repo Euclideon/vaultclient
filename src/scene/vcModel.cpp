@@ -441,8 +441,7 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
   if (ImGui::IsItemDeactivatedAfterEdit())
   {
     repackMatrix = true;
-    if (scale.x == 0.0f)
-      scale.x = 1e-7; // Simple Hack to avoid 0 scale
+    scale.x = udMax(scale.x, 1e-7);
   }
 
   if (repackMatrix)
