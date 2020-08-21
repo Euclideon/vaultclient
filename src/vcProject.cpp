@@ -854,11 +854,8 @@ void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
   const char *pInfo = nullptr;
   if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
   {
-    for (vcTexture **ppTexture : pProgramState->projectInfoTextures.textures)
-    {
-      vcTexture_Destroy(ppTexture);
-      udFree(ppTexture);
-    }
+    for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
+      vcTexture_Destroy(&pTexture);
     for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
       udFree(pStr);
     pProgramState->projectInfoTextures.infoStrings.Clear();
@@ -898,10 +895,9 @@ void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
 
         // Texture
         const char *pTexPath = udStrndup(pInfo + (closeBracketPos + 2), closeParenthesisPos - closeBracketPos - 2);
-        vcTexture **ppNewTexture = udAllocType(vcTexture*, 1, udAF_Zero);
-        *ppNewTexture = nullptr;
-        pProgramState->projectInfoTextures.textures.PushBack(ppNewTexture);
-        vcTexture_AsyncCreateFromFilename(ppNewTexture, pProgramState->pWorkerPool, pTexPath, vcTFM_Linear);
+        pProgramState->projectInfoTextures.textures.PushBack();
+
+        vcTexture_AsyncCreateFromFilename(&pProgramState->projectInfoTextures.textures[pProgramState->projectInfoTextures.textures.length - 1], pProgramState->pWorkerPool, pTexPath, vcTFM_Linear);
 
         startStrIndex = firstIndex;
       }

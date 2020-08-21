@@ -638,18 +638,11 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
         ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.infoStrings[i]);
         if (i < pProgramState->projectInfoTextures.infoStrings.length - 1)
         {
-          if (*pProgramState->projectInfoTextures.textures[i] == nullptr)
-          {
-            ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
-          }
+          int w, h;
+          if (vcTexture_GetSize(pProgramState->projectInfoTextures.textures[i], &w, &h) == udR_Success && (w > 1 || h > 1))
+            ImGui::Image(pProgramState->projectInfoTextures.textures[i], ImVec2((float)w, (float)h));
           else
-          {
-            int w, h;
-            if (vcTexture_GetSize(*pProgramState->projectInfoTextures.textures[i], &w, &h) == udR_Success && (w > 1 || h > 1))
-              ImGui::Image(*pProgramState->projectInfoTextures.textures[i], ImVec2((float)w, (float)h));
-            else
-              ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
-          }
+            ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
         }
       }
     }

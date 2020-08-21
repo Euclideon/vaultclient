@@ -477,11 +477,8 @@ void vcSession_CleanupSession(vcState *pProgramState)
     pProgramState->featuredProjects.Deinit();
   }
 
-  for (vcTexture **ppTexture : pProgramState->projectInfoTextures.textures)
-  {
-    vcTexture_Destroy(ppTexture);
-    udFree(ppTexture);
-  }
+  for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
+    vcTexture_Destroy(&pTexture);
   for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
     udFree(pStr);
   for (const char *pStr : pProgramState->projectInfoTextures.textureAltStrings)
