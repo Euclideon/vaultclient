@@ -38,7 +38,7 @@ static struct
   { "Azure Roads", "euc-az-roads", "https://slippy.vault.euclideon.com/roads/{0}/{1}/{2}.png", "\xC2\xA9 1992 - 2020 TomTom", "https://slippy.vault.euclideon.com/roads", nullptr },
   { "Stamen Toner", "stamen-toner", "https://stamen-tiles.a.ssl.fastly.net/toner/{0}/{1}/{2}.png", "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL", nullptr, nullptr },
   { "Stamen Terrain", "stamen-terrain", "https://stamen-tiles.a.ssl.fastly.net/terrain/{0}/{1}/{2}.png", "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL", nullptr, nullptr },
-  { "Stamen Terrain", "stamen-watercolor", "https://stamen-tiles.a.ssl.fastly.net/watercolor/{0}/{1}/{2}.png", "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under CC BY SA", nullptr, nullptr },
+  { "Stamen Watercolor", "stamen-watercolor", "https://stamen-tiles.a.ssl.fastly.net/watercolor/{0}/{1}/{2}.png", "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under CC BY SA", nullptr, nullptr },
   { "Esri WorldImagery", "esri-worldimagery", "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{0}/{2}/{1}", "Tiles \xC2\xA9 Esri - Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community", nullptr, nullptr },
   { "Custom", "custom", nullptr, nullptr, nullptr, nullptr },
 };
