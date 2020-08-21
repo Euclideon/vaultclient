@@ -885,8 +885,7 @@ void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
       if (pInfo[startImagePos + 1] == '[' && pInfo[closeBracketPos + 1] == '(')
       {
         // Text
-        size_t prevStrLen = startImagePos - startStrIndex;
-        const char *pSubStr = udStrndup(pInfo + startStrIndex, prevStrLen);
+        const char *pSubStr = udStrndup(pInfo + startStrIndex, startImagePos - startStrIndex);
         pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
 
         // Texture Alt Text
