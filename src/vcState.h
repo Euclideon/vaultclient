@@ -262,7 +262,6 @@ struct vcState
 
   struct 
   {
-    const char *pLastInfoText;
     udChunkedArray<const char *> infoStrings;
     udChunkedArray<const char *> textureAltStrings;
     udChunkedArray<vcTexture**> textures;

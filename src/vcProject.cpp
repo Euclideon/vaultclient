@@ -854,73 +854,60 @@ void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
   const char *pInfo = nullptr;
   if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
   {
-    if (pProgramState->projectInfoTextures.pLastInfoText != pInfo)
+    for (vcTexture **ppTexture : pProgramState->projectInfoTextures.textures)
     {
-      udFree(pProgramState->projectInfoTextures.pLastInfoText);
-      pProgramState->projectInfoTextures.pLastInfoText = udStrdup(pInfo);
-      for (vcTexture **ppTexture : pProgramState->projectInfoTextures.textures)
-      {
-        vcTexture_Destroy(ppTexture);
-        udFree(ppTexture);
-      }
-      for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
-        udFree(pStr);
-      pProgramState->projectInfoTextures.infoStrings.Clear();
-      pProgramState->projectInfoTextures.textures.Clear();
-
-      // Discover Images
-      int firstIndex = 0;
-      int startStrIndex = 0;
-      while (true)
-      {
-        size_t startImagePos = 0;
-        if (udStrchr(pInfo + firstIndex, "!", &startImagePos) == nullptr)
-          break;
-        startImagePos += firstIndex;
-        size_t closeBracketPos = 0;
-        if (udStrchr(pInfo + startImagePos + 1, "]", &closeBracketPos) == nullptr)
-          break;
-        closeBracketPos += startImagePos + 1;
-        size_t closeParenthesisPos = 0;
-        if (udStrchr(pInfo + closeBracketPos + 1, ")", &closeParenthesisPos) == nullptr)
-          break;
-        closeParenthesisPos += closeBracketPos + 1;
-        
-        size_t lastCharPos = closeParenthesisPos;
-        firstIndex = (int)(lastCharPos + 1);
-
-        if (pInfo[startImagePos + 1] == '[' && pInfo[closeBracketPos + 1] == '(')
-        {
-          // Text
-          size_t prevStrLen = startImagePos - startStrIndex;
-          const char *pSubStr = udStrndup(pInfo + startStrIndex, prevStrLen);
-          pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
-
-          // Texture Alt Text
-          if (closeBracketPos == startImagePos + 2)
-          {
-            // Empty string, but we still need altStrings to match Texture array
-            pProgramState->projectInfoTextures.textureAltStrings.PushBack((const char *)nullptr);
-          }
-          else
-          {
-            const char *pAltStr = udStrndup(pInfo + startImagePos + 2, closeBracketPos - startImagePos - 2);
-            pProgramState->projectInfoTextures.textureAltStrings.PushBack(pAltStr);
-          }
-
-          // Texture
-          const char *pTexPath = udStrndup(pInfo + (closeBracketPos + 2), closeParenthesisPos - closeBracketPos - 2);
-          vcTexture **ppNewTexture = udAllocType(vcTexture*, 1, udAF_Zero);
-          *ppNewTexture = nullptr;
-          pProgramState->projectInfoTextures.textures.PushBack(ppNewTexture);
-          vcTexture_AsyncCreateFromFilename(ppNewTexture, pProgramState->pWorkerPool, pTexPath, vcTFM_Linear);
-
-          startStrIndex = firstIndex;
-        }
-      }
-
-      const char *pSubStr = udStrdup(pInfo + firstIndex);
-      pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
+      vcTexture_Destroy(ppTexture);
+      udFree(ppTexture);
     }
+    for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
+      udFree(pStr);
+    pProgramState->projectInfoTextures.infoStrings.Clear();
+    pProgramState->projectInfoTextures.textures.Clear();
+
+    // Discover Images
+    int firstIndex = 0;
+    int startStrIndex = 0;
+    while (true)
+    {
+      size_t startImagePos = 0;
+      if (udStrchr(pInfo + firstIndex, "!", &startImagePos) == nullptr)
+        break;
+      startImagePos += firstIndex;
+      size_t closeBracketPos = 0;
+      if (udStrchr(pInfo + startImagePos + 1, "]", &closeBracketPos) == nullptr)
+        break;
+      closeBracketPos += startImagePos + 1;
+      size_t closeParenthesisPos = 0;
+      if (udStrchr(pInfo + closeBracketPos + 1, ")", &closeParenthesisPos) == nullptr)
+        break;
+      closeParenthesisPos += closeBracketPos + 1;
+        
+      size_t lastCharPos = closeParenthesisPos;
+      firstIndex = (int)(lastCharPos + 1);
+
+      if (pInfo[startImagePos + 1] == '[' && pInfo[closeBracketPos + 1] == '(')
+      {
+        // Text
+        size_t prevStrLen = startImagePos - startStrIndex;
+        const char *pSubStr = udStrndup(pInfo + startStrIndex, prevStrLen);
+        pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
+
+        // Texture Alt Text
+        const char *pAltStr = udStrndup(pInfo + startImagePos + 2, closeBracketPos - startImagePos - 2);
+        pProgramState->projectInfoTextures.textureAltStrings.PushBack(pAltStr);
+
+        // Texture
+        const char *pTexPath = udStrndup(pInfo + (closeBracketPos + 2), closeParenthesisPos - closeBracketPos - 2);
+        vcTexture **ppNewTexture = udAllocType(vcTexture*, 1, udAF_Zero);
+        *ppNewTexture = nullptr;
+        pProgramState->projectInfoTextures.textures.PushBack(ppNewTexture);
+        vcTexture_AsyncCreateFromFilename(ppNewTexture, pProgramState->pWorkerPool, pTexPath, vcTFM_Linear);
+
+        startStrIndex = firstIndex;
+      }
+    }
+
+    const char *pSubStr = udStrdup(pInfo + firstIndex);
+    pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
   }
 }

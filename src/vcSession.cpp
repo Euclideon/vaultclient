@@ -314,7 +314,6 @@ void vcSession_ChangeSession(vcState *pProgramState)
   pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
 
-  pProgramState->projectInfoTextures.pLastInfoText = nullptr;
   pProgramState->projectInfoTextures.infoStrings.Init(64);
   pProgramState->projectInfoTextures.textureAltStrings.Init(64);
   pProgramState->projectInfoTextures.textures.Init(64);
@@ -490,7 +489,6 @@ void vcSession_CleanupSession(vcState *pProgramState)
   pProgramState->projectInfoTextures.infoStrings.Deinit();
   pProgramState->projectInfoTextures.textureAltStrings.Deinit();
   pProgramState->projectInfoTextures.textures.Deinit();
-  udFree(pProgramState->projectInfoTextures.pLastInfoText);
 
   udWriteUnlockRWLock(pProgramState->pSessionLock);
 }
