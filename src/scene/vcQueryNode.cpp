@@ -172,7 +172,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   }
   else // Is a sphere
   {
-    ImGui::InputDouble(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), &m_extents.x);
+    ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 1);
     changed |= ImGui::IsItemDeactivatedAfterEdit();
   }
 
