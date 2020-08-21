@@ -239,7 +239,7 @@ solution "udStream"
 	--defines {"__MEMORY_DEBUG__"}
 
 	if _OPTIONS["force-udSDK"] then
-		dofile "../udSDK/udSDKImport.lua"
+		dofile "../udsdk/udSDKImport.lua"
 	end
 
 	if not (os.target() == "emscripten" and _OPTIONS["force-udSDK"]) then
