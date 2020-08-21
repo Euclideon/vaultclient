@@ -439,7 +439,10 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
   ImGui::InputScalarN(vcString::Get("sceneModelScale"), ImGuiDataType_Double, &scale.x, 1);
 
   if (ImGui::IsItemDeactivatedAfterEdit())
+  {
     repackMatrix = true;
+    scale.x = udMax(scale.x, 1e-7);
+  }
 
   if (repackMatrix)
   {
