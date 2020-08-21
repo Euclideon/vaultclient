@@ -10,7 +10,6 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-
 struct vcPolygonModelLoadInfo
 {
   vcState *pProgramState;
@@ -73,7 +72,6 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
   }
 
   vcProject_GetNodeMetadata(m_pNode, "ignoreTint", &m_ignoreTint, false);
-
   vcProject_GetNodeMetadata(m_pNode, "yUp", &m_flipAxis, false);
 
   if (m_pNode->geomCount != 0)
@@ -187,7 +185,6 @@ void vcPolyModelNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pIte
       orientation = udDoubleQuat::create(UD_DEG2RAD(eulerRotation));
       repackMatrix = true;
     }
-
 
     if (repackMatrix)
     {
