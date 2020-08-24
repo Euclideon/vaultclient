@@ -897,6 +897,8 @@ int main(int argc, char **args)
     currentPath.ExtractFolder(cPathBuffer, (int)udLengthOf(cPathBuffer));
     SetCurrentDirectoryW(udOSString(cPathBuffer));
   }
+
+  HANDLE appMutex = CreateMutex(NULL, FALSE, L"udStreamApplicationMutex");
 #endif //UDPLATFORM_WINDOWS
 
 #if UDPLATFORM_EMSCRIPTEN
@@ -1146,6 +1148,10 @@ epilogue:
 
 #if UDPLATFORM_EMSCRIPTEN
   vHTTPRequest_ShutdownWorkerThread();
+#endif
+
+#if UDPLATFORM_WINDOWS
+  CloseHandle(appMutex);
 #endif
 
   return 0;
