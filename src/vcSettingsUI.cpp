@@ -727,113 +727,120 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
       }
     }
 
-    ImGui::TextUnformatted(vcString::Get("settingsMapMapLayers"));
-
-    char buffer[128] = {};
-    char mapLayerStr[16] = {};
-
-    pProgramState->settings.maptiles.activeLayerCount = 0;
-    for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
+    if (ImGui::BeginChild("__settingsMapServerSelection", ImVec2(512, 384)))
     {
-      if (ImGui::Button(udTempStr(pProgramState->settings.maptiles.layers[mapLayer].enabled ? "-##mapLayer%d" : "+##mapLayer%d", mapLayer), ImVec2(24, 24)))
-        pProgramState->settings.maptiles.layers[mapLayer].enabled = !pProgramState->settings.maptiles.layers[mapLayer].enabled;
+      ImGui::TextUnformatted(vcString::Get("settingsMapMapLayers"));
 
-      ImGui::SameLine();
-      udStrItoa(mapLayerStr, mapLayer + 1);
-      ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("settingsMapLayer"), mapLayerStr));
-
-      if (!pProgramState->settings.maptiles.layers[mapLayer].enabled)
-        break;
-
-      pProgramState->settings.maptiles.activeLayerCount++;
-
-      ImGui::Indent();
-      ImGui::TextUnformatted(vcString::Get("settingsMapType"));
-
-      ImGui::BeginChild(udTempStr("mapSelection%d", mapLayer), ImVec2(512, 200));
-
-      ImGuiStyle &style = ImGui::GetStyle();
-      ImVec2 button_sz(92, 92);
-      float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-
-      for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
-      {
-        ImGui::PushID((int)i);
-
-        bool pop = udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
-
-        if (pop)
-          ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-
-        if (s_mapTiles[i].pPreviewTexture == nullptr)
-        {
-          vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
-          s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
-        }
-
-        if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
-        {
-          udStrcpy(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
-          vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
-          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
-            vcRender_ClearTiles(pProgramState->pViewports[viewportIndex].pRenderContext);
-        }
-
-        if (pop)
-          ImGui::PopStyleColor();
-
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          if (udStrEqual(s_mapTiles[i].pMode, "Custom"))
-            ImGui::TextUnformatted(vcString::Get("settingsMapTypeCustom"));
-          else
-            ImGui::TextUnformatted(s_mapTiles[i].pMode);
-          ImGui::EndTooltip();
-        }
-
-        float last_button_x2 = ImGui::GetItemRectMax().x;
-        float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
-
-        if (i + 1 < udLengthOf(s_mapTiles) && next_button_x2 < window_visible_x2)
-          ImGui::SameLine();
-
-        ImGui::PopID();
-      }
-
-      ImGui::EndChild();
+      char buffer[128] = {};
+      char mapLayerStr[16] = {};
 
       if (pProgramState->settings.maptiles.mapEnabled)
       {
-        if (udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, "custom"))
+        pProgramState->settings.maptiles.activeLayerCount = 0;
+        for (int mapLayer = 0; mapLayer < vcMaxTileLayerCount; ++mapLayer)
         {
+          if (ImGui::Button(udTempStr(pProgramState->settings.maptiles.layers[mapLayer].enabled ? "-##mapLayer%d" : "+##mapLayer%d", mapLayer), ImVec2(24, 24)))
+            pProgramState->settings.maptiles.layers[mapLayer].enabled = !pProgramState->settings.maptiles.layers[mapLayer].enabled;
+
+          ImGui::SameLine();
+          udStrItoa(mapLayerStr, mapLayer + 1);
+          ImGui::TextUnformatted(vcStringFormat(buffer, udLengthOf(buffer), vcString::Get("settingsMapLayer"), mapLayerStr));
+
+          if (!pProgramState->settings.maptiles.layers[mapLayer].enabled)
+            break;
+
+          pProgramState->settings.maptiles.activeLayerCount++;
+
           ImGui::Indent();
+          ImGui::TextUnformatted(vcString::Get("settingsMapType"));
 
-          bool changed = false;
+          ImGui::BeginChild(udTempStr("mapSelection%d", mapLayer), ImVec2(512, 200));
 
-          ImGui::TextWrapped("%s", vcString::Get("settingsMapsTileServerInstructions"));
+          ImGuiStyle &style = ImGui::GetStyle();
+          ImVec2 button_sz(92, 92);
+          float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
-          changed |= vcIGSW_InputText(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsTileServer"), mapLayer), pProgramState->settings.maptiles.layers[mapLayer].customServer.tileServerAddress);
-          changed |= vcIGSW_InputText(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsAttribution"), mapLayer), pProgramState->settings.maptiles.layers[mapLayer].customServer.attribution);
-
-          if (changed)
+          for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
           {
-            vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
-            for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
-              vcRender_ClearTiles(pProgramState->pViewports[viewportIndex].pRenderContext);
+            ImGui::PushID((int)i);
+
+            bool pop = udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
+
+            if (pop)
+              ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+
+            if (s_mapTiles[i].pPreviewTexture == nullptr)
+            {
+              vcTexture_AsyncCreateFromFilename(&s_mapTiles[i].pPreviewTexture, pProgramState->pWorkerPool, udTempStr("asset://assets/textures/mapservers/%s.png", s_mapTiles[i].pModeStr), vcTFM_Linear);
+              s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
+            }
+
+            if (ImGui::ImageButton(s_mapTiles[i].pPreviewTexture, button_sz))
+            {
+              udStrcpy(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
+              vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
+              for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+                vcRender_ClearTiles(pProgramState->pViewports[viewportIndex].pRenderContext);
+            }
+
+            if (pop)
+              ImGui::PopStyleColor();
+
+            if (ImGui::IsItemHovered())
+            {
+              ImGui::BeginTooltip();
+              if (udStrEqual(s_mapTiles[i].pMode, "Custom"))
+                ImGui::TextUnformatted(vcString::Get("settingsMapTypeCustom"));
+              else
+                ImGui::TextUnformatted(s_mapTiles[i].pMode);
+              ImGui::EndTooltip();
+            }
+
+            float last_button_x2 = ImGui::GetItemRectMax().x;
+            float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_sz.x; // Expected position if next button was on same line
+
+            if (i + 1 < udLengthOf(s_mapTiles) && next_button_x2 < window_visible_x2)
+              ImGui::SameLine();
+
+            ImGui::PopID();
           }
 
+          ImGui::EndChild();
+
+          if (pProgramState->settings.maptiles.mapEnabled)
+          {
+            if (udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, "custom"))
+            {
+              ImGui::Indent();
+
+              bool changed = false;
+
+              ImGui::TextWrapped("%s", vcString::Get("settingsMapsTileServerInstructions"));
+
+              changed |= vcIGSW_InputText(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsTileServer"), mapLayer), pProgramState->settings.maptiles.layers[mapLayer].customServer.tileServerAddress);
+              changed |= vcIGSW_InputText(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsAttribution"), mapLayer), pProgramState->settings.maptiles.layers[mapLayer].customServer.attribution);
+
+              if (changed)
+              {
+                vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
+                for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+                  vcRender_ClearTiles(pProgramState->pViewports[viewportIndex].pRenderContext);
+              }
+
+              ImGui::Unindent();
+
+            }
+            if (ImGui::SliderFloat(udTempStr("%s##%d", vcString::Get("settingsMapsMapHeight"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
+              pProgramState->settings.maptiles.layers[mapLayer].mapHeight = udClamp(pProgramState->settings.maptiles.layers[mapLayer].mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
+
+            if (ImGui::SliderFloat(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsOpacity"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax, "%.3f"))
+              pProgramState->settings.maptiles.layers[mapLayer].transparency = udClamp(pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax);
+          }
           ImGui::Unindent();
-
         }
-        if (ImGui::SliderFloat(udTempStr("%s##%d", vcString::Get("settingsMapsMapHeight"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
-          pProgramState->settings.maptiles.layers[mapLayer].mapHeight = udClamp(pProgramState->settings.maptiles.layers[mapLayer].mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
-
-        if (ImGui::SliderFloat(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsOpacity"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax, "%.3f"))
-          pProgramState->settings.maptiles.layers[mapLayer].transparency = udClamp(pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax);
       }
-      ImGui::Unindent();
     }
+    ImGui::EndChild();
   }
 }
 
