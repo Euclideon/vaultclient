@@ -217,7 +217,7 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
       double worldScale = 1.0;
       if (m_image.size == vcIS_Native)
-        worldScale = (double)imageSize.x / pProgramState->pActiveViewport->resolution.x;
+        worldScale = (double)imageSize.x / pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution.x;
       else
         worldScale = vcISToWorldSize[m_image.size];
 
@@ -351,7 +351,7 @@ void vcMedia::Cleanup(vcState * /*pProgramState*/)
 
 void vcMedia::SetCameraPosition(vcState *pProgramState)
 {
-  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
     pProgramState->pViewports[viewportIndex].camera.position = m_image.position;
 }
 

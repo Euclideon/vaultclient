@@ -134,6 +134,7 @@ void vcViewpoint::SetCameraPosition(vcState *pProgramState)
   }
 
   for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
   {
     pProgramState->pViewports[viewportIndex].camera.position = m_CameraPosition;
     pProgramState->pViewports[viewportIndex].camera.headingPitch = m_CameraHeadingPitch;

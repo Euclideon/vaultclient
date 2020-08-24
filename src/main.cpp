@@ -147,11 +147,6 @@ enum vcLoginBackgroundSettings
   vcLBS_LogoAreaSize = 500,
 };
 
-enum
-{
-  vcMaxViewportCount = 2,
-};
-
 const uint32_t WhitePixel = 0xFFFFFFFF;
 
 void vcMain_ShowStartupScreen(vcState *pProgramState);
@@ -376,7 +371,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 #ifndef GIT_BUILD
   if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_P))
   {
-    for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+    for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
       vcRender_ReloadShaders(pProgramState->pViewports[viewportIndex].pRenderContext, pProgramState->pWorkerPool);
   }
 
@@ -676,8 +671,8 @@ void vcMain_MainLoop(vcState *pProgramState)
 
         stbi_image_free(pImg);
 
-        pProgramState->image.width = pProgramState->pActiveViewport->resolution.x;
-        pProgramState->image.height = pProgramState->pActiveViewport->resolution.y;
+        pProgramState->image.width = pProgramState->settings.viewports[0].resolution.x;
+        pProgramState->image.height = pProgramState->settings.viewports[0].resolution.y;
       }
 
       udFree(pFileData);
@@ -961,13 +956,11 @@ int main(int argc, char **args)
 
   programState.pSessionLock = udCreateRWLock();
 
-  programState.activeViewportCount = 1; // TODO: Load from settings
   programState.pViewports = udAllocType(vcViewport, vcMaxViewportCount, udAF_Zero);
-  programState.pActiveViewport = &programState.pViewports[0];
+  programState.activeViewportIndex = 0;
+  programState.pActiveViewport = &programState.pViewports[programState.activeViewportIndex];
 
   vcQueryNodeFilter_Clear(&programState.filterInput);
-
-  vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   for (int i = 1; i < argc; ++i)
   {
@@ -1051,11 +1044,7 @@ int main(int argc, char **args)
   {
     vcGizmo_Create(&programState.pViewports[viewportIndex].gizmo.pContext);
 
-    // TODO: Load from settings
-    programState.pViewports[viewportIndex].resolution.y = programState.windowResolution.y;
-    programState.pViewports[viewportIndex].resolution.x = programState.windowResolution.x;
-
-    if (vcRender_Init(&programState, &programState.pViewports[viewportIndex].pRenderContext, programState.pWorkerPool, programState.pViewports[viewportIndex].resolution) != udR_Success)
+    if (vcRender_Init(&programState, &programState.pViewports[viewportIndex].pRenderContext, programState.pWorkerPool, programState.settings.viewports[viewportIndex].resolution) != udR_Success)
       goto epilogue;
   }
 
@@ -1077,6 +1066,8 @@ int main(int argc, char **args)
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
 
   vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize, nullptr, nullptr, vcTFM_Linear);
+
+  vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
   udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
 
@@ -1133,7 +1124,7 @@ epilogue:
     vcGizmo_Destroy(&programState.pViewports[viewportIndex].gizmo.pContext);
     vcRender_Destroy(&programState, &programState.pViewports[viewportIndex].pRenderContext);
   }
-  programState.activeViewportCount = 0;
+  programState.settings.activeViewportCount = 0;
   udFree(programState.pViewports);
   vcString::FreeTable(&programState.languageInfo);
   vcSession_Logout(&programState);
@@ -1216,9 +1207,9 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 
 void vcMain_ToggleViewport(vcState *pProgramState)
 {
-  if (pProgramState->activeViewportCount == 1)
+  if (pProgramState->settings.activeViewportCount == 1)
   {
-    pProgramState->activeViewportCount = 2;
+    pProgramState->settings.activeViewportCount = 2;
 
     memcpy(&pProgramState->pViewports[1].camera, &pProgramState->pViewports[0].camera, sizeof(vcCamera));
     pProgramState->pViewports[1].gizmo.inUse = pProgramState->pViewports[0].gizmo.inUse;
@@ -1230,9 +1221,9 @@ void vcMain_ToggleViewport(vcState *pProgramState)
     //TODO: Is this necessary?
     vcRender_SetVaultContext(pProgramState, pProgramState->pViewports[1].pRenderContext);
   }
-  else if (pProgramState->activeViewportCount == 2)
+  else if (pProgramState->settings.activeViewportCount == 2)
   {
-    pProgramState->activeViewportCount = 1;
+    pProgramState->settings.activeViewportCount = 1;
 
     // TODO: Is this necessary?
     vcRender_RemoveVaultContext(pProgramState->pViewports[1].pRenderContext);
@@ -1241,7 +1232,7 @@ void vcMain_ToggleViewport(vcState *pProgramState)
 
 void vcMain_ToggleGizmoOperation(vcState *pProgramState, vcGizmoOperation op)
 {
-  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
   {
     vcViewport *pViewport = &pProgramState->pViewports[viewportIndex];
 
@@ -1315,7 +1306,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
         if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneGizmoLocalSpace"), SDL_GetScancodeName((SDL_Scancode)vcHotkey::Get(vcB_GizmoLocalSpace)), vcMBBI_UseLocalSpace, vcMBBG_SameGroup, pProgramState->pActiveViewport->gizmo.coordinateSystem == vcGCS_Local))
         {
-          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+          for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
             pProgramState->pViewports[viewportIndex].gizmo.coordinateSystem = (pProgramState->pViewports[viewportIndex].gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
         }
 
@@ -1444,8 +1435,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputInt(vcString::Get("sceneOverrideSRID"), &newSRID) && udGeoZone_SetFromSRID(&zone, newSRID) == udR_Success)
         {
           bool success = false;
-          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
-            success = vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pViewports[viewportIndex].camera.position, (viewportIndex + 1 == pProgramState->activeViewportCount)) || success;
+          for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
+            success = vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pViewports[viewportIndex].camera.position, (viewportIndex + 1 == pProgramState->settings.activeViewportCount)) || success;
 
           if (success)
             pProgramState->activeProject.pFolder->ChangeProjection(zone);
@@ -1510,6 +1501,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           ImGui::TextUnformatted(udTempStr("%sMiB", udCommaInt(pProgramState->streamingMemory >> 20)));
         }
       }
+
+      // TODO: Putting this here for now
+      if (pProgramState->settings.activeViewportCount > 1)
+        ImGui::Checkbox(udTempStr("%s##orthographicCameraViewport", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.viewports[1].mapMode);
     }
 
     ImGui::End();
@@ -2328,15 +2323,16 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   if (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released))
     vcMain_PresentationMode(pProgramState);
 
-  if (pProgramState->settings.screenshot.taking && pProgramState->pActiveViewport->resolution != pProgramState->settings.screenshot.resolution)
+  // TODO: Screenshot only viewport 0
+  if (pProgramState->settings.screenshot.taking && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)
   {
-    pProgramState->pActiveViewport->resolution = pProgramState->settings.screenshot.resolution;
+    pProgramState->settings.viewports[0].resolution = pProgramState->settings.screenshot.resolution;
 
     vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
     // Immediately update camera
-    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->pActiveViewport->resolution));
+    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->settings.viewports[0].resolution));
   }
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
@@ -2344,11 +2340,11 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
   {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-    ImGui::Columns(pProgramState->activeViewportCount);
+    ImGui::Columns(pProgramState->settings.activeViewportCount);
     ImGui::PopStyleVar(); // Item Spacing
 
     // At the moment some functionality is restricted to certain viewports
-    for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+    for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
     {
       ImVec2 viewportPosition = ImVec2(windowPos.x + ImGui::GetCursorPosX(), windowPos.y + ImGui::GetCursorPosY());
       udUInt2 viewportResolution = udUInt2::create((uint32_t)ImGui::GetColumnWidth(), (uint32_t)windowSize.y);
@@ -2368,20 +2364,39 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       renderData.mouse.position.y = (uint32_t)(io.MousePos.y - viewportPosition.y);
       renderData.mouse.clicked = io.MouseClicked[1];
 
+      pProgramState->activeViewportIndex = viewportIndex;
       pProgramState->pActiveViewport = &pProgramState->pViewports[viewportIndex];
 
-      // TODO: Screenshot which viewport?
-      if ((viewportIndex != 0 || !pProgramState->settings.screenshot.taking) && (pProgramState->pActiveViewport->resolution.x != viewportResolution.x || pProgramState->pActiveViewport->resolution.y != viewportResolution.y)) //Resize buffers
+      // TODO: Screenshot only viewport 0
+      if ((viewportIndex != 0 || !pProgramState->settings.screenshot.taking) && (pProgramState->settings.viewports[viewportIndex].resolution.x != viewportResolution.x || pProgramState->settings.viewports[viewportIndex].resolution.y != viewportResolution.y)) //Resize buffers
       {
-        pProgramState->pActiveViewport->resolution = viewportResolution;
-        vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->pActiveViewport->resolution.x, pProgramState->pActiveViewport->resolution.y);
+        pProgramState->settings.viewports[viewportIndex].resolution = viewportResolution;
+        vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, viewportResolution.x, viewportResolution.y);
 
         // Set back to default buffer, vcRender_ResizeScene calls vcCreateFramebuffer which binds the 0th framebuffer
         // this isn't valid on iOS when using UIKit.
         vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
         // Update camera immediately
-        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y));
+        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)viewportResolution.x, (float)viewportResolution.y));
+      }
+
+      bool renderEuclideonWatermark = pProgramState->settings.presentation.showEuclideonLogo;
+      bool isFixedOrthographicViewport = viewportIndex != 0 && pProgramState->settings.viewports[viewportIndex].mapMode;
+      if (isFixedOrthographicViewport)
+      {
+        // Manually set camera
+        pProgramState->pActiveViewport->camera.position = pProgramState->pViewports[0].camera.position + pProgramState->pViewports[0].camera.cameraUp * 2000.0;
+        pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
+
+        // TODO: Hack! (Until we resolve multiple camera settings)
+        vcCameraSettings settingsCopy = pProgramState->settings.camera;
+        settingsCopy.fieldOfView = UD_PIf * 10.0f / 18.f; // 10 degrees
+
+        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, settingsCopy, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y));
+
+        // disable watermark rendering
+        pProgramState->settings.presentation.showEuclideonLogo = false;
       }
 
       pProgramState->pActiveViewport->pickingSuccess = false;
@@ -2390,7 +2405,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       if (ImGui::BeginChild(udTempStr("###sceneViewport%d", viewportIndex)))
       {
         // Actual rendering to this texture is deferred
-        ImGui::Image(renderData.pSceneTexture, ImVec2((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
+        ImGui::Image(renderData.pSceneTexture, ImVec2((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
       }
       ImGui::EndChild();
 
@@ -2429,7 +2444,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
 
       // Camera update has to be here because it depends on previous ImGui state
-      vcCamera_HandleSceneInput(pProgramState, pProgramState->pActiveViewport, viewportIndex, cameraMoveOffset, udFloat2::create((float)pProgramState->pActiveViewport->resolution.x, (float)pProgramState->pActiveViewport->resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
+      vcCamera_HandleSceneInput(pProgramState, pProgramState->pActiveViewport, viewportIndex, cameraMoveOffset, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));
 
       // Clean up
       renderData.models.Deinit();
@@ -2443,7 +2458,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       renderData.pins.Deinit();
 
       // Handle context menu
-      if (wasViewportContextMenuOpenLastFrame == -1 || wasViewportContextMenuOpenLastFrame == viewportIndex)
+      if (!isFixedOrthographicViewport && (wasViewportContextMenuOpenLastFrame == -1 || wasViewportContextMenuOpenLastFrame == viewportIndex))
       {
         if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
@@ -2515,13 +2530,18 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
       ImGui::NextColumn();
       ImGui::PopStyleVar(); // Item Spacing
+
+      // Reset some settings
+      // TODO: This is a hack
+      pProgramState->settings.presentation.showEuclideonLogo = renderEuclideonWatermark;
     }
 
     ImGui::Columns(1);
   }
 
   // Future-proofing - viewport 0 is the primary viewport.
-  pProgramState->pActiveViewport = &pProgramState->pViewports[0];
+  pProgramState->activeViewportIndex = 0;
+  pProgramState->pActiveViewport = &pProgramState->pViewports[pProgramState->activeViewportIndex];
 
   // Can only assign longlat positions in projected space
   if (pProgramState->geozone.projection != udGZPT_Unknown)

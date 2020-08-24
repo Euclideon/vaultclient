@@ -307,8 +307,8 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         if (pSceneItem->m_pPreferredProjection != nullptr && pSceneItem->m_pPreferredProjection->srid != 0 && ImGui::Selectable(vcString::Get("sceneExplorerUseProjection")))
         {
           bool success = false;
-          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
-            success = vcGIS_ChangeSpace(&pProgramState->geozone, *pSceneItem->m_pPreferredProjection, &pProgramState->pViewports[viewportIndex].camera.position, viewportIndex + 1 == pProgramState->activeViewportCount) || success;
+          for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
+            success = vcGIS_ChangeSpace(&pProgramState->geozone, *pSceneItem->m_pPreferredProjection, &pProgramState->pViewports[viewportIndex].camera.position, viewportIndex + 1 == pProgramState->settings.activeViewportCount) || success;
 
           if (success)
             pProgramState->activeProject.pFolder->ChangeProjection(*pSceneItem->m_pPreferredProjection);
