@@ -1134,12 +1134,12 @@ RadianceSpectrum GetSkyRadiance(
     Position camera, IN(Direction) view_ray, Length shadow_length,
     IN(Direction) sun_direction, OUT(DimensionlessSpectrum) transmittance) {
   // Compute the distance to the top atmosphere boundary along the view ray,
-  // assuming the viewer is in space (or NaN if the view ray does not intersect
+  // assuming the viewer is in space (or 0 if the view ray does not intersect
   // the atmosphere).
   Length r = length(camera);
   Length rmu = dot(camera, view_ray);
   Length distance_to_top_atmosphere_boundary = -rmu -
-      sqrt(rmu * rmu - r * r + atmosphere.top_radius * atmosphere.top_radius);
+      SafeSqrt((rmu * rmu) - (r * r) + (atmosphere.top_radius * atmosphere.top_radius));
   // If the viewer is in space and the view ray intersects the atmosphere, move
   // the viewer to the top atmosphere boundary (along the view ray):
   if (distance_to_top_atmosphere_boundary > 0.0 * m) {
@@ -1200,13 +1200,14 @@ RadianceSpectrum GetSkyRadianceToPoint(
     Position camera, IN(Position) p, Length shadow_length,
     IN(Direction) sun_direction, OUT(DimensionlessSpectrum) transmittance) {
   // Compute the distance to the top atmosphere boundary along the view ray,
-  // assuming the viewer is in space (or NaN if the view ray does not intersect
+  // assuming the viewer is in space (or 0 if the view ray does not intersect
   // the atmosphere).
   Direction view_ray = normalize(p - camera);
   Length r = length(camera);
   Length rmu = dot(camera, view_ray);
   Length distance_to_top_atmosphere_boundary = -rmu -
-      sqrt(rmu * rmu - r * r + atmosphere.top_radius * atmosphere.top_radius);
+      SafeSqrt(rmu * rmu - r * r + atmosphere.top_radius * atmosphere.top_radius);
+	
   // If the viewer is in space and the view ray intersects the atmosphere, move
   // the viewer to the top atmosphere boundary (along the view ray):
   if (distance_to_top_atmosphere_boundary > 0.0 * m) {
@@ -1402,13 +1403,15 @@ PS_OUTPUT main(PS_INPUT input)
   
   // Compute the distance between the view ray line and the Earth center,
   // and the distance between the camera and the intersection of the view
-  // ray with the ground (or NaN if there is no intersection).
+  // ray with the ground (or 0 if there is no intersection).
   float3 p = camera - earth_center;
   float p_dot_v = dot(p, view_direction);
   float p_dot_p = dot(p, p);
   float ray_earth_center_squared_distance = p_dot_p - p_dot_v * p_dot_v;
-  float distance_to_intersection = -p_dot_v - sqrt(
-      u_earthCenter.w * u_earthCenter.w - ray_earth_center_squared_distance);
+  float earth_radius_to_earth_center = u_earthCenter.w * u_earthCenter.w - ray_earth_center_squared_distance;
+  float distance_to_intersection = 0.0;
+  if (earth_radius_to_earth_center > 0.0) // avoid NaN from the sqrt()
+    distance_to_intersection = -p_dot_v - sqrt(earth_radius_to_earth_center);
 	 
   float3 spherePoint = geometryPoint;
   if (distance_to_intersection > 0.0)
@@ -1547,9 +1550,8 @@ the scene:
   output.Color0.a = 1.0;
 
   // debugging
-  //output.Color0.xyz = lerp(sceneNormal.xyz, output.Color0.xyz, 0.00000000001);
+  //output.Color0.xyz = lerp(GetSkyRadiance(camera - earth_center, view_direction, shadow_length, sun_direction, transmittance), output.Color0.xyz, 0.2);
 	
-  
   return output;
 }
 

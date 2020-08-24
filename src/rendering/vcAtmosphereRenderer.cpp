@@ -415,7 +415,7 @@ bool vcAtmosphereRenderer_Render(vcAtmosphereRenderer *pAtmosphereRenderer, vcSt
   pAtmosphereRenderer->renderShader.fragParams.camera.z = (float)pProgramState->pActiveViewport->camera.position.z;
   pAtmosphereRenderer->renderShader.fragParams.camera.w = (float)(pAtmosphereRenderer->use_luminance != NONE ? pAtmosphereRenderer->exposure * 1e-5 : pAtmosphereRenderer->exposure);
 
-  pAtmosphereRenderer->renderShader.fragParams.sunDirection = udFloat4::create(udFloat3::create(pAtmosphereRenderer->sunDirection), 0);
+  pAtmosphereRenderer->renderShader.fragParams.sunDirection = udFloat4::create(udFloat3::create(pAtmosphereRenderer->sunDirection), (float)(earthRadius + 60000.0));
 
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pTransmittance_texture_, 0, pAtmosphereRenderer->renderShader.uniform_transmittance);
   vcShader_BindTexture(pAtmosphereRenderer->renderShader.pProgram, pAtmosphereRenderer->pModel->pScattering_texture_, 1, pAtmosphereRenderer->renderShader.uniform_scattering);
