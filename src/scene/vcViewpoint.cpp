@@ -1,5 +1,6 @@
 #include "vcViewpoint.h"
 
+#include "vcRender.h"
 #include "vcState.h"
 #include "vcStrings.h"
 
@@ -121,6 +122,17 @@ void vcViewpoint::Cleanup(vcState * /*pProgramState*/)
 
 void vcViewpoint::SetCameraPosition(vcState *pProgramState)
 {
+  // Disable "keep camera above ground" if viewpoint is underground
+  if (pProgramState->settings.camera.keepAboveSurface && pProgramState->settings.maptiles.mapEnabled)
+  {
+    udDouble3 positionUp = vcGIS_GetWorldLocalUp(m_pProject->baseZone, m_CameraPosition);
+
+    udDouble3 surfacePosition = vcRender_QueryMapAtCartesian(pProgramState->pActiveViewport->pRenderContext, m_CameraPosition);
+
+    if (udDot3(positionUp, udNormalize3(m_CameraPosition - surfacePosition)) < 0)
+      pProgramState->settings.camera.keepAboveSurface = false;
+  }
+
   for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
   {
     pProgramState->pViewports[viewportIndex].camera.position = m_CameraPosition;
