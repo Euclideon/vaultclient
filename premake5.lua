@@ -45,9 +45,6 @@ function ProcessudSDK()
 		links { "udSDK.framework" }
 	elseif os.target() == "emscripten" and not _OPTIONS["force-udSDK"] then
 		linkoptions { "src/libudSDK.bc", "src/libudPointCloud.bc", "src/libvaultcore.bc" }
-	elseif os.target() == "emscripten" then
-		links { "udPointCloudVDK", "udCoreVDK" }
-		links { "udSDK" }
 	else
 		links { "udSDK" }
 	end

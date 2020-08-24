@@ -698,10 +698,10 @@ void vcMain_MainLoop(vcState *pProgramState)
 #if UDPLATFORM_EMSCRIPTEN
 void vcMain_GetScreenResolution(vcState * pProgramState)
 {
-  pProgramState->pActiveViewport->sceneResolution.x = EM_ASM_INT_V({
+  pProgramState->windowResolution.x = EM_ASM_INT_V({
     return window.innerWidth;
   });
-  pProgramState->pActiveViewport->sceneResolution.y = EM_ASM_INT_V({
+  pProgramState->windowResolution.y = EM_ASM_INT_V({
     return window.innerHeight;
   });
 }
