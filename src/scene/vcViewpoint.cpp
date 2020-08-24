@@ -125,7 +125,7 @@ void vcViewpoint::SetCameraPosition(vcState *pProgramState)
   // Disable "keep camera above ground" if viewpoint is underground
   if (pProgramState->settings.camera.keepAboveSurface && pProgramState->settings.maptiles.mapEnabled)
   {
-    udDouble3 positionUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_CameraPosition);
+    udDouble3 positionUp = vcGIS_GetWorldLocalUp(m_pProject->baseZone, m_CameraPosition);
 
     udDouble3 surfacePosition = vcRender_QueryMapAtCartesian(pProgramState->pActiveViewport->pRenderContext, m_CameraPosition);
 
