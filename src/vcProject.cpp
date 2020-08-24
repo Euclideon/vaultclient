@@ -293,6 +293,8 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
 
     vcProject_ExtractCamera(pProgramState);
     vcProject_UpdateProjectHistory(pProgramState, pProjectID, true);
+
+    vcProject_UpdateProjectInformationDisplayTextures(pProgramState);
   }
   else
   {
@@ -353,6 +355,8 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
 
     vcProject_ExtractCamera(pProgramState);
     vcProject_UpdateProjectHistory(pProgramState, pFilename, false);
+
+    vcProject_UpdateProjectInformationDisplayTextures(pProgramState);
 
     success = true;
   }
@@ -843,4 +847,62 @@ void vcProject_ExtractAttributionText(udProjectNode *pFolderNode, const char **p
   }
 
   
+}
+
+void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
+{
+  const char *pInfo = nullptr;
+  if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
+  {
+    for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
+      vcTexture_Destroy(&pTexture);
+    for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
+      udFree(pStr);
+    pProgramState->projectInfoTextures.infoStrings.Clear();
+    pProgramState->projectInfoTextures.textures.Clear();
+
+    // Discover Images
+    int firstIndex = 0;
+    int startStrIndex = 0;
+    while (true)
+    {
+      size_t startImagePos = 0;
+      if (udStrchr(pInfo + firstIndex, "!", &startImagePos) == nullptr)
+        break;
+      startImagePos += firstIndex;
+      size_t closeBracketPos = 0;
+      if (udStrchr(pInfo + startImagePos + 1, "]", &closeBracketPos) == nullptr)
+        break;
+      closeBracketPos += startImagePos + 1;
+      size_t closeParenthesisPos = 0;
+      if (udStrchr(pInfo + closeBracketPos + 1, ")", &closeParenthesisPos) == nullptr)
+        break;
+      closeParenthesisPos += closeBracketPos + 1;
+        
+      size_t lastCharPos = closeParenthesisPos;
+      firstIndex = (int)(lastCharPos + 1);
+
+      if (pInfo[startImagePos + 1] == '[' && pInfo[closeBracketPos + 1] == '(')
+      {
+        // Text
+        const char *pSubStr = udStrndup(pInfo + startStrIndex, startImagePos - startStrIndex);
+        pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
+
+        // Texture Alt Text
+        const char *pAltStr = udStrndup(pInfo + startImagePos + 2, closeBracketPos - startImagePos - 2);
+        pProgramState->projectInfoTextures.textureAltStrings.PushBack(pAltStr);
+
+        // Texture
+        const char *pTexPath = udStrndup(pInfo + (closeBracketPos + 2), closeParenthesisPos - closeBracketPos - 2);
+        pProgramState->projectInfoTextures.textures.PushBack();
+
+        vcTexture_AsyncCreateFromFilename(&pProgramState->projectInfoTextures.textures[pProgramState->projectInfoTextures.textures.length - 1], pProgramState->pWorkerPool, pTexPath, vcTFM_Linear);
+
+        startStrIndex = firstIndex;
+      }
+    }
+
+    const char *pSubStr = udStrdup(pInfo + firstIndex);
+    pProgramState->projectInfoTextures.infoStrings.PushBack(pSubStr);
+  }
 }

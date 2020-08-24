@@ -618,7 +618,6 @@ void vcModals_DrawExportProject(vcState *pProgramState)
   }
 }
 
-
 void vcModals_DrawProjectInfo(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ProjectInfo))
@@ -632,16 +631,24 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    const char *pInfo = nullptr;
-
     if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true))
     {
-      if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
-        ImGui::TextWrapped("%s", pInfo);
+      for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
+      {
+        ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.infoStrings[i]);
+        if (i < pProgramState->projectInfoTextures.infoStrings.length - 1)
+        {
+          int w, h;
+          if (vcTexture_GetSize(pProgramState->projectInfoTextures.textures[i], &w, &h) == udR_Success && (w > 1 || h > 1))
+            ImGui::Image(pProgramState->projectInfoTextures.textures[i], ImVec2((float)w, (float)h));
+          else
+            ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
+        }
+      }
     }
     ImGui::EndChild();
-    
-    if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr || pInfo[0] == '\0')
+
+    if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pProgramState->projectInfoTextures.infoStrings.length == 0)
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
@@ -1152,6 +1159,8 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
     {
       udProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
       udProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
+
+      vcProject_UpdateProjectInformationDisplayTextures(pProgramState);
 
       ImGui::CloseCurrentPopup();
     }
