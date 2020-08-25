@@ -2462,10 +2462,13 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       {
         if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
-          udDouble3 mousePosCartesian = pProgramState->pActiveViewport->worldMousePosCartesian;
+          //udDouble3 mousePosCartesian;
 
-          if ((pProgramState->focusedViewportIndex == viewportIndex && pProgramState->pActiveViewport->pickingSuccess))
+          if (pProgramState->focusedViewportIndex == viewportIndex && pProgramState->pActiveViewport->pickingSuccess && wasViewportContextMenuOpenLastFrame != viewportIndex)
+          {
             wasViewportContextMenuOpenLastFrame = viewportIndex;
+            pProgramState->pActiveViewport->worldMousePickPosCartesian = pProgramState->pActiveViewport->worldMousePosCartesian;
+          }
 
           if (wasViewportContextMenuOpenLastFrame == viewportIndex)
           {
@@ -2477,7 +2480,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
                 vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
 
                 if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-                  pPOI->AddPoint(pProgramState, mousePosCartesian);
+                  pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldMousePickPosCartesian);
               }
             }
 
@@ -2491,7 +2494,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
                 if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == udE_Success)
                 {
-                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &mousePosCartesian, 1);
+                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &pProgramState->pActiveViewport->worldMousePickPosCartesian, 1);
                   udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
                 }
 
@@ -2509,7 +2512,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
               pProgramState->pActiveViewport->cameraInput.progress = 0.0;
 
               pProgramState->pActiveViewport->isUsingAnchorPoint = true;
-              pProgramState->pActiveViewport->worldAnchorPoint = mousePosCartesian;
+              pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePickPosCartesian;
             }
           }
 
