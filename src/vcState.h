@@ -100,7 +100,6 @@ struct vcViewport
   vcCamera camera;
   vcCameraInput cameraInput;
 
- // udUInt2 resolution; // TODO: Duplicated with settings
   vcRenderContext *pRenderContext;
 
   struct

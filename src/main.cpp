@@ -1504,7 +1504,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       // TODO: Putting this here for now
       if (pProgramState->settings.activeViewportCount > 1)
-        ImGui::Checkbox(udTempStr("%s##orthographicCameraViewport", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.viewports[1].mapMode);
+        ImGui::Checkbox(udTempStr("%s##secondViewportMapMode", vcString::Get("secondViewportMapMode")), &pProgramState->settings.viewports[1].mapMode);
     }
 
     ImGui::End();

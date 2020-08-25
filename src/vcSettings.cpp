@@ -638,7 +638,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     for (int viewportIndex = 0; viewportIndex < vcMaxViewportCount; ++viewportIndex)
     {
       pSettings->viewports[viewportIndex].resolution.x = data.Get("viewports.viewport[%d].width", viewportIndex).AsInt(128);
-      pSettings->viewports[viewportIndex].resolution.y = data.Get("viewports.viewport[% d].height", viewportIndex).AsInt(128);
+      pSettings->viewports[viewportIndex].resolution.y = data.Get("viewports.viewport[%d].height", viewportIndex).AsInt(128);
       pSettings->viewports[viewportIndex].mapMode = data.Get("viewports.viewport[%d].mapMode", viewportIndex).AsBool(false);
     }
   }

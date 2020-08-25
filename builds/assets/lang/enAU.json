@@ -401,7 +401,7 @@
   "menuBarWaitingForRenderLicense": "Waiting for Render license...",
   "menuBarNoRenderLicense": "No Render licenses are available for this user",
   "menuBarInactive": "Inactive",
-  "orthographicCameraViewport": "Orthographic Second Camera (Geoverse style)",
+  "orthographicCameraViewport": "Map Mode",
   "selectedItemInfoPanelitemsSelected": "items selected",
   "popupMenuCopy": "Copy",
   "popupMenuPaste": "Paste",

@@ -133,7 +133,6 @@ void vcViewpoint::SetCameraPosition(vcState *pProgramState)
       pProgramState->settings.camera.keepAboveSurface = false;
   }
 
-  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
   for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
   {
     pProgramState->pViewports[viewportIndex].camera.position = m_CameraPosition;
