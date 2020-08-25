@@ -446,7 +446,7 @@ void vcSession_CleanupSession(vcState *pProgramState)
   pProgramState->highestProjectTime = 0.0;
   pProgramState->lastSync = 0.0;
 
-  if (pProgramState->groups.length > 0)
+  if (pProgramState->groups.chunkElementCount > 0)
   {
     for (auto item : pProgramState->groups)
     {
@@ -467,7 +467,7 @@ void vcSession_CleanupSession(vcState *pProgramState)
     pProgramState->groups.Deinit();
   }
 
-  if (pProgramState->featuredProjects.length > 0)
+  if (pProgramState->featuredProjects.chunkElementCount > 0)
   {
     for (auto item : pProgramState->featuredProjects)
     {
@@ -477,15 +477,18 @@ void vcSession_CleanupSession(vcState *pProgramState)
     pProgramState->featuredProjects.Deinit();
   }
 
-  for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
-    vcTexture_Destroy(&pTexture);
-  for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
-    udFree(pStr);
-  for (const char *pStr : pProgramState->projectInfoTextures.textureAltStrings)
-    udFree(pStr);
-  pProgramState->projectInfoTextures.infoStrings.Deinit();
-  pProgramState->projectInfoTextures.textureAltStrings.Deinit();
-  pProgramState->projectInfoTextures.textures.Deinit();
+  if (pProgramState->projectInfoTextures.textures.chunkElementCount > 0)
+  {
+    for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
+      vcTexture_Destroy(&pTexture);
+    for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
+      udFree(pStr);
+    for (const char *pStr : pProgramState->projectInfoTextures.textureAltStrings)
+      udFree(pStr);
+    pProgramState->projectInfoTextures.infoStrings.Deinit();
+    pProgramState->projectInfoTextures.textureAltStrings.Deinit();
+    pProgramState->projectInfoTextures.textures.Deinit();
+  }
 
   udWriteUnlockRWLock(pProgramState->pSessionLock);
 }
