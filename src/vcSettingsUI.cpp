@@ -761,6 +761,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
           float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
           bool customServerSpecified = pProgramState->settings.maptiles.layers[mapLayer].customServer.tileServerAddress[0] != '\0';
+          bool customServerSelected = udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, "custom");
 
           for (size_t i = 0; i < udLengthOf(s_mapTiles); i++)
           {
@@ -774,7 +775,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
               s_mapTiles[i].pPreviewTexture = pProgramState->pWhiteTexture;
             }
 
-            if (!alwaysShowOptions || !udStrEqual(s_mapTiles[i].pModeStr, "custom") || customServerSpecified)
+            if (!udStrEqual(s_mapTiles[i].pModeStr, "custom") || customServerSelected || customServerSpecified || !alwaysShowOptions)
             {
               if (pop)
                 ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
@@ -813,7 +814,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 
           if (pProgramState->settings.maptiles.mapEnabled)
           {
-            if (udStrEqual(pProgramState->settings.maptiles.layers[mapLayer].mapType, "custom") && customServerSpecified)
+            if (customServerSelected)
             {
               ImGui::Indent();
 
@@ -832,7 +833,6 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
               }
 
               ImGui::Unindent();
-
             }
             if (ImGui::SliderFloat(udTempStr("%s##%d", vcString::Get("settingsMapsMapHeight"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
               pProgramState->settings.maptiles.layers[mapLayer].mapHeight = udClamp(pProgramState->settings.maptiles.layers[mapLayer].mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
