@@ -4,6 +4,7 @@
 #include "vcStrings.h"
 #include "vcRender.h"
 #include "vcInternalModels.h"
+#include "vcProject.h"
 
 #include "udMath.h"
 #include "udStringUtil.h"
@@ -79,6 +80,9 @@ void vcQueryNode::OnNodeUpdate(vcState *pProgramState)
   udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &m_ypr.x, 0.0);
   udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &m_ypr.y, 0.0);
   udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &m_ypr.z, 0.0);
+
+  vcProject_GetNodeMetadata(m_pNode, "inverted", &m_inverted, false);
+  if (m_inverted) udQueryFilter_SetInverted(m_pFilter, m_inverted);
 
   ChangeProjection(pProgramState->geozone);
 
@@ -180,6 +184,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   {
     changed = true;
     udQueryFilter_SetInverted(m_pFilter, m_inverted);
+    udProjectNode_SetMetadataBool(m_pNode, "inverted", m_inverted);
   }
 
   if (changed)
@@ -204,7 +209,10 @@ void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterExtents"), m_extents.x, m_extents.y, m_extents.z);
 
   if (ImGui::Checkbox(udTempStr("%s##EmbeddedUI", vcString::Get("sceneFilterInverted")), &m_inverted))
+  {
     udQueryFilter_SetInverted(m_pFilter, m_inverted);
+    udProjectNode_SetMetadataBool(m_pNode, "inverted", m_inverted);
+  }
 
   if (vcQueryNodeFilter_IsDragActive(pProgramState))
   {
