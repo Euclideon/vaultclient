@@ -784,7 +784,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
               {
                 udStrcpy(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
                 vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
-                for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+                for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
                   vcRender_ClearTiles(pProgramState->pViewports[viewportIndex].pRenderContext);
               }
 
