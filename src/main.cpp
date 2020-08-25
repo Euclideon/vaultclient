@@ -2462,8 +2462,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       {
         if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
-          //udDouble3 mousePosCartesian;
-
           if (pProgramState->focusedViewportIndex == viewportIndex && pProgramState->pActiveViewport->pickingSuccess && wasViewportContextMenuOpenLastFrame != viewportIndex)
           {
             wasViewportContextMenuOpenLastFrame = viewportIndex;
