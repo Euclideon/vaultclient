@@ -100,7 +100,6 @@ struct vcViewport
   vcCamera camera;
   vcCameraInput cameraInput;
 
-  udUInt2 resolution;
   vcRenderContext *pRenderContext;
 
   struct
@@ -173,11 +172,11 @@ struct vcState
 
   udUInt2 windowResolution;
 
-  int activeViewportCount;
   vcViewport *pViewports;
 
   // The systems only have a concept of a single active viewport, so maintain that
   vcViewport *pActiveViewport;
+  int activeViewportIndex;
   int focusedViewportIndex;
 
   udGeoZone geozone;

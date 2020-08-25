@@ -124,6 +124,11 @@ enum vcSkyboxType
   vcSkyboxType_Atmosphere,
 };
 
+enum
+{
+  vcMaxViewportCount = 2,
+};
+
 struct vcLanguageOption
 {
   // Arbitrary limits
@@ -351,6 +356,13 @@ struct vcSettings
   } postVisualization;
 
   vcCameraSettings camera;
+
+  struct vcViewportSettings
+  {
+    udUInt2 resolution;
+    bool mapMode; // geoverse-style orthographic camera
+  } viewports[vcMaxViewportCount];
+  int activeViewportCount;
 
   struct vcMapServer
   {

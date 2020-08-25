@@ -633,6 +633,14 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         pSettings->projectsHistory.projects.PushBack({ isServerProject, udStrdup(pProjectName), udStrdup(pProjectPath) });
 
     }
+
+    pSettings->activeViewportCount = data.Get("viewports.activeCount").AsInt(1);
+    for (int viewportIndex = 0; viewportIndex < vcMaxViewportCount; ++viewportIndex)
+    {
+      pSettings->viewports[viewportIndex].resolution.x = data.Get("viewports.viewport[%d].width", viewportIndex).AsInt(128);
+      pSettings->viewports[viewportIndex].resolution.y = data.Get("viewports.viewport[%d].height", viewportIndex).AsInt(128);
+      pSettings->viewports[viewportIndex].mapMode = data.Get("viewports.viewport[%d].mapMode", viewportIndex).AsBool(false);
+    }
   }
 
   udFree(pSavedData);
@@ -947,6 +955,14 @@ bool vcSettings_Save(vcSettings *pSettings)
 
     temp.SetString(pProjectHistory->pPath);
     data.Set(&temp, "projectsHistory.path[]");
+  }
+
+  data.Set("viewports.activeCount = %d", pSettings->activeViewportCount);
+  for (int viewportIndex = 0; viewportIndex < vcMaxViewportCount; ++viewportIndex)
+  {
+    data.Set("viewports.viewport[%d].width = %d", viewportIndex, pSettings->viewports[viewportIndex].resolution.x);
+    data.Set("viewports.viewport[%d].height = %d", viewportIndex, pSettings->viewports[viewportIndex].resolution.y);
+    data.Set("viewports.viewport[%d].mapMode = %s", viewportIndex, pSettings->viewports[viewportIndex].mapMode ? "true" : "false");
   }
 
   // Save

@@ -36,7 +36,7 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
   udGeoZone zone = {};
   vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
-  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
   {
     pProgramState->pViewports[viewportIndex].camera.position = udDouble3::zero();
     pProgramState->pViewports[viewportIndex].camera.headingPitch = udDouble2::zero();
@@ -76,7 +76,7 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
       int randomIndex = (int)(seed % length);
       double *pPlace = locations[randomIndex];
 
-      for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+      for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
       {
         pProgramState->pViewports[viewportIndex].camera.position = udDouble3::create(pPlace[0], pPlace[1], pPlace[2]);
         pProgramState->pViewports[viewportIndex].camera.headingPitch = { UD_DEG2RAD(pPlace[3]), UD_DEG2RAD(pPlace[4]) };
@@ -84,7 +84,7 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
     }
     else
     {
-      for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+      for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
       {
         pProgramState->pViewports[viewportIndex].camera.position = udGeoZone_LatLongToCartesian(cameraZone, udDouble3::create((cameraZone.latLongBoundMin + cameraZone.latLongBoundMax) / 2.0, 10000.0));
         pProgramState->pViewports[viewportIndex].camera.headingPitch = { 0.0, UD_DEG2RAD(-80.0) };
@@ -186,7 +186,7 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, udProjectNode *pPa
       udProjectNode_GetMetadataDouble(pNode, "transform.heading", &headingPitch.x, 0.0);
       udProjectNode_GetMetadataDouble(pNode, "transform.pitch", &headingPitch.y, 0.0);
 
-      for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+      for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
       {
         pProgramState->pViewports[viewportIndex].camera.position = position;
         pProgramState->pViewports[viewportIndex].camera.headingPitch = headingPitch;
@@ -213,7 +213,7 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, udProjectNode *pPa
 // Try extract a valid viewpoint from the project, based on available nodes
 void vcProject_ExtractCamera(vcState *pProgramState)
 {
-  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
   {
     pProgramState->pViewports[viewportIndex].camera.position = udDouble3::zero();
     pProgramState->pViewports[viewportIndex].camera.headingPitch = udDouble2::zero();

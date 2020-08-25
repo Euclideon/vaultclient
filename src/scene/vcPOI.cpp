@@ -1043,7 +1043,7 @@ void vcPOI::SetCameraPosition(vcState *pProgramState)
   if (!m_attachment.pModel)
     newPosition = m_pLabelInfo->worldPosition;
 
-  for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+  for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
     pProgramState->pViewports[viewportIndex].camera.position = newPosition;
 
 }

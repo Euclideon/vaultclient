@@ -719,8 +719,8 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
           udGeoZone zone = {};
           udGeoZone_SetFromSRID(&zone, newSRID);
 
-          for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
-            vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pViewports[viewportIndex].camera.position, viewportIndex + 1 == pProgramState->activeViewportCount);
+          for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
+            vcGIS_ChangeSpace(&pProgramState->geozone, zone, &pProgramState->pViewports[viewportIndex].camera.position, viewportIndex + 1 == pProgramState->settings.activeViewportCount);
 
           pProgramState->activeProject.pFolder->ChangeProjection(zone);
         }
@@ -779,7 +779,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
             {
               udStrcpy(pProgramState->settings.maptiles.layers[mapLayer].mapType, s_mapTiles[i].pModeStr);
               vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
-              for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+              for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
                 vcRender_ClearTiles(pProgramState->pViewports[viewportIndex].pRenderContext);
             }
 
@@ -823,7 +823,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
               if (changed)
               {
                 vcSettings_ApplyMapChange(&pProgramState->settings, mapLayer);
-                for (int viewportIndex = 0; viewportIndex < pProgramState->activeViewportCount; ++viewportIndex)
+                for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
                   vcRender_ClearTiles(pProgramState->pViewports[viewportIndex].pRenderContext);
               }
 

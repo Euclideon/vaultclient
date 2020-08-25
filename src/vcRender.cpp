@@ -1235,7 +1235,7 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   }
 
   // Pins
-  vcPinRenderer_Render(pRenderContext->pPinRenderer, pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->pActiveViewport->resolution, renderData.labels);
+  vcPinRenderer_Render(pRenderContext->pPinRenderer, pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, renderData.labels);
 
   // Labels
   uint32_t labelIds = vcObjectId_SceneItems + (uint32_t)(renderData.polyModels.length + renderData.images.length);
@@ -1243,7 +1243,7 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
   for (uint32_t i = 0; i < renderData.labels.length; ++i)
   {
     float encodedLabelId = vcRender_EncodeModelId(labelIds + i);
-    vcLabelRenderer_Render(drawList, renderData.labels[i], encodedLabelId, pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->pActiveViewport->resolution);
+    vcLabelRenderer_Render(drawList, renderData.labels[i], encodedLabelId, pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution);
   }
 
   vcGLState_ResetState();
@@ -1258,7 +1258,7 @@ void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderCo
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
   udDouble4 nearPlane = vcCamera_GetNearPlane(pProgramState->pActiveViewport->camera, pProgramState->settings.camera);
   for (size_t i = 0; i < renderData.lines.length; ++i)
-    vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->pActiveViewport->resolution, nearPlane);
+    vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, nearPlane);
 
   // Images
   {
