@@ -548,6 +548,7 @@
   "scenePOIThumbnailSizeNative": "Native",
   "scenePOIThumbnailSizeSmall": "Small",
   "scenePOIThumbnailSizeLarge": "Large",
+  "scenePOILabelImageScale": "Scale",
   "scenePOILabelImageType": "Image Type",
   "scenePOILabelImageTypeStandard": "Standard",
   "scenePOILabelImageTypeOriented": "Oriented Image",

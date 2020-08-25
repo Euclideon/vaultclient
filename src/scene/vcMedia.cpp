@@ -302,7 +302,7 @@ void vcMedia::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_image.ypr.z);
     }
 
-    if (ImGui::InputScalarN(udTempStr("%s##scenePOILabelImageYPR%zu", vcString::Get("scenePOILabelImageYPR"), *pItemID), ImGuiDataType_Double, &m_image.scale, 1))
+    if (ImGui::InputScalarN(udTempStr("%s##scenePOILabelImageScale%zu", vcString::Get("scenePOILabelImageScale"), *pItemID), ImGuiDataType_Double, &m_image.scale, 1))
       udProjectNode_SetMetadataDouble(m_pNode, "transform.scale", m_image.scale);
   }
 
