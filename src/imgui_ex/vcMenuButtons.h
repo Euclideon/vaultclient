@@ -2,6 +2,7 @@
 #define vcMenuButtons_h__
 
 #include "udMath.h"
+#include "vcHotkey.h"
 
 enum vcMenuBarButtonIcon
 {
@@ -67,7 +68,7 @@ enum vcMenuBarButtonGap
 
 struct vcTexture;
 
-bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected = false, float scale = 1.f);
+bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, vcBind shortcut, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected = false, float scale = 1.f);
 
 udFloat4 vcGetIconUV(vcMenuBarButtonIcon iconIndex);
 

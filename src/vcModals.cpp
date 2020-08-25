@@ -368,7 +368,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
           if (selectableHovered)
           {
             ImGui::SetCursorPos(ImVec2(activeCursorPos.x + itemRect.x - 50.f, activeCursorPos.y - 37.f));
-            vcMenuBarButton(pProgramState->pUITexture, vcString::Get("modalProjectClearRecentItem"), nullptr, vcMBBI_Remove, vcMBBG_FirstItem);
+            vcMenuBarButton(pProgramState->pUITexture, vcString::Get("modalProjectClearRecentItem"), vcB_Invalid, vcMBBI_Remove, vcMBBG_FirstItem);
 
             if (selectableClicked && ImGui::IsItemHovered())
             {
