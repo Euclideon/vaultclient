@@ -67,7 +67,6 @@ namespace vcHotkey
 
   const char* GetBindName(vcBind key);
   vcBind BindFromName(const char* pName);
-  int GetMod(int key);
   void Set(vcBind key, int value);
   int Get(vcBind key);
 

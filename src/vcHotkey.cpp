@@ -191,27 +191,6 @@ namespace vcHotkey
     return bindNames[key];
   }
 
-  int GetMod(int key)
-  {
-    // Only modifier keys in input
-    if (key >= SDL_SCANCODE_LCTRL && key <= SDL_SCANCODE_RGUI)
-      return 0;
-
-    ImGuiIO io = ImGui::GetIO();
-    int out = key;
-
-    if (io.KeyShift)
-      out |= vcMOD_Shift;
-    if (io.KeyCtrl)
-      out |= vcMOD_Ctrl;
-    if (io.KeyAlt)
-      out |= vcMOD_Alt;
-    if (io.KeySuper)
-      out |= vcMOD_Super;
-
-    return out;
-  }
-
   void Set(vcBind key, int value)
   {
     keyBinds[(int)key] = value;
@@ -228,6 +207,16 @@ namespace vcHotkey
     {
       if (pProgramState->currentKey)
       {
+        ImGuiIO io = ImGui::GetIO();
+        if (io.KeyShift)
+          pProgramState->currentKey |= vcMOD_Shift;
+        if (io.KeyCtrl)
+          pProgramState->currentKey |= vcMOD_Ctrl;
+        if (io.KeyAlt)
+          pProgramState->currentKey |= vcMOD_Alt;
+        if (io.KeySuper)
+          pProgramState->currentKey |= vcMOD_Super;
+
         int i = 0;
         for (; i < vcB_Count; ++i)
         {

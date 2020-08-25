@@ -291,8 +291,8 @@ void vcMain_MainLoop(vcState *pProgramState)
   SDL_Event event;
   while (SDL_PollEvent(&event))
   {
-    if (event.type == SDL_KEYDOWN)
-      pProgramState->currentKey = vcHotkey::GetMod(event.key.keysym.scancode);
+    if (event.type == SDL_KEYDOWN && !(event.key.keysym.scancode >= SDL_SCANCODE_LCTRL && event.key.keysym.scancode <= SDL_SCANCODE_RGUI))
+      pProgramState->currentKey = event.key.keysym.scancode;
 
     if (!pProgramState->hasUsedMouse)
     {
