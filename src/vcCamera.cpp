@@ -498,17 +498,6 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
         pProgramState->settings.camera.lockAltitude = !pProgramState->settings.camera.lockAltitude;
     }
 
-    if (vcHotkey::IsPressed(vcB_DecreaseCameraSpeed))
-    {
-      pProgramState->settings.camera.moveSpeed *= 0.1f;
-      pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed);
-    }
-    else if (vcHotkey::IsPressed(vcB_IncreaseCameraSpeed))
-    {
-      pProgramState->settings.camera.moveSpeed *= 10.f;
-      pProgramState->settings.camera.moveSpeed = udMin(pProgramState->settings.camera.moveSpeed, vcSL_CameraMaxMoveSpeed);
-    }
-
     // Allow camera movement when left mouse button is holding down.
     if (!pProgramState->modalOpen)
     {
@@ -543,6 +532,16 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
         pViewport->gizmo.operation = ((pViewport->gizmo.operation == vcGO_Scale) ? vcGO_NoGizmo : vcGO_Scale);
       if (vcHotkey::IsPressed(vcB_GizmoLocalSpace))
         pViewport->gizmo.coordinateSystem = ((pViewport->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
+      if (vcHotkey::IsPressed(vcB_DecreaseCameraSpeed))
+      {
+        pProgramState->settings.camera.moveSpeed *= 0.1f;
+        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed);
+      }
+      else if (vcHotkey::IsPressed(vcB_IncreaseCameraSpeed))
+      {
+        pProgramState->settings.camera.moveSpeed *= 10.f;
+        pProgramState->settings.camera.moveSpeed = udMin(pProgramState->settings.camera.moveSpeed, vcSL_CameraMaxMoveSpeed);
+      }
     }
 
     if (keyboardInput != udDouble3::zero() || isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]) // if input is detected, TODO: add proper any input detection
