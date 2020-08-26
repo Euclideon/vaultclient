@@ -139,6 +139,12 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_ypr = matrix.extractYPR();
   m_center = matrix.axis.t.toVector3();
   m_extents = udDouble3::create(udMag3(matrix.axis.x), udMag3(matrix.axis.y), udMag3(matrix.axis.z));
+
+  // Hack: a cylinder only scale on the x axis
+  if (m_shape == vcQNFS_Cylinder && delta.axis.y[1] == 1.0f)
+    m_extents.x = m_extents.y;
+  else if (m_shape == vcQNFS_Cylinder)// avoid jump in scale when swapping between the X & Y axis
+    m_extents.y = m_extents.x;
   
   vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
 
