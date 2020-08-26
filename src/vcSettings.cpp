@@ -481,37 +481,37 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
   if (group == vcSC_Bindings || group == vcSC_All)
   {
-    vcHotkey::Set(vcB_Forward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Forward)).AsInt(26));
-    vcHotkey::Set(vcB_Backward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Backward)).AsInt(22));
-    vcHotkey::Set(vcB_Left, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Left)).AsInt(4));
-    vcHotkey::Set(vcB_Right, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Right)).AsInt(7));
-    vcHotkey::Set(vcB_Up, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Up)).AsInt(21));
-    vcHotkey::Set(vcB_Down, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Down)).AsInt(9));
-    vcHotkey::Set(vcB_DecreaseCameraSpeed, data.Get("keys.%s", vcHotkey::GetBindName(vcB_DecreaseCameraSpeed)).AsInt(91)); // [
-    vcHotkey::Set(vcB_IncreaseCameraSpeed, data.Get("keys.%s", vcHotkey::GetBindName(vcB_IncreaseCameraSpeed)).AsInt(93)); // ]
-    vcHotkey::Set(vcB_Remove, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Remove)).AsInt(76));
-    vcHotkey::Set(vcB_Cancel, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Cancel)).AsInt(41));
-    vcHotkey::Set(vcB_LockAltitude, data.Get("keys.%s", vcHotkey::GetBindName(vcB_LockAltitude)).AsInt(44));
-    vcHotkey::Set(vcB_GizmoTranslate, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoTranslate)).AsInt(5));
-    vcHotkey::Set(vcB_GizmoRotate, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoRotate)).AsInt(17));
-    vcHotkey::Set(vcB_GizmoScale, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoScale)).AsInt(16));
-    vcHotkey::Set(vcB_GizmoLocalSpace, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoLocalSpace)).AsInt(6));
-    vcHotkey::Set(vcB_Fullscreen, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Fullscreen)).AsInt(62));
-    vcHotkey::Set(vcB_RenameSceneItem, data.Get("keys.%s", vcHotkey::GetBindName(vcB_RenameSceneItem)).AsInt(60));
-    vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(1048));
-    vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(1029));
-    vcHotkey::Set(vcB_TakeScreenshot, data.Get("keys.%s", vcHotkey::GetBindName(vcB_TakeScreenshot)).AsInt(70));
-    vcHotkey::Set(vcB_ToggleSceneExplorer, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSceneExplorer)).AsInt(61));
-    vcHotkey::Set(vcB_ToggleSelectTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSelectTool)).AsInt(63));
-    vcHotkey::Set(vcB_ToggleMeasureLineTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureLineTool)).AsInt(64));
-    vcHotkey::Set(vcB_ToggleMeasureAreaTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureAreaTool)).AsInt(65));
-    vcHotkey::Set(vcB_ToggleInspectionTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleInspectionTool)).AsInt(66));
-    vcHotkey::Set(vcB_ToggleAnnotateTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleAnnotateTool)).AsInt(67));
-    vcHotkey::Set(vcB_OpenSettingsMenu, data.Get("keys.%s", vcHotkey::GetBindName(vcB_OpenSettingsMenu)).AsInt(vcMOD_Ctrl + SDL_SCANCODE_L));
-    vcHotkey::Set(vcB_ToggleMeasureHeightTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureHeightTool)).AsInt(11));
-    vcHotkey::Set(vcB_AddBoxFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddBoxFilter)).AsInt(12));
-    vcHotkey::Set(vcB_AddSphereFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddSphereFilter)).AsInt(13));
-    vcHotkey::Set(vcB_AddCylinderFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddCylinderFilter)).AsInt(14));
+    vcHotkey::Set(vcB_Forward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Forward)).AsInt(SDL_SCANCODE_W));
+    vcHotkey::Set(vcB_Backward, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Backward)).AsInt(SDL_SCANCODE_S));
+    vcHotkey::Set(vcB_Left, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Left)).AsInt(SDL_SCANCODE_A));
+    vcHotkey::Set(vcB_Right, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Right)).AsInt(SDL_SCANCODE_D));
+    vcHotkey::Set(vcB_Up, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Up)).AsInt(SDL_SCANCODE_R));
+    vcHotkey::Set(vcB_Down, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Down)).AsInt(SDL_SCANCODE_F));
+    vcHotkey::Set(vcB_DecreaseCameraSpeed, data.Get("keys.%s", vcHotkey::GetBindName(vcB_DecreaseCameraSpeed)).AsInt(SDL_SCANCODE_LEFTBRACKET)); // [
+    vcHotkey::Set(vcB_IncreaseCameraSpeed, data.Get("keys.%s", vcHotkey::GetBindName(vcB_IncreaseCameraSpeed)).AsInt(SDL_SCANCODE_RIGHTBRACKET)); // ]
+    vcHotkey::Set(vcB_Remove, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Remove)).AsInt(SDL_SCANCODE_DELETE));
+    vcHotkey::Set(vcB_Cancel, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Cancel)).AsInt(SDL_SCANCODE_ESCAPE));
+    vcHotkey::Set(vcB_LockAltitude, data.Get("keys.%s", vcHotkey::GetBindName(vcB_LockAltitude)).AsInt(SDL_SCANCODE_SPACE));
+    vcHotkey::Set(vcB_GizmoTranslate, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoTranslate)).AsInt(SDL_SCANCODE_B));
+    vcHotkey::Set(vcB_GizmoRotate, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoRotate)).AsInt(SDL_SCANCODE_N));
+    vcHotkey::Set(vcB_GizmoScale, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoScale)).AsInt(SDL_SCANCODE_M));
+    vcHotkey::Set(vcB_GizmoLocalSpace, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoLocalSpace)).AsInt(SDL_SCANCODE_C));
+    vcHotkey::Set(vcB_Fullscreen, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Fullscreen)).AsInt(SDL_SCANCODE_F5));
+    vcHotkey::Set(vcB_RenameSceneItem, data.Get("keys.%s", vcHotkey::GetBindName(vcB_RenameSceneItem)).AsInt(SDL_SCANCODE_F3));
+    vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(vcMOD_Ctrl | SDL_SCANCODE_U));
+    vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(vcMOD_Ctrl | SDL_SCANCODE_B));
+    vcHotkey::Set(vcB_TakeScreenshot, data.Get("keys.%s", vcHotkey::GetBindName(vcB_TakeScreenshot)).AsInt(SDL_SCANCODE_PRINTSCREEN));
+    vcHotkey::Set(vcB_ToggleSceneExplorer, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSceneExplorer)).AsInt(SDL_SCANCODE_F4));
+    vcHotkey::Set(vcB_ToggleSelectTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleSelectTool)).AsInt(SDL_SCANCODE_F6));
+    vcHotkey::Set(vcB_ToggleMeasureLineTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureLineTool)).AsInt(SDL_SCANCODE_F7));
+    vcHotkey::Set(vcB_ToggleMeasureAreaTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureAreaTool)).AsInt(SDL_SCANCODE_F8));
+    vcHotkey::Set(vcB_ToggleInspectionTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleInspectionTool)).AsInt(SDL_SCANCODE_F9));
+    vcHotkey::Set(vcB_ToggleAnnotateTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleAnnotateTool)).AsInt(SDL_SCANCODE_F10));
+    vcHotkey::Set(vcB_OpenSettingsMenu, data.Get("keys.%s", vcHotkey::GetBindName(vcB_OpenSettingsMenu)).AsInt(vcMOD_Ctrl | SDL_SCANCODE_L));
+    vcHotkey::Set(vcB_ToggleMeasureHeightTool, data.Get("keys.%s", vcHotkey::GetBindName(vcB_ToggleMeasureHeightTool)).AsInt(SDL_SCANCODE_H));
+    vcHotkey::Set(vcB_AddBoxFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddBoxFilter)).AsInt(SDL_SCANCODE_I));
+    vcHotkey::Set(vcB_AddSphereFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddSphereFilter)).AsInt(SDL_SCANCODE_J));
+    vcHotkey::Set(vcB_AddCylinderFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddCylinderFilter)).AsInt(SDL_SCANCODE_K));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)
