@@ -2436,7 +2436,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
       vcRenderGizmo(pProgramState, viewportPosition, viewportResolution);
 
-      if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+      if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped))
         vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
 
       // Camera update has to be here because it depends on previous ImGui state
