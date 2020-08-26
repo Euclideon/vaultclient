@@ -50,7 +50,8 @@ enum vcBind
   vcB_AddSphereFilter,
   vcB_AddCylinderFilter,
 
-  vcB_Count
+  vcB_Count,
+  vcB_Invalid = vcB_Count
 };
 
 namespace vcHotkey

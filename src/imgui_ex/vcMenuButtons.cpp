@@ -19,7 +19,7 @@ udFloat4 vcGetIconUV(vcMenuBarButtonIcon iconIndex)
   return udFloat4::create(buttonX, buttonY, buttonX + buttonUVSize, buttonY + buttonUVSize);
 }
 
-bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char *pKeyCode, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/, float scale /*= 1.f*/)
+bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, vcBind shortcut, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/, float scale /*= 1.f*/)
 {
   const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
   const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
@@ -43,10 +43,16 @@ bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, const char 
 
   if (vcIGSW_IsItemHovered())
   {
-    if (pKeyCode == nullptr)
+    if (shortcut == vcB_Invalid)
+    {
       ImGui::SetTooltip("%s", pButtonName);
+    }
     else
-      ImGui::SetTooltip("%s [%s]", pButtonName, pKeyCode);
+    {
+      char key[100];
+      vcHotkey::GetKeyName(shortcut, key, (uint32_t)udLengthOf(key));
+      ImGui::SetTooltip("%s [%s]", pButtonName, key);
+    }
   }
   ImGui::PopID();
 
