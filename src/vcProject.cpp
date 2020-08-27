@@ -115,7 +115,7 @@ bool vcProject_CreateBlankScene(vcState *pProgramState, const char *pName, int s
   return true;
 }
 
-udError   vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName, const char *pProjectName, int srid)
+udError vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName, const char *pProjectName, int srid)
 {
   if (pProgramState == nullptr)
     return udE_Failure;
@@ -124,19 +124,34 @@ udError   vcProject_CreateFileScene(vcState *pProgramState, const char *pFileNam
   if (pProjectName == nullptr || pProjectName[0] == '\0')
     return udE_InvalidParameter;
 
+  udError error = udE_Success;
+  udProject* pNewProject = nullptr;
+  bool overrideProject = false;
+
   if (udFileExists(pFileName) == udR_Success)
-    return udE_WriteFailure;
-
-  udProject *pNewProject = nullptr;
-  udError error = udProject_CreateInFile(&pNewProject, pProjectName, pFileName);
-  if (error != udE_Success)
-    return error;
-
+  {
+    overrideProject = true;
+    error = udProject_CreateInMemory(&pNewProject, pProjectName);
+    if (error != udE_Success)
+      return error;
+  }
+  else
+  {
+    error = udProject_CreateInFile(&pNewProject, pProjectName, pFileName);
+    if (error != udE_Success)
+      return error;
+  }
   if (pProgramState->activeProject.pProject != nullptr)
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
+
+  if (overrideProject)
+  {
+      if (!vcProject_SaveAs(pProgramState, pFileName, true))
+        return udE_WriteFailure;
+  }
 
   vcProject_UpdateProjectHistory(pProgramState, pFileName, false);
 
