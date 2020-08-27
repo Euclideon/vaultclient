@@ -67,13 +67,34 @@
 	</div>
 	<div id="statusFailure" class="statusBox" hidden>
 		<div class="failure">X</div><br />
-		<span>Sorry, it look like your browser isn't supported in this version of udStream!<br /><br />Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
+		<span>Sorry, it looks like your browser isn't supported in this version of udStream!<br /><br />Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
+	</div>
+	<div id="statusFailureWebGL" class="statusBox" hidden>
+		<div class="failure">X</div><br />
+		<span>Sorry, it looks like your browser doesn't support WebGL 2.0!<br /><br />Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
 	</div>
 	<canvas id="canvas"></canvas>
 	<script>
+		function SupportsWebGL2() {
+			var hasSupport = false;
+			var canvas = document.createElement("canvas");
+			try {
+				var ctx = canvas.getContext("webgl2");
+				hasSupport = (ctx != null);
+			} catch (e) { }
+			return hasSupport;
+		}
+		var supportsWebGL2 = SupportsWebGL2();
+		if (!supportsWebGL2){
+			document.getElementById("statusLoading").hidden = true;
+			document.getElementById("statusFailure").hidden = true;
+			document.getElementById("statusFailureWebGL").hidden = false;
+		}
+
 		window.onerror = function(event) {
 			document.getElementById("statusLoading").hidden = true;
-			document.getElementById("statusFailure").hidden = false;
+			document.getElementById("statusFailure").hidden = !supportsWebGL2;
+			document.getElementById("statusFailureWebGL").hidden = supportsWebGL2;
 
 			if (Module)
 			{
@@ -103,6 +124,7 @@
 		var Module = {
 			arguments: (arg !== null ? [ arg ] : null),
 			canvas: document.getElementById('canvas'),
+			noInitialRun: !supportsWebGL2,
 			mainScriptUrlOrBlob:"udStream.js",
 			preRun: [
 				function() {
