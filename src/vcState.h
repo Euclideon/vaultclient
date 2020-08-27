@@ -119,6 +119,7 @@ struct vcViewport
 
   udDouble3 worldMousePosCartesian;
   udDouble3 worldMousePosLongLat;
+  udDouble3 worldMousePickPosCartesian;
   bool pickingSuccess;
   int udModelPickedIndex;
   udVoxelID udModelPickedNode;
