@@ -116,10 +116,17 @@ void vcIGSW_FilePicker(vcState *pProgramState, const char *pLabel, char *pBuffer
 
   ImGui::SameLine(0, 0);
 
+#if UDPLATFORM_EMSCRIPTEN
+  udUnused(pProgramState);
+  udUnused(ppExtensions);
+  udUnused(numExtensions);
+  udUnused(dialogType);
+#else
   if (ImGui::Button(udTempStr("...##%s_fpicker_openmore", pLabel)))
     vcFileDialog_Open(pProgramState, pLabel, pBuffer, bufferSize, ppExtensions, numExtensions, dialogType, onChange);
 
   vcFileDialog_ShowModal(pProgramState);
+#endif
 
   ImGui::SameLine();
 
