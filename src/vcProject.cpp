@@ -126,32 +126,35 @@ udError vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName,
 
   udError error = udE_Success;
   udProject* pNewProject = nullptr;
-  bool overrideProject = false;
 
   if (udFileExists(pFileName) == udR_Success)
   {
-    overrideProject = true;
-    error = udProject_CreateInMemory(&pNewProject, pProjectName);
-    if (error != udE_Success)
-      return error;
+    if (!pProgramState->settings.window.useNativeUI)
+    {
+      if (vcModals_OverwriteExistingFile(pProgramState, pFileName))
+      {
+        udFileDelete(pFileName);
+      }
+      else
+      {
+        return udE_WriteFailure;
+      }
+    }
+    else // File exists and Native UI
+    {
+      udFileDelete(pFileName);
+    }
   }
-  else
-  {
-    error = udProject_CreateInFile(&pNewProject, pProjectName, pFileName);
-    if (error != udE_Success)
-      return error;
-  }
+
+  error = udProject_CreateInFile(&pNewProject, pProjectName, pFileName);
+  if (error != udE_Success)
+    return error;
+
   if (pProgramState->activeProject.pProject != nullptr)
     vcProject_Deinit(pProgramState, &pProgramState->activeProject);
 
   pProgramState->activeProject.pProject = pNewProject;
   vcProject_InitScene(pProgramState, srid);
-
-  if (overrideProject)
-  {
-      if (!vcProject_SaveAs(pProgramState, pFileName, pProgramState->settings.window.useNativeUI))
-        return udE_WriteFailure;
-  }
 
   vcProject_UpdateProjectHistory(pProgramState, pFileName, false);
 
