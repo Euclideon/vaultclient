@@ -441,7 +441,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
   if (!forceClearMouseState)
     vcQueryNodeFilter_HandleSceneInput(pProgramState, isBtnClicked[0]);
 
-  if (forceClearMouseState || vcQueryNodeFilter_IsDragActive(pProgramState))
+  if (forceClearMouseState || vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
   {
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));

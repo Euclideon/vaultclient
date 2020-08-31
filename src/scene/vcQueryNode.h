@@ -56,13 +56,13 @@ struct vcQueryNodeFilterInput
   udDouble3 size;
   udDouble3 endPoint;
   udProjectNode *pNode;
-  uint32_t holdCount;
+  uint32_t pickCount;
 };
 
 void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape);
 void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter);
 
 void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicked);
-bool vcQueryNodeFilter_IsDragActive(vcState *pProgramState);
+bool vcQueryNodeFilter_IsWaitingForSecondPick(vcState *pProgramState);
 
 #endif //vcViewpoint_h__
