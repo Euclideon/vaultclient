@@ -93,7 +93,12 @@
 		}
 
 		window.onkeydown = function(e) {
-			if (e.keyCode === 9) { // tab
+			if (e.keyCode === 9 // tab
+				|| e.keyCode === 114 // F3
+				|| e.keyCode === 117 // F6
+				|| e.keyCode === 121 // F10
+				)
+			{
 				e.preventDefault();
 			}
 		}
