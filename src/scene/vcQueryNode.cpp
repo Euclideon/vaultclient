@@ -292,7 +292,7 @@ vcGizmoAllowedControls vcQueryNode::GetAllowedControls()
     return vcGAC_All;
 }
 
-static const uint32_t HOLD_TICKS = 10;
+static const uint32_t HOLD_TICKS = 1;
 
 void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape)
 {
@@ -341,7 +341,7 @@ void vcQueryNodeFilter_Update(vcQueryNodeFilterInput *pFilter, vcState *pProgram
   }
 }
 
-void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, bool isBtnReleased)
+void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicked)
 {
   vcQueryNodeFilterInput *pFilter = &pProgramState->filterInput;
   if (pProgramState->activeTool != vcActiveTool_AddBoxFilter && pProgramState->activeTool != vcActiveTool_AddSphereFilter && pProgramState->activeTool != vcActiveTool_AddCylinderFilter)
@@ -351,7 +351,7 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
     return;
   }
 
-  if (isBtnHeld)
+  if (isBtnClicked)
   {
     // create node
     if (pProgramState->pActiveViewport->pickingSuccess)
@@ -363,7 +363,7 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
       }
     }
 
-    if (pFilter->pNode && !vcQueryNodeFilter_IsDragActive(pProgramState))
+    if (pFilter->pNode)// && !vcQueryNodeFilter_IsDragActive(pProgramState))
       pFilter->holdCount++;
   }
 
@@ -386,12 +386,12 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
 
     vcQueryNodeFilter_Update(pFilter, pProgramState);
 
-    if (isBtnReleased)
+    if (pFilter->holdCount == 2)
       vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
   }
   else
   {
-    if (isBtnReleased)
+    if (isBtnClicked)
     {
       double scaleFactor = udMag3(pProgramState->pActiveViewport->camera.position - pProgramState->pActiveViewport->worldMousePosCartesian) / 10.0; // 1/10th of the screen
       pFilter->size = udDouble3::create(scaleFactor, scaleFactor, scaleFactor);

@@ -62,7 +62,7 @@ struct vcQueryNodeFilterInput
 void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape);
 void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter);
 
-void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, bool isBtnReleased);
+void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicked);
 bool vcQueryNodeFilter_IsDragActive(vcState *pProgramState);
 
 #endif //vcViewpoint_h__
