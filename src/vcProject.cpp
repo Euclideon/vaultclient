@@ -149,11 +149,7 @@ udError vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName,
 
   if (overrideProject)
   {
-#if UDPLATFORM_WINDOWS
       if (!vcProject_SaveAs(pProgramState, pFileName, pProgramState->settings.window.useNativeUI))
-#else
-      if (!vcProject_SaveAs(pProgramState, pFileName, false))
-#endif
         return udE_WriteFailure;
   }
 
