@@ -124,7 +124,6 @@ udError vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName,
   if (pProjectName == nullptr || pProjectName[0] == '\0')
     return udE_InvalidParameter;
 
-  udError error = udE_Success;
   udProject* pNewProject = nullptr;
 
   if (udFileExists(pFileName) == udR_Success)
@@ -132,13 +131,9 @@ udError vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName,
     if (!pProgramState->settings.window.useNativeUI)
     {
       if (vcModals_OverwriteExistingFile(pProgramState, pFileName))
-      {
         udFileDelete(pFileName);
-      }
       else
-      {
         return udE_WriteFailure;
-      }
     }
     else // File exists and Native UI
     {
@@ -146,7 +141,7 @@ udError vcProject_CreateFileScene(vcState *pProgramState, const char *pFileName,
     }
   }
 
-  error = udProject_CreateInFile(&pNewProject, pProjectName, pFileName);
+  udError error = udProject_CreateInFile(&pNewProject, pProjectName, pFileName);
   if (error != udE_Success)
     return error;
 
