@@ -439,9 +439,9 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
 
   // Handle mouse input for filter tool
   if (!forceClearMouseState)
-    vcQueryNodeFilter_HandleSceneInput(pProgramState, isBtnHeld[0], isBtnReleased[0]);
+    vcQueryNodeFilter_HandleSceneInput(pProgramState, isBtnClicked[0]);
 
-  if (forceClearMouseState || vcQueryNodeFilter_IsDragActive(pProgramState))
+  if (forceClearMouseState || vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
   {
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));

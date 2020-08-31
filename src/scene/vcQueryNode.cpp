@@ -220,7 +220,7 @@ void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
     udProjectNode_SetMetadataBool(m_pNode, "inverted", m_inverted);
   }
 
-  if (vcQueryNodeFilter_IsDragActive(pProgramState))
+  if (vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
   {
     ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterEndPosition"), pProgramState->filterInput.endPoint.x, pProgramState->filterInput.endPoint.y, pProgramState->filterInput.endPoint.z);
     udDouble3 d = pProgramState->filterInput.endPoint - pProgramState->filterInput.pickPoint;
@@ -292,7 +292,7 @@ vcGizmoAllowedControls vcQueryNode::GetAllowedControls()
     return vcGAC_All;
 }
 
-static const uint32_t HOLD_TICKS = 10;
+static const uint32_t PICK_TICKS = 1;
 
 void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape)
 {
@@ -301,7 +301,7 @@ void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFi
   pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
   pFilter->endPoint = udDouble3::zero();
   pFilter->pNode = nullptr;
-  pFilter->holdCount = 0;
+  pFilter->pickCount = 0;
 }
 
 void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter)
@@ -311,7 +311,7 @@ void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter)
   pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
   pFilter->endPoint = udDouble3::zero();
   pFilter->pNode = nullptr;
-  pFilter->holdCount = 0;
+  pFilter->pickCount = 0;
 }
 
 udProjectNode *vcQueryNodeFilter_CreateNode(vcQueryNodeFilterInput *pFilter, vcState *pProgramState)
@@ -341,7 +341,7 @@ void vcQueryNodeFilter_Update(vcQueryNodeFilterInput *pFilter, vcState *pProgram
   }
 }
 
-void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, bool isBtnReleased)
+void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicked)
 {
   vcQueryNodeFilterInput *pFilter = &pProgramState->filterInput;
   if (pProgramState->activeTool != vcActiveTool_AddBoxFilter && pProgramState->activeTool != vcActiveTool_AddSphereFilter && pProgramState->activeTool != vcActiveTool_AddCylinderFilter)
@@ -351,7 +351,7 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
     return;
   }
 
-  if (isBtnHeld)
+  if (isBtnClicked)
   {
     // create node
     if (pProgramState->pActiveViewport->pickingSuccess)
@@ -363,14 +363,14 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
       }
     }
 
-    if (pFilter->pNode && !vcQueryNodeFilter_IsDragActive(pProgramState))
-      pFilter->holdCount++;
+    if (pFilter->pNode)
+      pFilter->pickCount++;
   }
 
-  if (pFilter->holdCount == 0)
+  if (pFilter->pickCount == 0)
     return;
 
-  if (vcQueryNodeFilter_IsDragActive(pProgramState))
+  if (vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
   {
     udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pFilter->pickPoint);
     udPlane<double> plane = udPlane<double>::create(pFilter->pickPoint, up);
@@ -386,12 +386,12 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
 
     vcQueryNodeFilter_Update(pFilter, pProgramState);
 
-    if (isBtnReleased)
+    if (pFilter->pickCount == 2)
       vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
   }
   else
   {
-    if (isBtnReleased)
+    if (isBtnClicked)
     {
       double scaleFactor = udMag3(pProgramState->pActiveViewport->camera.position - pProgramState->pActiveViewport->worldMousePosCartesian) / 10.0; // 1/10th of the screen
       pFilter->size = udDouble3::create(scaleFactor, scaleFactor, scaleFactor);
@@ -403,9 +403,9 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnHeld, 
 
 }
 
-bool vcQueryNodeFilter_IsDragActive(vcState *pProgramState)
+bool vcQueryNodeFilter_IsWaitingForSecondPick(vcState *pProgramState)
 {
-  return pProgramState->filterInput.holdCount >= HOLD_TICKS;
+  return pProgramState->filterInput.pickCount >= PICK_TICKS;
 }
 
 
