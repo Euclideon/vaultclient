@@ -1772,8 +1772,8 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   }
 
   udRenderPicking picking = {};
-  picking.x = (uint32_t)((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
-  picking.y = (uint32_t)((float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
+  picking.x = pRenderContext->lastPickLocation.x;
+  picking.y = pRenderContext->lastPickLocation.y;
 
   udRenderSettings renderOptions;
   memset(&renderOptions, 0, sizeof(udRenderSettings));
@@ -1793,8 +1793,8 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
     if (vcRender_FindSnapPoint(pProgramState, pRenderContext, renderData, snapPoint))
     {
       renderData.mouse.position = snapPoint;
-      picking.x = (uint32_t)((float)renderData.mouse.position.x / (float)pRenderContext->originalSceneResolution.x * (float)pRenderContext->sceneResolution.x);
-      picking.y = (uint32_t)((float)renderData.mouse.position.y / (float)pRenderContext->originalSceneResolution.y * (float)pRenderContext->sceneResolution.y);
+      picking.x = pRenderContext->picking.location.x;
+      picking.y = pRenderContext->picking.location.y;
       udRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderTarget, pModels, numVisibleModels, &renderOptions);
     }
   }
