@@ -2027,9 +2027,11 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         ImGui::EndPopup();
       }
 
+#if !UDPLATFORM_EMSCRIPTEN
       // Fullscreens - needs to trigger on mouse down, not mouse up in Emscripten to avoid problems
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneFullscreen"), vcB_Fullscreen, vcMBBI_FullScreen, vcMBBG_FirstItem, pProgramState->settings.window.isFullscreen) || ImGui::IsItemClicked(0))
         vcMain_PresentationMode(pProgramState);
+#endif
     }
 
     ImGui::End();
@@ -2317,8 +2319,10 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   if (windowSize.x < 1 || windowSize.y < 1)
     return;
 
+#if !UDPLATFORM_EMSCRIPTEN
   if (vcHotkey::IsPressed(vcB_Fullscreen) || ImGui::IsNavInputTest(ImGuiNavInput_TweakFast, ImGuiInputReadMode_Released))
     vcMain_PresentationMode(pProgramState);
+#endif
 
   // TODO: Screenshot only viewport 0
   if (pProgramState->settings.screenshot.taking && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)

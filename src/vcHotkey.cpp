@@ -255,6 +255,13 @@ namespace vcHotkey
 
     for (int i = 0; i < vcB_Count; ++i)
     {
+#if UDPLATFORM_EMSCRIPTEN
+      if (i == vcB_Fullscreen)
+      {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+      }
+#endif
       if (ImGui::Button(bindNames[i], ImVec2(-1, 0)))
       {
         if (target == i)
@@ -268,6 +275,13 @@ namespace vcHotkey
           alreadyBoundKey = -1;
         }
       }
+#if UDPLATFORM_EMSCRIPTEN
+      if (i == vcB_Fullscreen)
+      {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
+      }
+#endif
 
       if (target == i)
       {

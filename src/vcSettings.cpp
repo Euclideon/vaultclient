@@ -496,7 +496,11 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_GizmoRotate, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoRotate)).AsInt(SDL_SCANCODE_N));
     vcHotkey::Set(vcB_GizmoScale, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoScale)).AsInt(SDL_SCANCODE_M));
     vcHotkey::Set(vcB_GizmoLocalSpace, data.Get("keys.%s", vcHotkey::GetBindName(vcB_GizmoLocalSpace)).AsInt(SDL_SCANCODE_C));
+#if UDPLATFORM_EMSCRIPTEN
+    vcHotkey::Set(vcB_Fullscreen, SDL_SCANCODE_F11);
+#else
     vcHotkey::Set(vcB_Fullscreen, data.Get("keys.%s", vcHotkey::GetBindName(vcB_Fullscreen)).AsInt(SDL_SCANCODE_F5));
+#endif
     vcHotkey::Set(vcB_RenameSceneItem, data.Get("keys.%s", vcHotkey::GetBindName(vcB_RenameSceneItem)).AsInt(SDL_SCANCODE_F3));
     vcHotkey::Set(vcB_AddUDS, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddUDS)).AsInt(vcMOD_Ctrl | SDL_SCANCODE_U));
     vcHotkey::Set(vcB_BindingsInterface, data.Get("keys.%s", vcHotkey::GetBindName(vcB_BindingsInterface)).AsInt(vcMOD_Ctrl | SDL_SCANCODE_B));
