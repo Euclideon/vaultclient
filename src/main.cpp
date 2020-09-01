@@ -2392,7 +2392,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       if (isFixedOrthographicViewport)
       {
         // Manually set camera
-        pProgramState->pActiveViewport->camera.position = udDouble3::create(pProgramState->pViewports[0].camera.position.x, pProgramState->pViewports[0].camera.position.y, pProgramState->pActiveViewport->camera.position.z);//pProgramState->pViewports[0].camera.position + pProgramState->pViewports[0].camera.cameraUp * 2000.0;
+        pProgramState->pActiveViewport->camera.position = udDouble3::create(pProgramState->pViewports[0].camera.position.x, pProgramState->pViewports[0].camera.position.y, pProgramState->pActiveViewport->camera.position.z);
         pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
 
         // TODO: Hack! (Until we resolve multiple camera settings)
