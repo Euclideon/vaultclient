@@ -28,10 +28,21 @@ float2 directionToLatLong(float3 dir)
   return longlat / float2(2.0 * PI, PI);
 }
 
-float4 main(PS_INPUT input) : SV_Target
+struct PS_OUTPUT
 {
+  float4 Color0 : SV_Target0;
+  float4 Normal : SV_Target1;
+};
+
+PS_OUTPUT main(PS_INPUT input)
+{
+  PS_OUTPUT output;
+  
   // work out 3D point
   float4 point3D = mul(u_inverseViewProjection, float4(input.clip.xy, 1.0, 1.0));
   point3D.xyz = normalize(point3D.xyz / point3D.w);
-  return albedoTexture.Sample(albedoSampler, directionToLatLong(point3D.xyz));
+  output.Color0 = albedoTexture.Sample(albedoSampler, directionToLatLong(point3D.xyz));
+  
+  output.Normal = float4(0, 0, 0, 0);
+  return output;
 }
