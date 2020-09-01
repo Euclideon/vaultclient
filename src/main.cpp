@@ -1667,10 +1667,16 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMain_ProfileMenu(pProgramState);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuNewScene"), vcB_Invalid, vcMBBI_NewProject, vcMBBG_SameGroup))
+      {
+        pProgramState->activeTool = vcActiveTool_Select;
         vcModals_OpenModal(pProgramState, vcMT_CreateProject);
+      }
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectImport"), vcB_Invalid, vcMBBI_Open, vcMBBG_SameGroup))
+      {
+        pProgramState->activeTool = vcActiveTool_Select;
         vcModals_OpenModal(pProgramState, vcMT_LoadProject);
+      }
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuProjectSave"), vcB_Invalid, vcMBBI_Save, vcMBBG_SameGroup))
       {
