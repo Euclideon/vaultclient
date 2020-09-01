@@ -248,7 +248,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           pSceneItem->m_nameCapacity = 0;
         }
 
-        pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("%s###SXIName%zu", pNode->pName, *pItemID), flags);
+        pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags, "%s", pNode->pName);
         if (pSceneItem->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode && ImGui::GetIO().KeysDown[vcHotkey::Get(vcB_RenameSceneItem)])
           pSceneItem->m_editName = true;
       }
