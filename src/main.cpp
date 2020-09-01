@@ -898,6 +898,11 @@ int main(int argc, char **args)
 
 #if UDPLATFORM_EMSCRIPTEN
   vcMain_SyncFS();
+  {
+    char *pPath = SDL_GetPrefPath("", "");
+    udConfig_SetConfigLocation(pPath);
+    SDL_free(pPath);
+  }
 #endif
 
   uint32_t windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
