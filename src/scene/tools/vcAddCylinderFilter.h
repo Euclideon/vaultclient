@@ -10,6 +10,7 @@ class vcAddCylinderFilter : public vcSceneTool
 public:
   vcAddCylinderFilter() : vcSceneTool(vcActiveTool_AddCylinderFilter) {};
   void SceneUI(vcState *pProgramState) override;
+  void HandlePicking(vcState* pProgramState, vcRenderData& renderData, const vcRenderPickResult& pickResult) override;
 
 private:
   static vcAddCylinderFilter m_instance;

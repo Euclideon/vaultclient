@@ -2414,8 +2414,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       if (viewportIndex == 0 && pProgramState->settings.screenshot.taking)
         pProgramState->screenshot.pImage = renderData.pSceneTexture;
 
-      bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
-
       // Orbit around centre when fully pressed, show crosshair when partially pressed (also see vcCamera_HandleSceneInput())
       if (io.NavInputs[ImGuiNavInput_FocusNext] > 0.15f) // Right Trigger
       {
@@ -2442,7 +2440,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       vcRenderGizmo(pProgramState, viewportPosition, viewportResolution);
 
       if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenOverlapped))
-        vcRenderScene_HandlePicking(pProgramState, renderData, useTool);
+        vcRenderScene_HandlePicking(pProgramState, renderData, pProgramState->activeTool != vcActiveTool_Select);
 
       // Camera update has to be here because it depends on previous ImGui state
       vcCamera_HandleSceneInput(pProgramState, pProgramState->pActiveViewport, viewportIndex, cameraMoveOffset, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y), udFloat2::create((float)renderData.mouse.position.x, (float)renderData.mouse.position.y));

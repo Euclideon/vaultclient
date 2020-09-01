@@ -17,3 +17,8 @@ void vcAddSphereFilter::SceneUI(vcState *pProgramState)
     pSceneItem->HandleSceneEmbeddedUI(pProgramState);
   }
 }
+
+void vcAddSphereFilter::HandlePicking(vcState* pProgramState, vcRenderData& /*renderData*/, const vcRenderPickResult& /*pickResult*/)
+{
+  vcQueryNodeFilter_HandleSceneInput(pProgramState, ImGui::IsMouseClicked(0, false));
+}
