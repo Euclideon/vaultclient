@@ -294,6 +294,28 @@ vcGizmoAllowedControls vcQueryNode::GetAllowedControls()
 
 static const uint32_t PICK_TICKS = 1;
 
+vcQueryNodeFilterShape vcQueryNodeFilter_GetActiveShape(vcState* pProgramState)
+{
+  switch (pProgramState->activeTool)
+  {
+  case vcActiveTool_AddBoxFilter:
+    return vcQueryNodeFilterShape::vcQNFS_Box;
+  case vcActiveTool_AddCylinderFilter:
+    return vcQueryNodeFilterShape::vcQNFS_Cylinder;
+  case vcActiveTool_AddSphereFilter:
+    return vcQueryNodeFilterShape::vcQNFS_Sphere;
+  default:
+    break;
+  }
+  return vcQueryNodeFilterShape::vcQNFS_None;
+}
+
+bool vcQueryNodeFilter_IsWaitingForSecondPick(vcState* pProgramState)
+{
+  return pProgramState->filterInput.pickCount >= PICK_TICKS;
+}
+
+
 void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape)
 {
   pFilter->shape = shape;
@@ -358,6 +380,7 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicke
     {
       if (!pFilter->pNode)
       {
+        vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQueryNodeFilter_GetActiveShape(pProgramState));
         pFilter->pNode = vcQueryNodeFilter_CreateNode(pFilter, pProgramState);
         pFilter->pickPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
       }
@@ -402,10 +425,3 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicke
   }
 
 }
-
-bool vcQueryNodeFilter_IsWaitingForSecondPick(vcState *pProgramState)
-{
-  return pProgramState->filterInput.pickCount >= PICK_TICKS;
-}
-
-

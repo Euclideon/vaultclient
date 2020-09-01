@@ -1918,7 +1918,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_AddBoxFilter;
-        vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQNFS_Box);
       }
 
       // Add Filter Sphere
@@ -1926,7 +1925,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_AddSphereFilter;
-        vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQNFS_Sphere);
       }
 
       // Add Filter Cylinder
@@ -1934,7 +1932,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
-        vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQNFS_Cylinder);
       }
     }
 

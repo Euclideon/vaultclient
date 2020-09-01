@@ -59,7 +59,6 @@ struct vcQueryNodeFilterInput
   uint32_t pickCount;
 };
 
-void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape);
 void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter);
 
 void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicked);
