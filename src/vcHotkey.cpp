@@ -285,7 +285,7 @@ namespace vcHotkey
 
       if (target == i)
       {
-        ImGui::GetForegroundDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::GetColorU32(ImGuiCol_ButtonActive), 0.0f, ImDrawCornerFlags_All, 2.0f);
+        ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::GetColorU32(ImGuiCol_ButtonActive), 0.0f, ImDrawCornerFlags_All, 2.0f);
 
         vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading);
         ImGui::TextWrapped("%s", vcString::Get("bindingsSelectKey"));
