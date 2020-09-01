@@ -428,6 +428,7 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
   if (pProject == nullptr || pProject->pProject == nullptr)
     return;
 
+  pProgramData->activeTool = vcActiveTool_Select;
   udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
   udProject_Release(&pProject->pProject);
