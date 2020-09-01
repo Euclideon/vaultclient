@@ -427,7 +427,6 @@ void vcMain_MainLoop(vcState *pProgramState)
     // Load next file in the load list (if there is one and the user has a context)
     while (pProgramState->loadList.length > 0)
     {
-      pProgramState->activeTool = vcActiveTool_Select;
       const char *pNextLoad = nullptr;
       pProgramState->loadList.PopFront(&pNextLoad);
 
