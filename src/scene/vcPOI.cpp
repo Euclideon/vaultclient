@@ -1325,6 +1325,7 @@ static bool LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3
   {
     pIntersectPoint->x = Det(detL1, line1Dif.x, detL2, line2Dif.x) / denom;
     pIntersectPoint->y = Det(detL1, line1Dif.y, detL2, line2Dif.y) / denom;
+    pIntersectPoint->z = 0.0; // TODO: Calculate
   }
 
   return true;
@@ -1698,7 +1699,7 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
     std::vector<udDouble2> trianglePointListTmp;
     udDouble2 min = {};
     udDouble2 max = {};
-    vcCDT_ProcessOrignal(pPointsForTriangleGeneration, perimeterPoints.length, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointListTmp);
+    vcCDT_ProcessOrignal(pPointsForTriangleGeneration, pointMesh.pointIndices.length, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointListTmp);
     udFree(pPointsForTriangleGeneration);
 
     for (const udDouble2 &point : trianglePointListTmp)
