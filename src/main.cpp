@@ -1250,12 +1250,62 @@ void vcMain_ToggleGizmoOperation(vcState *pProgramState, vcGizmoOperation op)
   }
 }
 
+void vcMain_DisplayViewpoints(vcState *pProgramState, udProjectNode *pNode)
+{
+  if (pNode->pFirstChild)
+    vcMain_DisplayViewpoints(pProgramState, pNode->pFirstChild);
+
+  if (pNode->itemtype == udPNT_Viewpoint)
+  {
+    if (ImGui::MenuItem(pNode->pName, nullptr, (pProgramState->activeProject.pSlideshowViewpoint == pNode)))
+    {
+      pProgramState->activeProject.pSlideshowViewpoint = pNode;
+
+      vcSceneItem *pSceneItem = (vcSceneItem *)pNode->pUserData;
+      if (pSceneItem->m_pPreferredProjection != nullptr)
+        vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
+      else
+        pSceneItem->SetCameraPosition(pProgramState);
+    }
+  }
+
+  if (pNode->pNextSibling)
+    vcMain_DisplayViewpoints(pProgramState, pNode->pNextSibling);
+}
+
 void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize, udDouble3 *pCameraMoveOffset)
 {
   ImGuiIO &io = ImGui::GetIO();
 
   float attachmentPanelSize = 0.f;
   const float panelPadding = 5.f;
+
+  if (pProgramState->activeProject.slideshow)
+  {
+    ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.f, 0.f));
+    ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
+    ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+
+    if (ImGui::Begin("slideshowWindow", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+    {
+      if (ImGui::BeginCombo(vcString::Get("settingsViewport"), pProgramState->activeProject.pSlideshowViewpoint ? pProgramState->activeProject.pSlideshowViewpoint->pName : ""))
+      {
+        vcMain_DisplayViewpoints(pProgramState, pProgramState->activeProject.pFolder->m_pNode);
+        ImGui::EndCombo();
+      }
+
+      if (pProgramState->activeProject.pSlideshowViewpoint)
+      {
+        const char *pDescription = nullptr;
+        udProjectNode_GetMetadataString(pProgramState->activeProject.pSlideshowViewpoint, "description", &pDescription, nullptr);
+        if (!udStrEqual(pDescription, ""))
+          ImGui::TextWrapped("%s", pDescription);
+      }
+    }
+
+    attachmentPanelSize = ImGui::GetWindowSize().y + panelPadding;
+    ImGui::End();
+  }
 
   if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem != nullptr)
   {

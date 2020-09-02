@@ -1148,17 +1148,21 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
       const char *pCurrentInformation = nullptr;
       udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pCurrentInformation, "");
       udStrcpy(information, pCurrentInformation);
+      vcProject_GetNodeMetadata(pProgramState->activeProject.pRoot, "slideshow", &pProgramState->activeProject.slideshow, false);
     }
 
     ImGui::InputText(vcString::Get("menuProjectName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
 
     ImVec2 size = ImGui::GetWindowSize();
-    ImGui::InputTextMultiline(vcString::Get("menuProjectInfo"), information, udLengthOf(information), ImVec2(0, size.y - 90));
+    ImGui::InputTextMultiline(vcString::Get("menuProjectInfo"), information, udLengthOf(information), ImVec2(0, size.y - 117));
+
+    ImGui::Checkbox(vcString::Get("menuProjectSlideshow"), &pProgramState->activeProject.slideshow);
 
     if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
     {
       udProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
       udProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
+      udProjectNode_SetMetadataBool(pProgramState->activeProject.pRoot, "slideshow", pProgramState->activeProject.slideshow ? 1 : 0);
 
       vcProject_UpdateProjectInformationDisplayTextures(pProgramState);
 

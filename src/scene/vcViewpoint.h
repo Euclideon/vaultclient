@@ -13,6 +13,7 @@ class vcViewpoint : public vcSceneItem
 private:
   udDouble3 m_CameraPosition;
   udDouble2 m_CameraHeadingPitch;
+  char m_description[1024];
 
 public:
   vcViewpoint(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
