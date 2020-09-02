@@ -112,6 +112,14 @@ struct vcTileRenderer
   udDouble3 cameraPosition;
   bool cameraIsUnderMapSurface;
 
+  struct vcQueuedRenderNode
+  {
+    vcQuadTreeNode *pNode;
+    double distToCameraSqr;
+  };
+
+  udChunkedArray<vcQueuedRenderNode> renderList[vcMaxTileLayerCount];
+
   // cache textures
   struct vcTileCache
   {
@@ -796,6 +804,9 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, udWorkerPool *pW
   pTileRenderer->cache.keepLoading = true;
   pTileRenderer->cache.tileLoadList.Init(256);
 
+  for (int i = 0; i < vcMaxTileLayerCount; ++i)
+    pTileRenderer->renderList[i].Init(128);
+
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
     UD_ERROR_CHECK(udThread_Create(&pTileRenderer->cache.pThreads[i], vcTileRenderer_LoadThread, pTileRenderer));
 
@@ -862,6 +873,9 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
   vcTexture_Destroy(&pTileRenderer->pEmptyDemTileTexture);
   vcTexture_Destroy(&pTileRenderer->pEmptyNormalTexture);
+
+  for (int i = 0; i < vcMaxTileLayerCount; ++i)
+    pTileRenderer->renderList[i].Deinit();
 
   vcQuadTree_Destroy(&(*ppTileRenderer)->quadTree);
   udFree(*ppTileRenderer);
@@ -1268,7 +1282,26 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
   }
 }
 
-void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcTileShader *pShader, const udDouble4x4 &view, int layer, vcQuadTreeNode *pBestTexturedAncestor, vcQuadTreeNode *pBestDemAncestor)
+void vcTileRenderer_InsertSorted(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, int layer)
+{
+  double distToCameraSqr = udMagSq3(pNode->tileCenter - pTileRenderer->cameraPosition);
+  vcTileRenderer::vcQueuedRenderNode queuedNode = { pNode, distToCameraSqr };
+
+  size_t insertIndex = 0;
+  for (; insertIndex < pTileRenderer->renderList[layer].length; ++insertIndex)
+  {
+    if (distToCameraSqr < pTileRenderer->renderList[layer][insertIndex].distToCameraSqr)
+    {
+      pTileRenderer->renderList[layer].Insert(insertIndex, &queuedNode);
+      break;
+    }
+  }
+
+  if (insertIndex == pTileRenderer->renderList[layer].length)
+    pTileRenderer->renderList[layer].PushBack(queuedNode);
+}
+
+void vcTileRenderer_RecursiveBuildRenderList(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, int layer, vcQuadTreeNode *pBestTexturedAncestor, vcQuadTreeNode *pBestDemAncestor)
 {
   if (layer == 0)
   {
@@ -1282,7 +1315,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
     pNode->normalInfo.drawInfo.pTexture = nullptr;
   }
 
-  if (!pNode->visible && pNode->slippyPosition.z >= 3)//vcQuadTree_MinimumDescendLayer)
+  if (!pNode->visible && pNode->slippyPosition.z >= vcQuadTree_MinimumDescendLayer - 1)
     return;
 
   // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
@@ -1305,7 +1338,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
     for (int c = 0; c < 4; ++c)
     {
       vcQuadTreeNode *pChildNode = &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c];
-      vcTileRenderer_RecursiveRenderNodes(pTileRenderer, pChildNode, pShader, view, layer, pBestTexturedAncestor, pBestDemAncestor);
+      vcTileRenderer_RecursiveBuildRenderList(pTileRenderer, pChildNode, layer, pBestTexturedAncestor, pBestDemAncestor);
 
       pNode->completeRender = pNode->completeRender && pChildNode->completeRender;
     }
@@ -1319,18 +1352,28 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
   if (layer == 0)
     vcTileRenderer_DrapeDEM(pNode, pBestDemAncestor);
 
-  // Lookup mesh variant for rendering
-  size_t meshIndex = 0;
-  for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
-  {
-    if (MeshConfigurations[mc] == pNode->neighbours)
-    {
-      meshIndex = mc;
-      break;
-    }
-  }
+  vcTileRenderer_InsertSorted(pTileRenderer, pNode, layer);
+}
 
-  vcTileRenderer_DrawNode(pTileRenderer, pNode, pShader, view, layer, pTileRenderer->pTileMeshes[meshIndex]);
+void vcTileRenderer_DrawNodeQueue(vcTileRenderer *pTileRenderer, vcTileShader *pShader, const udDouble4x4 &view, int layer)
+{
+  for (size_t i = 0; i < pTileRenderer->renderList[layer].length; ++i)
+  {
+    vcQuadTreeNode *pNode = pTileRenderer->renderList[layer][i].pNode;
+
+    // Lookup mesh variant for rendering
+    size_t meshIndex = 0;
+    for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
+    {
+      if (MeshConfigurations[mc] == pNode->neighbours)
+      {
+        meshIndex = mc;
+        break;
+      }
+    }
+
+    vcTileRenderer_DrawNode(pTileRenderer, pNode, pShader, view, layer, pTileRenderer->pTileMeshes[meshIndex]);
+  }
 }
 
 void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, const float encodedObjectId)
@@ -1341,6 +1384,13 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
   pTileRenderer->quadTree.metaData.visibleNodeCount = 0;
   pTileRenderer->quadTree.metaData.nodeRenderCount = 0;
+
+  // Build render list
+  for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
+  {
+    pTileRenderer->renderList[layer].Clear();
+    vcTileRenderer_RecursiveBuildRenderList(pTileRenderer, pRootNode, layer, nullptr, nullptr);
+  }
 
   float tileSkirtLength = 3000000.0f; // TODO: Read actual planet radius
 
@@ -1391,7 +1441,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, 0, 0);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
-    vcTileRenderer_RecursiveRenderNodes(pTileRenderer, pRootNode, pShader, view, layer, nullptr, nullptr);
+    // render nodes
+    vcTileRenderer_DrawNodeQueue(pTileRenderer, pShader, view, layer);
   }
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
