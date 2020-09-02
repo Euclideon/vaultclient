@@ -157,7 +157,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
 
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
     vcLineRenderer_UpdatePoints(m_pLineInstance, m_points, 3, vcIGSW_BGRAToImGui(m_lineColour), m_lineWidth, false);
-    pRenderData->lines.PushBack(m_pLineInstance);
+    pRenderData->depthLines.PushBack(m_pLineInstance);
   }
 
 }

@@ -2365,6 +2365,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       renderData.polyModels.Init(64);
       renderData.images.Init(32);
       renderData.lines.Init(32);
+      renderData.depthLines.Init(32);
       renderData.viewSheds.Init(32);
       renderData.pins.Init(512);
       renderData.mouse.position.x = (uint32_t)(io.MousePos.x - viewportPosition.x);
@@ -2461,6 +2462,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       renderData.polyModels.Deinit();
       renderData.images.Deinit();
       renderData.lines.Deinit();
+      renderData.depthLines.Deinit();
       renderData.viewSheds.Deinit();
       renderData.pins.Deinit();
 

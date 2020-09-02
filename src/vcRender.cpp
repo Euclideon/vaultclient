@@ -1252,13 +1252,24 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
 void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
-  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
 
-  // lines
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
-  udDouble4 nearPlane = vcCamera_GetNearPlane(pProgramState->pActiveViewport->camera, pProgramState->settings.camera);
-  for (size_t i = 0; i < renderData.lines.length; ++i)
-    vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, nearPlane);
+  {
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+    udDouble4 nearPlane = vcCamera_GetNearPlane(pProgramState->pActiveViewport->camera, pProgramState->settings.camera);
+
+    // non-depth culled lines
+    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+    for (size_t i = 0; i < renderData.lines.length; ++i)
+      vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, nearPlane);
+
+    // depth culled lines
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
+    for (size_t i = 0; i < renderData.depthLines.length; ++i)
+      vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.depthLines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, nearPlane);
+
+  }
+
+  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
 
   // Images
   {

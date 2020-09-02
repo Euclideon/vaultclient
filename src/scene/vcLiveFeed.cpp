@@ -18,6 +18,18 @@
 #include "udChunkedArray.h"
 #include "udStringUtil.h"
 
+// hacking in routes
+#include <unordered_map>
+#include "vcLineRenderer.h"
+vcLineInstance *pLineInstance = nullptr;
+bool loadedRoutes = false;
+struct Points
+{
+  udDouble2 *pPoints;
+  int length;
+};
+std::unordered_map<std::string, Points> cachedRoutes; // todo: this leaks
+
 struct vcLiveFeedItemLOD
 {
   double distance; // Normalized Distance
@@ -52,6 +64,8 @@ struct vcLiveFeedItem
 
   double minBoundingRadius;
   udChunkedArray<vcLiveFeedItemLOD> lodLevels;
+
+  const char *routeId;
 };
 
 struct vcLiveFeedUpdateInfo
@@ -205,8 +219,14 @@ void vcLiveFeed_UpdateFeed(void *pUserData)
 
         pFeedItem->minBoundingRadius = pNode->Get("display.minBoundingRadius").AsDouble(1.0);
 
-        udJSONArray *pLODS = pNode->Get("display.lods").AsArray();
+        const char *pItemRouteId = pNode->Get("data.routeshapeid").AsString();
+        if (!udStrEqual(pFeedItem->routeId, pItemRouteId))
+        {
+          udFree(pFeedItem->routeId);
+          pFeedItem->routeId = udStrdup(pItemRouteId);
+        }
 
+        udJSONArray *pLODS = pNode->Get("display.lods").AsArray();
         if (pLODS != nullptr)
         {
           if (pFeedItem->lodLevels.length > pLODS->length)
@@ -329,6 +349,30 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   if (!m_visible)
     return;
 
+  if (!loadedRoutes)
+  {
+    loadedRoutes = true;
+    vcLineRenderer_CreateLine(&pLineInstance);
+
+    char *pMemory = nullptr;
+    if (udFile_Load("asset://assets/routes.json", &pMemory) == udR_Success)
+    {
+      udJSON json = {};
+      json.Parse(pMemory);
+      for (size_t i = 0; i < json.MemberCount(); ++i)
+      {
+        const char *id = json.GetMemberName(i);
+        const udJSONArray *pElements = json.GetMember(i)->AsArray();
+        cachedRoutes[id].length = (int)pElements->length;
+        cachedRoutes[id].pPoints = udAllocType(udDouble2, pElements->length, udAF_None);
+        for (size_t p = 0; p < pElements->length; ++p)
+          cachedRoutes[id].pPoints[p] = pElements->GetElement(p)->AsDouble2(udDouble2::zero());
+
+      }
+      udFree(pMemory);
+    }
+  }
+
   double now = udGetEpochSecsUTCf();
   double recently = now - m_decayFrequency;
 
@@ -358,6 +402,27 @@ void vcLiveFeed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       pFeedItem->visible = false;
       continue;
+    }
+
+    // draw route :D
+    if (m_selected && (m_selectedItem - 1) == i && pFeedItem->routeId != nullptr)
+    {
+      size_t length = cachedRoutes[pFeedItem->routeId].length;
+      udDouble3 *pCartesianPoints = udAllocType(udDouble3, length, udAF_None);
+      for (int p = 0; p < length; ++p)
+      {
+        udDouble2 *pLatLong = &cachedRoutes[pFeedItem->routeId].pPoints[p];
+        udDouble3 surfacePoint = udGeoZone_LatLongToCartesian(pProgramState->geozone, udDouble3::create(pLatLong->x, pLatLong->y, 0.0), false);
+        pCartesianPoints[p] = vcRender_QueryMapAtCartesian(pProgramState->pActiveViewport->pRenderContext, surfacePoint);
+      }
+
+      udFloat4 colour = udFloat4::one();
+      if (pFeedItem->lodLevels.length > 0 && pFeedItem->lodLevels[0].pLabelInfo != nullptr)
+        colour = vcIGSW_BGRAToImGui(vcIGSW_BGRAToRGBAUInt32(pFeedItem->lodLevels[0].pLabelInfo->backColourRGBA));
+
+      vcLineRenderer_UpdatePoints(pLineInstance, pCartesianPoints, length, colour, 4.0f, false);
+      udFree(pCartesianPoints);
+      pRenderData->lines.PushBack(pLineInstance);
     }
 
     udDouble3 cameraPosition = pProgramState->pActiveViewport->camera.position;

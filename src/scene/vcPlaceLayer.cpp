@@ -94,7 +94,7 @@ void vcPlaceLayer::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       vcLineRenderer_UpdatePoints(m_closeLines[usedLabels], points, 2, udFloat4::one(), 5, false);
 
       pRenderData->labels.PushBack(&m_closeLabels[usedLabels]);
-      pRenderData->lines.PushBack(m_closeLines[usedLabels]);
+      pRenderData->depthLines.PushBack(m_closeLines[usedLabels]);
 
       ++usedLabels;
     }
