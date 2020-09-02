@@ -19,6 +19,9 @@ struct vcProject
   vcFolder *pFolder;
 
   const char *pRelativeBase;
+
+  bool slideshow;
+  udProjectNode *pSlideshowViewpoint;
 };
 
 enum vcProjectStandardZones

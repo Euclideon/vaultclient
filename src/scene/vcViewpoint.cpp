@@ -21,6 +21,10 @@ void vcViewpoint::OnNodeUpdate(vcState *pProgramState)
 {
   udError result;
 
+  const char *pDescription = nullptr;
+  result = udProjectNode_GetMetadataString(m_pNode, "description", &pDescription, "");
+  udStrcpy(m_description, pDescription);
+
   result = udProjectNode_GetMetadataDouble(m_pNode, "transform.heading", &m_CameraHeadingPitch.x, 0.0);
   result = udProjectNode_GetMetadataDouble(m_pNode, "transform.pitch", &m_CameraHeadingPitch.y, 0.0);
 
@@ -59,6 +63,9 @@ void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraHeadingPitch.x, 2);
   changed |= ImGui::IsItemDeactivatedAfterEdit();
+
+  if (ImGui::InputTextMultiline(udTempStr("%s##ViewpointDescription", vcString::Get("sceneViewpointDescription")), m_description, udLengthOf(m_description)))
+    udProjectNode_SetMetadataString(m_pNode, "description", m_description);
 
   if (ImGui::Button(vcString::Get("sceneViewpointSetCamera")))
   {

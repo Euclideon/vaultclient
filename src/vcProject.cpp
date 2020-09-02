@@ -49,6 +49,8 @@ void vcProject_InitScene(vcState *pProgramState, int srid)
 
   pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
   pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+  pProgramState->activeProject.slideshow = false;
+  pProgramState->activeProject.pSlideshowViewpoint = nullptr;
 
   udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, srid);
 
@@ -290,6 +292,8 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     udProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
     pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
     pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+    vcProject_GetNodeMetadata(pProgramState->activeProject.pRoot, "slideshow", &pProgramState->activeProject.slideshow, false);
+    pProgramState->activeProject.pSlideshowViewpoint = nullptr;
 
     int32_t projectZone = vcPSZ_StandardGeoJSON; // LongLat
     udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "projectcrs", &projectZone, vcPSZ_StandardGeoJSON);
@@ -348,6 +352,8 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
     udProject_GetProjectRoot(pProgramState->activeProject.pProject, &pProgramState->activeProject.pRoot);
     pProgramState->activeProject.pFolder = new vcFolder(&pProgramState->activeProject, pProgramState->activeProject.pRoot, pProgramState);
     pProgramState->activeProject.pRoot->pUserData = pProgramState->activeProject.pFolder;
+    vcProject_GetNodeMetadata(pProgramState->activeProject.pRoot, "slideshow", &pProgramState->activeProject.slideshow, false);
+    pProgramState->activeProject.pSlideshowViewpoint = nullptr;
 
     udFilename temp(pFilename);
     temp.SetFilenameWithExt("");
@@ -429,6 +435,7 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
     return;
 
   pProgramData->activeTool = vcActiveTool_Select;
+  pProgramData->activeProject.pSlideshowViewpoint = nullptr;
   udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
   udProject_Release(&pProject->pProject);
