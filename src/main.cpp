@@ -2412,7 +2412,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       if (ImGui::BeginChild(udTempStr("###sceneViewport%d", viewportIndex)))
       {
         // Actual rendering to this texture is deferred
-        ImGui::Image(renderData.pSceneTexture, ImVec2((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
+        ImGui::Image(renderData.pSceneTexture, ImVec2((float)viewportResolution.x, (float)viewportResolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
       }
       ImGui::EndChild();
 

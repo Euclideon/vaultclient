@@ -1386,12 +1386,7 @@ void vcModals_DrawImageViewer(vcState *pProgramState)
       ImVec2 window = ImGui::GetWindowSize();
       ImVec2 windowPos = ImGui::GetWindowPos();
 
-#if GRAPHICS_API_OPENGL
-      ImVec2 uvs[2] = { {0,1}, {1,0} };
-#else
-      ImVec2 uvs[2] = { {0,0}, {1,1} };
-#endif
-      
+      ImVec2 uvs[2] = { {0,0}, {1,1} };    
       ImGui::Image(pProgramState->image.pImage, ImVec2((float)pProgramState->image.width, (float)pProgramState->image.height), uvs[0], uvs[1]);
 
       if (ImGui::IsWindowHovered())
