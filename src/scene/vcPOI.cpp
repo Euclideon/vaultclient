@@ -1330,15 +1330,28 @@ static bool LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3
   return true;
 }
 
-static double DistancePointToLine(const udDouble3 &linePoint1, const udDouble3 &linePoint2, const udDouble3 &point)
-{
-  const udDouble3 p2Subp1 = linePoint2 - linePoint1;
-  const udDouble3 pointSubP1 = point - linePoint1;
+// static double DistancePointToLine(const udDouble3 &linePoint1, const udDouble3 &linePoint2, const udDouble3 &point)
+// {
+//   const udDouble3 p2Subp1 = linePoint2 - linePoint1;
+//   const udDouble3 pointSubP1 = point - linePoint1;
+// 
+//   return udMag3(udCross3(p2Subp1, pointSubP1)) / udMag3(p2Subp1);
+// }
 
-  return udMag3(udCross3(p2Subp1, pointSubP1)) / udMag3(p2Subp1);
+static double DistancePointToLine(const udDouble2 &linePoint1, const udDouble2 &linePoint2, const udDouble2 &point)
+{
+  double m = (linePoint2.y - linePoint1.y) / (linePoint2.x - linePoint1.x);
+  double b = linePoint1.y - (m * linePoint1.x);
+
+  double x = (m * point.y + point.x - m * b) / (m * m + 1.0);
+  double y = (m * m * point.y + m * point.x + b) / (m * m + 1.0);
+
+  double ret = udMag2(udDouble2::create(x, y) - point);
+
+  return ret;
 }
 
-void CalculatePerimeter(const udDouble3 *pOriginalPoints, const int &numOriginalPoints, udChunkedArray<udDouble3> *pPerimeterPoints)
+void CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunkedArray<udDouble3> *pPerimeterPoints)
 {
   struct Point
   {
@@ -1369,13 +1382,13 @@ void CalculatePerimeter(const udDouble3 *pOriginalPoints, const int &numOriginal
   points.Init(64);
 
   // Connect points circularly in list order
-  for (int i = 0; i < numOriginalPoints; ++i)
+  for (int i = 0; i < originalPoints.length; ++i)
   {
     Point newPoint;
     newPoint.Init();
-    newPoint.position = pOriginalPoints[i];
-    newPoint.pointConnections.PushBack(i == 0 ? numOriginalPoints - 1 : i - 1);
-    newPoint.pointConnections.PushBack(i == numOriginalPoints - 1 ? 0 : i + 1);
+    newPoint.position = originalPoints[i];
+    newPoint.pointConnections.PushBack(i == 0 ? originalPoints.length - 1 : i - 1);
+    newPoint.pointConnections.PushBack(i == originalPoints.length - 1 ? 0 : i + 1);
 
     points.PushBack(newPoint);
   }
@@ -1571,10 +1584,14 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
       int64_t prevIndex = i == 0 ? lastIndex : i - 1;
       int64_t nextIndex = i == lastIndex ? 0 : i + 1;
 
-      if (udMag3(points[i].position - points[prevIndex].position) < bias
-        || udMag3(points[i].position - points[nextIndex].position) < bias
-        || udMag3(points[prevIndex].position - points[nextIndex].position) < bias
-        || DistancePointToLine(points[prevIndex].position, points[nextIndex].position, points[i].position) < bias)
+      udDouble2 curPointPos2 = udDouble2::create(points[i].position.x, points[i].position.y);
+      udDouble2 nextPointPos2 = udDouble2::create(points[nextIndex].position.x, points[nextIndex].position.y);
+      udDouble2 prevPointPos2 = udDouble2::create(points[prevIndex].position.x, points[prevIndex].position.y);
+
+      if (udMag2(curPointPos2 - prevPointPos2) < bias
+        || udMag2(curPointPos2 - nextPointPos2) < bias
+        || udMag2(prevPointPos2 - nextPointPos2) < bias
+        || DistancePointToLine(prevPointPos2, nextPointPos2, curPointPos2) < bias)
       {
         points.RemoveAt(i);
         unnecessaryPointRemoved = true;
@@ -1590,10 +1607,14 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
     return false;
 
 
+  udChunkedArray<udDouble3> pointPositions;
+  pointPositions.Init(64);
+  for (const PointInfo &point : points)
+    pointPositions.PushBack(point.position);
 
   udChunkedArray<udDouble3> perimeterPoints;
   perimeterPoints.Init(64);
-  CalculatePerimeter(pPoints, numPoints, &perimeterPoints);
+  CalculatePerimeter(pointPositions, &perimeterPoints);
 
   
   // Separate pinch-points in the mesh
@@ -1614,7 +1635,7 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
 
   udChunkedArray<int> perimeterPointsIndices;
   perimeterPointsIndices.Init(64);
-  for (int64_t pointIndex = 1; pointIndex < perimeterPoints.length; ++pointIndex)
+  for (int64_t pointIndex = 0; pointIndex < perimeterPoints.length; ++pointIndex)
     perimeterPointsIndices.PushBack(pointIndex);
 
   udChunkedArray<PointMesh> pointMeshes;
@@ -1636,7 +1657,7 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
 
           PointMesh newPointMesh;
           newPointMesh.Init();
-          for (int64_t i = pointListIndex; i >= pointListIndex2; --i)
+          for (int64_t i = pointListIndex - 1; i >= pointListIndex2; --i)
           {
             newPointMesh.pointIndices.PushBack(perimeterPointsIndices[i]);
             if (i < pointListIndex)
@@ -1650,6 +1671,12 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
     if (!cutFound)
       break;
   }
+
+  // if (!pointMeshes.empty())
+  // {
+  //   int f = 7;
+  //   f += 8;
+  // }
   
   PointMesh remainingPointMesh;
   remainingPointMesh.Init();
@@ -1666,36 +1693,27 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
     udDouble3 *pPointsForTriangleGeneration = udAllocType(udDouble3, pointMesh.pointIndices.length, udAF_Zero);
 
     for (int64_t i = 0; i < pointMesh.pointIndices.length; ++i)
-      pPointsForTriangleGeneration[i] = ;
+      pPointsForTriangleGeneration[i] = perimeterPoints[pointMesh.pointIndices[i]];
 
-    vcCDT_ProcessOrignal(pPointsForTriangleGeneration, perimeterPoints.length, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointList);
+    std::vector<udDouble2> trianglePointListTmp;
+    udDouble2 min = {};
+    udDouble2 max = {};
+    vcCDT_ProcessOrignal(pPointsForTriangleGeneration, perimeterPoints.length, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointListTmp);
     udFree(pPointsForTriangleGeneration);
+
+    for (const udDouble2 &point : trianglePointListTmp)
+      trianglePointList.push_back(point);
   }
-
-
-  int totalNumPoints = 0;
-  for (const PointMesh &pointMesh : pointMeshes)
-    for (const int &pointIndex : pointMesh.pointIndices)
-      ++totalNumPoints;
-
-  udDouble3 *pPointsForTriangleGeneration = udAllocType(udDouble3, totalNumPoints, udAF_Zero);
-  int pointForTriangleGenerationIndex = 0;
-  for (const PointMesh &pointMesh : pointMeshes)
-  {
-    for (const int &pointIndex : pointMesh.pointIndices)
-    {
-
-    }
-  }
-      //pPointsForTriangleGeneration[pointForTriangleGenerationIndex++] = perimeterPoints[pointIndex];
   
+  /*
   udDouble2 min = {};
   udDouble2 max = {};
   std::vector<udDouble2> trianglePointList;
   vcCDT_ProcessOrignal(pPointsForTriangleGeneration, perimeterPoints.length, std::vector< std::pair<const udDouble3 *, size_t> >(), min, max, &trianglePointList);
   udFree(pPointsForTriangleGeneration);
+  */
 
-  // Remove this when u can
+  // Create Triangle Points
   for (int64_t i = 0; i < (int64_t)trianglePointList.size(); i += 3)
   {
     udDouble3 triPoints[3] = {
