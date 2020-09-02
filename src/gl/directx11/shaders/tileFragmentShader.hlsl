@@ -55,6 +55,7 @@ PS_OUTPUT main(PS_INPUT input)
   float bias = -(u_clipZNear * 0.5);
   float depth = (input.depth.x / input.depth.y) * scale + bias; // depth packed here
   
+  //output.Color0.xyz = lerp(output.Color0.xyz, input.colour.xyz, 0.9999);
   output.Normal = packNormal(normal, input.objectInfo.x, depth);   
   return output;
 }
