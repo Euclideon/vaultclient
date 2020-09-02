@@ -1237,6 +1237,7 @@ void vcMain_ToggleViewport(vcState *pProgramState)
 
 void vcMain_ToggleGizmoOperation(vcState *pProgramState, vcGizmoOperation op)
 {
+  pProgramState->activeTool = vcActiveTool_Select;
   for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
   {
     vcViewport *pViewport = &pProgramState->pViewports[viewportIndex];
