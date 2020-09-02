@@ -2090,7 +2090,7 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
 void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 {
-  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddUDS"), vcB_AddUDS, vcMBBI_AddPointCloud, vcMBBG_FirstItem) || vcHotkey::IsPressed(vcB_AddUDS))
+  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddModel"), vcB_AddUDS, vcMBBI_AddPointCloud, vcMBBG_FirstItem) || vcHotkey::IsPressed(vcB_AddUDS))
     vcModals_OpenModal(pProgramState, vcMT_AddSceneItem);
 
   if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddFolder"), vcB_Invalid, vcMBBI_AddFolder, vcMBBG_SameGroup))

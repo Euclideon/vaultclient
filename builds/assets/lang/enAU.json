@@ -458,6 +458,7 @@
   "sceneExplorerRemove": "Remove Selected",
   "sceneExplorerRemoveItem": "Remove Item",
   "sceneExplorerAddUDS": "Add UDS",
+  "sceneExplorerAddModel": "Add Model",
   "sceneExplorerAddUDSTitle": "Add UDS to Scene",
   "sceneExplorerAddOther": "Add Other",
   "sceneExplorerAddFeed": "Add Live Feed",
