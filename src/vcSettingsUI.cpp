@@ -839,6 +839,9 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 
             if (ImGui::SliderFloat(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsOpacity"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax, "%.3f"))
               pProgramState->settings.maptiles.layers[mapLayer].transparency = udClamp(pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax);
+
+            if (ImGui::InputInt(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsMaxDepth"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].maxDepth, vcSL_MaxDepthMin, vcSL_MaxDepthMax))
+              pProgramState->settings.maptiles.layers[mapLayer].maxDepth = udClamp(pProgramState->settings.maptiles.layers[mapLayer].maxDepth, vcSL_MaxDepthMin, vcSL_MaxDepthMax);
           }
           ImGui::Unindent();
         }

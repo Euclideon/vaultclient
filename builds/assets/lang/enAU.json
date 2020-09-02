@@ -146,6 +146,7 @@
   "settingsMapsUnderlay": "Underlay",
   "settingsMapsBlending": "Blending",
   "settingsMapsOpacity": "Opacity",
+  "settingsMapsMaxDepth": "Max Depth",
   "settingsMapType": "Base Map",
   "settingsMapMapLayers": "Map Layers",
   "settingsMapLayer": "Layer: {0}",

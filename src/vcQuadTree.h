@@ -149,7 +149,6 @@ struct vcQuadTreeViewInfo
   udDouble3 cameraPosition;
   udDouble3 cameraPositionZeroAltitude;
   udDouble4x4 viewProjectionMatrix;
-  int maxVisibleTileLevel;
 };
 
 void vcQuadTree_Create(vcQuadTree *pQuadTree, vcSettings *pSettings);

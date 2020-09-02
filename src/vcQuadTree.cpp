@@ -518,7 +518,9 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->rootSlippyCoords = viewInfo.slippyCoords;
   pQuadTree->cameraDistanceZeroAltitude = udMag3(pQuadTree->cameraWorldPosition - viewInfo.cameraPositionZeroAltitude);
 
-  pQuadTree->metaData.maxTreeDepth = udMax(0, (viewInfo.maxVisibleTileLevel - 1) - viewInfo.slippyCoords.z);
+  pQuadTree->metaData.maxTreeDepth = 0;
+  for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)
+    pQuadTree->metaData.maxTreeDepth = udMax(pQuadTree->metaData.maxTreeDepth, (pQuadTree->pSettings->maptiles.layers[i].maxDepth - 1) - viewInfo.slippyCoords.z);
 
   vcQuadTree_ConditionalReroot(pQuadTree, viewInfo.slippyCoords);
 

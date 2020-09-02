@@ -1008,7 +1008,7 @@ bool vcTileRenderer_UpdateTileTexture(vcTileRenderer *pTileRenderer, vcQuadTreeN
   for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
   {
     int32_t loadStatus = pNode->pPayloads[layer].loadStatus.Get();
-    if (loadStatus == vcNodeRenderInfo::vcTLS_Loaded)
+    if (loadStatus == vcNodeRenderInfo::vcTLS_Loaded || pNode->slippyPosition.z >= pTileRenderer->pSettings->maptiles.layers[layer].maxDepth)
       continue;
 
     bool queueTile = (loadStatus == vcNodeRenderInfo::vcTLS_None);
@@ -1139,8 +1139,7 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
     slippyCoords,
     cameraWorldPos,
     cameraZeroAltitude,
-    viewProjectionMatrix,
-    MaxVisibleTileLevel
+    viewProjectionMatrix
   };
 
   vcQuadTree_UpdateView(&pTileRenderer->quadTree, viewInfo.cameraPosition, viewInfo.viewProjectionMatrix);
@@ -1340,12 +1339,6 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
   float tileSkirtLength = 3000000.0f; // TODO: Read actual planet radius
 
-  vcGLStateCullMode cullMode = vcGLSCM_Back;
-  if (cameraInsideGround)
-    cullMode = vcGLSCM_Front;
-
-  vcGLState_SetFaceMode(vcGLSFM_Solid, cullMode);
-
   for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
   {
     vcTileShader *pShader = &pTileRenderer->presentShaders[udMin(layer, 1)];
@@ -1359,6 +1352,12 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
 
     if (layer == 0) // base pass
     {
+      vcGLStateCullMode cullMode = vcGLSCM_Back;
+      if (cameraInsideGround)
+        cullMode = vcGLSCM_Front;
+
+      vcGLState_SetFaceMode(vcGLSFM_Solid, cullMode);
+
       if (pTileRenderer->pSettings->maptiles.layers[layer].transparency < 1.0f)
       {
         vcGLState_SetBlendMode(vcGLSBM_Interpolative);
@@ -1379,6 +1378,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     }
     else
     {
+      vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
       vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
       vcGLState_SetBlendMode(vcGLSBM_Interpolative);
       tileSkirtLength = 0.0f;

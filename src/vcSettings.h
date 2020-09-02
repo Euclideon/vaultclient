@@ -390,6 +390,8 @@ struct vcSettings
 
       vcMapTileBlendMode blendMode;
       float transparency;
+
+      int maxDepth;
     } layers[vcMaxTileLayerCount];
     int activeLayerCount;
   } maptiles;
@@ -469,6 +471,9 @@ const float vcSL_MapHeightMax = 1000.f;
 
 const float vcSL_OpacityMin = 0.f;
 const float vcSL_OpacityMax = 1.f;
+
+const int vcSL_MaxDepthMin = 1;
+const int vcSL_MaxDepthMax = 25;
 
 const float vcSL_IntensityMin = 0.f;
 const float vcSL_IntensityMax = 65535.f;
