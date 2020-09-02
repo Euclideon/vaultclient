@@ -273,8 +273,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->maptiles.layers[0].mapHeight = data.Get("maptiles.mapHeight").AsFloat(0.f);
       pSettings->maptiles.layers[0].blendMode = (vcMapTileBlendMode)data.Get("maptiles.blendMode").AsInt(vcMTBM_Hybrid);
       pSettings->maptiles.layers[0].transparency = data.Get("maptiles.transparency").AsFloat(1.f);
-
-
+      pSettings->maptiles.layers[0].maxDepth = 19;
     }
     else
     {
@@ -290,6 +289,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
         pSettings->maptiles.layers[mapLayer].mapHeight = data.Get("maptiles.layer[%d].mapHeight", mapLayer).AsFloat(0.f);
         pSettings->maptiles.layers[mapLayer].blendMode = (vcMapTileBlendMode)data.Get("maptiles.layer[%d].blendMode", mapLayer).AsInt(vcMTBM_Hybrid);
         pSettings->maptiles.layers[mapLayer].transparency = data.Get("maptiles.layer[%d].transparency", mapLayer).AsFloat(1.f);
+        pSettings->maptiles.layers[mapLayer].maxDepth = data.Get("maptiles.layer[%d].maxDepth", mapLayer).AsInt(19);
       }
     }
 
@@ -926,6 +926,8 @@ bool vcSettings_Save(vcSettings *pSettings)
     data.Set("maptiles.layer[%d].blendMode = %d", mapLayer, pSettings->maptiles.layers[mapLayer].blendMode);
     data.Set("maptiles.layer[%d].transparency = %f", mapLayer, pSettings->maptiles.layers[mapLayer].transparency);
     data.Set("maptiles.layer[%d].mapHeight = %f", mapLayer, pSettings->maptiles.layers[mapLayer].mapHeight);
+    data.Set("maptiles.layer[%d].maxDepth = %d", mapLayer, pSettings->maptiles.layers[mapLayer].maxDepth);
+
     tempNode.SetString(pSettings->maptiles.layers[mapLayer].mapType);
     data.Set(&tempNode, "maptiles.layer[%d].type", mapLayer);
     tempNode.SetString(pSettings->maptiles.layers[mapLayer].customServer.tileServerAddress);
