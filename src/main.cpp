@@ -2392,7 +2392,15 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       if (isFixedOrthographicViewport)
       {
         // Manually set camera
-        pProgramState->pActiveViewport->camera.position = udDouble3::create(pProgramState->pViewports[0].camera.position.x, pProgramState->pViewports[0].camera.position.y, pProgramState->pActiveViewport->camera.position.z);
+        if (pProgramState->geozone.projection != udGZPT_ECEF)
+          pProgramState->pActiveViewport->camera.position = udDouble3::create(pProgramState->pViewports[0].camera.position.x, pProgramState->pViewports[0].camera.position.y, pProgramState->pActiveViewport->camera.position.z);
+        else
+        {
+          udDouble3 cam_pos_latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[0].camera.position);
+          udDouble3 cam__map_pos_latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
+          cam_pos_latLong.z = cam__map_pos_latLong.z;
+          pProgramState->pActiveViewport->camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, cam_pos_latLong);
+        }
         pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
 
         // TODO: Hack! (Until we resolve multiple camera settings)
