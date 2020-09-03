@@ -728,10 +728,10 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 
   uint8_t pixelBytes[8] = {};
 
-  pRenderContext->previousFrameDepth = 1.0f;
-  pRenderContext->previousPickedId = vcObjectId_Null;
   if (pRenderContext->asyncReadTarget != -1)
   {
+    pRenderContext->previousFrameDepth = 1.0f;
+    pRenderContext->previousPickedId = vcObjectId_Null;
     UD_ERROR_IF(!vcTexture_EndReadPixels(pRenderContext->gBuffer[pRenderContext->asyncReadTarget].pNormal, pRenderContext->lastPickLocation.x, pRenderContext->lastPickLocation.y, 1, 1, pixelBytes), udR_InternalError); // read previous copy
     vcRender_DecodeModelId(pixelBytes, &pRenderContext->previousPickedId, &pRenderContext->previousFrameDepth);
 
@@ -1859,6 +1859,10 @@ vcRenderPickResult vcRender_PolygonPick(vcState *pProgramState, vcRenderContext 
     vcRender_DecodeModelId(pixelBytes, &pickId, &pickDepth);
 
     result.success = (pickId != vcObjectId_Null);
+
+    pRenderContext->previousPickedId = pickId;
+    pRenderContext->previousFrameDepth = pickDepth;
+
     if (pickId == vcObjectId_Terrain)
     {
       // Terrain    
