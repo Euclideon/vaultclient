@@ -1378,7 +1378,7 @@ void CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunk
 
     void RemoveConnection(const int &pointConnection)
     {
-      for (int i = 0; i < pointConnections.length; ++i)
+      for (size_t i = 0; i < pointConnections.length; ++i)
         if (pointConnections[i] == pointConnection)
         {
           pointConnections.RemoveAt(i);
@@ -1393,7 +1393,7 @@ void CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunk
   points.Init(64);
 
   // Connect points circularly in list order
-  for (int i = 0; i < originalPoints.length; ++i)
+  for (size_t i = 0; i < originalPoints.length; ++i)
   {
     Point newPoint;
     newPoint.Init();
@@ -1411,12 +1411,12 @@ void CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunk
     continueSplitting = false;
     udChunkedArray<Point> newPointsToAdd;
     newPointsToAdd.Init(64);
-    for (int i = 0; i < points.length; ++i)
+    for (size_t i = 0; i < points.length; ++i)
       for (int pointConnection : points[i].pointConnections)
       {
         bool splitFound = false;
         udInt2 line1 = udInt2::create(i, pointConnection);
-        for (int i2 = i + 1; i2 < points.length; ++i2)
+        for (size_t i2 = i + 1; i2 < points.length; ++i2)
         {
           if (pointConnection != i2)
             for (int pointConnection2 : points[i2].pointConnections)
