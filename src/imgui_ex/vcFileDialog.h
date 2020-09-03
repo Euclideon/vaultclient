@@ -18,7 +18,7 @@ static const char *SupportedFileTypes_ProjectsImport[] = { ".json", ".udp" };
 
 static const char *SupportedTileTypes_ConvertExport[] = { ".uds" };
 static const char *SupportedTileTypes_QueryExport[] = { ".uds", ".las" };
-static const char *SupportedFileTypes_ConvertImport[] = { ".uds", ".ssf", ".udg", ".las", ".laz", ".e57", ".txt", ".csv", ".asc", ".pts", ".ptx", ".xyz", ".obj"
+static const char *SupportedFileTypes_ConvertImport[] = { ".uds", ".ssf", ".udg", ".las", ".laz", ".e57", ".txt", ".csv", ".asc", ".pts", ".ptx", ".xyz", ".obj", ".slpk"
 #ifdef FBXSDK_ON
   , ".fbx", ".dae", ".dxf"
 #endif
