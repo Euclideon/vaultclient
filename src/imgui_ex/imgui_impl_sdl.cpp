@@ -231,7 +231,7 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
             // TODO: Come back when https://github.com/ocornut/imgui/pull/2005 is merged
             //       and add ImGuiKey_NumericEnter to our io.KeyMap below
             if (key == SDL_SCANCODE_KP_ENTER)
-              io.KeysDown[SDL_SCANCODE_RETURN] = io.KeysDown[SDL_SCANCODE_RETURN] || (event->type == SDL_KEYDOWN);
+              io.KeysDown[SDL_SCANCODE_RETURN] = (event->type == SDL_KEYDOWN);
 
             if (key != SDL_SCANCODE_BACKSPACE && key != SDL_SCANCODE_PRINTSCREEN)
               io.KeysDown[key] = (event->type == SDL_KEYDOWN);
