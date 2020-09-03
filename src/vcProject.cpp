@@ -560,6 +560,9 @@ void vcProject_RemoveItem(vcState *pProgramState, udProjectNode *pParent, udProj
     }
   }
 
+  if (pNode == pProgramState->activeProject.pSlideshowViewpoint)
+    pProgramState->activeProject.pSlideshowViewpoint = nullptr;
+
   vcSceneItem *pItem = pNode == nullptr ? nullptr : (vcSceneItem*)pNode->pUserData;
 
   if (pItem != nullptr)
