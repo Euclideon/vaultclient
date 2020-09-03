@@ -92,12 +92,13 @@ PS_INPUT main(VS_INPUT input)
   float tileHeight = demHeight(demUV);
   
   // add a 'skirt' to the tile edge
-  tileHeight += input.pos.z * u_objectInfo.y;
+  tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
 
-  float4 sphereEyePos = mul(u_view, float4(worldNormal * 6378137.0, 1.0));
+//6356752.3142451793
+  float4 sphereEyePos = mul(u_view, float4(worldNormal * u_objectInfo.y, 1.0));
   
   //float4 finalClipPos = mul(u_projection, (sphereEyePos + eyeNormal * tileHeight));//(eyePos + eyeNormal * tileHeight));
-  float t = 1.0;//1.0 - (2.0 * length(indexUV - float2(0.5, 0.5)));
+  float t = u_objectInfo.z;//1.0 - (2.0 * length(indexUV - float2(0.5, 0.5)));
   float4 finalClipPos = mul(u_projection, (lerp(eyePos, sphereEyePos, t) + eyeNormal * tileHeight));
   
   finalClipPos.z = CalcuteLogDepth(finalClipPos);

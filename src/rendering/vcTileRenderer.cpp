@@ -111,6 +111,7 @@ struct vcTileRenderer
 
   udDouble3 cameraPosition;
   bool cameraIsUnderMapSurface;
+  double cameraDistanceToSurface;
 
   struct vcQueuedRenderNode
   {
@@ -1150,6 +1151,7 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
   pTileRenderer->cameraPosition = cameraWorldPos;
   pTileRenderer->cameraIsUnderMapSurface = cameraIsUnderMapSurface;
+  pTileRenderer->cameraDistanceToSurface = udMag3(cameraWorldPos - cameraZeroAltitude);
 
   vcQuadTreeViewInfo viewInfo =
   {
@@ -1392,7 +1394,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     vcTileRenderer_RecursiveBuildRenderList(pTileRenderer, pRootNode, layer, nullptr, nullptr);
   }
 
-  float tileSkirtLength = 3000000.0f; // TODO: Read actual planet radius
+  float tileSkirtLength = 6378137.0f; // TODO: Read actual planet radius
 
   vcGLStateCullMode cullMode = vcGLSCM_Back;
   if (cameraInsideGround)
@@ -1438,7 +1440,16 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
       tileSkirtLength = 0.0f;
     }
 
-    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, 0, 0);
+    float sphereLerp = 0.0f;
+    if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
+    {
+      double min = 20000.0;
+      double max = 200000.0;
+      sphereLerp = float(udClamp((pTileRenderer->cameraDistanceToSurface - min) / (max - min), 0.0, 1.0));
+      printf("%f : %f\n", pTileRenderer->cameraDistanceToSurface, sphereLerp);
+    }
+
+    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, sphereLerp, 0);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
     // render nodes
