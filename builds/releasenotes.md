@@ -1,5 +1,19 @@
 udStream Version History
 
+Version 1.1
+  - Added optional second viewport feature
+  - Added map layers feature
+  - Fixed atmosphere rendering on several platforms
+  - Fixed several hotkey issues
+  - Fixes for scene tools
+  - Fixed an issue with images / lines being drawn incorrectly
+  - Fixed several UI bugs
+  - Added support for more EPSG codes (2193)
+  - Added basic 'pinch zoom' support for multi-touch devices
+  - Optimizations to map tile loading
+  - Corrected a few improper Chinese translations
+  - Fixed several issues with the Emscripten build
+  
 Version 1.0
   - Renamed the product to "udStream" as part of the 1.0 release
   - Added machine translations for lots of additional language support
