@@ -1349,14 +1349,6 @@ static bool LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3
   return true;
 }
 
-// static double DistancePointToLine(const udDouble3 &linePoint1, const udDouble3 &linePoint2, const udDouble3 &point)
-// {
-//   const udDouble3 p2Subp1 = linePoint2 - linePoint1;
-//   const udDouble3 pointSubP1 = point - linePoint1;
-// 
-//   return udMag3(udCross3(p2Subp1, pointSubP1)) / udMag3(p2Subp1);
-// }
-
 static double DistancePointToLine(const udDouble2 &linePoint1, const udDouble2 &linePoint2, const udDouble2 &point)
 {
   double m = (linePoint2.y - linePoint1.y) / (linePoint2.x - linePoint1.x);
@@ -1624,8 +1616,7 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
 
   if (points.length < 3)
     return false;
-
-
+  
   udChunkedArray<udDouble3> pointPositions;
   pointPositions.Init(64);
   for (const PointInfo &point : points)
@@ -1634,8 +1625,7 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
   udChunkedArray<udDouble3> perimeterPoints;
   perimeterPoints.Init(64);
   CalculatePerimeter(pointPositions, &perimeterPoints);
-
-  
+    
   // Separate pinch-points in the mesh
   struct PointMesh
   {
