@@ -146,7 +146,7 @@ private:
   void DoFlythrough(vcState *pProgramState);
   bool LoadAttachedModel(const char *pNewPath);
   bool GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int *pSegmentIndex, double *pSegmentProgress);
-  void GenerateLineFillPolygon(vcState *pProgramState);
+  void GenerateLineFillPolygon();
 };
 
 #endif //vcPOI_h__
