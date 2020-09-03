@@ -1299,9 +1299,27 @@ static bool LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3
     0.0);
 
   // Calculate Z
-  //double totalInfluence = 0.0;
-  intersectPoint.z = line1Point1.z;
+  {
+    const udDouble2 intersectPoint2 = udDouble2::create(intersectPoint.x, intersectPoint.y);
 
+    udDouble3 pointPositions[4];
+    pointPositions[0] = line1Point1;
+    pointPositions[1] = line1Point2;
+    pointPositions[2] = line2Point1;
+    pointPositions[3] = line2Point2;
+
+    double influence[4];
+    double totalInfluence = 0.0;
+    for (int64_t i = 0; i < 4; ++i)
+    {
+      influence[i] = 1.0 / udMag2(intersectPoint2 - udDouble2::create(pointPositions[i].x, pointPositions[i].y));
+      totalInfluence += influence[i];
+    }
+
+    for (int64_t i = 0; i < 4; ++i)
+      intersectPoint.z += pointPositions[i].z * (influence[i] / totalInfluence);
+  }
+  
   // Calculate Bounds
   udDouble4 line1Bounds;
   line1Bounds.x = udMin(line1Point1.x, line1Point2.x);
@@ -1325,7 +1343,7 @@ static bool LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3
   {
     pIntersectPoint->x = Det(detL1, line1Dif.x, detL2, line2Dif.x) / denom;
     pIntersectPoint->y = Det(detL1, line1Dif.y, detL2, line2Dif.y) / denom;
-    pIntersectPoint->z = 0.0; // TODO: Calculate
+    pIntersectPoint->z = intersectPoint.z;
   }
 
   return true;
