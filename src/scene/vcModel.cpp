@@ -462,7 +462,7 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
   }
 
   // Show visualization info
-  if (vcSettingsUI_VisualizationSettings(&m_visualization))
+  if (vcSettingsUI_VisualizationSettings(&m_visualization, false, &m_pointCloudHeader.attributes))
   {
     udProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
     //Set all here
@@ -578,7 +578,7 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
 
 void vcModel::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
 {
-  if (vcSettingsUI_VisualizationSettings(&m_visualization))
+  if (vcSettingsUI_VisualizationSettings(&m_visualization, false, &m_pointCloudHeader.attributes))
   {
     udProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
     //Set all here

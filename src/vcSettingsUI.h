@@ -6,10 +6,11 @@
 
 struct vcState;
 struct vcVisualizationSettings;
+struct udAttributeSet;
 
 void vcSettingsUI_Show(vcState *pProgramState);
 bool vcSettingsUI_LangCombo(vcState *pProgramState);
-bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings, bool isGlobal = false);
+bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings, bool isGlobal = true, udAttributeSet *pAttributes = nullptr);
 void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOptions = false);
 void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState);
 
