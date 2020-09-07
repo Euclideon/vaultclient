@@ -373,15 +373,30 @@ void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicke
   if (vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
   {
     udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pFilter->pickPoint);
+    udDouble3 north = vcGIS_GetWorldLocalNorth(pProgramState->geozone, pFilter->pickPoint);
+
     udPlane<double> plane = udPlane<double>::create(pFilter->pickPoint, up);
 
     pFilter->endPoint = {};
     if (plane.intersects(pProgramState->pActiveViewport->camera.worldMouseRay, &pFilter->endPoint, nullptr))
     {
-      udDouble3 d = pFilter->endPoint - pFilter->pickPoint;
-      pFilter->size.x = udMax(d.x, 2.0f) * 2;
-      pFilter->size.y = udMax(d.y, 2.0f) * 2;
-      pFilter->size.z = udMax(pFilter->size.x, pFilter->size.y);
+      udDouble3 horizDist = pFilter->endPoint - pFilter->pickPoint; // On horiz plane so vert is always 0
+
+      udDouble3 pickNorth = north * horizDist;
+      udDouble3 pickEast = horizDist - pickNorth;
+
+      if (pFilter->shape == vcQNFS_Box)
+      {
+        pFilter->size.x = udMag3(pickNorth);
+        pFilter->size.y = udMag3(pickEast);
+        pFilter->size.z = udMax(pFilter->size.x, pFilter->size.y);
+      }
+      else // vcQNFS_Cylinder & vcQNFS_Sphere
+      {
+        pFilter->size.x = udMag3(horizDist);
+        pFilter->size.y = udMag3(horizDist);
+        pFilter->size.z = udMag3(horizDist);
+      }
     }
 
     vcQueryNodeFilter_Update(pFilter, pProgramState);
