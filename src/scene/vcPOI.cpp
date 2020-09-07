@@ -1332,14 +1332,8 @@ void vcPOI::GenerateLineFillPolygon()
       int index2 = pIndices[i + 1];
       int index3 = pIndices[i + 2];
 
-      udDouble3 e1 = {
-        (double)(pVerts[index2].position.x - pVerts[index1].position.x),
-        (double)(pVerts[index2].position.y - pVerts[index1].position.y),
-        (double)(pVerts[index2].position.z - pVerts[index1].position.z) };
-      udDouble3 e2 = {
-        (double)(pVerts[index3].position.x - pVerts[index1].position.x),
-        (double)(pVerts[index3].position.y - pVerts[index1].position.y),
-        (double)(pVerts[index3].position.z - pVerts[index1].position.z) };
+      udDouble3 e1 = udDouble3::create(pVerts[index2].position - pVerts[index1].position);
+      udDouble3 e2 = udDouble3::create(pVerts[index3].position - pVerts[index1].position);
       udDouble3 e3 = udCross3<double>(e1, e2);
 
       m_meshArea += udMag3(e3) / 2.0;
