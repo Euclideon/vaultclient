@@ -84,8 +84,10 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
       if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
       {
-        vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
-        memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
+        udWorkerPool_AddTask(pProgramState->pWorkerPool, nullptr, nullptr, false, [pProgramState, pSceneItem](void*) {
+          vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
+          memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
+        });
       }
     }
     else
