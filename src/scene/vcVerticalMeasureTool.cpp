@@ -24,6 +24,7 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, udProjectNode 
   , m_markDelete(false)
   , m_showAllDistances(false)
   , m_pLineInstance(nullptr)
+  , m_flipOrder(false)
 {
   ClearPoints();
 
@@ -40,7 +41,6 @@ vcVerticalMeasureTool::vcVerticalMeasureTool(vcProject *pProject, udProjectNode 
     label.backColourRGBA = vcIGSW_BGRAToRGBAUInt32(vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
   }
   
-
   OnNodeUpdate(pProgramState);
   m_loadStatus = vcSLS_Loaded;
 }
@@ -119,7 +119,7 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
       udFree(label.pText);
 
     udDouble3 worldUp = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_points[0]);
-    if (udDot(m_points[0], worldUp) > udDot(m_points[2], worldUp)) // point 0 is higher than point 2
+    if (udDot(m_points[0], worldUp) > udDot(m_points[2], worldUp) && !m_flipOrder) // point 0 is higher than point 2
     {
       m_labelList[0].worldPosition = (m_points[0] + m_points[1]) / 2;
       m_labelList[1].worldPosition = (m_points[1] + m_points[2]) / 2;
@@ -258,6 +258,9 @@ void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s", buffer);
   ImGui::Unindent();
   ImGui::PopFont();
+
+  if (ImGui::Checkbox(vcString::Get("sceneVerticalFlipOrder"), &m_flipOrder))
+    udProjectNode_SetMetadataBool(m_pNode, "flipOrder", m_flipOrder ? 1 : 0);
 }
 
 void vcVerticalMeasureTool::Cleanup(vcState *pProgramState)
@@ -324,7 +327,7 @@ void vcVerticalMeasureTool::UpdateIntersectionPosition(vcState *pProgramState)
   m_distHoriz = udDot(v_20, forward);
   m_distVert = udAbs(udDot(v_20, worldUp));
 
-  if (udDot(m_points[0], worldUp) > udDot(m_points[2], worldUp))
+  if (udDot(m_points[0], worldUp) > udDot(m_points[2], worldUp) && !m_flipOrder)
       m_points[1] = m_points[0] + forward * m_distHoriz;
   else
     m_points[1] = m_points[2] - forward * m_distHoriz;
@@ -349,6 +352,7 @@ void vcVerticalMeasureTool::UpdateSetting(vcState *pProgramState)
   udProjectNode_GetMetadataInt(m_pNode, "textSize", &size, pProgramState->settings.tools.label.textSize);
   udProjectNode_GetMetadataUint(m_pNode, "nameColour", &m_textColourBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.textColour));
   udProjectNode_GetMetadataUint(m_pNode, "backColour", &m_textBackgroundBGRA, vcIGSW_ImGuiToBGRA(pProgramState->settings.tools.label.backgroundColour));
+  vcProject_GetNodeMetadata(m_pNode, "flipOrder", &m_flipOrder, false);
 
   uint32_t textColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textColourBGRA);
   uint32_t backColourRGBA = vcIGSW_BGRAToRGBAUInt32(m_textBackgroundBGRA);
