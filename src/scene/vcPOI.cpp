@@ -1132,6 +1132,9 @@ void vcPOI::CalculateCentroid()
 
 void vcPOI::AddLengths(const vcUnitConversionData *pConversionData)
 {
+  if (m_line.numPoints < 3)
+    return;
+
   // j = previous, i = current
   int j = udMax(0, m_line.numPoints - 1);
   for (int i = 0; i < m_line.numPoints; i++)
