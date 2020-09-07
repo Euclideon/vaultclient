@@ -1208,10 +1208,15 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     udFloat4 eyeSpacePositionF = udFloat4::create(eyeSpacePosition);
     pShader->everyObject.eyePositions[t] = eyeSpacePositionF;
 
+    udDouble3 normal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
+    udDouble3 normal2 = udNormalize(worldPos);
+    udDouble3 diff = normal - normal2;
+    pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(normal2), 0.0f);
+
     // store the distance in the .w component (this will be used to generate the sphere)
     pShader->everyObject.eyePositions[t].w = udMag3(worldPos);//eyeSpacePosition.toVector3() - eyeSpaceCenter.toVector3());
 
-    pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(pNode->worldNormals[t]), 0.0f);
+    //pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(pNode->worldNormals[t]), 0.0f);
     pShader->everyObject.worldBitangents[t] = udFloat4::create(udFloat3::create(pNode->worldBitangents[t]), 0.0f);
   }
 

@@ -96,7 +96,7 @@ PS_INPUT main(VS_INPUT input)
   float tileHeight = demHeight(demUV);
   
   // add a 'skirt' to the tile edge
-  //tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
+  tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
 
   float4 sphereEyePos = mul(u_view, float4(worldNormal * earthRadius, 1.0));
   //float4 sphereEyePos = float4(eyeNormal.xyz * earthRadius, 1.0);
