@@ -190,7 +190,8 @@ void vcQuadTree_RecursiveUpdateNodesAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *
 
 void vcQuadTree_InitBlock(vcQuadTree *pQuadTree, uint32_t slotIndex, const udInt3 &blockSlippy, const udInt2 &parentDemMinMax)
 {
-  // children share vertices, so only calculate these once
+  // children share vertices, so calculate the entire 3x3 block once, and then distribute
+  // the vertices to the appropriate 2x2 children.
   const int blockControlPointSize = vcQuadTreeNodeVertexResolution + 1;
   const int blockSize = blockControlPointSize * blockControlPointSize;
   udDouble3 blockBounds[blockSize] = {};

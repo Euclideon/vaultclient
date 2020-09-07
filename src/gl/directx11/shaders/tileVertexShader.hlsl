@@ -89,7 +89,7 @@ PS_INPUT main(VS_INPUT input)
   float4 eyeNormal = mul(u_view, float4(worldNormal, 0.0));
   
   // stored in here
-  float earthRadius = eyePos.w;
+  float earthRadiusAtPoint = eyePos.w;
   eyePos.w = 1.0;
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
@@ -98,9 +98,8 @@ PS_INPUT main(VS_INPUT input)
   // add a 'skirt' to the tile edge
   tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
 
-  float4 sphereEyePos = mul(u_view, float4(worldNormal * earthRadius, 1.0));
-  //float4 sphereEyePos = float4(eyeNormal.xyz * earthRadius, 1.0);
-  float4 finalClipPos = mul(u_projection, (sphereEyePos + eyeNormal * tileHeight));
+  float4 sphereEyePos = mul(u_view, float4(worldNormal * earthRadiusAtPoint, 1.0));
+  float4 finalClipPos = mul(u_projection, (lerp(eyePos, sphereEyePos, u_objectInfo.z) + eyeNormal * tileHeight));
   
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	

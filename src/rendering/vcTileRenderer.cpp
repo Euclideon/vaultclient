@@ -1208,10 +1208,17 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     udFloat4 eyeSpacePositionF = udFloat4::create(eyeSpacePosition);
     pShader->everyObject.eyePositions[t] = eyeSpacePositionF;
 
-    udDouble3 normal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
-    udDouble3 normal2 = udNormalize(worldPos);
-    udDouble3 diff = normal - normal2;
-    pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(normal2), 0.0f);
+    udDouble3 normal = pNode->worldNormals[t];
+    if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
+      normal = udNormalize(worldPos);
+
+    //udDouble3 normal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
+    //udDouble3 normal2 = udNormalize(worldPos);
+    //udDouble3 normal3 = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
+    //udDouble3 diff = normal - normal2;
+    //udDouble3 diff2 = normal - normal3;
+
+    pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(normal), 0.0f);
 
     // store the distance in the .w component (this will be used to generate the sphere)
     pShader->everyObject.eyePositions[t].w = udMag3(worldPos);//eyeSpacePosition.toVector3() - eyeSpaceCenter.toVector3());
@@ -1450,8 +1457,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
       vcGLState_SetBlendMode(vcGLSBM_Interpolative);
       tileSkirtLength = 0.0f;
     }
-
-    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, 0, 0);
+  
+    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF ? 1.0f : 0.0f, 0);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
     // render nodes
