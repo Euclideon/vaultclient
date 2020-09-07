@@ -139,4 +139,5 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
 void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 
 udDouble4 vcCamera_GetNearPlane(const vcCamera &camera, const vcCameraSettings &settings);
+
 #endif//vcCamera_h__

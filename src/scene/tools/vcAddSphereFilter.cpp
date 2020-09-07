@@ -17,3 +17,19 @@ void vcAddSphereFilter::SceneUI(vcState *pProgramState)
     pSceneItem->HandleSceneEmbeddedUI(pProgramState);
   }
 }
+
+void vcAddSphereFilter::HandlePicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  if (!pProgramState->pActiveViewport->pickingSuccess)
+    return;
+
+  vcQueryNodeFilter_HandleSceneInput(pProgramState, true);
+}
+
+void vcAddSphereFilter::PreviewPicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  if (!pProgramState->pActiveViewport->pickingSuccess)
+    return;
+
+  vcQueryNodeFilter_HandleSceneInput(pProgramState, false);
+}
