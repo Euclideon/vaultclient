@@ -31,4 +31,6 @@ bool vcIGSW_IsItemHovered(ImGuiHoveredFlags flags = 0, float timer = 0.5f); // T
 
 void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, const char *pToolTip = nullptr);
 
+void vcIGSW_verticalSplitter(const char* label, const udFloat2& size, const int currentColumnIndex, float currentColumnWidth, float leftColumnWidth);
+
 #endif // vcImGuiSimpleWidgets_h__
