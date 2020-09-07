@@ -579,6 +579,7 @@ void vcPOI::OnNodeUpdate(vcState *pProgramState)
   vcProject_GetNodeMetadata(m_pNode, "showLength", &m_showLength, false);
   vcProject_GetNodeMetadata(m_pNode, "showAllLengths", &m_showAllLengths, false);
   vcProject_GetNodeMetadata(m_pNode, "showArea", &m_showArea, false);
+  vcProject_GetNodeMetadata(m_pNode, "showAngles", &m_showAngles, false);
   vcProject_GetNodeMetadata(m_pNode, "showFill", &m_showFill, false);
 
   m_line.closed = (m_pState->GetGeometryType() == udPGT_Polygon);
