@@ -578,6 +578,7 @@ udResult vcPolygonModel_Destroy(vcPolygonModel **ppModel)
     udFree(pMesh->material.pName);
   }
 
+  pModel->meshCount = 0;
   udFree(pModel->pMeshes);
   udFree(pModel);
 
