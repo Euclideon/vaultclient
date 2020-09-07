@@ -2,6 +2,7 @@
 
 #include "vcState.h"
 #include "vcStrings.h"
+#include "vcQueryNode.h"
 
 #include "udStringUtil.h"
 
@@ -16,4 +17,20 @@ void vcAddBoxFilter::SceneUI(vcState *pProgramState)
     vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData;
     pSceneItem->HandleSceneEmbeddedUI(pProgramState);
   }
+}
+
+void vcAddBoxFilter::HandlePicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  if (!pProgramState->pActiveViewport->pickingSuccess)
+    return;
+
+  vcQueryNodeFilter_HandleSceneInput(pProgramState, true);
+}
+
+void vcAddBoxFilter::PreviewPicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  if (!pProgramState->pActiveViewport->pickingSuccess)
+    return;
+
+  vcQueryNodeFilter_HandleSceneInput(pProgramState, false);
 }

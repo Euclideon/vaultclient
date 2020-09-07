@@ -10,6 +10,8 @@ class vcAddBoxFilter : public vcSceneTool
 public:
   vcAddBoxFilter() : vcSceneTool(vcActiveTool_AddBoxFilter) {};
   void SceneUI(vcState *pProgramState) override;
+  void HandlePicking(vcState *pProgramState, vcRenderData &renderData, const vcRenderPickResult &pickResult) override;
+  void PreviewPicking(vcState *pProgramState, vcRenderData &renderData, const vcRenderPickResult &pickResult) override;
 
 private:
   static vcAddBoxFilter m_instance;

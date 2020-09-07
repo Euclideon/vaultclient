@@ -17,3 +17,19 @@ void vcAddCylinderFilter::SceneUI(vcState *pProgramState)
     pSceneItem->HandleSceneEmbeddedUI(pProgramState);
   }
 }
+
+void vcAddCylinderFilter::HandlePicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  if (!pProgramState->pActiveViewport->pickingSuccess)
+    return;
+
+  vcQueryNodeFilter_HandleSceneInput(pProgramState, true);
+}
+
+void vcAddCylinderFilter::PreviewPicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
+{
+  if (!pProgramState->pActiveViewport->pickingSuccess)
+    return;
+
+  vcQueryNodeFilter_HandleSceneInput(pProgramState, false);
+}

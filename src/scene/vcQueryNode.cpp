@@ -221,15 +221,7 @@ void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
   }
 
   if (vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
-  {
     ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterEndPosition"), pProgramState->filterInput.endPoint.x, pProgramState->filterInput.endPoint.y, pProgramState->filterInput.endPoint.z);
-    udDouble3 d = pProgramState->filterInput.endPoint - pProgramState->filterInput.pickPoint;
-    if (d.x < 0)
-      ImGui::Text("%s %f", vcString::Get("sceneFilterWidthNegative"), d.x);
-
-    if (d.y < 0)
-      ImGui::Text("%s %f", vcString::Get("sceneFilterLengthNegative"), d.y);
-  }
 }
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)

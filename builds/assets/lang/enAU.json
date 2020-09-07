@@ -599,8 +599,6 @@
   "sceneFilterShapeCylinder": "Cylinder",
   "sceneFilterInverted": "Invert Filter",
   "sceneFilterEndPosition": "End Point",
-  "sceneFilterWidthNegative": "Width cannot be negative:",
-  "sceneFilterLengthNegative": "Length cannot be negative:",
   "sceneViewpointSetCamera": "Set Viewpoint to Camera",
   "sceneViewpointSetCameraAndVisSetting": "Set Viewpoint to Camera with Visualisation Settings",
   "sceneViewpointPosition": "Viewpoint Position",
