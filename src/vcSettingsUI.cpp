@@ -853,7 +853,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 
 void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
 {
-  vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization, true);
+  vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization);
   vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
 
   const char *lensNameArray[] = {
@@ -1062,13 +1062,64 @@ void vcSettings_ApplyMapChange(vcSettings *pSettings, int affectedMapLayer)
   }
 }
 
-bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings, bool isGlobal /*= false*/)
+bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationSettings, bool isGlobal /*= true*/, udAttributeSet *pAttributes /*= nullptr*/)
 {
   bool retVal = false;
 
   const char *visualizationModes[] = {vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns")};
-  retVal |= ImGui::Combo(vcString::Get("settingsVisDisplayMode"), (int *)&pVisualizationSettings->mode, visualizationModes, (int)udLengthOf(visualizationModes));
   UDCOMPILEASSERT(udLengthOf(visualizationModes) == vcVM_Count, "Update combo box!");
+
+  bool hasDisplacementDistance = false;
+  bool hasDisplacementDirection = false;
+  if (pAttributes)
+  {
+    for (uint32_t i = 0; i < pAttributes->count; ++i)
+    {
+      if (udStrEqual(pAttributes->pDescriptors[i].name, "udDisplacement"))
+        hasDisplacementDistance = true;
+      else if (udStrEqual(pAttributes->pDescriptors[i].name, "udDisplacementDirectionX"))
+        hasDisplacementDirection = true;
+    }
+  }
+
+  if (ImGui::BeginCombo(vcString::Get("settingsVisDisplayMode"), visualizationModes[pVisualizationSettings->mode]))
+  {
+    retVal = true;
+    if (ImGui::Selectable(visualizationModes[vcVM_Default], pVisualizationSettings->mode == vcVM_Default))
+      pVisualizationSettings->mode = vcVM_Default;
+
+    if ((isGlobal || (pAttributes->content & udSAC_ARGB) != 0) && ImGui::Selectable(visualizationModes[vcVM_Colour], pVisualizationSettings->mode == vcVM_Colour))
+      pVisualizationSettings->mode = vcVM_Colour;
+
+    if ((isGlobal || (pAttributes->content & udSAC_Intensity) != 0) && ImGui::Selectable(visualizationModes[vcVM_Intensity], pVisualizationSettings->mode == vcVM_Intensity))
+      pVisualizationSettings->mode = vcVM_Intensity;
+
+    if ((isGlobal || (pAttributes->content & udSAC_Classification) != 0) && ImGui::Selectable(visualizationModes[vcVM_Classification], pVisualizationSettings->mode == vcVM_Classification))
+      pVisualizationSettings->mode = vcVM_Classification;
+
+    if ((isGlobal || hasDisplacementDistance) && ImGui::Selectable(visualizationModes[vcVM_DisplacementDistance], pVisualizationSettings->mode == vcVM_DisplacementDistance))
+      pVisualizationSettings->mode = vcVM_DisplacementDistance;
+
+    if ((isGlobal || hasDisplacementDirection) && ImGui::Selectable(visualizationModes[vcVM_DisplacementDirection], pVisualizationSettings->mode == vcVM_DisplacementDirection))
+      pVisualizationSettings->mode = vcVM_DisplacementDirection;
+
+    if ((isGlobal || (pAttributes->content & udSAC_GPSTime) != 0) && ImGui::Selectable(visualizationModes[vcVM_GPSTime], pVisualizationSettings->mode == vcVM_GPSTime))
+      pVisualizationSettings->mode = vcVM_GPSTime;
+
+    if ((isGlobal || (pAttributes->content & udSAC_ScanAngle) != 0) && ImGui::Selectable(visualizationModes[vcVM_ScanAngle], pVisualizationSettings->mode == vcVM_ScanAngle))
+      pVisualizationSettings->mode = vcVM_ScanAngle;
+
+    if ((isGlobal || (pAttributes->content & udSAC_PointSourceID) != 0) && ImGui::Selectable(visualizationModes[vcVM_PointSourceID], pVisualizationSettings->mode == vcVM_PointSourceID))
+      pVisualizationSettings->mode = vcVM_PointSourceID;
+
+    if ((isGlobal || (pAttributes->content & udSAC_ReturnNumber) != 0) && ImGui::Selectable(visualizationModes[vcVM_ReturnNumber], pVisualizationSettings->mode == vcVM_ReturnNumber))
+      pVisualizationSettings->mode = vcVM_ReturnNumber;
+
+    if ((isGlobal || (pAttributes->content & udSAC_NumberOfReturns) != 0) && ImGui::Selectable(visualizationModes[vcVM_NumberOfReturns], pVisualizationSettings->mode == vcVM_NumberOfReturns))
+      pVisualizationSettings->mode = vcVM_NumberOfReturns;
+
+    ImGui::EndCombo();
+  }
 
   ImGui::Indent();
 
