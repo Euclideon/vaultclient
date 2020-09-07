@@ -123,6 +123,7 @@ struct vcRenderContext
 
   vcFramebuffer *pAuxiliaryFramebuffers[2];
   vcTexture *pAuxiliaryTextures[2];
+  vcTexture *pAuxiliaryDepths[2];
   udUInt2 effectResolution;
 
   vcAtmosphereRenderer *pAtmosphereRenderer;
@@ -548,6 +549,7 @@ epilogue:
   for (int i = 0; i < 2; ++i)
   {
     vcTexture_Destroy(&pRenderContext->pAuxiliaryTextures[i]);
+    vcTexture_Destroy(&pRenderContext->pAuxiliaryDepths[i]);
     vcFramebuffer_Destroy(&pRenderContext->pAuxiliaryFramebuffers[i]);
   }
 
@@ -637,6 +639,7 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   for (int i = 0; i < 2; ++i)
   {
     vcTexture_Destroy(&pRenderContext->pAuxiliaryTextures[i]);
+    vcTexture_Destroy(&pRenderContext->pAuxiliaryDepths[i]);
     vcFramebuffer_Destroy(&pRenderContext->pAuxiliaryFramebuffers[i]);
   }
 
@@ -659,7 +662,8 @@ udResult vcRender_ResizeScene(vcState *pProgramState, vcRenderContext *pRenderCo
   for (int i = 0; i < 2; ++i)
   {
     UD_ERROR_CHECK(vcTexture_CreateAdv(&pRenderContext->pAuxiliaryTextures[i], vcTextureType_Texture2D, pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, 1, nullptr, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp, vcTCF_RenderTarget));
-    UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i]), udR_InternalError);
+    UD_ERROR_CHECK(vcTexture_Create(&pRenderContext->pAuxiliaryDepths[i], pRenderContext->effectResolution.x, pRenderContext->effectResolution.y, nullptr, vcTextureFormat_D32F, vcTFM_Nearest, vcTCF_RenderTarget));
+    UD_ERROR_IF(!vcFramebuffer_Create(&pRenderContext->pAuxiliaryFramebuffers[i], pRenderContext->pAuxiliaryTextures[i], pRenderContext->pAuxiliaryDepths[i]), udR_InternalError);
   }
 
   if (pProgramState->pUDSDKContext)
