@@ -55,6 +55,8 @@ struct vcFeaturedProjectInfo
 };
 
 void vcSession_Login(void *pProgramStatePtr);
+void vcSession_Domain(void *pProgramStatePtr);
+
 void vcSession_Logout(vcState *pProgramState);
 
 void vcSession_Resume(vcState *pProgramState);
