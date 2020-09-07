@@ -1199,11 +1199,17 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pNormalTexture = pTileRenderer->pEmptyNormalTexture;
   }
 
+  udDouble4 eyeSpaceCenter = view * udDouble4::create(0, 0, 0, 1);
   for (int t = 0; t < vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution; ++t)
   {
     udDouble3 mapHeightOffset = pNode->worldNormals[t] * udDouble3::create(pTileRenderer->pSettings->maptiles.layers[layer].mapHeight);
-    udFloat4 eyeSpacePosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t] + mapHeightOffset, 1.0));
-    pShader->everyObject.eyePositions[t] = eyeSpacePosition;
+    udDouble3 worldPos = pNode->worldBounds[t] + mapHeightOffset;
+    udDouble4 eyeSpacePosition = view * udDouble4::create(worldPos, 1.0);
+    udFloat4 eyeSpacePositionF = udFloat4::create(eyeSpacePosition);
+    pShader->everyObject.eyePositions[t] = eyeSpacePositionF;
+
+    // store the distance in the .w component (this will be used to generate the sphere)
+    pShader->everyObject.eyePositions[t].w = udMag3(worldPos);//eyeSpacePosition.toVector3() - eyeSpaceCenter.toVector3());
 
     pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(pNode->worldNormals[t]), 0.0f);
     pShader->everyObject.worldBitangents[t] = udFloat4::create(udFloat3::create(pNode->worldBitangents[t]), 0.0f);
@@ -1440,16 +1446,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
       tileSkirtLength = 0.0f;
     }
 
-    float sphereLerp = 0.0f;
-    if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
-    {
-      double min = 20000.0;
-      double max = 200000.0;
-      sphereLerp = float(udClamp((pTileRenderer->cameraDistanceToSurface - min) / (max - min), 0.0, 1.0));
-      printf("%f : %f\n", pTileRenderer->cameraDistanceToSurface, sphereLerp);
-    }
-
-    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, sphereLerp, 0);
+    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, 0, 0);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
     // render nodes

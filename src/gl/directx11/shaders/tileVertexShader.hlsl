@@ -87,19 +87,20 @@ PS_INPUT main(VS_INPUT input)
   float3 worldNormal = normalize(BilinearSample(u_worldNormals, indexUV)).xyz;
   float4 eyePos = BilinearSample(u_eyePositions, indexUV);
   float4 eyeNormal = mul(u_view, float4(worldNormal, 0.0));
+  
+  // stored in here
+  float earthRadius = eyePos.w;
+  eyePos.w = 1.0;
 
   float2 demUV = u_demUVOffsetScale.xy + u_demUVOffsetScale.zw * input.pos.xy;
   float tileHeight = demHeight(demUV);
   
   // add a 'skirt' to the tile edge
-  tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
+  //tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
 
-//6356752.3142451793
-  float4 sphereEyePos = mul(u_view, float4(worldNormal * u_objectInfo.y, 1.0));
-  
-  //float4 finalClipPos = mul(u_projection, (sphereEyePos + eyeNormal * tileHeight));//(eyePos + eyeNormal * tileHeight));
-  float t = u_objectInfo.z;//1.0 - (2.0 * length(indexUV - float2(0.5, 0.5)));
-  float4 finalClipPos = mul(u_projection, (lerp(eyePos, sphereEyePos, t) + eyeNormal * tileHeight));
+  float4 sphereEyePos = mul(u_view, float4(worldNormal * earthRadius, 1.0));
+  //float4 sphereEyePos = float4(eyeNormal.xyz * earthRadius, 1.0);
+  float4 finalClipPos = mul(u_projection, (sphereEyePos + eyeNormal * tileHeight));
   
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
