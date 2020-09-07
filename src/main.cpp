@@ -7,6 +7,7 @@
 #include "udVersion.h"
 #include "udWeb.h"
 #include "udUserUtil.h"
+#include "udStreamer.h"
 
 #include <chrono>
 #include <ctime>
@@ -70,7 +71,7 @@
 # include <windows.h>
 #endif
 
-UDCOMPILEASSERT(UDSDK_MAJOR_VERSION == 2 && UDSDK_MINOR_VERSION == 0 && UDSDK_PATCH_VERSION == 0, "This version of udSDK is not compatible");
+UDCOMPILEASSERT(UDSDK_MAJOR_VERSION == 2 && UDSDK_MINOR_VERSION == 0, "This version of udSDK is not compatible");
 
 #if UDPLATFORM_WINDOWS && !defined(NDEBUG)
 #  include <crtdbg.h>
@@ -2601,6 +2602,11 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       // TODO: This is a hack
       pProgramState->settings.presentation.showEuclideonLogo = renderEuclideonWatermark;
     }
+
+    udStreamerInfo streamingStatus = {};
+    udStreamer_Update(&streamingStatus);
+    pProgramState->isStreaming |= (streamingStatus.active != 0);
+    pProgramState->streamingMemory = streamingStatus.memoryInUse;
 
     ImGui::Columns(1);
   }

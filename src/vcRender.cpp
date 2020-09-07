@@ -17,8 +17,6 @@
 #include "vcLineRenderer.h"
 #include "vcPinRenderer.h"
 
-#include "udStreamer.h"
-
 #include "stb_image.h"
 #include <vector>
 
@@ -1552,11 +1550,6 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
-
-  udStreamerInfo streamingStatus = {};
-  udStreamer_Update(&streamingStatus);
-  pProgramState->isStreaming |= (streamingStatus.active != 0);
-  pProgramState->streamingMemory = streamingStatus.memoryInUse;
 }
 
 udResult vcRender_RecreateUDView(vcState *pProgramState, vcRenderContext *pRenderContext)
