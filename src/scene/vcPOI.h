@@ -58,6 +58,7 @@ private:
 
   double m_totalLength;
   double m_area;
+  double m_meshArea;
   udDouble3 m_centroid;
 
   udChunkedArray<vcLabelInfo> m_lengthLabels;

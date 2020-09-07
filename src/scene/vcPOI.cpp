@@ -318,6 +318,7 @@ public:
     m_pParent->m_showAllLengths = false;
     m_pParent->m_showLength = false;
     m_pParent->m_showFill = true;
+    m_pParent->m_meshArea = 0.0;
   }
 
   ~vcPOIState_MeasureArea()
@@ -1090,7 +1091,10 @@ void vcPOI::CalculateArea(const udDouble4 &projectionPlane)
   if (m_line.numPoints < 3)
     return;
 
-  m_area = udProjectedArea(projectionPlane, m_line.pPoints, (size_t)m_line.numPoints);
+  if (m_pPolyModel)
+    m_area = m_meshArea;
+  else
+    m_area = udProjectedArea(projectionPlane, m_line.pPoints, (size_t)m_line.numPoints);
 }
 
 void vcPOI::CalculateTotalLength()
@@ -1319,6 +1323,27 @@ void vcPOI::GenerateLineFillPolygon()
     vcPolygonModel_CreateFromRawVertexData(&m_pPolyModel, pVerts, numVerts, vcP3N3UV2VertexLayout, (int)(udLengthOf(vcP3N3UV2VertexLayout)), pIndices, numIndices);
 
     m_pPolyModel->modelOffset = udDouble4x4::translation(m_line.pPoints[0]);
+
+    // Calculate area
+    m_meshArea = 0.0;
+    for (int i = 0; i < numIndices; i += 3)
+    {
+      int index1 = pIndices[i];
+      int index2 = pIndices[i + 1];
+      int index3 = pIndices[i + 2];
+
+      udFloat3 e1 = {
+        pVerts[index2].position.x - pVerts[index1].position.x,
+        pVerts[index2].position.y - pVerts[index1].position.y,
+        pVerts[index2].position.z - pVerts[index1].position.z };
+      udFloat3 e2 = {
+        pVerts[index3].position.x - pVerts[index1].position.x,
+        pVerts[index3].position.y - pVerts[index1].position.y,
+        pVerts[index3].position.z - pVerts[index1].position.z };
+      udFloat3 e3 = udCross3<float>(e1, e2);
+
+      m_meshArea += (double)(udMag3(e3) / 2.0f);
+    }
 
     udFree(pVerts);
     udFree(pIndices);
