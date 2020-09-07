@@ -1212,11 +1212,11 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
       normal = udNormalize(worldPos);
 
-    //udDouble3 normal = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
-    //udDouble3 normal2 = udNormalize(worldPos);
-    //udDouble3 normal3 = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
-    //udDouble3 diff = normal - normal2;
-    //udDouble3 diff2 = normal - normal3;
+    udDouble3 normalA = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
+    udDouble3 normalB = udNormalize(worldPos); // 2x2
+    udDouble3 normalC = pNode->worldNormals[t];
+    udDouble3 diffAB = normalA - normalB;
+    udDouble3 diffAC = normalA - normalC;
 
     pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(normal), 0.0f);
 
