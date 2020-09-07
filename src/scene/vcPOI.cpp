@@ -1142,7 +1142,6 @@ void vcPOI::AddLengths(const vcUnitConversionData *pConversionData)
   // j = previous, i = current
   int i = m_line.closed ? 0 : 1;
   int j = m_line.closed ? m_line.numPoints - 1 : 0;
-  //int iMax = m_line.closed ? m_line.numPoints : m_line.numPoints - 1;
   for (; i < m_line.numPoints; i++)
   {
     double lineLength = udMag3(m_line.pPoints[j] - m_line.pPoints[i]);
@@ -1294,10 +1293,7 @@ void vcPOI::AddLabelsToScene(vcRenderData *pRenderData, const vcUnitConversionDa
       AddAngles(pConversionData);
 
     for (size_t i = 0; i < m_labels.length; ++i)
-    {
-      //if (m_line.closed || i > 0)
-        pRenderData->labels.PushBack(m_labels.GetElement(i));
-    }
+      pRenderData->labels.PushBack(m_labels.GetElement(i));
 
     if ((m_showLength && m_line.numPoints > 1) || (m_showArea && m_line.numPoints > 2))
       m_pLabelInfo->pText = m_pLabelText;
