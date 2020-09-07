@@ -1332,17 +1332,17 @@ void vcPOI::GenerateLineFillPolygon()
       int index2 = pIndices[i + 1];
       int index3 = pIndices[i + 2];
 
-      udFloat3 e1 = {
-        pVerts[index2].position.x - pVerts[index1].position.x,
-        pVerts[index2].position.y - pVerts[index1].position.y,
-        pVerts[index2].position.z - pVerts[index1].position.z };
-      udFloat3 e2 = {
-        pVerts[index3].position.x - pVerts[index1].position.x,
-        pVerts[index3].position.y - pVerts[index1].position.y,
-        pVerts[index3].position.z - pVerts[index1].position.z };
-      udFloat3 e3 = udCross3<float>(e1, e2);
+      udDouble3 e1 = {
+        (double)(pVerts[index2].position.x - pVerts[index1].position.x),
+        (double)(pVerts[index2].position.y - pVerts[index1].position.y),
+        (double)(pVerts[index2].position.z - pVerts[index1].position.z) };
+      udDouble3 e2 = {
+        (double)(pVerts[index3].position.x - pVerts[index1].position.x),
+        (double)(pVerts[index3].position.y - pVerts[index1].position.y),
+        (double)(pVerts[index3].position.z - pVerts[index1].position.z) };
+      udDouble3 e3 = udCross3<double>(e1, e2);
 
-      m_meshArea += (double)(udMag3(e3) / 2.0f);
+      m_meshArea += udMag3(e3) / 2.0;
     }
 
     udFree(pVerts);
