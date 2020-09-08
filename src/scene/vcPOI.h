@@ -54,13 +54,14 @@ private:
   bool m_showArea;
   bool m_showLength;
   bool m_showAllLengths;
+  bool m_showAngles;
   bool m_showFill;
 
   double m_totalLength;
   double m_area;
   udDouble3 m_centroid;
 
-  udChunkedArray<vcLabelInfo> m_lengthLabels;
+  udChunkedArray<vcLabelInfo> m_labels;
 
   vcPolygonModel *m_pPolyModel;
   vcFenceRenderer *m_pFence;
@@ -135,6 +136,7 @@ private:
   void CalculateTotalLength();
   void CalculateCentroid();
   void AddLengths(const vcUnitConversionData *pConversionData);
+  void AddAngles(const vcUnitConversionData *pConversionData);
   void UpdateState(vcState *pProgramState);
   double DistanceToPoint(udDouble3 const &point);
   vcRenderPolyInstance *AddNodeToRenderData(vcState *pProgramState, vcRenderData *pRenderData, size_t i);
