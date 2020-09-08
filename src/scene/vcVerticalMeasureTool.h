@@ -18,7 +18,7 @@ public:
   vcVerticalMeasureTool(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   virtual ~vcVerticalMeasureTool();
 
-  void Preview(const udDouble3 &position);
+  void Preview(vcState *pProgramState, const udDouble3 &position);
   void EndMeasure(vcState *pProgramState, const udDouble3 &position);
 
   virtual void OnNodeUpdate(vcState *pProgramState);

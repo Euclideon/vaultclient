@@ -66,6 +66,6 @@ void vcMeasureHeight::PreviewPicking(vcState *pProgramState, vcRenderData & /*re
       pProgramState->activeTool = vcActiveTool_Select;
 
     vcVerticalMeasureTool *pTool = (vcVerticalMeasureTool *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
-    pTool->Preview(pProgramState->pActiveViewport->worldMousePosCartesian);
+    pTool->Preview(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian);
   }
 }
