@@ -598,7 +598,7 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
     }
   }
 
-  pQuadTree->metaData.nodeTouchedCount = 0;
+  pQuadTree->metaData.nodeTouchedCount = 1; // root
   pQuadTree->metaData.leafNodeCount = 0;
 
   pQuadTree->rootSlippyCoords = viewInfo.slippyCoords;

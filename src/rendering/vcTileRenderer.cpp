@@ -25,7 +25,7 @@ static const float TileTimeoutRetrySec = 5.0f;
 static const int TileFailedRetryCount = 5;
 
 // Frequency of how often to update quad tree
-static const float QuadTreeUpdateFrequencySec = 0.5f;
+static const float QuadTreeUpdateFrequencySec = 0.35f;
 
 // TODO: This is a temporary solution, where we know the dem data stops at level 13.
 #define HACK_DEM_LEVEL 13
@@ -1212,18 +1212,10 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
       normal = udNormalize(worldPos);
 
-    udDouble3 normalA = vcGIS_GetWorldLocalUp(pTileRenderer->quadTree.geozone, worldPos);
-    udDouble3 normalB = udNormalize(worldPos); // 2x2
-    udDouble3 normalC = pNode->worldNormals[t];
-    udDouble3 diffAB = normalA - normalB;
-    udDouble3 diffAC = normalA - normalC;
+    // store the distance in the here (this will be used to generate the sphere)
+    pShader->everyObject.eyePositions[t].w = (float)udMag3(worldPos);
 
     pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(normal), 0.0f);
-
-    // store the distance in the .w component (this will be used to generate the sphere)
-    pShader->everyObject.eyePositions[t].w = udMag3(worldPos);//eyeSpacePosition.toVector3() - eyeSpaceCenter.toVector3());
-
-    //pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(pNode->worldNormals[t]), 0.0f);
     pShader->everyObject.worldBitangents[t] = udFloat4::create(udFloat3::create(pNode->worldBitangents[t]), 0.0f);
   }
 
@@ -1471,7 +1463,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Back);
   vcShader_Bind(nullptr);
 
-#if 1
+#if 0
   printf("touched=%d, visible=%d, rendered=%d, leaves=%d, build=%f, loadList=%zu...used=%d\n", pTileRenderer->quadTree.metaData.nodeTouchedCount, pTileRenderer->quadTree.metaData.visibleNodeCount, pTileRenderer->quadTree.metaData.nodeRenderCount, pTileRenderer->quadTree.metaData.leafNodeCount, pTileRenderer->quadTree.metaData.generateTimeMs, pTileRenderer->cache.tileLoadList.length, pTileRenderer->quadTree.nodes.used);
 #endif
 }
