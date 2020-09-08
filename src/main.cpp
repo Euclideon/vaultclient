@@ -476,7 +476,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         {
           udProjectNode *pNode = nullptr;
 
-          if (udStrEquali(pExt, ".uds"))
+          if (udStrEquali(pExt, ".uds") || udStrBeginsWithi(pExt, ".uds?")) // Handle URLs with query params
           {
             if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != udE_Success)
             {
