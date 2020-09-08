@@ -476,7 +476,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         {
           udProjectNode *pNode = nullptr;
 
-          if (udStrEquali(pExt, ".uds"))
+          if (udStrEquali(pExt, ".uds") || udStrBeginsWithi(pExt, ".uds?")) // Handle URLs with query params
           {
             if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != udE_Success)
             {
@@ -2398,7 +2398,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
   {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-    ImGui::Columns(pProgramState->settings.activeViewportCount);
+    ImGui::Columns(pProgramState->settings.activeViewportCount, nullptr, false);
     ImGui::PopStyleVar(); // Item Spacing
 
     // At the moment some functionality is restricted to certain viewports
@@ -2468,7 +2468,14 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       pProgramState->pActiveViewport->pickingSuccess = false;
       vcRender_BeginFrame(pProgramState->pActiveViewport->pRenderContext, renderData);
 
-      if (ImGui::BeginChild(udTempStr("###sceneViewport%d", viewportIndex)))
+      if (viewportIndex > 0)
+      {
+        //uint8_t splitterSize = pProgramState->settings.window.touchscreenFriendly ? 6 : 3;
+        udFloat2 splitterSize = udFloat2::create(pProgramState->settings.window.touchscreenFriendly ? 6.0f : 3.0f, (float)viewportResolution.y);
+        vcIGSW_verticalSplitter(udTempStr("###viewportSpliter%d", viewportIndex), splitterSize, viewportIndex, ImGui::GetColumnWidth(viewportIndex), ImGui::GetColumnWidth(viewportIndex - 1));
+      }
+
+      if (ImGui::BeginChild(udTempStr("###sceneViewport%d", viewportIndex), ImVec2((float)viewportResolution.x, (float)viewportResolution.y), false))
       {
         // Actual rendering to this texture is deferred
         ImGui::Image(renderData.pSceneTexture, ImVec2((float)viewportResolution.x, (float)viewportResolution.y), ImVec2(0, 0), ImVec2(renderData.sceneScaling.x, renderData.sceneScaling.y));
@@ -2974,7 +2981,7 @@ void vcMain_RenderWindow(vcState *pProgramState)
       }
 
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-      ImGui::Columns(2, nullptr, !pProgramState->settings.presentation.sceneExplorerCollapsed);
+      ImGui::Columns(2, nullptr, false);
       ImGui::PopStyleVar(); // Item Spacing
 
       if (!pProgramState->settings.presentation.columnSizeCorrect)
@@ -3001,6 +3008,11 @@ void vcMain_RenderWindow(vcState *pProgramState)
         ImGui::NextColumn();
         ImGui::PopStyleVar(); // Item Spacing
 
+        if (!pProgramState->settings.presentation.sceneExplorerCollapsed)
+        {
+          udFloat2 splitterSize = udFloat2::create(pProgramState->settings.window.touchscreenFriendly ? 6.0f : 3.0f, ImGui::GetWindowHeight());
+          vcIGSW_verticalSplitter(udTempStr("###sceneExplorerSpliterRight"), splitterSize, 1, size.x - ImGui::GetColumnWidth(0), size.x - ImGui::GetColumnWidth(1));
+        }
         if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
           vcMain_ShowSceneExplorerWindow(pProgramState);
         ImGui::EndChild();
@@ -3008,8 +3020,6 @@ void vcMain_RenderWindow(vcState *pProgramState)
         break;
 
       case vcWL_SceneRight:
-        if (ImGui::GetColumnWidth(0) != sceneExplorerSize && !pProgramState->settings.presentation.sceneExplorerCollapsed)
-          pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth();
 
         if (ImGui::BeginChild(udTempStr("%s###sceneExplorerDock", vcString::Get("sceneExplorerTitle"))))
           vcMain_ShowSceneExplorerWindow(pProgramState);
@@ -3018,6 +3028,14 @@ void vcMain_RenderWindow(vcState *pProgramState)
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
         ImGui::NextColumn();
         ImGui::PopStyleVar(); // Item Spacing
+
+        if (!pProgramState->settings.presentation.sceneExplorerCollapsed)
+        {
+          udFloat2 splitterSize = udFloat2::create(pProgramState->settings.window.touchscreenFriendly ? 6.0f : 3.0f, ImGui::GetWindowHeight());
+          vcIGSW_verticalSplitter(udTempStr("###sceneExplorerSpliterLeft"), splitterSize, 1, size.x - ImGui::GetColumnWidth(0), size.x - ImGui::GetColumnWidth(1));
+        }
+        if (ImGui::GetColumnWidth(0) != sceneExplorerSize && !pProgramState->settings.presentation.sceneExplorerCollapsed)
+          pProgramState->settings.presentation.sceneExplorerSize = (int)ImGui::GetColumnWidth(0);
 
         if (ImGui::BeginChild(udTempStr("%s###sceneDock", vcString::Get("sceneTitle"))))
           vcMain_RenderSceneWindow(pProgramState);

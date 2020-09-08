@@ -39,4 +39,7 @@ bool vcModals_AllowDestructiveAction(vcState *pProgramState, const char *pTitle,
 // Returns true if user accepts ending the session, `isQuit` is false when logging out
 bool vcModals_ConfirmEndSession(vcState *pProgramState, bool isQuit);
 
+// Returns true if user accepts Dropbox link change
+bool vcModals_DropboxHelp(vcState *pProgramState, const char *pURL, const char *pNewURL);
+
 #endif //vcModals_h__

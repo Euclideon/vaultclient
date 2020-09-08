@@ -94,6 +94,23 @@ void vcModel_LoadModel(void *pLoadInfoPtr)
     if (modelStatus == udE_OpenFailure)
       modelStatus = udPointCloud_Load(pLoadInfo->pProgramState->pUDSDKContext, &pLoadInfo->pModel->m_pPointCloud, udTempStr("%s%s", pLoadInfo->pProgramState->activeProject.pRelativeBase, pLoadInfo->pModel->m_pNode->pURI), &pLoadInfo->pModel->m_pointCloudHeader);
 
+    if (modelStatus != udE_Success)
+    {
+      const char dropboxPrefix[] = "https://www.dropbox.com/";
+      if (udStrBeginsWithi(pLoadInfo->pModel->m_pNode->pURI, dropboxPrefix))
+      {
+        const char *pNewURL = nullptr;
+        udSprintf(&pNewURL, "https://dl.dropboxusercontent.com/%s", pLoadInfo->pModel->m_pNode->pURI + udLengthOf(dropboxPrefix) - 1);
+        if (vcModals_DropboxHelp(pLoadInfo->pProgramState, pLoadInfo->pModel->m_pNode->pURI, pNewURL))
+        {
+          udProjectNode_SetURI(pLoadInfo->pModel->m_pProject->pProject, pLoadInfo->pModel->m_pNode, pNewURL);
+          pNewURL = nullptr;
+          modelStatus = udPointCloud_Load(pLoadInfo->pProgramState->pUDSDKContext, &pLoadInfo->pModel->m_pPointCloud, pLoadInfo->pModel->m_pNode->pURI, &pLoadInfo->pModel->m_pointCloudHeader);
+        }
+        udFree(pNewURL);
+      }
+    }
+
     if (modelStatus == udE_Success)
     {
       vcModel_LoadMetadata(pLoadInfo->pProgramState, pLoadInfo->pModel, pLoadInfo->possibleLocation);
@@ -462,7 +479,7 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
   }
 
   // Show visualization info
-  if (vcSettingsUI_VisualizationSettings(&m_visualization))
+  if (vcSettingsUI_VisualizationSettings(&m_visualization, false, &m_pointCloudHeader.attributes))
   {
     udProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
     //Set all here
@@ -578,7 +595,7 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
 
 void vcModel::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
 {
-  if (vcSettingsUI_VisualizationSettings(&m_visualization))
+  if (vcSettingsUI_VisualizationSettings(&m_visualization, false, &m_pointCloudHeader.attributes))
   {
     udProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
     //Set all here

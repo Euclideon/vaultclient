@@ -780,5 +780,7 @@
   "shareStatusShared": "This project can be opened by anyone on the server using the share code or browser link.",
   "shareStatusNotShared": "This project can only be opened by people in the same group.",
   "yUp": "Y up",
+  "dropboxHelperTitle": "Dropbox Helper",
+  "dropboxHelperMessage": "The file you're trying to load is using an unsupported Dropbox URL.\nWould you like to try changing it?\nFrom: \"{0}\"\nTo: \"{1}\"",
   "_last": "Last item so no one forgets the comma on the line above"
 }

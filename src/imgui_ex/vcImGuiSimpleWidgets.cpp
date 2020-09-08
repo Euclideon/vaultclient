@@ -255,3 +255,25 @@ bool vcIGSW_StickyIntSlider(const char* label, int* v, int v_min, int v_max, int
   }
   return false;
 }
+
+void vcIGSW_verticalSplitter(const char* label, const udFloat2& size, const int currentColumnIndex, float currentColumnWidth, float leftColumnWidth)
+{
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+  ImGui::SameLine();
+  ImGui::InvisibleButton(label, ImVec2(size.x, size.y));
+  if (ImGui::IsItemHovered())
+  {
+    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+  }
+  if (ImGui::IsItemActive())
+  {
+    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+    float _currentColumnWidth = (float)udMax(10.0, currentColumnWidth - ImGui::GetIO().MouseDelta.x);
+    float _leftColumnWidth = (float)udMax(5.0, leftColumnWidth + ImGui::GetIO().MouseDelta.x);
+    ImGui::SetColumnWidth(currentColumnIndex - 1, _leftColumnWidth);
+    ImGui::SetColumnWidth(currentColumnIndex, _currentColumnWidth);
+  }
+  ImGui::SameLine();
+  ImGui::PopStyleVar();
+}
+

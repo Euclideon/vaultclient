@@ -1677,13 +1677,9 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         pVoxelShaderData[numVisibleModels].data.displacementAmount.minColour = pVisSettings->displacement.min;
         pVoxelShaderData[numVisibleModels].data.displacementAmount.midColour = pVisSettings->displacement.mid;
       }
-      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDirection) && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDirection) && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionX", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[0]) == udE_Success && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionY", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[1]) == udE_Success && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionZ", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[2]) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_DisplacementDirection;
-        udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionX", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[0]);
-        udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionY", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[1]);
-        udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacementDirectionZ", &pVoxelShaderData[numVisibleModels].data.displacementDirection.attributeOffsets[2]);
-
         pVoxelShaderData[numVisibleModels].data.displacementDirection.cameraDirection = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch).apply({ 0, 1, 0 });
         pVoxelShaderData[numVisibleModels].data.displacementDirection.posColour = pVisSettings->displacement.max;
         pVoxelShaderData[numVisibleModels].data.displacementDirection.negColour = pVisSettings->displacement.min;

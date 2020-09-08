@@ -145,6 +145,31 @@ bool vcModals_ConfirmEndSession(vcState *pProgramState, bool isQuit)
   return retVal;
 }
 
+bool vcModals_DropboxHelp(vcState *pProgramState, const char *pURL, const char *pNewURL)
+{
+  bool result = true;
+  const SDL_MessageBoxButtonData buttons[] = {
+    { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, vcString::Get("popupConfirmNo") },
+    { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, vcString::Get("popupConfirmYes") },
+  };
+  const char *strings[] = { pURL, pNewURL };
+  const char *pFileExistsMsg = vcStringFormat(vcString::Get("dropboxHelperMessage"), strings, udLengthOf(strings));
+  SDL_MessageBoxData messageboxdata = {
+    SDL_MESSAGEBOX_INFORMATION,
+    pProgramState->pWindow,
+    vcString::Get("dropboxHelperTitle"),
+    pFileExistsMsg,
+    SDL_arraysize(buttons),
+    buttons,
+    nullptr
+  };
+  int buttonid = 0;
+  if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
+    result = false;
+  udFree(pFileExistsMsg);
+  return result;
+}
+
 void vcModals_DrawAddSceneItem(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_AddSceneItem))
