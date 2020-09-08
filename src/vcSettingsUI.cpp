@@ -189,7 +189,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
         change |= ImGui::RadioButton(udTempStr("%s##Tools", vcString::Get("Tools")), &pProgramState->activeSetting, vcSR_Tools);
         //change |= ImGui::RadioButton(udTempStr("%s##UnitsOfMeasurement", vcString::Get("settingsUnitsOfMeasurement")), &pProgramState->activeSetting, vcSR_UnitsOfMeasurement); //TODO The measurement system will eventually be its own section
 #if VC_HASCONVERT
-        change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
+        if (pProgramState->branding.convertEnabled)
+          change |= ImGui::RadioButton(udTempStr("%s##ConvertSettings", vcString::Get("settingsConvert")), &pProgramState->activeSetting, vcSR_ConvertDefaults);
 #endif
         change |= ImGui::RadioButton(udTempStr("%s##ScreenshotSettings", vcString::Get("settingsScreenshot")), &pProgramState->activeSetting, vcSR_Screenshot);
         change |= ImGui::RadioButton(udTempStr("%s##ConnectionSettings", vcString::Get("settingsConnection")), &pProgramState->activeSetting, vcSR_Connection);

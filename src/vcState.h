@@ -156,6 +156,8 @@ struct vcState
     char copyrightName[64];
     char supportEmail[256];
     uint32_t colours[4];
+    bool convertEnabled;
+    bool exportEnabled;
   } branding;
 
   udChunkedArray<const char*> loadList;

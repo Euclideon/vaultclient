@@ -405,6 +405,9 @@ void vcModals_DrawWelcome(vcState *pProgramState)
         for (size_t i = 0; i < udLengthOf(items); ++i)
         {
           bool selected = false;
+          if (items[i].icon == vcMBBI_Convert && !pProgramState->branding.convertEnabled)
+            continue;
+
           if (ImGui::Selectable(udTempStr("##newProjectType%zu", i), &selected, ImGuiSelectableFlags_DontClosePopups, ImVec2(475, 40)))
           {
             ImGui::CloseCurrentPopup();

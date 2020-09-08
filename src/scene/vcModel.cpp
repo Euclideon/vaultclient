@@ -699,7 +699,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
   ImGui::Separator();
 
 #if VC_HASCONVERT
-  if ((m_pPreferredProjection == nullptr && pProgramState->geozone.srid == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->geozone.srid))
+  if (pProgramState->branding.exportEnabled && ((m_pPreferredProjection == nullptr && pProgramState->geozone.srid == 0) || (m_pPreferredProjection != nullptr && m_pPreferredProjection->srid == pProgramState->geozone.srid)))
   {
     bool matrixEqual = udMatrixEqualApprox(m_defaultMatrix, m_sceneMatrix);
     if (matrixEqual && ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))
@@ -796,7 +796,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
   }
 
   // Compare models
-  if (ImGui::BeginMenu(vcString::Get("sceneExplorerCompareModels")))
+  if (pProgramState->branding.convertEnabled && ImGui::BeginMenu(vcString::Get("sceneExplorerCompareModels")))
   {
     static vcModel *s_pOldModel = nullptr;
     static double s_ballRadius = 0.15;

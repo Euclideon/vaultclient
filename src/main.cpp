@@ -1882,7 +1882,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
 
 #if VC_HASCONVERT
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), vcB_Invalid, vcMBBI_Convert, vcMBBG_SameGroup))
+      if (pProgramState->branding.convertEnabled && vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuConvert"), vcB_Invalid, vcMBBI_Convert, vcMBBG_SameGroup))
         vcModals_OpenModal(pProgramState, vcMT_Convert);
 #endif //VC_HASCONVERT
 
