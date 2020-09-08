@@ -443,3 +443,61 @@ TEST(vcMath, ProjectedArea)
     EXPECT_NEAR(udProjectedArea(plane, points, 4), 16.0, EPSILON_DOUBLE);
   }
 }
+
+TEST(vcMath, SlerpVectors)
+{
+  double invR2 = 0.70710678118654752440084436210485;
+  double sin60 = 0.86602540378443864676372317075294;
+  double sin30 = 0.5;
+  double cos60 = 0.5;
+  double cos30 = 0.86602540378443864676372317075294;
+
+  // Vectors parallel
+  EXPECT_EQ(udDot(udSlerp({-1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, 0.5), {1.0, 0.0, 0.0}), 0.0);
+
+  EXPECT_EQ(udSlerp({1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, 0.0, false), udDouble3::create(1.0, 0.0, 0.0));
+  EXPECT_EQ(udSlerp({1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, 0.25, false), udDouble3::create(1.0, 0.0, 0.0));
+  EXPECT_EQ(udSlerp({1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, 0.5, false), udDouble3::create(1.0, 0.0, 0.0));
+  EXPECT_EQ(udSlerp({1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, 0.70, false), udDouble3::create(1.0, 0.0, 0.0));
+
+  // theta <= pi/2
+  EXPECT_VEC_NEAR(udSlerp({0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, 0.5, false), udDouble3::create(invR2, invR2, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, 0.5, false), udDouble3::create(invR2, invR2, 0.0));
+
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, 0.5, false), udDouble3::create(invR2, -invR2, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({0.0, -1.0, 0.0}, {1.0, 0.0, 0.0}, 0.5, false), udDouble3::create(invR2, -invR2, 0.0));
+
+  EXPECT_VEC_NEAR(udSlerp({0.0, -1.0, 0.0}, {-1.0, 0.0, 0.0}, 0.5, false), udDouble3::create(-invR2, -invR2, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({-1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, 0.5, false), udDouble3::create(-invR2, -invR2, 0.0));
+
+  EXPECT_VEC_NEAR(udSlerp({-1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, 0.5, false), udDouble3::create(-invR2, invR2, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, 0.5, false), udDouble3::create(-invR2, invR2, 0.0));
+
+  EXPECT_VEC_NEAR(udSlerp({0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, 1.0 / 3.0, false), udDouble3::create(cos60, sin60, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, 2.0 / 3.0, false), udDouble3::create(cos30, sin30, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, 1.0 / 3.0, false), udDouble3::create(cos30, sin30, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, 2.0 / 3.0, false), udDouble3::create(cos60, sin60, 0.0));
+
+  EXPECT_VEC_NEAR(udSlerp({0.0, -1.0, 0.0}, {-1.0, 0.0, 0.0}, 1.0 / 3.0, false), udDouble3::create(-cos60, -sin60, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({0.0, -1.0, 0.0}, {-1.0, 0.0, 0.0}, 2.0 / 3.0, false), udDouble3::create(-cos30, -sin30, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({-1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, 1.0 / 3.0, false), udDouble3::create(-cos30, -sin30, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({-1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, 2.0 / 3.0, false), udDouble3::create(-cos60, -sin60, 0.0));
+
+  // pi/2 <= theta <= pi
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {-cos30, sin30, 0.0}, 0.6, false), udDouble3::create(0.0, 1.0, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {-cos30, sin30, 0.0}, 0.8, false), udDouble3::create(-cos60, sin60, 0.0));
+
+  // theta >= pi
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 1.0 / 11.0, true), udDouble3::create(cos30, sin30, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 2.0 / 11.0, true), udDouble3::create(cos60, sin60, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 3.0 / 11.0, true), udDouble3::create(0.0, 1.0, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 4.0 / 11.0, true), udDouble3::create(-cos60, sin60, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 5.0 / 11.0, true), udDouble3::create(-cos30, sin30, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 6.0 / 11.0, true), udDouble3::create(-1.0, 0.0, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 7.0 / 11.0, true), udDouble3::create(-cos30, -sin30, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 8.0 / 11.0, true), udDouble3::create(-cos60, -sin60, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 9.0 / 11.0, true), udDouble3::create(0.0, -1.0, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 10.0 / 11.0, true), udDouble3::create(cos60, -sin60, 0.0));
+  EXPECT_VEC_NEAR(udSlerp({1.0, 0.0, 0.0}, {cos30, -sin30, 0.0}, 11.0 / 11.0, true), udDouble3::create(cos30, -sin30, 0.0));
+
+}
