@@ -58,6 +58,7 @@ private:
   double m_distVert;
 
   char m_description[vcMaxPathLength];
+  bool m_flipOrder;
 };
 
 #endif
