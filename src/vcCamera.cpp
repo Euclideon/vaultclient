@@ -1,6 +1,5 @@
 #include "vcCamera.h"
 #include "vcState.h"
-#include "vcPOI.h"
 #include "vcHotkey.h"
 #include "vcRender.h"
 
@@ -437,11 +436,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
     forceClearMouseState = (forceClearMouseState || pViewport->cameraInput.gizmoCapturedMouse);
   }
 
-  // Handle mouse input for filter tool
-  if (!forceClearMouseState)
-    vcQueryNodeFilter_HandleSceneInput(pProgramState, isBtnClicked[0]);
-
-  if (forceClearMouseState || vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
+  if (forceClearMouseState)
   {
     memset(isBtnClicked, 0, sizeof(isBtnClicked));
     memset(isBtnDoubleClicked, 0, sizeof(isBtnDoubleClicked));

@@ -1,19 +1,23 @@
 udStream Version History
 
 Version 1.1
-  - Added optional second viewport feature
-  - Added map layers feature
-  - Fixed atmosphere rendering on several platforms
-  - Fixed several hotkey issues
-  - Fixes for scene tools
-  - Fixed an issue with images / lines being drawn incorrectly
-  - Fixed several UI bugs
-  - Added support for more EPSG codes (2193)
+  - Improvements to the height/horizontal measurement tool
+  - Set up the box, sphere and cylinder filers as proper tools
+  - Added support for multiple map layers
+  - Viewpoints can now save the current visualisation
+  - Added support for a second viewport
   - Added basic 'pinch zoom' support for multi-touch devices
+  - Added project setting to turn viewpoints into basic presentation
+  - Fixed atmosphere rendering on several platforms
+  - Fixed several hotkey issues (including keypad enter)
+  - Fixed lots of typo's in the localisation packs
+  - Fixed issues with the displacement visualisation modes
+  - (Browser) Fixed session resume
+  - (Browser) Now using the browser cache instead of double caching map tiles
+  - Added support for more EPSG codes 2193 & 3113 after community requests
   - Optimizations to map tile loading
-  - Corrected a few improper Chinese translations
-  - Fixed several issues with the Emscripten build
-  
+  - Updated to udSDK version 2.0
+
 Version 1.0
   - Renamed the product to "udStream" as part of the 1.0 release
   - Added machine translations for lots of additional language support
