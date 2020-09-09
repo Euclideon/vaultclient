@@ -15,6 +15,7 @@
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "vcCDT.h"
 
 const char *vcFRVMStrings[] =
 {
@@ -142,7 +143,7 @@ public:
     }
 
     if (GetGeometryType() == udPGT_Polygon && m_pParent->m_pPolyModel == nullptr)
-      m_pParent->GenerateLineFillPolygon();
+      m_pParent->GenerateLineFillPolygon(pProgramState);
 
     if (m_pParent->m_pPolyModel != nullptr && m_pParent->m_showFill)
     {
@@ -389,7 +390,7 @@ public:
 
     if (m_pParent->m_showFill)
     {
-      m_pParent->GenerateLineFillPolygon();
+      m_pParent->GenerateLineFillPolygon(pProgramState);
       m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
     }
   }
@@ -784,7 +785,7 @@ void vcPOI::UpdatePoints(vcState *pProgramState)
 
   // Update Polygon Model
   if (m_pPolyModel != nullptr)
-    GenerateLineFillPolygon();
+    GenerateLineFillPolygon(pProgramState);
 }
 
 void vcPOI::HandleBasicUI(vcState *pProgramState, size_t itemID)
@@ -1801,42 +1802,23 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 {
   if (m_line.numPoints >= 3)
   {
-    udDouble3 min = m_line.pPoints[0];
-    udDouble3 max = m_line.pPoints[0];
-
-    for (int pointIndex = 1; pointIndex < m_line.numPoints; ++pointIndex)
-      for (int xyz = 0; xyz < 3; ++xyz)
-      {
-        min[xyz] = udMin(min[xyz], m_line.pPoints[pointIndex][xyz]);
-        max[xyz] = udMax(max[xyz], m_line.pPoints[pointIndex][xyz]);
-      }
-
-    udFloat3 center = udFloat3::create((min + max) / 2.0 - m_line.pPoints[0]);
-
-    // Add triangle(s)
-    int numVerts = m_line.numPoints + 1;
-    int numIndices = m_line.numPoints * 3;
-
-    vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, numVerts, udAF_Zero);
-    uint32_t *pIndices = udAllocType(uint32_t, numIndices, udAF_Zero);
-
     udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
-    
+
     udDouble3 centerPoint = udDouble3::zero();
     double invNumPoints = 1.0 / (double)m_line.numPoints;
     for (int64_t i = 0; i < m_line.numPoints; ++i)
       centerPoint += m_line.pPoints[i] * invNumPoints;
-    
+
     // Rotate
     udDoubleQuat rotate = vcGIS_GetQuaternion(pProgramState->geozone, centerPoint);
     udDoubleQuat rotateInverse = udInverse(rotate);
 
-    pVerts[0] = { center, defaultNormal, defaultUV };
+    udDouble3 *pModifiedVerts = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
     for (int i = 0; i < m_line.numPoints; ++i)
-      pVerts[i + 1] = { udFloat3::create(m_line.pPoints[i] - m_line.pPoints[0]), defaultNormal, defaultUV };
-        
-    vcPolygonModel_Destroy(&m_pPolyModel); // TODO Josh: Move this back down when area measurement uses mesh
+      pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
+
+    vcPolygonModel_Destroy(&m_pPolyModel);
 
     udChunkedArray<udDouble3> triPoints;
     triPoints.Init(512);
@@ -1845,7 +1827,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
       triPoints.Deinit();
       return;
     }
-    
+
     // Un-Rotate
     vcP3N3UV2Vertex *pVerts = udAllocType(vcP3N3UV2Vertex, triPoints.length, udAF_Zero);
     udFloatQuat rotatef = udFloatQuat::create(rotate);
@@ -1878,7 +1860,6 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
     triPoints.Deinit();
     udFree(pModifiedVerts);
     udFree(pVerts);
-    udFree(pIndices);
   }
 }
 
