@@ -1008,8 +1008,6 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
     vcTileRenderer_RecursiveDownUpdateNodeAABB(&pTileRenderer->quadTree, nullptr, pNode);
     vcTileRenderer_RecursiveUpUpdateNodeAABB(&pTileRenderer->quadTree, pNode);
 
-    *pUploadBudgetRemainingMS -= udPerfCounterMilliseconds(uploadStartTime);
-
     pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Loaded);
 
     *pUploadBudgetRemainingMS -= udPerfCounterMilliseconds(uploadStartTime);
@@ -1446,7 +1444,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
       vcGLState_SetBlendMode(vcGLSBM_Interpolative);
       tileSkirtLength = 0.0f;
     }
-  
+
     pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF ? 1.0f : 0.0f, 0);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
