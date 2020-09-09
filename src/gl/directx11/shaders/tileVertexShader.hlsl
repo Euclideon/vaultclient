@@ -24,7 +24,7 @@ struct PS_INPUT
 };
 
 // This should match CPU struct size
-#define CONTROL_POINT_RES 3
+#define CONTROL_POINT_RES 2
 
 cbuffer u_EveryObject : register(b0)
 {
@@ -32,7 +32,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_view;
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
-  float4 u_objectInfo; // objectId.x, skirtLength.y
+  float4 u_objectInfo; // objectId.x, earthRadius.y, isGlobeRendering.z
   float4 u_uvOffsetScale;
   float4 u_demUVOffsetScale;
   float4 u_worldNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
@@ -92,9 +92,15 @@ PS_INPUT main(VS_INPUT input)
   float tileHeight = demHeight(demUV);
   
   // add a 'skirt' to the tile edge
-  tileHeight += input.pos.z * u_objectInfo.y;
+  tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
 
-  float4 finalClipPos = mul(u_projection, (eyePos + eyeNormal * tileHeight));
+  // interpolate normal and radius separately
+  float interpolatedEarthRadius = eyePos.w; // stored here
+  float4 globeEyePos = mul(u_view, float4(worldNormal * interpolatedEarthRadius, 1.0));
+  
+  float3 finalEyePos = lerp(eyePos.xyz, globeEyePos.xyz, u_objectInfo.z);
+  float4 finalClipPos = mul(u_projection, (float4(finalEyePos, 1.0) + eyeNormal * tileHeight));
+  
   finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices

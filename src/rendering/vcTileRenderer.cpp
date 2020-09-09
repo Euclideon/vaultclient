@@ -34,7 +34,6 @@ udUUID demTileServerAddresUUID = {};
 
 enum
 {
-  TileVertexControlPointRes = 3, // Change with caution : 'vcQuadTreeNode::worldBounds[]' and GPU structs need to match
   TileVertexResolution = 31 + 2, // +2 for skirt
   TileIndexResolution = (TileVertexResolution - 1),
 };
@@ -86,13 +85,13 @@ struct vcTileShader
   {
     udFloat4x4 projectionMatrix;
     udFloat4x4 viewMatrix;
-    udFloat4 eyePositions[TileVertexControlPointRes * TileVertexControlPointRes];
+    udFloat4 eyePositions[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
     udFloat4 colour;
     udFloat4 objectInfo; // objectId.x, tileSkirtLength
     udFloat4 uvOffsetScale;
     udFloat4 demUVOffsetScale;
-    udFloat4 worldNormals[TileVertexControlPointRes * TileVertexControlPointRes];
-    udFloat4 worldBitangents[TileVertexControlPointRes * TileVertexControlPointRes];
+    udFloat4 worldNormals[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
+    udFloat4 worldBitangents[vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution];
   } everyObject;
 };
 
@@ -112,6 +111,13 @@ struct vcTileRenderer
 
   udDouble3 cameraPosition;
   bool cameraIsUnderMapSurface;
+
+  struct vcSortedNode
+  {
+    vcQuadTreeNode *pNode;
+    double distToCameraSqr;
+  };
+  udChunkedArray<vcSortedNode> renderLists[vcMaxTileLayerCount];
 
   // cache textures
   struct vcTileCache
@@ -320,7 +326,7 @@ void vcTileRenderer_GenerateDEMAndNormalMaps(vcQuadTreeNode *pNode, void *pRawDe
   pNode->normalInfo.data.height = pNode->demInfo.data.height;
 
   // Calculate the horizontal region distances covered by this node
-  udFloat2 tileWorldSize = udFloat2::create((float)udMag3(pNode->worldBounds[2] - pNode->worldBounds[0]), (float)udMag3(pNode->worldBounds[6] - pNode->worldBounds[0]));
+  udFloat2 tileWorldSize = udFloat2::create((float)udMag3(pNode->worldBounds[vcQuadTreeNodeVertexResolution - 1] - pNode->worldBounds[0]), (float)udMag3(pNode->worldBounds[vcQuadTreeNodeVertexResolution * (vcQuadTreeNodeVertexResolution - 1)] - pNode->worldBounds[0]));
 
   float stepSize = 1.0f + (pNode->slippyPosition.z >= 12 ? (pNode->slippyPosition.z - 11) : 0.0f); // TODO: At lower levels blocky artefacts appear, so 'smudge'
   udFloat2 stepOffset = udFloat2::create(stepSize / pNode->normalInfo.data.width, stepSize / pNode->normalInfo.data.height);
@@ -796,6 +802,9 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, udWorkerPool *pW
   pTileRenderer->cache.keepLoading = true;
   pTileRenderer->cache.tileLoadList.Init(256);
 
+  for (int i = 0; i < vcMaxTileLayerCount; ++i)
+    pTileRenderer->renderLists[i].Init(128);
+
   for (size_t i = 0; i < udLengthOf(pTileRenderer->cache.pThreads); ++i)
     UD_ERROR_CHECK(udThread_Create(&pTileRenderer->cache.pThreads[i], vcTileRenderer_LoadThread, pTileRenderer));
 
@@ -862,6 +871,9 @@ udResult vcTileRenderer_Destroy(vcTileRenderer **ppTileRenderer)
   vcTexture_Destroy(&pTileRenderer->pEmptyTileTexture);
   vcTexture_Destroy(&pTileRenderer->pEmptyDemTileTexture);
   vcTexture_Destroy(&pTileRenderer->pEmptyNormalTexture);
+
+  for (int i = 0; i < vcMaxTileLayerCount; ++i)
+    pTileRenderer->renderLists[i].Deinit();
 
   vcQuadTree_Destroy(&(*ppTileRenderer)->quadTree);
   udFree(*ppTileRenderer);
@@ -1178,13 +1190,21 @@ void vcTileRenderer_DrawNode(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNod
     pNormalTexture = pTileRenderer->pEmptyNormalTexture;
   }
 
-  for (int t = 0; t < TileVertexControlPointRes * TileVertexControlPointRes; ++t)
+  for (int t = 0; t < vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution; ++t)
   {
     udDouble3 mapHeightOffset = pNode->worldNormals[t] * udDouble3::create(pTileRenderer->pSettings->maptiles.layers[layer].mapHeight);
-    udFloat4 eyeSpacePosition = udFloat4::create(view * udDouble4::create(pNode->worldBounds[t] + mapHeightOffset, 1.0));
-    pShader->everyObject.eyePositions[t] = eyeSpacePosition;
+    udDouble3 worldPos = pNode->worldBounds[t] + mapHeightOffset;
+    udDouble4 eyePosition = view * udDouble4::create(worldPos, 1.0);
+    udDouble3 normal = pNode->worldNormals[t];
+    if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
+      normal = udNormalize(worldPos);
 
-    pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(pNode->worldNormals[t]), 0.0f);
+    pShader->everyObject.eyePositions[t] = udFloat4::create(eyePosition);
+
+    // store the distance in the here (this will be used to generate the globe)
+    pShader->everyObject.eyePositions[t].w = (float)udMag3(worldPos);
+
+    pShader->everyObject.worldNormals[t] = udFloat4::create(udFloat3::create(normal), 0.0f);
     pShader->everyObject.worldBitangents[t] = udFloat4::create(udFloat3::create(pNode->worldBitangents[t]), 0.0f);
   }
 
@@ -1263,7 +1283,29 @@ void vcTileRenderer_DrapeDEM(vcQuadTreeNode *pChild, vcQuadTreeNode *pAncestor)
   }
 }
 
-void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, vcTileShader *pShader, const udDouble4x4 &view, int layer, vcQuadTreeNode *pBestTexturedAncestor, vcQuadTreeNode *pBestDemAncestor)
+// Sorted by distance to camera
+void vcTileRenderer_InsertRenderListSorted(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, int layer)
+{
+  double distToCameraSqr = udMagSq3(pNode->tileCenter - pTileRenderer->cameraPosition);
+  vcTileRenderer::vcSortedNode queuedNode = { pNode, distToCameraSqr };
+
+  udChunkedArray<vcTileRenderer::vcSortedNode> *pRenderList = &pTileRenderer->renderLists[layer];
+
+  size_t insertIndex = 0;
+  for (; insertIndex < pRenderList->length; ++insertIndex)
+  {
+    if (distToCameraSqr < pRenderList->GetElement(insertIndex)->distToCameraSqr)
+    {
+      pRenderList->Insert(insertIndex, &queuedNode);
+      break;
+    }
+  }
+
+  if (insertIndex == pRenderList->length)
+    pRenderList->PushBack(queuedNode);
+}
+
+void vcTileRenderer_RecursiveBuildRenderList(vcTileRenderer *pTileRenderer, vcQuadTreeNode *pNode, int layer, vcQuadTreeNode *pBestTexturedAncestor, vcQuadTreeNode *pBestDemAncestor)
 {
   if (layer == 0)
   {
@@ -1271,7 +1313,6 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
 
     // recalculate visibility here
     pNode->visible = vcQuadTree_IsNodeVisible(&pTileRenderer->quadTree, pNode);
-    pTileRenderer->quadTree.metaData.visibleNodeCount++;
 
     pNode->demInfo.drawInfo.pTexture = nullptr;
     pNode->normalInfo.drawInfo.pTexture = nullptr;
@@ -1279,6 +1320,8 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
 
   if (!pNode->visible && pNode->slippyPosition.z >= vcQuadTree_MinimumDescendLayer)
     return;
+
+  pTileRenderer->quadTree.metaData.visibleNodeCount++;
 
   // Progressively get the closest ancestors available data for draping (if own data doesn't exist)
   pNode->pPayloads[layer].drawInfo.pTexture = nullptr;
@@ -1300,7 +1343,7 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
     for (int c = 0; c < 4; ++c)
     {
       vcQuadTreeNode *pChildNode = &pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c];
-      vcTileRenderer_RecursiveRenderNodes(pTileRenderer, pChildNode, pShader, view, layer, pBestTexturedAncestor, pBestDemAncestor);
+      vcTileRenderer_RecursiveBuildRenderList(pTileRenderer, pChildNode, layer, pBestTexturedAncestor, pBestDemAncestor);
 
       pNode->completeRender = pNode->completeRender && pChildNode->completeRender;
     }
@@ -1314,18 +1357,29 @@ void vcTileRenderer_RecursiveRenderNodes(vcTileRenderer *pTileRenderer, vcQuadTr
   if (layer == 0)
     vcTileRenderer_DrapeDEM(pNode, pBestDemAncestor);
 
-  // Lookup mesh variant for rendering
-  size_t meshIndex = 0;
-  for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
-  {
-    if (MeshConfigurations[mc] == pNode->neighbours)
-    {
-      meshIndex = mc;
-      break;
-    }
-  }
+  vcTileRenderer_InsertRenderListSorted(pTileRenderer, pNode, layer);
+}
 
-  vcTileRenderer_DrawNode(pTileRenderer, pNode, pShader, view, layer, pTileRenderer->pTileMeshes[meshIndex]);
+void vcTileRenderer_DrawRenderList(vcTileRenderer *pTileRenderer, vcTileShader *pShader, const udDouble4x4 &view, int layer)
+{
+  udChunkedArray<vcTileRenderer::vcSortedNode> *pRenderList = &pTileRenderer->renderLists[layer];
+  for (size_t i = 0; i < pRenderList->length; ++i)
+  {
+    vcQuadTreeNode *pNode = pRenderList->GetElement(i)->pNode;
+
+    // Lookup mesh variant for rendering
+    size_t meshIndex = 0;
+    for (size_t mc = 0; mc < udLengthOf(MeshConfigurations); ++mc)
+    {
+      if (MeshConfigurations[mc] == pNode->neighbours)
+      {
+        meshIndex = mc;
+        break;
+      }
+    }
+
+    vcTileRenderer_DrawNode(pTileRenderer, pNode, pShader, view, layer, pTileRenderer->pTileMeshes[meshIndex]);
+  }
 }
 
 void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, const float encodedObjectId)
@@ -1337,7 +1391,14 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   pTileRenderer->quadTree.metaData.visibleNodeCount = 0;
   pTileRenderer->quadTree.metaData.nodeRenderCount = 0;
 
-  float tileSkirtLength = 3000000.0f; // TODO: Read actual planet radius
+  // Build render list
+  for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
+  {
+    pTileRenderer->renderLists[layer].Clear();
+    vcTileRenderer_RecursiveBuildRenderList(pTileRenderer, pRootNode, layer, nullptr, nullptr);
+  }
+
+  float tileSkirtLength = 6378137.0f; // TODO: Read actual planet radius
 
   for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
   {
@@ -1384,10 +1445,11 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
       tileSkirtLength = 0.0f;
     }
 
-    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, 0, 0);
+    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF ? 1.0f : 0.0f, 0);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
-    vcTileRenderer_RecursiveRenderNodes(pTileRenderer, pRootNode, pShader, view, layer, nullptr, nullptr);
+    // render nodes
+    vcTileRenderer_DrawRenderList(pTileRenderer, pShader, view, layer);
   }
 
   vcGLState_SetViewportDepthRange(0.0f, 1.0f);
