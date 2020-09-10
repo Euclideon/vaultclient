@@ -33,4 +33,6 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, const char *pT
 
 void vcIGSW_verticalSplitter(const char* label, const udFloat2& size, const int currentColumnIndex, float currentColumnWidth, float leftColumnWidth);
 
+void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText);
+
 #endif // vcImGuiSimpleWidgets_h__

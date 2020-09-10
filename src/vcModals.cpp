@@ -1160,7 +1160,7 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_ProjectSettings))
     ImGui::OpenPopup(vcString::Get("menuProjectSettingsTitle"));
 
-  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(1200, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectSettingsTitle")))
   {
     static char information[1024] = {};
@@ -1181,8 +1181,16 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
 
     ImGui::InputText(vcString::Get("menuProjectName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
 
+    ImGui::Columns(2);
+
     ImVec2 size = ImGui::GetWindowSize();
     ImGui::InputTextMultiline(vcString::Get("menuProjectInfo"), information, udLengthOf(information), ImVec2(0, size.y - 117));
+
+    ImGui::NextColumn();
+
+    vcIGSW_Markdown(pProgramState, information);
+
+    ImGui::Columns(1);
 
     ImGui::Checkbox(vcString::Get("menuProjectSlideshow"), &pProgramState->activeProject.slideshow);
 
