@@ -32,7 +32,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_view;
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
-  float4 u_objectInfo; // objectId.x, earthRadius.y, isGlobeRendering.z
+  float4 u_objectInfo; // objectId.x, tileSkirtLength.y, isGlobeRendering.z
   float4 u_uvOffsetScale;
   float4 u_demUVOffsetScale;
   float4 u_worldNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
@@ -73,9 +73,10 @@ float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], flo
 
 float demHeight(float2 uv)
 {
-  float2 tileHeightSample = demTexture.SampleLevel( demSampler, uv, 0 ).xy;
+  //float2 tileHeightSample = demTexture.SampleLevel( demSampler, uv, 0 ).xy;
   // Reconstruct uint16 in float space and then convert back to int16 in float space
-  return ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
+  //return ((tileHeightSample.x * 255) + (tileHeightSample.y * 255 * 256)) - 32768.0;
+  return demTexture.SampleLevel( demSampler, uv, 0 ).x;
 }
 
 PS_INPUT main(VS_INPUT input)
@@ -92,7 +93,7 @@ PS_INPUT main(VS_INPUT input)
   float tileHeight = demHeight(demUV);
   
   // add a 'skirt' to the tile edge
-  tileHeight += input.pos.z * (u_objectInfo.y * 0.5);
+  tileHeight += input.pos.z * u_objectInfo.y;
 
   // interpolate normal and radius separately
   float interpolatedEarthRadius = eyePos.w; // stored here

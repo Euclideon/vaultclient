@@ -16,6 +16,7 @@
 #include "udStringUtil.h"
 
 #include "stb_image.h"
+#include "Lerc1Decode/CntZImage.h"
 
 // Debug tiles with colour information
 #define VISUALIZE_DEBUG_TILES 0
@@ -27,10 +28,10 @@ static const int TileFailedRetryCount = 5;
 // Frequency of how often to update quad tree
 static const float QuadTreeUpdateFrequencySec = 0.5f;
 
-// TODO: This is a temporary solution, where we know the dem data stops at level 13.
-#define HACK_DEM_LEVEL 13
-const char *pDemTileServerAddress = "https://az.vault.euclideon.com/dem/%d/%d/%d.png";
-udUUID demTileServerAddresUUID = {};
+// TODO: This is a temporary solution, where we know the dem data stops at level X.
+const int MaxDemLevels = 16;
+const char *pDemTileServerAddress = "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer/tile/%d/%d/%d";
+udUUID DemTileServerAddresUUID= {};
 
 enum
 {
@@ -241,18 +242,51 @@ udResult vcTileRenderer_HandleTileDownload(vcNodeRenderInfo *pRenderNodeInfo, co
   UD_ERROR_CHECK(udFile_Load(pTileURL, &pFileData, &fileLen));
   UD_ERROR_IF(fileLen == 0, udR_InternalError);
 
-  pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-  UD_ERROR_NULL(pData, udR_InternalError);
+  if (udStrBeginsWithi((const char*)pFileData, "CntZImage"))
+  {
+    // 'null' tile
+    UD_ERROR_IF(fileLen <= 67, udR_ObjectNotFound);
+
+    LercNS::CntZImage image;
+    LercNS::Byte *pBytes = (LercNS::Byte*)pFileData;
+
+    UD_ERROR_IF(!image.read(&pBytes, 9999.0), udR_ImageLoadFailure);
+    UD_ERROR_IF(image.getPixel(0, 0).cnt == 0, udR_ImageLoadFailure);
+
+    width = image.getWidth();
+    height = image.getHeight();
+
+    float *pDataF = udAllocType(float, width * height, udAF_Zero);
+    UD_ERROR_NULL(pDataF, udR_MemoryAllocationFailure);
+
+    for (int y = 0; y < height; ++y)
+    {
+      for (int x = 0; x < width; ++x)
+      {
+        LercNS::CntZ pixel =  image.getPixel(y, x);
+        float demHeight = pixel.z * pixel.cnt;
+        pDataF[y * width + x] = demHeight;
+      }
+    }
+
+    pRenderNodeInfo->data.pData = pDataF;
+  }
+  else // assume its a standard image format
+  {
+    pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
+    UD_ERROR_NULL(pData, udR_InternalError);
+
+    pRenderNodeInfo->data.pData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
+    stbi_image_free(pData);
+  }
 
   pRenderNodeInfo->data.width = width;
   pRenderNodeInfo->data.height = height;
-  pRenderNodeInfo->data.pData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
 
-  stbi_image_free(pData);
   result = udR_Success;
 epilogue:
 
-  if (downloadingFromServer)
+  if (downloadingFromServer && result == udR_Success)
     vcTileRenderer_CacheDataToDisk(pLocalURL, pFileData, fileLen);
 
   udFree(pFileData);
@@ -295,30 +329,17 @@ void vcTileRenderer_GenerateDEMAndNormalMaps(vcQuadTreeNode *pNode, void *pRawDe
   pNode->demHeightsCopySize.x = pNode->demInfo.data.width;
   pNode->demHeightsCopySize.y = pNode->demInfo.data.height;
 
-  pNode->pDemHeightsCopy = udAllocType(int16_t, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_Zero);
-
-  uint8_t *pDemPixels = udAllocType(uint8_t, pNode->demInfo.data.width * pNode->demInfo.data.height * 2, udAF_Zero);
+  pNode->pDemHeightsCopy = udAllocType(float, pNode->demInfo.data.width * pNode->demInfo.data.height, udAF_None);
   for (int h = 0; h < pNode->demInfo.data.height; ++h)
   {
     for (int w = 0; w < pNode->demInfo.data.width; ++w)
     {
       int index = h * pNode->demInfo.data.width + w;
-      uint32_t p = ((uint32_t*)pRawDemPixels)[index];
-      uint8_t r = uint8_t((p & 0xff000000) >> 24);
-      uint8_t g = uint8_t((p & 0x00ff0000) >> 16);
+      float height = ((float*)pRawDemPixels)[index];
 
-      int16_t height = r | (g << 8);
-
-      if (height == -32768) // TODO: invalid sentinel value
-        height = 0;
-
-      pNode->demMinMax[0] = udMin(pNode->demMinMax.x, (int32_t)height);
-      pNode->demMinMax[1] = udMax(pNode->demMinMax.y, (int32_t)height);
+      pNode->demMinMax[0] = udMin(pNode->demMinMax.x, height);
+      pNode->demMinMax[1] = udMax(pNode->demMinMax.y, height);
       pNode->pDemHeightsCopy[index] = height;
-
-      pDemPixels[index * 2 + 0] = r;
-      // Convert from [-32k, 32k] to [0, 65k]
-      pDemPixels[index * 2 + 1] = (g ^ 0x80);
     }
   }
 
@@ -329,7 +350,7 @@ void vcTileRenderer_GenerateDEMAndNormalMaps(vcQuadTreeNode *pNode, void *pRawDe
   // Calculate the horizontal region distances covered by this node
   udFloat2 tileWorldSize = udFloat2::create((float)udMag3(pNode->worldBounds[vcQuadTreeNodeVertexResolution - 1] - pNode->worldBounds[0]), (float)udMag3(pNode->worldBounds[vcQuadTreeNodeVertexResolution * (vcQuadTreeNodeVertexResolution - 1)] - pNode->worldBounds[0]));
 
-  float stepSize = 1.0f + (pNode->slippyPosition.z >= 12 ? (pNode->slippyPosition.z - 11) : 0.0f); // TODO: At lower levels blocky artefacts appear, so 'smudge'
+  float stepSize = 1.0f;
   udFloat2 stepOffset = udFloat2::create(stepSize / pNode->normalInfo.data.width, stepSize / pNode->normalInfo.data.height);
 
   udFloat2 offsets[] =
@@ -374,7 +395,7 @@ void vcTileRenderer_GenerateDEMAndNormalMaps(vcQuadTreeNode *pNode, void *pRawDe
   }
 
   // TODO: (AB#1751)
-  pNode->demInfo.data.pData = pDemPixels;
+  pNode->demInfo.data.pData = pRawDemPixels;
   pNode->normalInfo.data.pData = pNormalPixels;
 }
 
@@ -465,8 +486,9 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       // process dem and/or colour request
       if (doDemRequest)
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
-        udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        // note: z, y, x for this server
+        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(DemTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.y, pBestNode->slippyPosition.x);
+        udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.y, pBestNode->slippyPosition.x);
 
         // allow continue on failure
         udResult demResult = vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL);
@@ -474,18 +496,12 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
         // Decode DEM and generate normals
         if (demResult == udR_Success)
         {
-          // TODO: (AB#1751)
-          void *pRawDemPixels = pBestNode->demInfo.data.pData;
-
-          vcTileRenderer_GenerateDEMAndNormalMaps(pBestNode, pRawDemPixels);
+          vcTileRenderer_GenerateDEMAndNormalMaps(pBestNode, pBestNode->demInfo.data.pData);
           pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Downloaded);
-
-          // TODO: (AB#1751)
-          udFree(pRawDemPixels);
         }
         else
         {
-          pBestNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_Failed);
+          pBestNode->demInfo.loadStatus.Set((demResult == udR_ObjectNotFound) ? vcNodeRenderInfo::vcTLS_NotAvailable : vcNodeRenderInfo::vcTLS_Failed);
           pBestNode->demInfo.timeoutTime = 0.0f;
           ++pBestNode->demInfo.loadRetryCount;
         }
@@ -792,7 +808,7 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, udWorkerPool *pW
 
   pTileRenderer->generateTreeUpdateTimer = QuadTreeUpdateFrequencySec;
 
-  UD_ERROR_CHECK(udUUID_GenerateFromString(&demTileServerAddresUUID, pDemTileServerAddress));
+  UD_ERROR_CHECK(udUUID_GenerateFromString(&DemTileServerAddresUUID, pDemTileServerAddress));
 
   vcQuadTree_Create(&pTileRenderer->quadTree, pSettings);
 
@@ -968,11 +984,19 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 {
   vcTileRenderer::vcTileCache *pTileCache = &pTileRenderer->cache;
   bool queueTile = (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_None);
-  if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Failed && pNode->demInfo.loadRetryCount < TileFailedRetryCount)
+  if (pNode->demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_Failed)
   {
-    pNode->demInfo.timeoutTime += pTileRenderer->frameDeltaTime;
-    if (pNode->demInfo.timeoutTime >= TileTimeoutRetrySec)
-      queueTile = true;
+    if (pNode->demInfo.loadRetryCount < TileFailedRetryCount)
+    {
+      pNode->demInfo.timeoutTime += pTileRenderer->frameDeltaTime;
+      if (pNode->demInfo.timeoutTime >= TileTimeoutRetrySec)
+        queueTile = true;
+    }
+    else
+    {
+      // flag it to allow parent attempt at getting it
+      pNode->demInfo.loadStatus.Set(vcNodeRenderInfo::vcTLS_NotAvailable);
+    }
   }
 
   if (queueTile)
@@ -996,7 +1020,7 @@ void vcTileRenderer_UpdateTileDEMTexture(vcTileRenderer *pTileRenderer, vcQuadTr
 
     pNode->demInfo.tryLoad = false;
 
-    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->demInfo.data.pData, vcTextureFormat_RG8, vcTFM_Linear, false, vcTWM_Clamp);
+    vcTexture_CreateAdv(&pNode->demInfo.data.pTexture, vcTextureType_Texture2D, pNode->demInfo.data.width, pNode->demInfo.data.height, 1, pNode->demInfo.data.pData, vcTextureFormat_R32F, vcTFM_Linear, false, vcTWM_Clamp);
     udFree(pNode->demInfo.data.pData);
 
     vcTexture_CreateAdv(&pNode->normalInfo.data.pTexture, vcTextureType_Texture2D, pNode->normalInfo.data.width, pNode->normalInfo.data.height, 1, pNode->normalInfo.data.pData, vcTextureFormat_RGBA8, vcTFM_Linear, false, vcTWM_Clamp);
@@ -1087,14 +1111,28 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
     }
   }
 
-  // hacky - looking for specific DEM levels
-  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->slippyPosition.z <= HACK_DEM_LEVEL)
+  if (pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_Loaded && pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_NotAvailable &&
+      pTileRenderer->pSettings->maptiles.demEnabled && pNode->slippyPosition.z <= MaxDemLevels)
   {
-    bool demLeaf = vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode) || (pNode->slippyPosition.z == HACK_DEM_LEVEL);
-    if (demLeaf && pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_Loaded)
+    // If child, or if we're at the DEM limit
+    bool loadDem = vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode) || (pNode->slippyPosition.z == MaxDemLevels);
+
+    // However we may still want to load this tiles DEM - if a child was 'not available'.
+    if (!loadDem && !vcQuadTree_IsLeafNode(pNode))
     {
-      vcTileRenderer_UpdateTileDEMTexture(pTileRenderer, pNode, pUploadBudgetRemainingMS);
+      for (int c = 0; c < 4; ++c)
+      {
+        if (pTileRenderer->quadTree.nodes.pPool[pNode->childBlockIndex + c].demInfo.loadStatus.Get() == vcNodeRenderInfo::vcTLS_NotAvailable)
+        {
+          loadDem = true;
+          break;
+        }
+      }
     }
+
+    if (loadDem)
+      vcTileRenderer_UpdateTileDEMTexture(pTileRenderer, pNode, pUploadBudgetRemainingMS);
+
   }
 }
 

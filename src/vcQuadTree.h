@@ -31,7 +31,12 @@ struct vcNodeRenderInfo
     vcTLS_Downloaded,
     vcTLS_Loaded,
 
+    // Failed tiles will retry a certain number of times - eventually becoming `vcTLS_NotAvailable`.
     vcTLS_Failed,
+
+    // Certain servers can respond with 'null' data.
+    // If parent sees any child with this - it will attempt to load it itself.
+    vcTLS_NotAvailable,
   };
 
   udInterlockedInt32 loadStatus;
@@ -91,11 +96,11 @@ struct vcQuadTreeNode
     vcDemBoundsState_Inherited, // passed from child or/parent
     vcDemBoundsState_Absolute, // this node has downloaded its dem data
   } demBoundsState;
-  udInt2 demMinMax;  // in DEM units. For calculating AABB of node
-  udInt2 activeDemMinMax; // DEM can turned off / on, so cache this state
+  udFloat2 demMinMax;  // in DEM units. For calculating AABB of node
+  udFloat2 activeDemMinMax; // DEM can turned off / on, so cache this state
 
   // cache fine DEM data on CPU.
-  int16_t *pDemHeightsCopy;
+  float *pDemHeightsCopy;
   udInt2 demHeightsCopySize;
 
   // node payloads
@@ -171,20 +176,7 @@ inline bool vcQuadTree_IsLeafNode(const vcQuadTreeNode *pNode)
   return pNode->childMask == 0;
 }
 
-inline bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
-{
-  if (vcQuadTree_IsLeafNode(pNode))
-    return true;
-
-  for (int c = 0; c < 4; ++c)
-  {
-    if (pQuadTree->nodes.pPool[pNode->childBlockIndex + c].touched)
-      return false;
-  }
-
-  return true;
-}
-
+bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode);
 void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode);
 
 vcQuadTreeNode* vcQuadTree_GetLeafNodeFromCartesian(vcQuadTree *pQuadTree, const udDouble3 &point);
