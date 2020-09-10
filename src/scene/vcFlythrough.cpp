@@ -60,11 +60,11 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderDa
   if (m_state == vcFTS_Playing || m_state == vcFTS_Recording)
     m_timePosition += pProgramState->deltaTime;
 
-  for (int i = 0; i < m_flightPoints.length; ++i)
+  for (size_t i = 0; i < m_flightPoints.length; ++i)
   {
     if (m_flightPoints[i].time > m_timePosition)
     {
-      offset = i;
+      offset = (int)i;
       break;
     }
   }
@@ -90,7 +90,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderDa
     {
       m_flightPoints.Insert(offset, &newFlightPoint);
 
-      for (int i = offset + 1; i < m_flightPoints.length; ++i)
+      for (size_t i = offset + 1; i < m_flightPoints.length; ++i)
         m_flightPoints[i].time += pProgramState->deltaTime;
     }
   }
@@ -299,7 +299,7 @@ void vcFlythrough::SetCameraPosition(vcState *pProgramState)
 
 void vcFlythrough::UpdateCameraPosition(vcState *pProgramState)
 {
-  for (int i = 0; i < m_flightPoints.length; ++i)
+  for (size_t i = 0; i < m_flightPoints.length; ++i)
   {
     if (m_flightPoints[i].time > m_timePosition)
     {
