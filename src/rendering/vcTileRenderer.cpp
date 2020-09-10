@@ -110,6 +110,7 @@ struct vcTileRenderer
   vcTexture *pEmptyNormalTexture;
 
   udDouble3 cameraPosition;
+  double cameraDistanceToSurface;
   bool cameraIsUnderMapSurface;
 
   struct vcSortedNode
@@ -1138,23 +1139,26 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer, bool *pIs
   }
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const udDouble3 &cameraWorldPos, const bool cameraIsUnderMapSurface, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix, bool *pIsLoading)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const vcCamera *pCamera, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix, bool *pIsLoading)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
-  pTileRenderer->cameraPosition = cameraWorldPos;
-  pTileRenderer->cameraIsUnderMapSurface = cameraIsUnderMapSurface;
+  pTileRenderer->cameraPosition = pCamera->position;
+  pTileRenderer->cameraIsUnderMapSurface = pCamera->cameraIsUnderSurface;
+  pTileRenderer->cameraDistanceToSurface = 0.0;
+  if (udMagSq3(pCamera->position - cameraZeroAltitude) > 0)
+    pTileRenderer->cameraDistanceToSurface = udMag3(pCamera->position - cameraZeroAltitude);
 
   vcQuadTreeViewInfo viewInfo =
   {
     pGeozone,
     slippyCoords,
-    cameraWorldPos,
+    pCamera->position,
     cameraZeroAltitude,
     viewProjectionMatrix
   };
 
-  vcQuadTree_UpdateView(&pTileRenderer->quadTree, viewInfo.cameraPosition, viewInfo.viewProjectionMatrix);
+  vcQuadTree_UpdateView(&pTileRenderer->quadTree, pCamera, viewInfo.viewProjectionMatrix);
 
   pTileRenderer->generateTreeUpdateTimer += pTileRenderer->frameDeltaTime;
   if (pTileRenderer->generateTreeUpdateTimer >= QuadTreeUpdateFrequencySec)
@@ -1445,7 +1449,14 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
       tileSkirtLength = 0.0f;
     }
 
-    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF ? 1.0f : 0.0f, 0);
+    // Because of limitations of float32, morph the terrain into a globe shape, using height as a T (this avoids 'wobbly' terrain)
+    static const double minMorphHeightMeters = 2000.0;
+    static const double maxMorphHeightMeters = 30000.0;
+    float globeMorphDelta = 0.0f;
+    if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
+      globeMorphDelta = (float)udClamp((pTileRenderer->cameraDistanceToSurface - minMorphHeightMeters) / (maxMorphHeightMeters - minMorphHeightMeters), 0.0, 1.0);
+
+    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, globeMorphDelta, 0);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
     // render nodes

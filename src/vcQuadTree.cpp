@@ -241,12 +241,12 @@ void vcQuadTree_InitBlock(vcQuadTree *pQuadTree, uint32_t blockIndex, const udIn
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
 {
   // camera inside bounds test
-  if (pQuadTree->cameraWorldPosition.x >= pNode->tileCenter.x - pNode->tileExtents.x &&
-    pQuadTree->cameraWorldPosition.x <= pNode->tileCenter.x + pNode->tileExtents.x &&
-    pQuadTree->cameraWorldPosition.y >= pNode->tileCenter.y - pNode->tileExtents.y &&
-    pQuadTree->cameraWorldPosition.y <= pNode->tileCenter.y + pNode->tileExtents.y &&
-    pQuadTree->cameraWorldPosition.z >= pNode->tileCenter.z - pNode->tileExtents.z &&
-    pQuadTree->cameraWorldPosition.z <= pNode->tileCenter.z + pNode->tileExtents.z)
+  if (pQuadTree->pCamera->position.x >= pNode->tileCenter.x - pNode->tileExtents.x &&
+    pQuadTree->pCamera->position.x <= pNode->tileCenter.x + pNode->tileExtents.x &&
+    pQuadTree->pCamera->position.y >= pNode->tileCenter.y - pNode->tileExtents.y &&
+    pQuadTree->pCamera->position.y <= pNode->tileCenter.y + pNode->tileExtents.y &&
+    pQuadTree->pCamera->position.z >= pNode->tileCenter.z - pNode->tileExtents.z &&
+    pQuadTree->pCamera->position.z <= pNode->tileCenter.z + pNode->tileExtents.z)
   {
     return true;
   }
@@ -258,11 +258,18 @@ bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode 
     return false;
 
   // Be a bit more forgiving with higher nodes (account for tessellation of spherical surfaces)
-  // This fixes horizon culling issues. 0.05 was chosen by trial & error
-  float threshold = 0.05f * udMin(1.0f, 1.0f - ((pQuadTree->rootSlippyCoords.z + pNode->slippyPosition.z) / 19.0f));
+  // This fixes horizon culling issues. '0.05' was chosen by trial & error
+  float threshold = 0.05f * udClamp(1.0f - ((pQuadTree->rootSlippyCoords.z + pNode->slippyPosition.z) / 19.0f), 0.0f, 1.0f);
+  float windingFlip = pQuadTree->pCamera->cameraIsUnderSurface ? -1.0f : 1.0f;
+
+  // middle
+  if (windingFlip * udDot3(udNormalize3(pNode->tileCenter - pQuadTree->pCamera->position), pNode->tileNormal) < threshold)
+    return true;
+
+  // corners
   for (int i = 0; i < vcQuadTreeNodeVertexResolution * vcQuadTreeNodeVertexResolution; ++i)
   {
-    if (udDot3(udNormalize3(pNode->worldBounds[i] - pQuadTree->cameraWorldPosition), pNode->worldNormals[i]) < threshold)
+    if (windingFlip * udDot3(udNormalize3(pNode->worldBounds[i] - pQuadTree->pCamera->position), pNode->worldNormals[i]) < threshold)
       return true;
   }
 
@@ -300,7 +307,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
   }
 
   udInt2 pViewSlippyCoords = {};
-  vcGIS_LocalToSlippy(pQuadTree->geozone, &pViewSlippyCoords, pQuadTree->cameraWorldPosition, pQuadTree->rootSlippyCoords.z + currentDepth + 1);
+  vcGIS_LocalToSlippy(pQuadTree->geozone, &pViewSlippyCoords, pQuadTree->pCamera->position, pQuadTree->rootSlippyCoords.z + currentDepth + 1);
 
   udInt2 mortenIndices[] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
 
@@ -326,7 +333,7 @@ void vcQuadTree_RecurseGenerateTree(vcQuadTree *pQuadTree, uint32_t currentNodeI
 
     int32_t slippyManhattanDist = udAbs(pViewSlippyCoords.x - pChildNode->slippyPosition.x) + udAbs(pViewSlippyCoords.y - pChildNode->slippyPosition.y);
     if (slippyManhattanDist != 0)
-      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->cameraWorldPosition, pChildNode->tileNormal * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.layers[0].mapHeight));
+      distanceToQuadrant = vcQuadTree_PointToRectDistance(pChildNode->worldBounds, pQuadTree->pCamera->position, pChildNode->tileNormal * udDouble3::create(pChildNode->activeDemMinMax[1] + pQuadTree->pSettings->maptiles.layers[0].mapHeight));
 
     bool nodeIsVisible = vcQuadTree_IsNodeVisible(pQuadTree, pChildNode);
     int totalDepth = pQuadTree->rootSlippyCoords.z + currentDepth;
@@ -525,9 +532,9 @@ void vcQuadTree_ConditionalReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoo
     vcQuadTree_CompleteReroot(pQuadTree, slippyCoords);
 }
 
-void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPosition, const udDouble4x4 &viewProjectionMatrix)
+void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const vcCamera *pCamera, const udDouble4x4 &viewProjectionMatrix)
 {
-  pQuadTree->cameraWorldPosition = cameraPosition;
+  pQuadTree->pCamera = pCamera;
 
   // extract frustum planes
   udDouble4x4 transposedViewProjection = udTranspose(viewProjectionMatrix);
@@ -592,7 +599,7 @@ void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo
   pQuadTree->metaData.leafNodeCount = 0;
 
   pQuadTree->rootSlippyCoords = viewInfo.slippyCoords;
-  pQuadTree->cameraDistanceZeroAltitude = udMag3(pQuadTree->cameraWorldPosition - viewInfo.cameraPositionZeroAltitude);
+  pQuadTree->cameraDistanceZeroAltitude = udMag3(pQuadTree->pCamera->position - viewInfo.cameraPositionZeroAltitude);
 
   pQuadTree->metaData.maxTreeDepth = 0;
   for (int i = 0; i < pQuadTree->pSettings->maptiles.activeLayerCount; ++i)

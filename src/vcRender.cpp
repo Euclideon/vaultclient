@@ -934,7 +934,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
         slippyCorners[i] /= 2;
     }
 
-    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), localCamPos, pProgramState->pActiveViewport->camera.cameraIsUnderSurface, pRenderContext->cameraZeroAltitude, viewProjection, &pProgramState->isStreaming);
+    vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), &pProgramState->pActiveViewport->camera, pRenderContext->cameraZeroAltitude, viewProjection, &pProgramState->isStreaming);
 
     float terrainId = vcRender_EncodeModelId(vcObjectId_Terrain);
     vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->pActiveViewport->camera.matrices.view, pProgramState->pActiveViewport->camera.matrices.projection, pProgramState->pActiveViewport->camera.cameraIsUnderSurface, terrainId);
