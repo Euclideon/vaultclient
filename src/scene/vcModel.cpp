@@ -595,6 +595,9 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
 
 void vcModel::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
 {
+  if (m_pPointCloud == nullptr)
+    return; // Nothing else we can do yet
+
   if (vcSettingsUI_VisualizationSettings(&m_visualization, false, &m_pointCloudHeader.attributes))
   {
     udProjectNode_SetMetadataInt(m_pNode, "visualization.mode", m_visualization.mode);
