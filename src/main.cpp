@@ -2239,6 +2239,26 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       }
     }
 
+    if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFlythrough"), nullptr, nullptr))
+    {
+      udProjectNode *pNode = nullptr;
+      if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "FlyPath", vcString::Get("flythroughDefaultName"), nullptr, nullptr) != udE_Success)
+      {
+        vcState::ErrorItem projectError;
+        projectError.source = vcES_ProjectChange;
+        projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFlythrough"));
+        projectError.resultCode = udR_Failure_;
+
+        pProgramState->errorItems.PushBack(projectError);
+
+        vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+      }
+      else
+      {
+        udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+      }
+    }
+
     ImGui::EndPopup();
   }
 
@@ -2382,9 +2402,12 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 #endif
 
   // TODO: Screenshot only viewport 0
-  if (pProgramState->settings.screenshot.taking && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)
+  if ((pProgramState->settings.screenshot.taking || pProgramState->exportVideo) && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)
   {
-    pProgramState->settings.viewports[0].resolution = pProgramState->settings.screenshot.resolution;
+    if (pProgramState->exportVideo)
+      pProgramState->settings.viewports[0].resolution = udUInt2::create(3840, 2160);
+    else
+      pProgramState->settings.viewports[0].resolution = pProgramState->settings.screenshot.resolution;
 
     vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
@@ -2426,7 +2449,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       pProgramState->pActiveViewport = &pProgramState->pViewports[viewportIndex];
 
       // TODO: Screenshot only viewport 0
-      if ((viewportIndex != 0 || !pProgramState->settings.screenshot.taking) && (pProgramState->settings.viewports[viewportIndex].resolution.x != viewportResolution.x || pProgramState->settings.viewports[viewportIndex].resolution.y != viewportResolution.y)) //Resize buffers
+      if ((viewportIndex != 0 || (!pProgramState->settings.screenshot.taking && !pProgramState->exportVideo)) && (pProgramState->settings.viewports[viewportIndex].resolution.x != viewportResolution.x || pProgramState->settings.viewports[viewportIndex].resolution.y != viewportResolution.y)) //Resize buffers
       {
         pProgramState->settings.viewports[viewportIndex].resolution = viewportResolution;
         vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, viewportResolution.x, viewportResolution.y);
@@ -2483,7 +2506,8 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       ImGui::EndChild();
 
       // TODO: Screenshot which viewport?
-      if (viewportIndex == 0 && pProgramState->settings.screenshot.taking)
+
+      if (viewportIndex == 0 && (pProgramState->settings.screenshot.taking || pProgramState->exportVideo))
         pProgramState->screenshot.pImage = renderData.pSceneTexture;
 
       bool useTool = (io.MouseDragMaxDistanceSqr[0] < (io.MouseDragThreshold * io.MouseDragThreshold)) && ImGui::IsMouseReleased(0) && ImGui::IsItemHovered();
