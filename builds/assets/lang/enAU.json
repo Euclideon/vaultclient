@@ -329,6 +329,7 @@
   "flythroughDefaultName": "Camera Path",
   "flythroughExport": "Export",
   "flythroughExportPath": "Export Path",
+  "flythroughExportFormat": "Export Format",
   "menuSystem": "System",
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
