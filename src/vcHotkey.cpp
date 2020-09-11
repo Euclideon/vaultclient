@@ -3,6 +3,7 @@
 #include "vcStrings.h"
 #include "vcStringFormat.h"
 #include "vcSettingsUI.h"
+#include "vcState.h"
 
 #include "udStringUtil.h"
 

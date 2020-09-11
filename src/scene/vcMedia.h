@@ -27,6 +27,7 @@ public:
   void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
   void HandleSceneEmbeddedUI(vcState *pProgramState);
   void HandleContextMenu(vcState *pProgramState);
+  vcMenuBarButtonIcon GetSceneExplorerIcon() override;
 
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);

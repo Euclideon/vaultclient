@@ -11,6 +11,7 @@
 #include "vcClassificationColours.h"
 #include "vcStringFormat.h"
 #include "vcHotkey.h"
+#include "vcState.h"
 
 #include "udConfig.h"
 

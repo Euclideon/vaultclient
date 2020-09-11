@@ -6,6 +6,8 @@
 
 enum vcMenuBarButtonIcon
 {
+  vcMBBI_None = -1,
+
   vcMBBI_Translate = 0,
   vcMBBI_Rotate = 1,
   vcMBBI_Scale = 2,

@@ -25,6 +25,7 @@ public:
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
   void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
   void HandleSceneEmbeddedUI(vcState *pProgramState);
+  vcMenuBarButtonIcon GetSceneExplorerIcon() override;
   void Cleanup(vcState *pProgramState);
   void ChangeProjection(const udGeoZone &newZone);
 
