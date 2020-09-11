@@ -403,6 +403,44 @@ void vcMain_MainLoop(vcState *pProgramState)
   if (ImGui::GetIO().WantSaveIniSettings)
     vcSettings_Save(&pProgramState->settings);
 
+  if (pProgramState->pFontTTFData != nullptr && ImGui::GetIO().Fonts->IsBuilt())
+  {
+    ImFont *fonts[] = { ImGui::GetDefaultFont(), pProgramState->pBigFont };
+
+    for (ImFont *pFont : fonts)
+    {
+      if (pFont == nullptr)
+        continue;
+
+      if (pFont->AreGlyphsMissing())
+      {
+        ImFontConfig fontCfg = ImFontConfig();
+        fontCfg.FontDataOwnedByAtlas = false;
+        fontCfg.MergeMode = true;
+        fontCfg.DstFont = pFont;
+
+        int len = pFont->MissingGlyphs().Size;
+
+        ImWchar *pMissingGlyphsRanges = udAllocType(ImWchar, len * 2 + 1, udAF_Zero);
+
+        for (int i = 0; i < len; ++i)
+        {
+          pMissingGlyphsRanges[i * 2 + 0] = pFont->MissingGlyphs()[i];
+          pMissingGlyphsRanges[i * 2 + 1] = pMissingGlyphsRanges[i * 2 + 0] + 1;
+          if (pMissingGlyphsRanges[i * 2] == 65535)
+            __debugbreak();
+        }
+
+        ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pProgramState->pFontTTFData, pProgramState->fontTTFDataLen, pFont->FontSize, &fontCfg, pMissingGlyphsRanges);
+
+        udFree(pMissingGlyphsRanges);
+
+        pFont->ResetMissingGlyphs();
+        break;
+      }
+    }
+  }
+
   if (pProgramState->finishedStartup)
     udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 8);
   else
@@ -895,11 +933,13 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
     pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, bigFontCharacterRanges);
   }
 
+  pLoadInfo->pProgramState->pFontTTFData = pLoadInfo->pData;
+  pLoadInfo->pProgramState->fontTTFDataLen = (int)pLoadInfo->dataLen;
+
   vcMain_AsyncLoad(pLoadInfo->pProgramState, "asset://assets/data/NotoSans-Italic.ttf", vcMain_LoadFontItalicsBoldMT);
   vcMain_AsyncLoad(pLoadInfo->pProgramState, "asset://assets/data/NotoSans-Bold.ttf", vcMain_LoadFontItalicsBoldMT);
   vcMain_AsyncLoad(pLoadInfo->pProgramState, "asset://assets/data/NotoSans-BoldItalic.ttf", vcMain_LoadFontItalicsBoldMT);
 
-  udFree(pLoadInfo->pData);
   udFree(pLoadInfo->pFilename);
 }
 
@@ -1171,6 +1211,8 @@ epilogue:
 
   vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
+
+  udFree(programState.pFontTTFData);
 
   udDestroyRWLock(&programState.pSessionLock);
 

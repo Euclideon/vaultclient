@@ -3,7 +3,7 @@
 	url = ../../euclideon/udcore.git
 [submodule "3rdParty/imgui"]
 	path = 3rdParty/imgui
-	url = ../../ocornut/imgui.git
+	url = ../../euclideon/imgui.git
 [submodule "3rdParty/imgui_markdown"]
 	path = 3rdParty/imgui_markdown
 	url = ../../euclideon/imgui_markdown.git
