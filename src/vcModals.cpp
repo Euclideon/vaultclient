@@ -1703,7 +1703,7 @@ void vcModals_DrawInputHelper(vcState* pProgramState)
   if (pProgramState->openModals & (1 << vcMT_ShowInputInfo))
     ImGui::OpenPopup("###sceneInputHelper");
 
-  ImGui::SetNextWindowSize(ImVec2(850.f, 400.f), ImGuiCond_Appearing);
+  ImGui::SetNextWindowSize(ImVec2(850.f, 420.f), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal("###sceneInputHelper", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize))
   {
     if (pProgramState->closeModals & (1 << vcMT_ShowInputInfo))
@@ -1718,6 +1718,7 @@ void vcModals_DrawInputHelper(vcState* pProgramState)
 
     const float ComboY = 50.f;
     const float ComboWidth = 150.f;
+    const float CheckBoxWidth = 20.f;
     const float DismissWidth = 100.f;
 
     const char *mouseModes[] = { vcString::Get("settingsControlsTumble"), vcString::Get("settingsControlsOrbit"), vcString::Get("settingsControlsPan"), vcString::Get("settingsControlsForward") };
@@ -1744,6 +1745,10 @@ void vcModals_DrawInputHelper(vcState* pProgramState)
     ImGui::SetCursorPos(ImVec2((size.x - ComboWidth - itemSize.x) / 2.f, ComboY));
     ImGui::SetNextItemWidth(ComboWidth);
     ImGui::Combo(vcString::Get("settingsControlsMiddle"), (int*)&pProgramState->settings.camera.cameraMouseBindings[2], mouseModes, (int)udLengthOf(mouseModes));
+
+    itemSize = ImGui::CalcTextSize(vcString::Get("settingsDismissForever"));
+    ImGui::SetCursorPos(ImVec2((size.x - CheckBoxWidth - itemSize.x) / 2.f, size.y - 55));
+    ImGui::Checkbox(vcString::Get("settingsDismissForever"), &pProgramState->settings.presentation.alwaysDismissInputModal);
 
     ImGui::SetCursorPos(ImVec2((size.x - DismissWidth) / 2.f, size.y - 30));
     if (ImGui::Button(vcString::Get("popupDismiss"), ImVec2(DismissWidth, 0)) || vcHotkey::IsPressed(vcB_Cancel))
@@ -1790,7 +1795,9 @@ void vcModals_DrawModals(vcState *pProgramState)
   if (gShowInputControlsNextHack && !pProgramState->modalOpen && pProgramState->hasUsedMouse)
   {
     gShowInputControlsNextHack = false;
-    vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
+
+    if (!pProgramState->settings.presentation.alwaysDismissInputModal)
+      vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
   }
   vcModals_DrawInputHelper(pProgramState);
 
