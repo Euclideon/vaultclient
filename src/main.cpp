@@ -1063,7 +1063,7 @@ int main(int argc, char **args)
   // Async load everything else
   vcMain_AsyncLoad(&programState, udTempStr("asset://assets/lang/%s.json", programState.settings.window.languageCode), vcMain_LoadStringTableMT);
   vcMain_AsyncLoad(&programState, "asset://assets/branding/icon.png", vcMain_LoadIconMT);
-  vcMain_AsyncLoad(&programState, "asset://assets/data/NotoSansCJKjp-Regular.otf", vcMain_LoadFontMT);
+  vcMain_AsyncLoad(&programState, "asset://assets/data/NotoSansCJK-Regular.ttc", vcMain_LoadFontMT);
 
   vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/branding/logo.png", vcTFM_Linear, true, vcTWM_Clamp);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png", vcTFM_Linear);
