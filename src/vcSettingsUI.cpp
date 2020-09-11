@@ -558,7 +558,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
           if (pProgramState->pReleaseNotes != nullptr)
           {
             ImGui::BeginChild(vcString::Get("menuReleaseNotesShort"));
-            ImGui::TextUnformatted(pProgramState->pReleaseNotes);
+            vcIGSW_Markdown(pProgramState, pProgramState->pReleaseNotes);
             ImGui::EndChild();
           }
           else

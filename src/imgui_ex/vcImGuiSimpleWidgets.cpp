@@ -6,10 +6,12 @@
 
 #include "imgui.h"
 #include "imgui_internal.h" // Required for button hover state
+#include "imgui_markdown.h"
 
 #include "vcState.h"
 #include "vcStrings.h"
 #include "vcHotkey.h"
+#include "vcWebFile.h"
 
 struct vcIGSWResizeContainer
 {
@@ -277,3 +279,38 @@ void vcIGSW_verticalSplitter(const char* label, const udFloat2& size, const int 
   ImGui::PopStyleVar();
 }
 
+void LinkCallback(ImGui::MarkdownLinkCallbackData data_)
+{
+  char buffer[256] = {};
+  udStrncpy(buffer, data_.link, data_.linkLength);
+
+  if (!data_.isImage)
+    vcWebFile_OpenBrowser(buffer);
+}
+
+inline ImGui::MarkdownImageData ImageCallback(ImGui::MarkdownLinkCallbackData /*data_*/)
+{
+  ImTextureID image = ImGui::GetIO().Fonts->TexID;
+
+  ImGui::MarkdownImageData imageData = {};
+
+  imageData.isValid = true;
+  imageData.useLinkCallback = false;
+  imageData.user_texture_id = image;
+  imageData.size = ImVec2(40.0f, 20.0f);
+
+  return imageData;
+}
+
+void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText)
+{
+  ImGui::MarkdownConfig config = {};
+
+  config.linkCallback = LinkCallback;
+  config.imageCallback = ImageCallback;
+  config.tooltipCallback = ImGui::defaultMarkdownTooltipCallback;
+
+  config.headingFormats[0].font = pProgramState->pBigFont;
+
+  ImGui::Markdown(pMarkdownText, udStrlen(pMarkdownText), config);
+}
