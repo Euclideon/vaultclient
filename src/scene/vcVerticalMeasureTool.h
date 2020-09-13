@@ -21,16 +21,16 @@ public:
   void Preview(const udDouble3 &position);
   void EndMeasure(vcState *pProgramState, const udDouble3 &position);
 
-  virtual void OnNodeUpdate(vcState *pProgramState);
-  virtual void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  virtual void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-  virtual void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
-  virtual void HandleSceneEmbeddedUI(vcState *pProgramState);
-  virtual void Cleanup(vcState *pProgramState);
-  virtual void ChangeProjection(const udGeoZone &newZone);
-  virtual udDouble3 GetLocalSpacePivot();
-  virtual bool IsValid() const { return !m_markDelete; }
-  virtual void HandleToolUI(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  void HandleSceneEmbeddedUI(vcState *pProgramState) override;
+  void Cleanup(vcState *pProgramState) override;
+  void ChangeProjection(const udGeoZone &newZone) override;
+  udDouble3 GetLocalSpacePivot() override;
+  bool IsValid() const  override { return !m_markDelete; }
+  void HandleToolUI(vcState *pProgramState) override;
 
 private:
   void UpdateIntersectionPosition(vcState *pProgramState);

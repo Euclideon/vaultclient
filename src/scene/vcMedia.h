@@ -19,24 +19,25 @@ public:
   vcMedia(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcMedia();
 
-  void OnNodeUpdate(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
 
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
 
-  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
-  void HandleSceneEmbeddedUI(vcState *pProgramState);
-  void HandleContextMenu(vcState *pProgramState);
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  void HandleSceneEmbeddedUI(vcState *pProgramState) override;
+  void HandleContextMenu(vcState *pProgramState) override;
+  vcMenuBarButtonIcon GetSceneExplorerIcon() override;
 
-  void Cleanup(vcState *pProgramState);
-  void ChangeProjection(const udGeoZone &newZone);
+  void Cleanup(vcState *pProgramState) override;
+  void ChangeProjection(const udGeoZone &newZone) override;
 
-  void SetCameraPosition(vcState *pProgramState);
-  udDouble4x4 GetWorldSpaceMatrix();
+  void SetCameraPosition(vcState *pProgramState) override;
+  udDouble4x4 GetWorldSpaceMatrix() override;
 
   void SetImageData(void **ppImageData, int64_t imageSize); // This takes ownership if it can
 
-  vcGizmoAllowedControls GetAllowedControls();
+  vcGizmoAllowedControls GetAllowedControls() override;
 
 public:
   const char *m_pLoadedURI; // The URI of the media we have (or are loading) currently

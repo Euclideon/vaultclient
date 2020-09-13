@@ -36,22 +36,22 @@ public:
   vcModel(vcState *pProgramState, const char *pName, udPointCloud *pCloud);
   ~vcModel() {};
 
-  void OnNodeUpdate(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
 
-  void ChangeProjection(const udGeoZone &newZone);
+  void ChangeProjection(const udGeoZone &newZone) override;
 
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
 
-  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
-  void HandleSceneEmbeddedUI(vcState *pProgramState);
-  void HandleContextMenu(vcState *pProgramState);
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  void HandleSceneEmbeddedUI(vcState *pProgramState) override;
+  void HandleContextMenu(vcState *pProgramState) override;
 
-  void Cleanup(vcState *pProgramState);
+  void Cleanup(vcState *pProgramState) override;
 
-  udDouble3 GetLocalSpacePivot();
-  udDouble4x4 GetWorldSpaceMatrix();
-  vcGizmoAllowedControls GetAllowedControls();
+  udDouble3 GetLocalSpacePivot() override;
+  udDouble4x4 GetWorldSpaceMatrix() override;
+  vcGizmoAllowedControls GetAllowedControls() override;
 
   void ContextMenuListModels(vcState *pProgramState, udProjectNode *pParentNode, vcSceneItem **ppCurrentSelectedModel, const char *pProjectNodeType, bool allowEmpty);
 

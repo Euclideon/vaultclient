@@ -110,6 +110,11 @@ void vcViewpoint::HandleSceneEmbeddedUI(vcState *pProgramState)
     SaveSettings(pProgramState, m_pNode);
 }
 
+vcMenuBarButtonIcon vcViewpoint::GetSceneExplorerIcon()
+{
+  return vcMBBI_SaveViewport;
+}
+
 void vcViewpoint::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 *pPoint = nullptr;

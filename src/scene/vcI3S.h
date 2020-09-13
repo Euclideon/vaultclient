@@ -13,19 +13,19 @@ public:
   vcI3S(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcI3S();
 
-  void OnNodeUpdate(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
 
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
 
-  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
-  void HandleContextMenu(vcState *pProgramState);
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  void HandleContextMenu(vcState *pProgramState) override;
 
-  void Cleanup(vcState *pProgramState);
+  void Cleanup(vcState *pProgramState) override;
 
-  void ChangeProjection(const udGeoZone &newZone);
-  udDouble3 GetLocalSpacePivot();
-  udDouble4x4 GetWorldSpaceMatrix();
+  void ChangeProjection(const udGeoZone &newZone) override;
+  udDouble3 GetLocalSpacePivot() override;
+  udDouble4x4 GetWorldSpaceMatrix() override;
 
   udDouble4x4 m_sceneMatrix; // This is the matrix used to render into the current projection
 private:

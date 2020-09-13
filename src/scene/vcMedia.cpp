@@ -331,6 +331,11 @@ void vcMedia::HandleContextMenu(vcState *pProgramState)
     pProgramState->pLoadImage = udStrdup(m_pNode->pURI);
 }
 
+vcMenuBarButtonIcon vcMedia::GetSceneExplorerIcon()
+{
+  return vcMBBI_SaveViewport;
+}
+
 void vcMedia::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 *pPoint = nullptr;

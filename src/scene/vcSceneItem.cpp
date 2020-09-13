@@ -66,6 +66,11 @@ void vcSceneItem::HandleToolUI(vcState * /*pProgramState*/)
   // No additional items
 }
 
+vcMenuBarButtonIcon vcSceneItem::GetSceneExplorerIcon()
+{
+  return vcMBBI_None;
+}
+
 void vcSceneItem::SetCameraPosition(vcState *pProgramState)
 {
   for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)

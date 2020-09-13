@@ -106,29 +106,29 @@ public:
   vcPOI(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcPOI();
 
-  void OnNodeUpdate(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
 
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
 
-  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
-  void HandleSceneEmbeddedUI(vcState *pProgramState);
-  void HandleContextMenu(vcState *pProgramState);
-  void HandleAttachmentUI(vcState *pProgramState);
-  void HandleToolUI(vcState *pProgramState);
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  void HandleSceneEmbeddedUI(vcState *pProgramState) override;
+  void HandleContextMenu(vcState *pProgramState) override;
+  void HandleAttachmentUI(vcState *pProgramState) override;
+  void HandleToolUI(vcState *pProgramState) override;
 
-  void Cleanup(vcState *pProgramState);
-  void ChangeProjection(const udGeoZone &newZone);
+  void Cleanup(vcState *pProgramState) override;
+  void ChangeProjection(const udGeoZone &newZone) override;
 
   void AddPoint(vcState *pProgramState, const udDouble3 &position, bool isPreview = false);
   void RemovePoint(vcState *pProgramState, int index);
   void UpdatePoints(vcState *pProgramState);
 
-  void SetCameraPosition(vcState *pProgramState);
-  udDouble4x4 GetWorldSpaceMatrix();
+  void SetCameraPosition(vcState *pProgramState) override;
+  udDouble4x4 GetWorldSpaceMatrix() override;
 
-  void SelectSubitem(uint64_t internalId);
-  bool IsSubitemSelected(uint64_t internalId);
+  void SelectSubitem(uint64_t internalId) override;
+  bool IsSubitemSelected(uint64_t internalId) override;
 
 private:
   void RebuildSceneLabel(const vcUnitConversionData *pConversionData);

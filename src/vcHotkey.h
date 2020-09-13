@@ -2,7 +2,9 @@
 #define vcHotkey_h__
 
 #include "udResult.h"
-#include "vcState.h"
+#include <stdlib.h>
+
+struct vcState;
 
 enum modifierFlags
 {

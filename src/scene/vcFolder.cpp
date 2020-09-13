@@ -202,6 +202,13 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
       ImGui::SameLine();
 
+      vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
+      bool iconClicked = false;
+      if (icon != vcMBBI_None)
+        iconClicked = vcMenuBarButton(pProgramState->pUITexture, pNode->pName, vcB_Invalid, icon, vcMBBG_FirstItem, false, (18.f / 24.f));
+
+      ImGui::SameLine();
+
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
 
       if (pSceneItem->m_pActiveWarningStatus != nullptr)
@@ -258,7 +265,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           pSceneItem->m_editName = true;
       }
 
-      bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
+      bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()) || iconClicked);
       if (sceneExplorerItemClicked)
       {
         if (ImGui::GetIO().KeyShift && pProgramState->sceneExplorer.selectStartItem.pItem == nullptr && pProgramState->sceneExplorer.selectedItems.size() > 0)
@@ -404,6 +411,11 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   // This block is also in the loop above
   if (pProgramState->sceneExplorer.insertItem.pParent == m_pNode && pNode == pProgramState->sceneExplorer.insertItem.pItem)
     vcFolder_AddInsertSeparator();
+}
+
+vcMenuBarButtonIcon vcFolder::GetSceneExplorerIcon()
+{
+  return vcMBBI_Open;
 }
 
 void vcFolder::Cleanup(vcState *pProgramState)
