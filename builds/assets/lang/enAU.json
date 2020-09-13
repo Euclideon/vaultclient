@@ -120,6 +120,7 @@
   "settingsControlsMiddle": "Middle-Click and drag",
   "settingsControlsRight": "Right-Click and drag",
   "settingsControlsScrollWheel": "Scroll Wheel",
+  "settingsDismissForever": "Don't show again",
   "settingsViewport": "Viewport",
   "settingsViewportViewDistance": "View Distance",
   "settingsViewportCameraLens": "Camera Lens (fov)",
