@@ -16,16 +16,16 @@ public:
   vcPolyModelNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcPolyModelNode() {};
 
-  void OnNodeUpdate(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
 
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
-  void Cleanup(vcState *pProgramState);
-  void ChangeProjection(const udGeoZone &newZone);
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  void Cleanup(vcState *pProgramState) override;
+  void ChangeProjection(const udGeoZone &newZone) override;
 
-  udDouble4x4 GetWorldSpaceMatrix();
-  udDouble3 GetLocalSpacePivot();
+  udDouble4x4 GetWorldSpaceMatrix() override;
+  udDouble3 GetLocalSpacePivot() override;
 
 private:
   udDouble4x4 m_matrix;

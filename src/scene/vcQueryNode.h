@@ -33,17 +33,17 @@ public:
   vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcQueryNode();
 
-  void OnNodeUpdate(vcState *pProgramState);
+  void OnNodeUpdate(vcState *pProgramState) override;
 
-  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData);
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta);
-  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID);
-  void HandleSceneEmbeddedUI(vcState *pProgramState);
-  void Cleanup(vcState *pProgramState);
-  void ChangeProjection(const udGeoZone &newZone);
+  void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
+  void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  void HandleSceneEmbeddedUI(vcState *pProgramState) override;
+  void Cleanup(vcState *pProgramState) override;
+  void ChangeProjection(const udGeoZone &newZone) override;
 
-  udDouble4x4 GetWorldSpaceMatrix();
-  vcGizmoAllowedControls GetAllowedControls();
+  udDouble4x4 GetWorldSpaceMatrix() override;
+  vcGizmoAllowedControls GetAllowedControls() override;
 
   udQueryFilter *m_pFilter;
 };

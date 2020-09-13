@@ -2,6 +2,7 @@
 #define vcHotkey_h__
 
 #include "udResult.h"
+#include <stdlib.h>
 
 struct vcState;
 
