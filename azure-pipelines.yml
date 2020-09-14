@@ -11,7 +11,7 @@ trigger:
 variables:
 - group: SignToolKey
 - name: linkedudSDK
-  value: udSDK_2.0_RC2
+  value: Pipeline_2020091408
 - name: UDSDK_HOME
   value: $(Build.SourcesDirectory)/linkedudSDK/$(linkedudSDK)
 
