@@ -268,6 +268,7 @@ struct vcState
     vcImageType imageType;
   } image, screenshot;
 
+  udUInt2 exportVideoResolution;
   bool exportVideo;
 
   struct 

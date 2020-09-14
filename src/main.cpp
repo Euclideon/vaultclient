@@ -2454,17 +2454,21 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 #endif
 
   // TODO: Screenshot only viewport 0
-  if ((pProgramState->settings.screenshot.taking || pProgramState->exportVideo) && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)
+  if (pProgramState->settings.screenshot.taking && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)
   {
-    if (pProgramState->exportVideo)
-      pProgramState->settings.viewports[0].resolution = udUInt2::create(3840, 2160);
-    else
-      pProgramState->settings.viewports[0].resolution = pProgramState->settings.screenshot.resolution;
+    pProgramState->settings.viewports[0].resolution = pProgramState->settings.screenshot.resolution;
 
     vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->settings.screenshot.resolution.x, pProgramState->settings.screenshot.resolution.y);
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
     // Immediately update camera
+    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->settings.viewports[0].resolution));
+  }
+
+  if (pProgramState->exportVideo && pProgramState->settings.viewports[0].resolution != pProgramState->exportVideoResolution)
+  {
+    pProgramState->settings.viewports[0].resolution = pProgramState->exportVideoResolution;
+    vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->exportVideoResolution.x, pProgramState->exportVideoResolution.y);
     vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->settings.viewports[0].resolution));
   }
 

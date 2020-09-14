@@ -14,6 +14,8 @@
 #include "imgui_internal.h"
 
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
+static const udUInt2 vcScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
+const char *vcScreenshotResolutionNameKeys[] = { "settingsScreenshotRes720p", "settingsScreenshotRes1080p", "settingsScreenshotRes4K" };
 
 vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
@@ -24,6 +26,7 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_timePosition = 0.0;
   m_timeLength = 0.0;
   m_exportPath[0] = '\0';
+  m_selectedResolutionIndex = (int)udLengthOf(vcScreenshotResolutions) - 1;
   m_selectedExportFPSIndex = 3;
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
 
@@ -260,6 +263,17 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_state != vcFTS_Exporting)
   {
+    if (ImGui::BeginCombo(vcString::Get("flythroughResolution"), vcString::Get(vcScreenshotResolutionNameKeys[m_selectedResolutionIndex])))
+    {
+      for (size_t i = 0; i < udLengthOf(vcScreenshotResolutions); ++i)
+      {
+        if (ImGui::Selectable(vcString::Get(vcScreenshotResolutionNameKeys[i])))
+          m_selectedResolutionIndex = (int)i;
+      }
+
+      ImGui::EndCombo();
+    }
+
     if (ImGui::BeginCombo(vcString::Get("flythroughFPS"), udTempStr("%d", vcFlythroughExportFPS[m_selectedExportFPSIndex])))
     {
       for (size_t i = 0; i < udLengthOf(vcFlythroughExportFPS); ++i)
@@ -283,6 +297,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       m_exportInfo.currentFrame = -1;
       pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
       pProgramState->exportVideo = true;
+      pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
     }
   }
   else
@@ -317,7 +332,6 @@ void vcFlythrough::SetCameraPosition(vcState *pProgramState)
   m_timePosition = 0.0;
   pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
 }
-
 
 void vcFlythrough::UpdateCameraPosition(vcState *pProgramState)
 {
