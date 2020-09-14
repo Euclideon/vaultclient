@@ -19,7 +19,7 @@ udFloat4 vcGetIconUV(vcMenuBarButtonIcon iconIndex)
   return udFloat4::create(buttonX, buttonY, buttonX + buttonUVSize, buttonY + buttonUVSize);
 }
 
-bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, vcBind shortcut, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/, float scale /*= 1.f*/)
+bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, vcBind shortcut, const vcMenuBarButtonIcon buttonIndex, vcMenuBarButtonGap gap, bool selected /*= false*/, float scale /*= 1.f*/, const char *pID /*= nullptr*/)
 {
   const ImVec4 DefaultBGColor = ImVec4(0, 0, 0, 0);
   const ImVec4 EnabledColor = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
@@ -35,11 +35,11 @@ bool vcMenuBarButton(vcTexture *pUITexture, const char *pButtonName, vcBind shor
   else if (gap == vcMBBG_NewGroup)
     ImGui::SameLine(0.f, MBtn_Gap);
 
-  ImGui::PushID(pButtonName);
+  ImGui::PushID(pID ? pID : pButtonName);
   if (pUITexture != nullptr)
     retVal = ImGui::ImageButton(pUITexture, ImVec2(buttonSize * scale, buttonSize * scale), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w), 2, selected ? EnabledColor : DefaultBGColor);
   else
-    retVal = ImGui::Button(udTempStr("?###%s", pButtonName), ImVec2(buttonSize * scale, buttonSize * scale));
+    retVal = ImGui::Button(udTempStr("?###%s", pID ? pID : pButtonName), ImVec2(buttonSize * scale, buttonSize * scale));
 
   if (vcIGSW_IsItemHovered())
   {

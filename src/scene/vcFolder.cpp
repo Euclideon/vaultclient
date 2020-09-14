@@ -205,7 +205,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
       bool iconClicked = false;
       if (icon != vcMBBI_None)
-        iconClicked = vcMenuBarButton(pProgramState->pUITexture, pNode->pName, vcB_Invalid, icon, vcMBBG_FirstItem, false, (18.f / 24.f));
+        iconClicked = vcMenuBarButton(pProgramState->pUITexture, pNode->pName, vcB_Invalid, icon, vcMBBG_FirstItem, false, (18.f / 24.f), udTempStr("###SXIIcon%zu", *pItemID));
 
       ImGui::SameLine();
 
