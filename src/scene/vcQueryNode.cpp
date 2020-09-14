@@ -11,20 +11,7 @@
 
 #include "imgui.h"
 
-
-const char *GetNodeName(vcQueryNodeFilterShape shape)
-{
-  if(shape == vcQNFS_Box)
-    return vcString::Get("sceneExplorerFilterBoxDefaultName");
-  else if (shape == vcQNFS_Sphere)
-    return vcString::Get("sceneExplorerFilterSphereDefaultName");
-  else if (shape == vcQNFS_Cylinder)
-    return vcString::Get("sceneExplorerFilterCylinderDefaultName");
-  else
-    return "";
-}
-
-const char *GetNodeShape(vcQueryNodeFilterShape shape)
+static const char *GetNodeShape(vcQueryNodeFilterShape shape)
 {
   if (shape == vcQNFS_Box)
     return "box";
@@ -209,7 +196,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   }
 }
 
-void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
+void vcQueryNode::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
 {
   ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterPosition"), m_center.x, m_center.y, m_center.z);
   ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterExtents"), m_extents.x, m_extents.y, m_extents.z);
@@ -219,9 +206,6 @@ void vcQueryNode::HandleSceneEmbeddedUI(vcState *pProgramState)
     udQueryFilter_SetInverted(m_pFilter, m_inverted);
     udProjectNode_SetMetadataBool(m_pNode, "inverted", m_inverted);
   }
-
-  if (vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
-    ImGui::Text("%s: %.6f, %.6f, %.6f", vcString::Get("sceneFilterEndPosition"), pProgramState->filterInput.endPoint.x, pProgramState->filterInput.endPoint.y, pProgramState->filterInput.endPoint.z);
 }
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
@@ -284,135 +268,40 @@ vcGizmoAllowedControls vcQueryNode::GetAllowedControls()
     return vcGAC_All;
 }
 
-static const uint32_t PICK_TICKS = 1;
-
-void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape)
+void vcQueryNode::EndQuery(vcState *pProgramState, const udDouble3 & /*position*/, bool isPreview /*= false*/)
 {
-  pFilter->shape = shape;
-  pFilter->pickPoint = udDouble3::zero();
-  pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
-  pFilter->endPoint = udDouble3::zero();
-  pFilter->pNode = nullptr;
-  pFilter->pickCount = 0;
-}
-
-void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter)
-{
-  pFilter->shape = vcQNFS_None;
-  pFilter->pickPoint = udDouble3::zero();
-  pFilter->size = udDouble3::create(2.f, 2.f, 2.f);
-  pFilter->endPoint = udDouble3::zero();
-  pFilter->pNode = nullptr;
-  pFilter->pickCount = 0;
-}
-
-udProjectNode *vcQueryNodeFilter_CreateNode(vcQueryNodeFilterInput *pFilter, vcState *pProgramState)
-{
-  udProjectNode *pNode = nullptr;
-  if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", GetNodeName(pFilter->shape), nullptr, nullptr) == udE_Success)
+  udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_center);
+  udDouble3 north = vcGIS_GetWorldLocalNorth(pProgramState->geozone, m_center);
+  udPlane<double> plane = udPlane<double>::create(m_center, up);
+  
+  udDouble3 endPoint = {};
+  if (plane.intersects(pProgramState->pActiveViewport->camera.worldMouseRay, &endPoint, nullptr))
   {
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
-    udProjectNode_SetMetadataString(pNode, "shape", GetNodeShape(pFilter->shape));
-    udProjectNode_SetMetadataDouble(pNode, "size.x", pFilter->size.x);
-    udProjectNode_SetMetadataDouble(pNode, "size.y", pFilter->size.y);
-    udProjectNode_SetMetadataDouble(pNode, "size.z", pFilter->size.z);
-    udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
-  }
+    udDouble3 horizDist = endPoint - m_center; // On horiz plane so vert is always 0
 
-  return pNode;
-}
+    udDouble3 pickNorth = north * horizDist;
+    udDouble3 pickEast = horizDist - pickNorth;
 
-void vcQueryNodeFilter_Update(vcQueryNodeFilterInput *pFilter, vcState *pProgramState)
-{
-  if (pFilter->pNode)
-  {
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pFilter->pNode, pProgramState->geozone, udPGT_Point, &pFilter->pickPoint, 1);
-    udProjectNode_SetMetadataDouble(pFilter->pNode, "size.x", pFilter->size.x);
-    udProjectNode_SetMetadataDouble(pFilter->pNode, "size.y", pFilter->size.y);
-    udProjectNode_SetMetadataDouble(pFilter->pNode, "size.z", pFilter->size.z);
-  }
-}
-
-void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicked)
-{
-  vcQueryNodeFilterInput *pFilter = &pProgramState->filterInput;
-  if (pProgramState->activeTool != vcActiveTool_AddBoxFilter && pProgramState->activeTool != vcActiveTool_AddSphereFilter && pProgramState->activeTool != vcActiveTool_AddCylinderFilter)
-  {
-    if (pFilter->shape != vcQNFS_None)
-      vcQueryNodeFilter_Clear(&pProgramState->filterInput);
-    return;
-  }
-
-  if (isBtnClicked)
-  {
-    // create node
-    if (pProgramState->pActiveViewport->pickingSuccess)
+    udDouble3 size = udDouble3::zero();
+    if (m_shape == vcQNFS_Box)
     {
-      if (!pFilter->pNode)
-      {
-        pFilter->pNode = vcQueryNodeFilter_CreateNode(pFilter, pProgramState);
-        pFilter->pickPoint = pProgramState->pActiveViewport->worldMousePosCartesian;
-      }
+      size.x = udMag3(pickNorth);
+      size.y = udMag3(pickEast);
+      size.z = udMax(size.x, size.y);
+    }
+    else // vcQNFS_Cylinder & vcQNFS_Sphere
+    {
+      size.x = udMag3(horizDist);
+      size.y = udMag3(horizDist);
+      size.z = udMag3(horizDist);
     }
 
-    if (pFilter->pNode)
-      pFilter->pickCount++;
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
+    udProjectNode_SetMetadataDouble(m_pNode, "size.x", size.x);
+    udProjectNode_SetMetadataDouble(m_pNode, "size.y", size.y);
+    udProjectNode_SetMetadataDouble(m_pNode, "size.z", size.z);
   }
 
-  if (pFilter->pickCount == 0)
-    return;
-
-  if (vcQueryNodeFilter_IsWaitingForSecondPick(pProgramState))
-  {
-    udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pFilter->pickPoint);
-    udDouble3 north = vcGIS_GetWorldLocalNorth(pProgramState->geozone, pFilter->pickPoint);
-
-    udPlane<double> plane = udPlane<double>::create(pFilter->pickPoint, up);
-
-    pFilter->endPoint = {};
-    if (plane.intersects(pProgramState->pActiveViewport->camera.worldMouseRay, &pFilter->endPoint, nullptr))
-    {
-      udDouble3 horizDist = pFilter->endPoint - pFilter->pickPoint; // On horiz plane so vert is always 0
-
-      udDouble3 pickNorth = north * horizDist;
-      udDouble3 pickEast = horizDist - pickNorth;
-
-      if (pFilter->shape == vcQNFS_Box)
-      {
-        pFilter->size.x = udMag3(pickNorth);
-        pFilter->size.y = udMag3(pickEast);
-        pFilter->size.z = udMax(pFilter->size.x, pFilter->size.y);
-      }
-      else // vcQNFS_Cylinder & vcQNFS_Sphere
-      {
-        pFilter->size.x = udMag3(horizDist);
-        pFilter->size.y = udMag3(horizDist);
-        pFilter->size.z = udMag3(horizDist);
-      }
-    }
-
-    vcQueryNodeFilter_Update(pFilter, pProgramState);
-
-    if (pFilter->pickCount == 2)
-      vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
-  }
-  else
-  {
-    if (isBtnClicked)
-    {
-      double scaleFactor = udMag3(pProgramState->pActiveViewport->camera.position - pProgramState->pActiveViewport->worldMousePosCartesian) / 10.0; // 1/10th of the screen
-      pFilter->size = udDouble3::create(scaleFactor, scaleFactor, scaleFactor);
-      vcQueryNodeFilter_Update(pFilter, pProgramState);
-      vcQueryNodeFilter_InitFilter(pFilter, pFilter->shape);
-      return;
-    }
-  }
-
+  if (!isPreview)
+    pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
 }
-
-bool vcQueryNodeFilter_IsWaitingForSecondPick(vcState *pProgramState)
-{
-  return pProgramState->filterInput.pickCount >= PICK_TICKS;
-}
-
-

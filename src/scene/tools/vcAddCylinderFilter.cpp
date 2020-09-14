@@ -2,6 +2,7 @@
 
 #include "vcState.h"
 #include "vcStrings.h"
+#include "vcQueryNode.h"
 
 #include "udStringUtil.h"
 
@@ -23,7 +24,22 @@ void vcAddCylinderFilter::HandlePicking(vcState *pProgramState, vcRenderData & /
   if (!pProgramState->pActiveViewport->pickingSuccess)
     return;
 
-  vcQueryNodeFilter_HandleSceneInput(pProgramState, true);
+  if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == udPNT_QueryFilter)
+  {
+    vcQueryNode *pQueryNode = (vcQueryNode *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+    pQueryNode->EndQuery(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian);
+  }
+  else
+  {
+    vcProject_ClearSelection(pProgramState, false);
+    udProjectNode *pNode = nullptr;
+    if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterCylinderDefaultName"), nullptr, nullptr) == udE_Success)
+    {
+      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
+      udProjectNode_SetMetadataString(pNode, "shape", "cylinder");
+      udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+    }
+  }
 }
 
 void vcAddCylinderFilter::PreviewPicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
@@ -31,5 +47,14 @@ void vcAddCylinderFilter::PreviewPicking(vcState *pProgramState, vcRenderData & 
   if (!pProgramState->pActiveViewport->pickingSuccess)
     return;
 
-  vcQueryNodeFilter_HandleSceneInput(pProgramState, false);
+  udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+  if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter"))
+  {
+    vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+    if (!pSceneItem->m_visible)
+      pProgramState->activeTool = vcActiveTool_Select;
+
+    vcQueryNode *pTool = (vcQueryNode *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+    pTool->EndQuery(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian, true);
+  }
 }

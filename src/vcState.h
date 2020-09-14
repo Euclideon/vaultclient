@@ -17,7 +17,6 @@
 #include "vcStrings.h"
 #include "vcProject.h"
 #include "vcSession.h"
-#include "vcQueryNode.h"
 
 #include "udError.h"
 #include "udContext.h"
@@ -278,8 +277,6 @@ struct vcState
   int currentKey;
 
   int previousSRID;
-
-  vcQueryNodeFilterInput filterInput;
 };
 
 #endif // !vcState_h__

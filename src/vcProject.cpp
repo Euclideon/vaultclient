@@ -752,10 +752,7 @@ void vcProject_ClearSelection(vcState *pProgramState, bool clearToolState /*= tr
   pProgramState->sceneExplorer.clickedItem = {};
 
   if (clearToolState)
-  {
     pProgramState->activeTool = vcActiveTool_Select;
-    vcQueryNodeFilter_Clear(&pProgramState->filterInput);
-  }
 }
 
 bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)

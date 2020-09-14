@@ -45,24 +45,9 @@ public:
   udDouble4x4 GetWorldSpaceMatrix() override;
   vcGizmoAllowedControls GetAllowedControls() override;
 
+  void EndQuery(vcState *pProgramState, const udDouble3 &position, bool isPreview = false);
+
   udQueryFilter *m_pFilter;
 };
 
-struct udProjectNode;
-struct vcQueryNodeFilterInput
-{
-  vcQueryNodeFilterShape shape;
-  udDouble3 pickPoint;
-  udDouble3 size;
-  udDouble3 endPoint;
-  udProjectNode *pNode;
-  uint32_t pickCount;
-};
-
-void vcQueryNodeFilter_InitFilter(vcQueryNodeFilterInput *pFilter, vcQueryNodeFilterShape shape);
-void vcQueryNodeFilter_Clear(vcQueryNodeFilterInput *pFilter);
-
-void vcQueryNodeFilter_HandleSceneInput(vcState *pProgramState, bool isBtnClicked);
-bool vcQueryNodeFilter_IsWaitingForSecondPick(vcState *pProgramState);
-
-#endif //vcViewpoint_h__
+#endif //vcQueryNode_h__

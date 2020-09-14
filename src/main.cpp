@@ -966,8 +966,6 @@ int main(int argc, char **args)
   programState.activeViewportIndex = 0;
   programState.pActiveViewport = &programState.pViewports[programState.activeViewportIndex];
 
-  vcQueryNodeFilter_Clear(&programState.filterInput);
-
   for (int i = 1; i < argc; ++i)
   {
 #if UDPLATFORM_OSX
@@ -1975,7 +1973,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_AddBoxFilter;
-        vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQNFS_Box);
       }
 
       // Add Filter Sphere
@@ -1983,7 +1980,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_AddSphereFilter;
-        vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQNFS_Sphere);
       }
 
       // Add Filter Cylinder
@@ -1991,7 +1987,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       {
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
-        vcQueryNodeFilter_InitFilter(&pProgramState->filterInput, vcQNFS_Cylinder);
       }
     }
 
