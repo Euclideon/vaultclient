@@ -12,6 +12,7 @@
 #include "vcStrings.h"
 #include "vcHotkey.h"
 #include "vcWebFile.h"
+#include "gl/vcTextureCache.h"
 
 struct vcIGSWResizeContainer
 {
@@ -288,16 +289,31 @@ void LinkCallback(ImGui::MarkdownLinkCallbackData data_)
     vcWebFile_OpenBrowser(buffer);
 }
 
-inline ImGui::MarkdownImageData ImageCallback(ImGui::MarkdownLinkCallbackData /*data_*/)
+inline ImGui::MarkdownImageData ImageCallback(ImGui::MarkdownLinkCallbackData data_)
 {
-  ImTextureID image = ImGui::GetIO().Fonts->TexID;
+  char buffer[256] = "\0";
+  udStrncpy(buffer, data_.link, data_.linkLength);
 
   ImGui::MarkdownImageData imageData = {};
 
-  imageData.isValid = true;
-  imageData.useLinkCallback = false;
-  imageData.user_texture_id = image;
-  imageData.size = ImVec2(40.0f, 20.0f);
+  vcTexture *pImage = vcTextureCache_Get(buffer, vcTFM_Linear);
+
+  if (pImage != nullptr)
+  {
+    int width = 0;
+    int height = 0;
+    vcTexture_GetSize(pImage, &width, &height);
+
+    imageData.isValid = true;
+    imageData.size = ImVec2((float)width, (float)height);
+    imageData.user_texture_id = pImage;
+
+    vcTextureCache_Release(&pImage);
+  }
+  else
+  {
+    imageData.isValid = false;
+  }
 
   return imageData;
 }
