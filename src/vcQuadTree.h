@@ -132,7 +132,7 @@ struct vcQuadTree
   udDouble4 frustumPlanes[6];
   udGeoZone geozone;
   udInt3 rootSlippyCoords;
-  udDouble3 cameraWorldPosition;
+  const vcCamera *pCamera;
   double cameraDistanceZeroAltitude;
 
   uint32_t rootIndex;
@@ -160,7 +160,7 @@ void vcQuadTree_Destroy(vcQuadTree *pQuadTree);
 void vcQuadTree_Reset(vcQuadTree *pQuadTree);
 
 void vcQuadTree_Update(vcQuadTree *pQuadTree, const vcQuadTreeViewInfo &viewInfo);
-void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const udDouble3 &cameraPosition, const udDouble4x4 &viewProjectionMatrix);
+void vcQuadTree_UpdateView(vcQuadTree *pQuadTree, const vcCamera *pCamera, const udDouble4x4 &viewProjectionMatrix);
 
 void vcQuadTree_Prune(vcQuadTree *pQuadTree);
 
