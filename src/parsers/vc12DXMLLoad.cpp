@@ -397,7 +397,7 @@ udResult vc12DXML_LoadProject(vc12DXML_Project &project, const char *pFilePath)
 
   UD_ERROR_NULL(pFilePath, udR_InvalidParameter_);
 
-  fileName.SetFromFullPath(pFilePath);
+  fileName.SetFromFullPath("%s", pFilePath);
   fileName.ExtractFilenameOnly(projectName, 256);
   project.SetName(projectName);
 

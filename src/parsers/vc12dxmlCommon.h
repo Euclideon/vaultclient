@@ -36,7 +36,7 @@ public:
   ~vc12DXML_SuperString();
   udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
   void Print(FILE *pOut, int indent) const override;
-  void AddToProject(vcState *pProgramState, udProjectNode *pParent);
+  void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 private:
 
   char *m_pName;
@@ -55,7 +55,7 @@ public:
   udResult BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlobals &globals);
   udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
   void Print(FILE *pOut, int indent) const override;
-  void AddToProject(vcState *pProgramState, udProjectNode *pParent);
+  void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 
 private:
 
