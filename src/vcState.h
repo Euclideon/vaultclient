@@ -139,7 +139,10 @@ struct vcState
   int closeModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
-  ImFont* pBigFont;
+  ImFont *pBigFont;
+  ImFont *pItalicFont;
+  ImFont *pBoldFont;
+  ImFont *pBoldItalicFont;
 
   int settingsErrors;
   struct ErrorItem
