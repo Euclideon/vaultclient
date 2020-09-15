@@ -484,6 +484,7 @@
   "sceneExplorerAddUDSTitle": "Add UDS to Scene",
   "sceneExplorerAddOther": "Add Other",
   "sceneExplorerAddFeed": "Add Live Feed",
+  "sceneExplorerAddShapeFile": "Add Shape File",
   "sceneExplorerAddFolder": "Add Folder",
   "sceneExplorerAddSceneItemTitle": "Add Scene Item",
   "sceneExplorerEditName": "Edit Name",

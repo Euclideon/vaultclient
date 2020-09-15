@@ -24,6 +24,8 @@ static const char *SupportedFileTypes_ConvertImport[] = { ".uds", ".ssf", ".udg"
 #endif
 };
 
+static const char *SupportedFileTypes_ShapeFile[] = { ".shp" };
+
 enum vcFileDialogType
 {
   vcFDT_OpenFile,

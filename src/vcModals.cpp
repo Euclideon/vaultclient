@@ -182,7 +182,7 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, nullptr);
+    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ShapeFile, vcFDT_OpenFile, nullptr);
 
     ImGui::SameLine();
 
@@ -202,8 +202,6 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
     }
 
     ImGui::Separator();
-
-    //TODO: UI depending on what file is selected
 
     ImGui::EndPopup();
   }
@@ -1769,6 +1767,46 @@ void vcModals_DrawInputHelper(vcState* pProgramState)
   }
 }
 
+void vcModals_DrawImportShapeFile(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_ImportShapeFile))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerAddShapeFile"));
+
+  ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerAddShapeFile")))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_ImportShapeFile))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ShapeFile, vcFDT_OpenFile, nullptr);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerLoadButton"), ImVec2(100.f, 0)))
+    {
+      pProgramState->loadList.PushBack(udStrdup(pProgramState->modelPath));
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+      pProgramState->modelPath[0] = '\0';
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::Separator();
+
+    //TODO: UI depending on what file is selected
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -1812,6 +1850,7 @@ void vcModals_DrawModals(vcState *pProgramState)
       vcModals_OpenModal(pProgramState, vcMT_ShowInputInfo);
   }
   vcModals_DrawInputHelper(pProgramState);
+  vcModals_DrawImportShapeFile(pProgramState);
 
   pProgramState->openModals &= ((1 << vcMT_LoggedOut));
   pProgramState->closeModals = 0;
