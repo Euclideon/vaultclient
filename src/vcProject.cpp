@@ -918,6 +918,7 @@ void vcProject_UpdateProjectInformationDisplayTextures(vcState *pProgramState)
         pProgramState->projectInfoTextures.textures.PushBack();
 
         vcTexture_AsyncCreateFromFilename(&pProgramState->projectInfoTextures.textures[pProgramState->projectInfoTextures.textures.length - 1], pProgramState->pWorkerPool, pTexPath, vcTFM_Linear);
+        udFree(pTexPath);
 
         startStrIndex = firstIndex;
       }
