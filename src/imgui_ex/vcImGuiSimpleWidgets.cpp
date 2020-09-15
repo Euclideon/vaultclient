@@ -312,5 +312,9 @@ void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText)
 
   config.headingFormats[0].font = pProgramState->pBigFont;
 
+  config.boldFont = pProgramState->pBoldFont;
+  config.italicFont = pProgramState->pItalicFont;
+  config.boldItalicFont = pProgramState->pBoldItalicFont;
+
   ImGui::Markdown(pMarkdownText, udStrlen(pMarkdownText), config);
 }

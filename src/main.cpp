@@ -749,6 +749,14 @@ void vcMain_AsyncLoadWT(void *pLoadInfoPtr)
   pLoadInfo->loadResult = udFile_Load(pLoadInfo->pFilename, &pLoadInfo->pData, &pLoadInfo->dataLen);
 }
 
+void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, udWorkerPoolCallback &&mainThreadFn)
+{
+  vcMainLoadDataInfo *pInfo = udAllocType(vcMainLoadDataInfo, 1, udAF_Zero);
+  pInfo->pFilename = udStrdup(pFilename);
+  pInfo->pProgramState = pProgramState;
+  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, mainThreadFn);
+}
+
 void vcMain_LoadIconMT(void *pLoadInfoPtr)
 {
   vcMainLoadDataInfo *pLoadInfo = (vcMainLoadDataInfo*)pLoadInfoPtr;
@@ -781,6 +789,39 @@ void vcMain_LoadIconMT(void *pLoadInfoPtr)
     }
 
     SDL_free(pIcon);
+  }
+
+  udFree(pLoadInfo->pData);
+  udFree(pLoadInfo->pFilename);
+}
+
+void vcMain_LoadFontItalicsBoldMT(void *pLoadInfoPtr)
+{
+  vcMainLoadDataInfo *pLoadInfo = (vcMainLoadDataInfo*)pLoadInfoPtr;
+
+  if (pLoadInfo->loadResult == udR_Success)
+  {
+    ImFont **ppFont = nullptr;
+
+    if (udStrEndsWith(pLoadInfo->pFilename, "BoldItalic.ttf"))
+      ppFont = &pLoadInfo->pProgramState->pBoldItalicFont;
+    else if (udStrEndsWith(pLoadInfo->pFilename, "Italic.ttf"))
+      ppFont = &pLoadInfo->pProgramState->pItalicFont;
+    else
+      ppFont = &pLoadInfo->pProgramState->pBoldFont;
+
+    const float FontSize = 16.f;
+    ImFontConfig fontCfg = ImFontConfig();
+    fontCfg.FontDataOwnedByAtlas = false;
+    fontCfg.MergeMode = false;
+
+    static ImWchar latinCharacterRanges[] =
+    {
+      0x0020, 0x00FF, // Basic Latin + Latin Supplement
+      0
+    };
+
+    *ppFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, ImGui::GetDefaultFont()->FontSize, &fontCfg, latinCharacterRanges);
   }
 
   udFree(pLoadInfo->pData);
@@ -855,6 +896,10 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
     pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, bigFontCharacterRanges);
   }
 
+  vcMain_AsyncLoad(pLoadInfo->pProgramState, "asset://assets/data/NotoSans-Italic.ttf", vcMain_LoadFontItalicsBoldMT);
+  vcMain_AsyncLoad(pLoadInfo->pProgramState, "asset://assets/data/NotoSans-Bold.ttf", vcMain_LoadFontItalicsBoldMT);
+  vcMain_AsyncLoad(pLoadInfo->pProgramState, "asset://assets/data/NotoSans-BoldItalic.ttf", vcMain_LoadFontItalicsBoldMT);
+
   udFree(pLoadInfo->pData);
   udFree(pLoadInfo->pFilename);
 }
@@ -867,14 +912,6 @@ void vcMain_LoadStringTableMT(void *pLoadInfoPtr)
 
   udFree(pLoadInfo->pData);
   udFree(pLoadInfo->pFilename);
-}
-
-void vcMain_AsyncLoad(vcState *pProgramState, const char *pFilename, udWorkerPoolCallback &&mainThreadFn)
-{
-  vcMainLoadDataInfo *pInfo = udAllocType(vcMainLoadDataInfo, 1, udAF_Zero);
-  pInfo->pFilename = udStrdup(pFilename);
-  pInfo->pProgramState = pProgramState;
-  udWorkerPool_AddTask(pProgramState->pWorkerPool, vcMain_AsyncLoadWT, pInfo, true, mainThreadFn);
 }
 
 void vcMain_AsyncResumeSession(void *pProgramStatePtr)
