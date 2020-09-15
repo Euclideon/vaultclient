@@ -180,7 +180,7 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
 
   if (HasLine())
   {
-    if (ImGui::SliderFloat(udTempStr("%s##VerticalLineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_lineWidth, 3.f, 15.f, "%.2f", 3.f))
+    if (ImGui::SliderFloat(udTempStr("%s##VerticalLineWidth%zu", vcString::Get("scenePOILineWidth"), *pItemID), &m_lineWidth, 3.f, 15.f, "%.2f", ImGuiSliderFlags_Logarithmic))
       udProjectNode_SetMetadataDouble(m_pNode, "lineWidth", m_lineWidth);
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLineColour%zu", vcString::Get("scenePOILineColour1"), *pItemID), &m_lineColour, ImGuiColorEditFlags_None))
