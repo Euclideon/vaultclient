@@ -22,7 +22,7 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
 
   m_exportInfo.currentFrame = 0;
-  m_exportInfo.frameDelta = (1.0 / 60.0);
+  m_exportInfo.frameDelta = (1.0 / (double)pProgramState->supportedVideoFPSs[pProgramState->videoFPSIndex]);
 
   OnNodeUpdate(pProgramState);
 }
@@ -254,7 +254,21 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_state != vcFTS_Exporting)
   {
-    if (ImGui::Button(vcString::Get("flythroughExport")))
+    if (ImGui::BeginCombo("##ExportFPSCombo", udTempStr_CommaInt(pProgramState->supportedVideoFPSs[pProgramState->videoFPSIndex])))
+    {
+      for (int i = 0; i < pProgramState->supportedVideoFPSs.length; ++i)
+      {
+        if (ImGui::Selectable(udTempStr_CommaInt(pProgramState->supportedVideoFPSs[i])))
+        {
+          pProgramState->videoFPSIndex = i;
+          m_exportInfo.frameDelta = (1.0 / (double)pProgramState->supportedVideoFPSs[pProgramState->videoFPSIndex]);
+        }
+      }
+
+      ImGui::EndCombo();
+    }
+
+    if (ImGui::Button("export"))
     {
       m_state = vcFTS_Exporting;
       pProgramState->screenshot.pImage = nullptr;

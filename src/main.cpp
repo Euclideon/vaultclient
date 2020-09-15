@@ -1005,6 +1005,14 @@ int main(int argc, char **args)
   programState.activeViewportIndex = 0;
   programState.pActiveViewport = &programState.pViewports[programState.activeViewportIndex];
 
+  programState.supportedVideoFPSs.Init(16);
+  programState.supportedVideoFPSs.PushBack(12);
+  programState.supportedVideoFPSs.PushBack(24);
+  programState.supportedVideoFPSs.PushBack(30);
+  programState.supportedVideoFPSs.PushBack(60);
+  programState.supportedVideoFPSs.PushBack(120);
+  programState.videoFPSIndex = 2;
+
   for (int i = 1; i < argc; ++i)
   {
 #if UDPLATFORM_OSX
@@ -1174,6 +1182,8 @@ epilogue:
 
   vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
+
+  programState.supportedVideoFPSs.Deinit();
 
   for (ImWchar *pGlyphs : programState.requiredGlyphs)
     udFree(pGlyphs);
@@ -2444,7 +2454,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   if ((pProgramState->settings.screenshot.taking || pProgramState->exportVideo) && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)
   {
     if (pProgramState->exportVideo)
-      pProgramState->settings.viewports[0].resolution = udUInt2::create(3840, 2160);
+      pProgramState->settings.viewports[0].resolution = udUInt2::create(1920, 1080);
     else
       pProgramState->settings.viewports[0].resolution = pProgramState->settings.screenshot.resolution;
 
