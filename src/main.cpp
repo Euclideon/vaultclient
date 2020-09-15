@@ -422,6 +422,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         int len = pFont->MissingGlyphs().Size;
 
         ImWchar *pMissingGlyphsRanges = udAllocType(ImWchar, len * 2 + 1, udAF_Zero);
+        pProgramState->requiredGlyphs.PushBack(pMissingGlyphsRanges);
 
         for (int i = 0; i < len; ++i)
         {
@@ -432,8 +433,6 @@ void vcMain_MainLoop(vcState *pProgramState)
         }
 
         ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pProgramState->pFontTTFData, pProgramState->fontTTFDataLen, pFont->FontSize, &fontCfg, pMissingGlyphsRanges);
-
-        udFree(pMissingGlyphsRanges);
 
         pFont->ResetMissingGlyphs();
         break;
@@ -933,6 +932,7 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
     pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, bigFontCharacterRanges);
   }
 
+  pLoadInfo->pProgramState->requiredGlyphs.Init(32);
   pLoadInfo->pProgramState->pFontTTFData = pLoadInfo->pData;
   pLoadInfo->pProgramState->fontTTFDataLen = (int)pLoadInfo->dataLen;
 
@@ -1212,6 +1212,9 @@ epilogue:
   vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
 
+  for (ImWchar *pGlyphs : programState.requiredGlyphs)
+    udFree(pGlyphs);
+  programState.requiredGlyphs.Deinit();
   udFree(programState.pFontTTFData);
 
   udDestroyRWLock(&programState.pSessionLock);
