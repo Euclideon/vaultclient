@@ -11,8 +11,9 @@
 #define ONE_PIXEL_SQ 0.0001
 
 // higher == quicker smoothing
-static const double sCameraTranslationSmoothingSpeed = 22.0;
-static const double sCameraRotationSmoothingSpeed = 40.0;
+static const double sCameraTranslationSmoothingSpeed = 14.0;
+static const double sCameraRotationSmoothingSpeed = 30.0;
+static const double sCameraOrbitSmoothingSpeed = 10.0;
 
 udDouble4x4 vcCamera_GetMatrix(const udGeoZone &zone, vcCamera *pCamera)
 {
@@ -27,7 +28,7 @@ void vcCamera_StopSmoothing(vcCameraInput *pCamInput)
   pCamInput->smoothRotation = udDouble2::zero();
 }
 
-void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, double deltaTime)
+void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, double deltaTime, const udDouble3 &worldAnchorNormal, const udDouble3 &worldAnchorPoint, const udGeoZone &geozone)
 {
   static const double minSmoothingThreshold = 0.00001;
   static const double stepAmount = 0.001666667;
@@ -63,6 +64,45 @@ void vcCamera_UpdateSmoothing(vcCamera *pCamera, vcCameraInput *pCamInput, doubl
     else
     {
       pCamInput->smoothRotation = udDouble2::zero();
+    }
+
+    if (udMagSq2(pCamInput->smoothOrbit) >= 0.00001)
+    {
+      udDouble2 step = pCamInput->smoothOrbit * udMin(1.0, stepAmount * sCameraOrbitSmoothingSpeed);
+      pCamInput->smoothOrbit -= step;
+
+      udDoubleQuat orientation = vcGIS_HeadingPitchToQuaternion(geozone, pCamera->position, pCamera->headingPitch);
+
+      // Orbit Left/Right
+      if (step.x != 0)
+      {
+        udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, step.x);
+        udDouble3 direction = pCamera->position - worldAnchorPoint; // find current direction relative to center
+
+        orientation = (rotation * orientation);
+
+        pCamera->position = worldAnchorPoint + rotation.apply(direction); // define new position
+        pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(geozone, pCamera->position, orientation);
+      }
+
+      if (pCamera->headingPitch.y < UD_DEG2RADf(-89.0) && pCamInput->mouseInput.y <= 0)
+        break;
+      if (pCamera->headingPitch.y > UD_DEG2RADf(89.0) && pCamInput->mouseInput.y >= 0)
+        break;
+
+      // Orbit Up/Down     
+      udDoubleQuat rotation = udDoubleQuat::create(orientation.apply({ 1, 0, 0 }), step.y);
+      udDouble3 direction = pCamera->position - worldAnchorPoint; // find current direction relative to center
+
+      orientation = (rotation * orientation);
+
+      // Save it back to the camera
+      pCamera->position = worldAnchorPoint + rotation.apply(direction); // define new position
+      pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(geozone, pCamera->position, orientation);
+    }
+    else
+    {
+      pCamInput->smoothOrbit = udDouble2::zero();
     }
   }
 }
@@ -206,34 +246,8 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     double distanceToPointSqr = udMagSq3(pViewport->worldAnchorPoint - pViewport->camera.position);
     if (distanceToPointSqr != 0.0 && (pViewport->cameraInput.mouseInput.x != 0 || pViewport->cameraInput.mouseInput.y != 0))
     {
-      // Orbit Left/Right
-      if (pViewport->cameraInput.mouseInput.x != 0)
-      {
-      udDoubleQuat rotation = udDoubleQuat::create(worldAnchorNormal, pViewport->cameraInput.mouseInput.x);
-      udDouble3 direction = pViewport->camera.position - pViewport->worldAnchorPoint; // find current direction relative to center
-
-      orientation = (rotation * orientation);
-
-      pViewport->camera.position = pViewport->worldAnchorPoint + rotation.apply(direction); // define new position
-      pViewport->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pViewport->camera.position, orientation);
-      }
-
-      //
-      if (pViewport->camera.headingPitch.y < UD_DEG2RADf(-89.0) && pViewport->cameraInput.mouseInput.y <= 0)
-        break;
-      if (pViewport->camera.headingPitch.y > UD_DEG2RADf(89.0) && pViewport->cameraInput.mouseInput.y >= 0)
-        break;
-
-      // Orbit Up/Down
-      udDoubleQuat rotation = udDoubleQuat::create(orientation.apply({ 1, 0, 0 }), pViewport->cameraInput.mouseInput.y);
-      udDouble3 direction = pViewport->camera.position - pViewport->worldAnchorPoint; // find current direction relative to center
-
-      orientation = (rotation * orientation);
-
-      // Save it back to the camera
-      pViewport->camera.position = pViewport->worldAnchorPoint + rotation.apply(direction); // define new position
-      pViewport->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pViewport->camera.position, orientation);
-
+      pViewport->cameraInput.smoothOrbit.x += pViewport->cameraInput.mouseInput.x;
+      pViewport->cameraInput.smoothOrbit.y += pViewport->cameraInput.mouseInput.y;
     }
   }
   break;
@@ -367,7 +381,7 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
       pViewport->camera.headingPitch.y -= UD_2PI;
   }
 
-  vcCamera_UpdateSmoothing(&pViewport->camera, &pViewport->cameraInput, deltaTime);
+  vcCamera_UpdateSmoothing(&pViewport->camera, &pViewport->cameraInput, deltaTime, worldAnchorNormal, pViewport->worldAnchorPoint, pProgramState->geozone);
 }
 
 void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, int viewportIndex, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos)

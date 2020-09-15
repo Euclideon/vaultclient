@@ -84,6 +84,7 @@ struct vcCameraInput
 
   udDouble3 smoothTranslation;
   udDouble2 smoothRotation;
+  udDouble2 smoothOrbit;
   
   vcSceneItem *pAttachedToSceneItem; // This does nothing in the camera module but the scene item is allowed to override the camera if this variable is set
 
