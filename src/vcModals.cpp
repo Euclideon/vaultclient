@@ -658,12 +658,14 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
-
-    if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true))
+    ImVec2 windowSize = ImGui::GetContentRegionAvail();
+    if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true, ImGuiWindowFlags_HorizontalScrollbar))
     {
       for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
       {
-        ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.infoStrings[i]);
+        ImGui::PushTextWrapPos(windowSize.x);
+        ImGui::Text("%s", pProgramState->projectInfoTextures.infoStrings[i]);
+        ImGui::PopTextWrapPos();
         if (i < pProgramState->projectInfoTextures.infoStrings.length - 1)
         {
           int w, h;
