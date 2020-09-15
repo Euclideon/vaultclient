@@ -810,7 +810,6 @@ void vcMain_LoadFontItalicsBoldMT(void *pLoadInfoPtr)
     else
       ppFont = &pLoadInfo->pProgramState->pBoldFont;
 
-    const float FontSize = 16.f;
     ImFontConfig fontCfg = ImFontConfig();
     fontCfg.FontDataOwnedByAtlas = false;
     fontCfg.MergeMode = false;
