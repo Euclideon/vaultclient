@@ -254,7 +254,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_state != vcFTS_Exporting)
   {
-    if (ImGui::Button("export"))
+    if (ImGui::Button(vcString::Get("flythroughExport")))
     {
       m_state = vcFTS_Exporting;
       pProgramState->screenshot.pImage = nullptr;
