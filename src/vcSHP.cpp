@@ -1,7 +1,172 @@
 #include "vcSHP.h"
 
+#include "udMath.h"
+#include "udChunkedArray.h"
 #include "udFile.h"
 #include "vcDBF.h"
+#include <udStringUtil.h>
+
+enum class vcSHP_Type
+{
+  Empty = 0,
+  Point = 1,
+  Polyline = 3,
+  Polygon = 5,
+  MultiPoint = 8,
+  PointZ = 11,
+  PolylineZ = 13,
+  PolygonZ = 15,
+  MultiPointZ = 18,
+  PointM = 21,
+  PolylineM = 23,
+  PolygonM = 25,
+  MultiPointM = 28,
+  MultiPatch = 31
+};
+
+// file header, 100 bytes
+struct vcSHP_Header
+{
+  uint32_t fileLength;
+  int32_t version;
+  vcSHP_Type shapeType;
+  // Minimum bounding rectangle (MBR) of all shapes contained within the dataset; four doubles in the following order: min X, min Y, max X, max Y
+  udDouble2 MBRmin;
+  udDouble2 MBRmax;
+  // Range of Z; two doubles in the following order : min Z, max Z
+  udDouble2 ZRange;
+  // Range of M; two doubles in the following order: min M, max M
+  udDouble2 MRange;
+};
+
+struct vcSHP_RecordPoly
+{
+  udDouble2 MBRmin;
+  udDouble2 MBRmax;
+
+  int32_t partsCount;
+  int32_t pointsCount;
+
+  int32_t *parts;
+  udDouble2 *points; // x, y
+};
+
+struct vcSHP_RecordMultiPoint
+{
+  udDouble2 MBRmin;
+  udDouble2 MBRmax;
+
+  int32_t pointsCount;
+  udDouble2 *points;
+};
+
+struct vcSHP_RecordPointZ
+{
+  udDouble3 point;
+  double MValue;
+};
+
+struct vcSHP_RecordPolyZ
+{
+  udDouble2 MBRmin;
+  udDouble2 MBRmax;
+  udDouble2 ZRange;
+
+  int32_t partsCount;
+  int32_t pointsCount;
+
+  int32_t *parts;
+  udDouble3 *points; // x, y, z
+
+  // optional:
+  bool MProvided;
+  udDouble2 MRange;
+  double *MValue;
+};
+
+struct vcSHP_RecordMultiPointZ
+{
+  udDouble2 MBRmin;
+  udDouble2 MBRmax;
+  udDouble2 ZRange;
+
+  int32_t pointsCount;
+  udDouble3 *points;
+
+  // optional:
+  bool MProvided;
+  udDouble2 MRange;
+  double *MValue;
+};
+
+struct vcSHP_RecordPolyM
+{
+  udDouble2 MBRmin;
+  udDouble2 MBRmax;
+  int32_t partsCount;
+  int32_t pointsCount;
+
+  int32_t *parts;
+  udDouble2 *points;
+
+  // optional:
+  bool MProvided;
+  udDouble2 MRange;
+  double *MValue;
+};
+
+struct vcSHP_RecordMultiPointM
+{
+  udDouble2 MBRmin;
+  udDouble2 MBRmax;
+
+  int32_t pointsCount;
+  udDouble2 *points;
+
+  // optional:
+  bool MProvided;
+  udDouble2 MRange;
+  double *MValue;
+};
+
+
+union vcSHP_RecordData
+{
+  udDouble2 point; // (x, y)
+  vcSHP_RecordPoly poly;// polyline and polygon
+  vcSHP_RecordMultiPoint multiPoint;
+
+  vcSHP_RecordPointZ pointZ; // (x, y, Z, M)
+  vcSHP_RecordPolyZ polyZ; // polylineZ, polygonZ and multipatch
+  vcSHP_RecordMultiPointZ multiPointZ;
+
+  udDouble3 pointM; // (x, y, M)
+  vcSHP_RecordPolyM polyM; // polylineM and polygonM
+  vcSHP_RecordMultiPointM multiPointM;
+};
+
+struct vcSHP_Record
+{
+  int32_t id;
+  uint32_t length;
+  vcSHP_Type shapeType;
+  vcSHP_RecordData data;
+};
+
+struct vcDBF;
+struct vcSHP
+{
+  bool localBigEndian;
+  bool dbfLoad;
+  bool prjLoad;
+
+  vcSHP_Header shpHeader;
+  udChunkedArray<vcSHP_Record> shpRecords;
+  vcDBF *pDBF;
+
+  udResult projectionLoad;
+  char *WKTString = nullptr;
+};
 
 void vcSHP_ReleaseRecord(vcSHP_Record &record)
 {
@@ -59,49 +224,21 @@ void vcSHP_ReleaseRecord(vcSHP_Record &record)
   }
 }
 
-udResult vcSHP_Load(vcSHP *pSHP, const char *pFilename)
-{
-  if (pSHP == nullptr || pFilename == nullptr)
-    return udR_InvalidParameter_;
-
-  int i = 1;
-  if (*((uint8_t *)&i) == 1)
-    pSHP->localBigEndian = false;
-  else
-    pSHP->localBigEndian = true;
-
-  // load shp file
-  udResult result;
-  result = vcSHP_LoadShpFile(pSHP, pFilename);
-  if (result != udR_Success)
-  {
-    vcSHP_Release(pSHP);
-    return result;
-  }
-
-  printf("shape file load successfully %s\n", pFilename);
-
-  char extraFileName[256] = "";
-  int32_t nameLen = strlen(pFilename) - 3;
-  memcpy(extraFileName, pFilename, nameLen);
-  memcpy(extraFileName + nameLen, "dbf", 3);
-  vcSHP_LoadDbfFile(pSHP, extraFileName);
-
-  memcpy(extraFileName + nameLen, "prj", 3);
-  vcSHP_LoadPrjFile(pSHP, extraFileName);
-
-  return result;
-}
 
 void vcSHP_Release(vcSHP *pSHP)
 {
-  // release shp file data
+  // release .shp file
   for (uint32_t i = 0; i < (uint32_t)pSHP->shpRecords.length; ++i)
     vcSHP_ReleaseRecord(pSHP->shpRecords[i]);
 
   pSHP->shpRecords.Deinit();
 
+  // release .dbf file
   vcDBF_Destroy(&pSHP->pDBF);
+
+  // release .prj file
+  if(pSHP->projectionLoad == udR_Success)
+    udFree(pSHP->WKTString);
 }
 
 static void SwapByteOrder(int length, uint8_t *src)
@@ -212,10 +349,10 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
   break;
   case vcSHP_Type::PointZ:
   {
-    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.x, buffer);
-    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.y, buffer);
-    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.z, buffer); // Z
-    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.w, buffer); // M
+    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.point.x, buffer);
+    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.point.y, buffer);
+    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.point.z, buffer); // Z
+    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.MValue, buffer); // M
   }
   break;
   case vcSHP_Type::PolylineZ:
@@ -460,6 +597,135 @@ void vcSHP_LoadDbfFile(vcSHP *pSHP, const char *pFilename)
   vcDBF_Load(&pSHP->pDBF, pFilename);
 }
 
-void vcSHP_LoadPrjFile(vcSHP *, const char *)
+udResult vcSHP_LoadFileGroup(vcSHP *pSHP, const char *pFilename)
 {
+  if (pSHP == nullptr || pFilename == nullptr)
+    return udR_InvalidParameter_;
+
+  int i = 1;
+  if (*((uint8_t *)&i) == 1)
+    pSHP->localBigEndian = false;
+  else
+    pSHP->localBigEndian = true;
+
+  // load shp file
+  udResult result;
+  result = vcSHP_LoadShpFile(pSHP, pFilename);
+  if (result != udR_Success)
+  {
+    vcSHP_Release(pSHP);
+    return result;
+  }
+
+  printf("shape file load successfully %s\n", pFilename);
+
+  char extraFileName[256] = "";
+  int32_t nameLen = strlen(pFilename) - 3;
+  memcpy(extraFileName, pFilename, nameLen);
+  memcpy(extraFileName + nameLen, "dbf", 3);
+  vcSHP_LoadDbfFile(pSHP, extraFileName);
+
+  memcpy(extraFileName + nameLen, "prj", 3);
+  pSHP->projectionLoad = udFile_Load(extraFileName, &pSHP->WKTString);
+
+  return result;
+}
+
+void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record)
+{
+  udProjectNode *pNode = nullptr;
+  udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", udTempStr("%d", record.id), nullptr, nullptr);
+
+  switch (record.shapeType)
+  {
+  case vcSHP_Type::Point:
+  {
+
+  }
+  break;
+  case vcSHP_Type::Polyline:
+  case vcSHP_Type::Polygon:
+  {
+
+  }
+  break;
+  case vcSHP_Type::MultiPoint:
+  {
+
+  }
+  break;
+  case vcSHP_Type::PointZ:
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &record.data.pointZ.point, 1);
+  }
+  break;
+  case vcSHP_Type::PolylineZ:
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.polyZ.points, record.data.polyZ.pointsCount);
+  }
+  break;
+  case vcSHP_Type::PolygonZ:
+  {
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, record.data.polyZ.points, record.data.polyZ.pointsCount);
+  }
+  break;
+  case vcSHP_Type::MultiPointZ:
+  {
+
+  }
+  break;
+  case vcSHP_Type::PointM:
+  {
+    
+  }
+  break;
+  case vcSHP_Type::PolylineM:
+  case vcSHP_Type::PolygonM:
+  {
+
+  }
+  break;
+  case vcSHP_Type::MultiPointM:
+  {
+
+  }
+  break;
+  case vcSHP_Type::MultiPatch:
+  {
+
+  }
+  break;
+  default:
+  break;
+  }
+  
+}
+
+udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
+{
+  udResult result;
+
+  vcSHP shp;
+  result = vcSHP_LoadFileGroup(&shp, pFilename);
+
+  printf("load file done. name: %s result: %d\n", pFilename, result);  
+
+  // TODO: create scene from .prj file  
+  vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
+  if (shp.projectionLoad == udR_Success)
+  {
+    printf("%s \n", shp.WKTString);
+    udGeoZone zone = {};
+    udGeoZone_SetFromWKT(&zone, shp.WKTString);
+    vcGIS_ChangeSpace(&pProgramState->geozone, zone);
+  }
+  
+  udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+
+  for (size_t i = 0; i < shp.shpRecords.length; ++i)
+  {
+    vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i]);
+  }
+
+  return result;
 }

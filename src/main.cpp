@@ -515,6 +515,11 @@ void vcMain_MainLoop(vcState *pProgramState)
           if (vc12DXML_Load(pProgramState, pNextLoad) == udR_Unsupported)
             vcModals_OpenModal(pProgramState, vcMT_UnsupportedEncoding);
         }
+        else if (udStrEquali(pExt, ".shp"))
+        {
+          vcModals_CloseModal(pProgramState, vcMT_Welcome);
+          vcSHP_Load(pProgramState, pNextLoad);
+        }
 #if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
         {
@@ -664,29 +669,6 @@ void vcMain_MainLoop(vcState *pProgramState)
           else if (udStrEquali(pExt, ".slpk"))
           {
             if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) != udE_Success)
-            {
-              vcState::ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
-              projectError.resultCode = udR_ReadFailure;
-
-              pNextLoad = nullptr;
-
-              pProgramState->errorItems.PushBack(projectError);
-
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-
-              continue;
-            }
-            else if (firstLoad) // Was successful
-            {
-              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-              vcModals_CloseModal(pProgramState, vcMT_Welcome);
-            }
-          }
-          else if (udStrEquali(pExt, ".shp"))
-          {
-            if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "SHP", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) != udE_Success)
             {
               vcState::ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
