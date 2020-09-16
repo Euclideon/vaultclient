@@ -370,6 +370,13 @@ void vcMain_MainLoop(vcState *pProgramState)
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
 #ifndef GIT_BUILD
+  extern int demTileServerAddressIndex;
+  if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_U))
+  {
+    demTileServerAddressIndex = (demTileServerAddressIndex + 1) % 2;
+    vcRender_ClearTiles(pProgramState->pViewports[0].pRenderContext);
+  }
+
   if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_P))
   {
     for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)

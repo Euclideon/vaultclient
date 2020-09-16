@@ -28,9 +28,18 @@ static const int TileFailedRetryCount = 5;
 static const float QuadTreeUpdateFrequencySec = 0.5f;
 
 // TODO: This is a temporary solution, where we know the dem data stops at level 13.
-#define HACK_DEM_LEVEL 13
-const char *pDemTileServerAddress = "https://az.vault.euclideon.com/dem/%d/%d/%d.png";
-udUUID demTileServerAddresUUID = {};
+int demTileServerAddressIndex = 0;
+int maxDemLevels[] =
+{
+  18,
+  13
+};
+const char *pDemTileServerAddress[] = {
+  "D:/DEM Tiles/slippy files/stiched/%d/%d/%d.png", // change this to a path that works!
+  "https://az.vault.euclideon.com/dem/%d/%d/%d.png"
+};
+
+udUUID demTileServerAddresUUID[udLengthOf(pDemTileServerAddress)] = {};
 
 enum
 {
@@ -465,8 +474,8 @@ uint32_t vcTileRenderer_LoadThread(void *pThreadData)
       // process dem and/or colour request
       if (doDemRequest)
       {
-        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
-        udSprintf(serverURL, pDemTileServerAddress, pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        udSprintf(localURL, "%s/%s/%d/%d/%d.png", pRenderer->pSettings->cacheAssetPath, udUUID_GetAsString(demTileServerAddresUUID[demTileServerAddressIndex]), pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
+        udSprintf(serverURL, pDemTileServerAddress[demTileServerAddressIndex], pBestNode->slippyPosition.z, pBestNode->slippyPosition.x, pBestNode->slippyPosition.y);
 
         // allow continue on failure
         udResult demResult = vcTileRenderer_HandleTileDownload(&pBestNode->demInfo, serverURL, localURL);
@@ -792,7 +801,8 @@ udResult vcTileRenderer_Create(vcTileRenderer **ppTileRenderer, udWorkerPool *pW
 
   pTileRenderer->generateTreeUpdateTimer = QuadTreeUpdateFrequencySec;
 
-  UD_ERROR_CHECK(udUUID_GenerateFromString(&demTileServerAddresUUID, pDemTileServerAddress));
+  for (int i = 0; i < udLengthOf(pDemTileServerAddress); ++i)
+    UD_ERROR_CHECK(udUUID_GenerateFromString(&demTileServerAddresUUID[i], pDemTileServerAddress[i]));
 
   vcQuadTree_Create(&pTileRenderer->quadTree, pSettings);
 
@@ -1088,9 +1098,9 @@ void vcTileRenderer_UpdateTextureQueuesRecursive(vcTileRenderer *pTileRenderer, 
   }
 
   // hacky - looking for specific DEM levels
-  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->slippyPosition.z <= HACK_DEM_LEVEL)
+  if (pTileRenderer->pSettings->maptiles.demEnabled && pNode->slippyPosition.z <= maxDemLevels[demTileServerAddressIndex])
   {
-    bool demLeaf = vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode) || (pNode->slippyPosition.z == HACK_DEM_LEVEL);
+    bool demLeaf = vcQuadTree_IsVisibleLeafNode(&pTileRenderer->quadTree, pNode) || (pNode->slippyPosition.z == maxDemLevels[demTileServerAddressIndex]);
     if (demLeaf && pNode->demInfo.loadStatus.Get() != vcNodeRenderInfo::vcTLS_Loaded)
     {
       vcTileRenderer_UpdateTileDEMTexture(pTileRenderer, pNode, pUploadBudgetRemainingMS);
