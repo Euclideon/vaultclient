@@ -247,9 +247,9 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowEuclideonLogo"), &pProgramState->settings.presentation.showEuclideonLogo);
-          if (ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_POIFaderMax, "%.3fm", 3.f))
+          if (ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_POIFaderMax, "%.3fm", ImGuiSliderFlags_Logarithmic))
             pProgramState->settings.presentation.POIFadeDistance = udClamp(pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_GlobalLimitf);
-          if(ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", 3.f))
+          if(ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", ImGuiSliderFlags_Logarithmic))
             pProgramState->settings.presentation.imageRescaleDistance = udClamp(pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax);
           ImGui::Checkbox(vcString::Get("settingsAppearanceLimitFPS"), &pProgramState->settings.presentation.limitFPSInBackground);
 
@@ -318,7 +318,7 @@ void vcSettingsUI_Show(vcState *pProgramState)
         {
           vcSettingsUI_ShowHeader(pProgramState, vcString::Get("Tools"), vcSC_Tools);
           ImGui::Text("%s", vcString::Get("settingsToolsDefaultValues"));
-          ImGui::SliderFloat(vcString::Get("scenePOILineWidth"), &pProgramState->settings.tools.line.width, pProgramState->settings.tools.line.minWidth, pProgramState->settings.tools.line.maxWidth, "%.2f", 3.f);
+          ImGui::SliderFloat(vcString::Get("scenePOILineWidth"), &pProgramState->settings.tools.line.width, pProgramState->settings.tools.line.minWidth, pProgramState->settings.tools.line.maxWidth, "%.2f", ImGuiSliderFlags_Logarithmic);
            
           const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationScreenLine"), vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
           ImGui::Combo(vcString::Get("scenePOILineOrientation"), &pProgramState->settings.tools.line.fenceMode, fenceOptions, (int)udLengthOf(fenceOptions));
@@ -835,7 +835,7 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 
               ImGui::Unindent();
             }
-            if (ImGui::SliderFloat(udTempStr("%s##%d", vcString::Get("settingsMapsMapHeight"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", 2.f))
+            if (ImGui::SliderFloat(udTempStr("%s##%d", vcString::Get("settingsMapsMapHeight"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].mapHeight, vcSL_MapHeightMin, vcSL_MapHeightMax, "%.3fm", ImGuiSliderFlags_Logarithmic))
               pProgramState->settings.maptiles.layers[mapLayer].mapHeight = udClamp(pProgramState->settings.maptiles.layers[mapLayer].mapHeight, -vcSL_GlobalLimitf, vcSL_GlobalLimitf);
 
             if (ImGui::SliderFloat(udTempStr("%s##mapLayer%d", vcString::Get("settingsMapsOpacity"), mapLayer), &pProgramState->settings.maptiles.layers[mapLayer].transparency, vcSL_OpacityMin, vcSL_OpacityMax, "%.3f"))

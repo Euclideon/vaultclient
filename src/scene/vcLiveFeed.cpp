@@ -513,7 +513,7 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
     const double decayFrequencyMinValue = 30.0;
     const double decayFrequencyMaxValue = 604800.0; // 1 week
 
-    if (ImGui::SliderScalar(vcString::Get("liveFeedMaxDisplayTime"), ImGuiDataType_Double, &m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f s", 4.f))
+    if (ImGui::SliderScalar(vcString::Get("liveFeedMaxDisplayTime"), ImGuiDataType_Double, &m_decayFrequency, &decayFrequencyMinValue, &decayFrequencyMaxValue, "%.0f s", ImGuiSliderFlags_Logarithmic))
     {
       m_decayFrequency = udClamp(m_decayFrequency, decayFrequencyMinValue, decayFrequencyMaxValue);
       udProjectNode_SetMetadataDouble(m_pNode, "maxDisplayTime", m_decayFrequency);
@@ -536,7 +536,7 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
       const double displayDistanceMinValue = 1.0;
       const double displayDistanceMaxValue = 100000.0;
 
-      if (ImGui::SliderScalar(vcString::Get("liveFeedDisplayDistance"), ImGuiDataType_Double, &m_maxDisplayDistance, &displayDistanceMinValue, &displayDistanceMaxValue, "%.0f", 3.f))
+      if (ImGui::SliderScalar(vcString::Get("liveFeedDisplayDistance"), ImGuiDataType_Double, &m_maxDisplayDistance, &displayDistanceMinValue, &displayDistanceMaxValue, "%.0f", ImGuiSliderFlags_Logarithmic))
       {
         m_maxDisplayDistance = udClamp(m_maxDisplayDistance, displayDistanceMinValue, displayDistanceMaxValue);
         udProjectNode_SetMetadataDouble(m_pNode, "maxDisplayDistance", m_maxDisplayDistance);
@@ -548,7 +548,7 @@ void vcLiveFeed::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemI
       const double minLODModifier = 0.01;
       const double maxLODModifier = 5.0;
 
-      if (ImGui::SliderScalar(vcString::Get("liveFeedLODModifier"), ImGuiDataType_Double, &m_labelLODModifier, &minLODModifier, &maxLODModifier, "%.2f", 2.f))
+      if (ImGui::SliderScalar(vcString::Get("liveFeedLODModifier"), ImGuiDataType_Double, &m_labelLODModifier, &minLODModifier, &maxLODModifier, "%.2f", ImGuiSliderFlags_Logarithmic))
       {
         m_labelLODModifier = udClamp(m_labelLODModifier, minLODModifier, maxLODModifier);
         udProjectNode_SetMetadataDouble(m_pNode, "lodModifier", m_labelLODModifier);

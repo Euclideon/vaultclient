@@ -837,7 +837,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     if (ImGui::InputDouble(vcString::Get("sceneExplorerCompareModelsGridSize"), &s_gridSize))
       s_gridSize = udClamp(s_gridSize, 0.25, 100.0);
 
-    if (ImGui::ButtonEx(vcString::Get("sceneExplorerCompareModels"), ImVec2(0, 0), (s_pOldModel == nullptr ? ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
+    if (ImGui::ButtonEx(vcString::Get("sceneExplorerCompareModels"), ImVec2(0, 0), (s_pOldModel == nullptr ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
     {
       char newName[vcMaxPathLength] = {};
       char oldName[vcMaxPathLength] = {};
