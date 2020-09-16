@@ -644,7 +644,6 @@ void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Re
   const char *nodeName = "";
   if (pDBFRecord != nullptr && !pDBFRecord->deleted && stringIndex >= 0)
   {
-    // for TEST only
     size_t len = strlen(pDBFRecord->pFields[stringIndex].pString);
     memcpy(buffer, pDBFRecord->pFields[stringIndex].pString, len);
     udStrStripWhiteSpace(buffer);
@@ -713,7 +712,7 @@ udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
 
   printf("load file done. name: %s result: %d\n", pFilename, result);  
 
-  // TODO: create scene from .prj file  
+  // TODO: create scene from .prj file, can't work correctly, need to be fixed.
   vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
   if (shp.projectionLoad == udR_Success)
   {
