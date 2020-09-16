@@ -182,7 +182,7 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_ShapeFile, vcFDT_OpenFile, nullptr);
+    vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_SceneItems, vcFDT_OpenFile, nullptr);
 
     ImGui::SameLine();
 
