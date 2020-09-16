@@ -370,7 +370,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   udSleep(sleepMS);
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
-#if !defined(GIT_BUILD) && defined(UDPLATFORM_WINDOWS)
+#if !defined(GIT_BUILD) && UDPLATFORM_WINDOWS
   if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_P))
   {
     for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)

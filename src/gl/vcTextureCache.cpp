@@ -63,10 +63,10 @@ int vcTextureCache_IndexOf(const char *pAssetName, vcTextureFilterMode filterMod
 
     if (compare == 0)
     {
-      compare = (g_textures[m].wrapMode - wrapMode);
+      compare = ((int)g_textures[m].wrapMode - (int)wrapMode);
 
       if (compare == 0)
-        compare = g_textures[m].filterMode - filterMode;
+        compare = ((int)g_textures[m].filterMode - (int)filterMode);
     }
 
     if (compare < 0)
@@ -188,6 +188,8 @@ void vcTextureCache_ConditionallyPruneGlobal()
 
   if (currentTime - lastUpdateTime >= PruneFrequencySec)
   {
+    udWriteLockRWLock(g_pRWLock);
+
     for (size_t i = 0; i < g_textures.length; ++i)
     {
       vcCachedTexture *pCachedTexture = &g_textures[i];
@@ -202,5 +204,7 @@ void vcTextureCache_ConditionallyPruneGlobal()
     }
 
     lastUpdateTime = currentTime;
+
+    udWriteUnlockRWLock(g_pRWLock);
   }
 }
