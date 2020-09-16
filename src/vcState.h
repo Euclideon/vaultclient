@@ -139,6 +139,10 @@ struct vcState
   int closeModals; // This is controlled inside vcModals.cpp
   bool modalOpen;
 
+  void *pFontTTFData;
+  int fontTTFDataLen;
+  udChunkedArray<ImWchar *> requiredGlyphs;
+
   ImFont *pBigFont;
   ImFont *pItalicFont;
   ImFont *pBoldFont;
