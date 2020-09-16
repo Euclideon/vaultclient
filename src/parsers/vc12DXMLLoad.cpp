@@ -15,9 +15,9 @@
 *                not be obeyed!
 */
 
-#define LOG_ERROR(...)
-#define LOG_WARNING(...)
-#define LOG_INFO(...)
+#define LOG_ERROR(...) {}
+#define LOG_WARNING(...) {}
+#define LOG_INFO(...) {}
 
 // TODO support 'light' and 'dark' variants of all colours
 // TODO support capitalisation
