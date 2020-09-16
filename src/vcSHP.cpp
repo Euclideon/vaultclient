@@ -48,7 +48,7 @@ struct vcSHP_RecordPoly
   int32_t pointsCount;
 
   int32_t *parts;
-  udDouble2 *points; // x, y
+  udDouble3 *points; // x, y
 };
 
 struct vcSHP_RecordMultiPoint
@@ -57,7 +57,7 @@ struct vcSHP_RecordMultiPoint
   udDouble2 MBRmax;
 
   int32_t pointsCount;
-  udDouble2 *points;
+  udDouble3 *points;
 };
 
 struct vcSHP_RecordPointZ
@@ -78,7 +78,7 @@ struct vcSHP_RecordPolyZ
   int32_t *parts;
   udDouble3 *points; // x, y, z
 
-  // optional:
+  // optional: loaded but didn't use
   bool MProvided;
   udDouble2 MRange;
   double *MValue;
@@ -107,7 +107,7 @@ struct vcSHP_RecordPolyM
   int32_t pointsCount;
 
   int32_t *parts;
-  udDouble2 *points;
+  udDouble3 *points;
 
   // optional:
   bool MProvided;
@@ -121,7 +121,7 @@ struct vcSHP_RecordMultiPointM
   udDouble2 MBRmax;
 
   int32_t pointsCount;
-  udDouble2 *points;
+  udDouble3 *points;
 
   // optional:
   bool MProvided;
@@ -132,17 +132,17 @@ struct vcSHP_RecordMultiPointM
 
 union vcSHP_RecordData
 {
-  udDouble2 point; // (x, y)
-  vcSHP_RecordPoly poly;// polyline and polygon
-  vcSHP_RecordMultiPoint multiPoint;
+  udDouble3 point; // (x, y, 0)
+  vcSHP_RecordPoly poly;// polyline and polygon (x, y, 0)
+  vcSHP_RecordMultiPoint multiPoint; // (x, y, 0)
 
-  vcSHP_RecordPointZ pointZ; // (x, y, Z, M)
-  vcSHP_RecordPolyZ polyZ; // polylineZ, polygonZ and multipatch
-  vcSHP_RecordMultiPointZ multiPointZ;
+  vcSHP_RecordPointZ pointZ; // (x, y, Z), M
+  vcSHP_RecordPolyZ polyZ; // polylineZ, polygonZ and multipatch (x, y, Z), M
+  vcSHP_RecordMultiPointZ multiPointZ; // (x, y, Z), M
 
-  udDouble3 pointM; // (x, y, M)
-  vcSHP_RecordPolyM polyM; // polylineM and polygonM
-  vcSHP_RecordMultiPointM multiPointM;
+  vcSHP_RecordPointZ pointM; // (x, y, 0), M
+  vcSHP_RecordPolyM polyM; // polylineM and polygonM (x, y, 0), M
+  vcSHP_RecordMultiPointM multiPointM;// (x, y, 0), M
 };
 
 struct vcSHP_Record
@@ -320,12 +320,13 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     for (int i = 0; i < record.data.poly.partsCount; i++)
       readPosition = UnpackInt32(pSHP->localBigEndian, readPosition, &record.data.poly.parts[i], buffer);
 
-    record.data.poly.points = udAllocType(udDouble2, record.data.poly.pointsCount, udAF_Zero);
+    record.data.poly.points = udAllocType(udDouble3, record.data.poly.pointsCount, udAF_Zero);
     for (int i = 0; i < record.data.poly.pointsCount; i++)
     {
-      udDouble2 *p = &record.data.poly.points[i];
+      udDouble3 *p = &record.data.poly.points[i];
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->x, buffer);
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->y, buffer);
+      p->z = 0;
     }
 
   }
@@ -338,12 +339,13 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPoint.MBRmax.y, buffer);
 
     readPosition = UnpackInt32(pSHP->localBigEndian, readPosition, &record.data.multiPoint.pointsCount, buffer);
-    record.data.multiPoint.points = udAllocType(udDouble2, record.data.multiPoint.pointsCount, udAF_Zero);
+    record.data.multiPoint.points = udAllocType(udDouble3, record.data.multiPoint.pointsCount, udAF_Zero);
     for (int i = 0; i < record.data.multiPoint.pointsCount; i++)
     {
-      udDouble2 *p = &record.data.multiPoint.points[i];
+      udDouble3 *p = &record.data.multiPoint.points[i];
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->x, buffer);
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->y, buffer);
+      p->z = 0;
     }
   }
   break;
@@ -377,6 +379,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
       udDouble3 *p = &record.data.polyZ.points[i];
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->x, buffer);
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->y, buffer);
+      p->z = 0;
     }
 
     // z
@@ -418,6 +421,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
       udDouble3 *p = &record.data.multiPointZ.points[i];
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->x, buffer);
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->y, buffer);
+      p->z = 0;
     }
 
     // z
@@ -447,9 +451,10 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
   break;
   case vcSHP_Type::PointM:
   {
-    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.x, buffer);
-    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.y, buffer);
-    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.z, buffer); // M
+    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.point.x, buffer);
+    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.point.y, buffer);
+    record.data.pointM.point.z = 0;
+    readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.MValue, buffer); // M
   }
   break;
   case vcSHP_Type::PolylineM:
@@ -467,12 +472,13 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     for (int i = 0; i < record.data.polyM.partsCount; i++)
       readPosition = UnpackInt32(pSHP->localBigEndian, readPosition, &record.data.polyM.parts[i], buffer);
 
-    record.data.polyM.points = udAllocType(udDouble2, record.data.polyM.pointsCount, udAF_Zero);
+    record.data.polyM.points = udAllocType(udDouble3, record.data.polyM.pointsCount, udAF_Zero);
     for (int i = 0; i < record.data.polyM.pointsCount; i++)
     {
-      udDouble2 *p = &record.data.polyM.points[i];
+      udDouble3 *p = &record.data.polyM.points[i];
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->x, buffer);
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->y, buffer);
+      p->z = 0;
     }
 
     // optional:
@@ -498,12 +504,13 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPointM.MBRmax.y, buffer);
 
     readPosition = UnpackInt32(pSHP->localBigEndian, readPosition, &record.data.multiPointM.pointsCount, buffer);
-    record.data.multiPointM.points = udAllocType(udDouble2, record.data.multiPointM.pointsCount, udAF_Zero);
+    record.data.multiPointM.points = udAllocType(udDouble3, record.data.multiPointM.pointsCount, udAF_Zero);
     for (int i = 0; i < record.data.multiPointM.pointsCount; i++)
     {
-      udDouble2 *p = &record.data.multiPointM.points[i];
+      udDouble3 *p = &record.data.multiPointM.points[i];
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->x, buffer);
       readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &p->y, buffer);
+      p->z = 0;
     }
     // optional:
     record.data.multiPointM.MProvided = false;
@@ -631,15 +638,15 @@ udResult vcSHP_LoadFileGroup(vcSHP *pSHP, const char *pFilename)
   return result;
 }
 
-void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record, vcDBF_Record *pDBFRecord)
+void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record, vcDBF_Record *pDBFRecord, int32_t stringIndex)
 {
   char buffer[256] = {};
   const char *nodeName = "";
-  if (pDBFRecord != nullptr && !pDBFRecord->deleted)
+  if (pDBFRecord != nullptr && !pDBFRecord->deleted && stringIndex >= 0)
   {
     // for TEST only
-    size_t len = strlen(pDBFRecord->pFields[0].pString);
-    memcpy(buffer, pDBFRecord->pFields[0].pString, len);
+    size_t len = strlen(pDBFRecord->pFields[stringIndex].pString);
+    memcpy(buffer, pDBFRecord->pFields[stringIndex].pString, len);
     udStrStripWhiteSpace(buffer);
     nodeName = udTempStr("%s", buffer);
   }
@@ -654,63 +661,44 @@ void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Re
   switch (record.shapeType)
   {
   case vcSHP_Type::Point:
-  {
-
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &record.data.point, 1);
   break;
   case vcSHP_Type::Polyline:
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, record.data.poly.points, record.data.poly.pointsCount);
+  break;
   case vcSHP_Type::Polygon:
-  {
-
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, record.data.poly.points, record.data.poly.pointsCount);
   break;
   case vcSHP_Type::MultiPoint:
-  {
-
-  }
+  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.multiPointZ.points, record.data.multiPointZ.pointsCount);
   break;
   case vcSHP_Type::PointZ:
-  {
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &record.data.pointZ.point, 1);
-  }
   break;
   case vcSHP_Type::PolylineZ:
-  {
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.polyZ.points, record.data.polyZ.pointsCount);
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, record.data.polyZ.points, record.data.polyZ.pointsCount);
   break;
   case vcSHP_Type::PolygonZ:
-  {
+  case vcSHP_Type::MultiPatch:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, record.data.polyZ.points, record.data.polyZ.pointsCount);
-  }
   break;
   case vcSHP_Type::MultiPointZ:
-  {
-
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.multiPointZ.points, record.data.multiPointZ.pointsCount);
   break;
   case vcSHP_Type::PointM:
-  {
-    
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &record.data.pointM.point, 1);
   break;
   case vcSHP_Type::PolylineM:
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, record.data.polyM.points, record.data.polyM.pointsCount);
+  break;
   case vcSHP_Type::PolygonM:
-  {
-
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, record.data.polyM.points, record.data.polyM.pointsCount);
   break;
   case vcSHP_Type::MultiPointM:
-  {
-
-  }
-  break;
-  case vcSHP_Type::MultiPatch:
-  {
-
-  }
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.multiPointM.points, record.data.multiPointM.pointsCount);
   break;
   default:
+    printf("invalid shape tyep %d\n", record.shapeType);
   break;
   }
   
@@ -732,16 +720,22 @@ udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
     printf("%s \n", shp.WKTString);
     udGeoZone zone = {};
     udGeoZone_SetFromWKT(&zone, shp.WKTString);
+    zone.latLongBoundMin = shp.shpHeader.MBRmin;
+    zone.latLongBoundMax = shp.shpHeader.MBRmax;
+
     vcGIS_ChangeSpace(&pProgramState->geozone, zone);
   }
   
   udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
 
+  uint16_t stringIndex = vcDBF_GetStringFieldIndex(shp.pDBF);  
   vcDBF_Record *pDBFRecord = nullptr;
   for (size_t i = 0; i < shp.shpRecords.length; ++i)
   {
-    vcDBF_GetRecord(shp.pDBF, &pDBFRecord, i);
-    vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i], pDBFRecord);
+    if (stringIndex >= 0)
+      vcDBF_GetRecord(shp.pDBF, &pDBFRecord, i);
+
+    vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i], pDBFRecord, stringIndex);
   }
 
   return result;

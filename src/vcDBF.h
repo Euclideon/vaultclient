@@ -55,6 +55,8 @@ udResult vcDBF_GetFieldIndex(vcDBF *pDBF, const char *pFieldName, uint16_t *pInd
 uint16_t vcDBF_GetFieldCount(vcDBF *pDBF);
 uint32_t vcDBF_GetRecordCount(vcDBF *pDBF);
 
+int32_t vcDBF_GetStringFieldIndex(vcDBF *pDBF);
+
 // These two can only be performed if there's no data in pDBF
 udResult vcDBF_AddField(vcDBF *pDBF, char *pFieldName, char fieldType, uint8_t fieldLen);
 udResult vcDBF_RemoveField(vcDBF *pDBF, uint16_t fieldIndex);
