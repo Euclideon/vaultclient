@@ -4,7 +4,7 @@
 #include "udChunkedArray.h"
 #include "udFile.h"
 #include "vcDBF.h"
-#include <udStringUtil.h>
+#include "udStringUtil.h"
 
 enum class vcSHP_Type
 {
@@ -697,7 +697,7 @@ void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Re
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.multiPointM.points, record.data.multiPointM.pointsCount);
   break;
   default:
-    printf("invalid shape tyep %d\n", record.shapeType);
+    printf("invalid shape type %d\n", record.shapeType);
   break;
   }
   
