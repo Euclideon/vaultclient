@@ -254,9 +254,9 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_state != vcFTS_Exporting)
   {
-    if (ImGui::BeginCombo("##ExportFPSCombo", udTempStr_CommaInt(pProgramState->supportedVideoFPSs[pProgramState->videoFPSIndex])))
+    if (ImGui::BeginCombo(vcString::Get("flythroughFPS"), udTempStr_CommaInt(pProgramState->supportedVideoFPSs[pProgramState->videoFPSIndex])))
     {
-      for (int i = 0; i < pProgramState->supportedVideoFPSs.length; ++i)
+      for (size_t i = 0; i < pProgramState->supportedVideoFPSs.length; ++i)
       {
         if (ImGui::Selectable(udTempStr_CommaInt(pProgramState->supportedVideoFPSs[i])))
         {

@@ -2454,7 +2454,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   if ((pProgramState->settings.screenshot.taking || pProgramState->exportVideo) && pProgramState->settings.viewports[0].resolution != pProgramState->settings.screenshot.resolution)
   {
     if (pProgramState->exportVideo)
-      pProgramState->settings.viewports[0].resolution = udUInt2::create(1920, 1080);
+      pProgramState->settings.viewports[0].resolution = udUInt2::create(3840, 2160);
     else
       pProgramState->settings.viewports[0].resolution = pProgramState->settings.screenshot.resolution;
 
