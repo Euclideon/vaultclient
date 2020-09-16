@@ -164,8 +164,8 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
 {
   udResult result;
   const udJSON *pItem = nullptr;
-  bool has_z = false;
-  double z = 0.0;
+  //bool has_z = false;
+  //double z = 0.0;
 
   UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
 
@@ -175,14 +175,14 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
   // From the spec:
   //   - There is exactly 0 or 1 <z> tag per string.
   //   - Its position is irrelevant, it is global to the string
-  pItem = &pNode->Get("z");
-  UD_ERROR_IF(pItem->IsArray(), udR_InvalidConfiguration);
-
-  if (!pItem->IsVoid())
-  {
-    has_z = true;
-    z = pItem->AsDouble();
-  }
+  //pItem = &pNode->Get("z");
+  //UD_ERROR_IF(pItem->IsArray(), udR_InvalidConfiguration);
+  //
+  //if (!pItem->IsVoid())
+  //{
+  //  has_z = true;
+  //  z = pItem->AsDouble();
+  //}
 
   SetGlobals(pNode, globals);
 
