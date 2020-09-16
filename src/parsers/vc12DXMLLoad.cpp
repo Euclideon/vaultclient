@@ -20,7 +20,6 @@
 #define LOG_INFO(...) {}
 
 // TODO support 'light' and 'dark' variants of all colours
-// TODO support capitalisation
 static uint32_t vc12DXML_ToColour(const char *pStr)
 {
   struct ColourPair
@@ -43,51 +42,11 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
 
   for (size_t i = 0; i < udLengthOf(Colours); ++i)
   {
-    if (udStrcmp(pStr, Colours[i].pStr) == 0)
+    if (udStrcmpi(pStr, Colours[i].pStr) == 0)
       return Colours[i].val;
   }
 
   return 0xFFFF00FF;
-}
-
-static size_t vc12DXML_StrSplit(char *pStr, const char *pDelims, char **ppSubstrings, size_t subStrCount)
-{
-  if (subStrCount == 0)
-    return 0;
-
-  bool newString = false;
-  size_t subInd = 1;
-  size_t strLen = udStrlen(pStr);
-  ppSubstrings[0] = pStr;
-
-  for (size_t i = 0; i < strLen; ++i)
-  {
-    if (subInd == subStrCount)
-      break;
-
-    bool delimFound = false;
-    for (size_t j = 0; j < udStrlen(pDelims); ++j)
-    {
-      if (pStr[i] == pDelims[j])
-      {
-        pStr[i] = 0;
-        newString = true;
-        delimFound = true;
-        break;
-      }
-    }
-
-    if (delimFound)
-      continue;
-
-    if (newString)
-    {
-      ppSubstrings[subInd] = &pStr[i];
-      ++subInd;
-      newString = false;
-    }
-  }
-  return subInd;
 }
 
 static void SetGlobals(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
@@ -116,7 +75,7 @@ static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> 
     char *tokens[3] = {};
     udDouble3 point = {};
     udStrcpy(str, pNode->AsString());
-    if (vc12DXML_StrSplit(str, " ", tokens, 3) != 3)
+    if (udStrTokenSplit(str, " ", tokens, 3) != 3)
     {
       LOG_WARNING("Malformed data_3d vertex item");
     }
@@ -216,19 +175,6 @@ epilogue:
   return result;
 }
 
-void vc12DXML_SuperString::Print(FILE *pOut, int indent) const
-{
-  fprintf(pOut, "\n%*cSUPERSTRING", indent, ' ');
-  fprintf(pOut, "\n%*cname: %s", indent + 2, ' ', m_pName);
-  fprintf(pOut, "\n%*cclosed: %s", indent + 2, ' ', m_isClosed ? "true" : "false");
-  fprintf(pOut, "\n%*cweight: %f", indent + 2, ' ', m_weight);
-  fprintf(pOut, "\n%*cPOINTS:", indent + 2, ' ');
-  fprintf(pOut, "\n%*c%zu points:", indent + 4, ' ', m_points.size());
-  //for (const auto &point : m_points)
-  //  fprintf(pOut, "\n%*c%f %f %f", indent + 4, ' ', point[0], point[1], point[2]);
-}
-
-
 vc12DXML_Model::vc12DXML_Model()
   : m_pName(nullptr)
 {
@@ -303,14 +249,6 @@ epilogue:
   return result;
 };
 
-void vc12DXML_Model::Print(FILE *pOut, int indent) const
-{
-  fprintf(pOut, "\n%*cMODEL", indent, ' ');
-  fprintf(pOut, "\n%*cname: %s", indent + 2, ' ', m_pName);
-  for (const auto pEle : m_elements)
-    pEle->Print(pOut, indent + 4);
-}
-
 vc12DXML_Project::vc12DXML_Project()
   : m_pName(nullptr)
 {
@@ -376,14 +314,6 @@ udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &g
   result = udR_Success;
 epilogue:
   return result;
-}
-
-void vc12DXML_Project::Print(FILE *pOut, int indent) const
-{
-  fprintf(pOut, "%*cPROJECT", indent, ' ');
-  fprintf(pOut, "\n%*cname: %s", indent + 2, ' ', m_pName);
-  for (const auto pModel : m_models)
-    pModel->Print(pOut, indent + 4);
 }
 
 udResult vc12DXML_LoadProject(vc12DXML_Project &project, const char *pFilePath)

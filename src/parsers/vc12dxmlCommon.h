@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <vector>
-#include <cstdio>
 #include "udJSON.h"
 
 struct vcState;
@@ -25,7 +24,6 @@ public:
   virtual ~vc12DXML_Item();
   virtual udResult Build(udJSON const *, vc12DXML_ProjectGlobals &) = 0;
   virtual void AddToProject(vcState *pProgramState, udProjectNode *pParent) = 0;
-  virtual void Print(FILE *, int indent) const = 0;
 };
 
 class vc12DXML_SuperString : public vc12DXML_Item
@@ -35,7 +33,6 @@ public:
   vc12DXML_SuperString();
   ~vc12DXML_SuperString();
   udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
-  void Print(FILE *pOut, int indent) const override;
   void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 private:
 
@@ -54,7 +51,6 @@ public:
   ~vc12DXML_Model();
   udResult BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlobals &globals);
   udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
-  void Print(FILE *pOut, int indent) const override;
   void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 
 private:
@@ -72,7 +68,6 @@ public:
   void SetName(const char *pName);
   udResult BeginBuild(udJSON const *pNode);
   udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
-  void Print(FILE *pOut, int indent = 0) const override;
   void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 
 private:
@@ -82,4 +77,4 @@ private:
   std::vector<vc12DXML_Item *> m_models;
 };
 
-#endif
+#endif // vc12dxmlCommon_h__

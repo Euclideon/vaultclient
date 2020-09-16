@@ -5,4 +5,4 @@
 
 void vc12DXML_Load(vcState *pProgramState, const char *pFilename);
 
-#endif // !vcUDP_h__
+#endif // vc12DXML_h__
