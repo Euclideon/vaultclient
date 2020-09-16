@@ -203,6 +203,8 @@ void vcModals_DrawAddSceneItem(vcState *pProgramState)
 
     ImGui::Separator();
 
+    //TODO: UI depending on what file is selected
+
     ImGui::EndPopup();
   }
 }
