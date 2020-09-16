@@ -631,10 +631,25 @@ udResult vcSHP_LoadFileGroup(vcSHP *pSHP, const char *pFilename)
   return result;
 }
 
-void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record)
+void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record, vcDBF_Record *pDBFRecord)
 {
+  char buffer[256] = {};
+  const char *nodeName = "";
+  if (pDBFRecord != nullptr && !pDBFRecord->deleted)
+  {
+    // for TEST only
+    size_t len = strlen(pDBFRecord->pFields[0].pString);
+    memcpy(buffer, pDBFRecord->pFields[0].pString, len);
+    udStrStripWhiteSpace(buffer);
+    nodeName = udTempStr("%s", buffer);
+  }
+  else
+  {
+    nodeName = udTempStr("POI %d", record.id);
+  }
+
   udProjectNode *pNode = nullptr;
-  udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", udTempStr("%d", record.id), nullptr, nullptr);
+  udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParentNode, "POI", nodeName, nullptr, nullptr);
 
   switch (record.shapeType)
   {
@@ -722,9 +737,11 @@ udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
   
   udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
 
+  vcDBF_Record *pDBFRecord = nullptr;
   for (size_t i = 0; i < shp.shpRecords.length; ++i)
   {
-    vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i]);
+    vcDBF_GetRecord(shp.pDBF, &pDBFRecord, i);
+    vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i], pDBFRecord);
   }
 
   return result;
