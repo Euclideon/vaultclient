@@ -405,7 +405,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   if (pProgramState->pFontTTFData != nullptr && ImGui::GetIO().Fonts->IsBuilt())
   {
-    ImFont *fonts[] = { ImGui::GetDefaultFont(), pProgramState->pBigFont };
+    ImFont *fonts[] = { ImGui::GetDefaultFont(), pProgramState->pBigFont, pProgramState->pItalicFont, pProgramState->pBoldFont, pProgramState->pBoldItalicFont };
 
     for (ImFont *pFont : fonts)
     {
@@ -435,7 +435,6 @@ void vcMain_MainLoop(vcState *pProgramState)
         ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pProgramState->pFontTTFData, pProgramState->fontTTFDataLen, pFont->FontSize, &fontCfg, pMissingGlyphsRanges);
 
         pFont->ResetMissingGlyphs();
-        break;
       }
     }
   }
@@ -882,31 +881,7 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
     bigFontCfg.FontDataOwnedByAtlas = false;
     bigFontCfg.MergeMode = false;
 
-#if UD_RELEASE // Load all glyphs for supported languages
-    static ImWchar characterRanges[] =
-    {
-      0x0020, 0x00FF, // Basic Latin + Latin Supplement
-      0x0400, 0x052F, // Cyrillic + Cyrillic Supplement
-      0x0E00, 0x0E7F, // Thai
-      0x2010, 0x205E, // Punctuations
-      0x25A0, 0x25FF, // Geometric Shapes
-      0x26A0, 0x26A1, // Exclamation in Triangle
-      0x2713, 0x2714, // Checkmark
-      0x2DE0, 0x2DFF, // Cyrillic Extended-A
-      0x3000, 0x30FF, // Punctuations, Hiragana, Katakana
-      0x3131, 0x3163, // Korean alphabets
-      0x31F0, 0x31FF, // Katakana Phonetic Extensions
-      0x4e00, 0x9FAF, // CJK Ideograms
-      0xA640, 0xA69F, // Cyrillic Extended-B
-      0xAC00, 0xD79D, // Korean characters
-      0xFF00, 0xFFEF, // Half-width characters
-      0
-    };
-
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, characterRanges);
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, ImGui::GetIO().Fonts->GetGlyphRangesJapanese()); // Still need to load Japanese seperately
-#else // Debug; Only load required Glyphs
-    static ImWchar characterRanges[] =
+    static ImWchar basicCharacterRanges[] =
     {
       0x0020, 0x00FF, // Basic Latin + Latin Supplement
       0x2010, 0x205E, // Punctuations
@@ -916,20 +891,8 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
       0
     };
 
-    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, characterRanges);
-#endif
-
-    static ImWchar bigFontCharacterRanges[] =
-    {
-      0x0020, 0x00FF, // Basic Latin + Latin Supplement
-      0x2010, 0x205E, // Punctuations
-      0x25A0, 0x25FF, // Geometric Shapes
-      0x26A0, 0x26A1, // Exclamation in Triangle
-      0x2713, 0x2714, // Checkmark
-      0
-    };
-
-    pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, bigFontCharacterRanges);
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, basicCharacterRanges);
+    pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, basicCharacterRanges);
   }
 
   pLoadInfo->pProgramState->requiredGlyphs.Init(32);
