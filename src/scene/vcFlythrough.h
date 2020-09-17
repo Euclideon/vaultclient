@@ -30,6 +30,7 @@ private:
   vcFlythroughState m_state;
   double m_timePosition;
   double m_timeLength;
+  int m_selectedExportFPSIndex;
 
   struct
   {

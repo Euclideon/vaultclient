@@ -11,6 +11,8 @@
 
 #include "imgui.h"
 
+static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
+
 vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
 {
@@ -19,10 +21,11 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_state = vcFTS_None;
   m_timePosition = 0.0;
   m_timeLength = 0.0;
+  m_selectedExportFPSIndex = 3;
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
 
   m_exportInfo.currentFrame = 0;
-  m_exportInfo.frameDelta = (1.0 / 60.0);
+  m_exportInfo.frameDelta = (1.0 / (double)vcFlythroughExportFPS[m_selectedExportFPSIndex]);
 
   OnNodeUpdate(pProgramState);
 }
@@ -254,6 +257,20 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
   if (m_state != vcFTS_Exporting)
   {
+    if (ImGui::BeginCombo(vcString::Get("flythroughFPS"), udTempStr("%d", vcFlythroughExportFPS[m_selectedExportFPSIndex])))
+    {
+      for (size_t i = 0; i < udLengthOf(vcFlythroughExportFPS); ++i)
+      {
+        if (ImGui::Selectable(udTempStr("%d", vcFlythroughExportFPS[i])))
+        {
+          m_selectedExportFPSIndex = (int)i;
+          m_exportInfo.frameDelta = (1.0 / (double)vcFlythroughExportFPS[m_selectedExportFPSIndex]);
+        }
+      }
+
+      ImGui::EndCombo();
+    }
+
     if (ImGui::Button(vcString::Get("flythroughExport")))
     {
       m_state = vcFTS_Exporting;
