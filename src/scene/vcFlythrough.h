@@ -4,6 +4,7 @@
 #include "vcSceneItem.h"
 #include "vcCamera.h"
 #include "udRenderContext.h"
+#include "../vcSettings.h"
 
 struct udPointCloud;
 struct vcState;
@@ -30,6 +31,7 @@ private:
   vcFlythroughState m_state;
   double m_timePosition;
   double m_timeLength;
+  char m_exportPath[vcMaxPathLength];
   int m_selectedExportFPSIndex;
 
   struct
