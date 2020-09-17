@@ -228,6 +228,63 @@ static T udDistanceToTriangle(udVector3<T> p0, udVector3<T> p1, udVector3<T> p2,
   return udMag3(closestPoint - point);
 }
 
+// 0 <= t <= 1
+template<typename T>
+udVector3<T> udSlerp(udVector3<T> const &v0, udVector3<T> const &v1, T t, bool majorArc = false)
+{
+  if (v0 == v1)
+    return v0;
+
+  udVector3<T> up = udCross(v0, v1);
+  T sinTheta = udMag(up);
+  T theta;
+
+  udVector3<T> _v0 = v0;
+  udVector3<T> _v1 = v1;
+
+  if (sinTheta == T(0))
+  {
+    theta = T(UD_HALF_PI);
+    sinTheta = T(1);
+
+    if (t < T(0.5))
+    {
+      _v1 = udPerpendicular3(v0);
+      t *= T(2);
+    }
+    else
+    {
+      _v0 = udPerpendicular3(v0);
+      t = (t - T(0.5)) * T(2);
+    }
+  }
+  else
+  {
+    if (majorArc)
+    {
+      udVector3<T> mid = udSlerp(v0, v1, T(0.5), false);
+      if (t < T(0.5))
+      {
+        _v1 = -mid;
+        t *= T(2);
+      }
+      else
+      {
+        _v0 = -mid;
+        t = (t - T(0.5)) * T(2);
+      }
+      sinTheta = udMag(udCross(_v0, _v1));
+    }
+
+    theta = udASin(sinTheta);
+
+    if (udDot(_v0, _v1) < T(0))
+      theta = T(UD_PI) - theta;
+  }
+
+  return udSin((T(1) - t) * theta) / sinTheta * _v0 + (udSin(t * theta)) / sinTheta * _v1;
+}
+
 //A simple polygon does not have holes and does not self-intersect.
 //If the area > 0, the points are ordered clockwise.
 //If the area < 0, the points are ordered counterclockwise.

@@ -56,6 +56,7 @@
 #include "tools/vcSceneTool.h"
 
 #include "parsers/vcUDP.h"
+#include "parsers/vc12DXML.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -504,6 +505,13 @@ void vcMain_MainLoop(vcState *pProgramState)
           vcModals_CloseModal(pProgramState, vcMT_Welcome);
 
           vcUDP_Load(pProgramState, pNextLoad);
+        }
+        else if (udStrEquali(pExt, ".12dxml"))
+        {
+          vcProject_CreateBlankScene(pProgramState, "12DXML Import", vcPSZ_StandardGeoJSON);
+          vcModals_CloseModal(pProgramState, vcMT_Welcome);
+
+          vc12DXML_Load(pProgramState, pNextLoad);
         }
 #if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
