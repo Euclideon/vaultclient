@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <type_traits>
 
+#include "udMath.h"
+
 // We won't worry about anything exotic (middle-endian for example)
 enum vcEndian
 {
