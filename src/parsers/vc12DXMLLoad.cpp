@@ -19,7 +19,29 @@
 #define LOG_WARNING(...) {}
 #define LOG_INFO(...) {}
 
-// TODO support 'light' and 'dark' variants of all colours
+static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t &out)
+{
+  char *pTemp = udStrdup(pStr);
+  char *tokens[2] = {};
+  int nTokens = udStrTokenSplit(pTemp, " ", tokens, 2);
+  bool success = false;
+
+  if (nTokens == 2 && udStrcmpi(tokens[0], "grey") == 0)
+  {
+    uint32_t scale = udStrAtou(tokens[1]);
+    if (scale > 255)
+      scale = 255;
+    out = 0xFF000000;
+    out |= (scale << 16);
+    out |= (scale << 8);
+    out |= (scale << 0);
+    success = true;
+  }
+
+  udFree(pTemp);
+  return success;
+}
+
 static uint32_t vc12DXML_ToColour(const char *pStr)
 {
   struct ColourPair
@@ -30,6 +52,7 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
 
   static const ColourPair Colours[] =
   {
+    // Standard colours
     {"red",     0xFFFF0000},
     {"green",   0xFF00FF00},
     {"blue",    0xFF0000FF},
@@ -38,6 +61,21 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
     {"magenta", 0xFFFF00FF},
     {"black",   0xFF000000},
     {"white",   0xFFFFFFFF},
+    {"orange",  0xFFFF9D00},
+    {"purple",  0xFFB300FF},
+
+    // Non standard colours
+    {"brown",       0xFF964B00},
+    {"grey",        0xFF7D7D7D},
+    {"light red",   0xFFFF6464},
+    {"light green", 0xFF64FF64},
+    {"light blue",  0xFF6464FF},
+    {"dark red",    0xFFBF0000},
+    {"dark green",  0xFF00BF00},
+    {"dark blue",   0xFF0000BF},
+    {"dark grey",   0xFF646464},
+    {"light grey",  0xFF5E5E5E},
+    {"off yellow",  0xFFFAF3DC},
   };
 
   for (size_t i = 0; i < udLengthOf(Colours); ++i)
@@ -46,7 +84,11 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
       return Colours[i].val;
   }
 
-  return 0xFFFF00FF;
+  uint32_t grey = 0;
+  if (vc12DXML_IsGreyColour(pStr, grey))
+    return grey;
+
+  return 0xFFFF9D00;
 }
 
 static void SetGlobals(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
@@ -269,31 +311,47 @@ void vc12DXML_Project::SetName(const char *pName)
   m_pName = udStrdup(pName);
 }
 
-udResult vc12DXML_Project::BeginBuild(udJSON const *pNode)
-{
-  return Build(pNode, m_globals);
-}
-
-udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+udResult vc12DXML_Project::AddProject(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
 {
   udResult result;
-  const udJSON *pRoot = nullptr;
+  std::vector<const udJSON *> modelNodes;
   const udJSON *pItem = nullptr;
 
   UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
 
-  pRoot = &pNode->Get("xml12d");
-
   // Models
-  pItem = &pRoot->Get("model");
+  pItem = &pNode->Get("model");
+  if (!pItem->IsVoid())
+    modelNodes.push_back(pItem);
+
+  pItem = &pNode->Get("models");
   if (!pItem->IsVoid())
   {
     if (pItem->IsArray())
     {
       for (size_t i = 0; i < pItem->ArrayLength(); ++i)
       {
+        const udJSON *pTempNode = &pItem->AsArray()->GetElement(i)->Get("model");
+        if (!pTempNode->IsVoid())
+          modelNodes.push_back(pTempNode);
+      }
+    }
+    else
+    {
+      const udJSON *pTempNode = &pItem->Get("model");
+      if (!pTempNode->IsVoid())
+        modelNodes.push_back(pTempNode);
+    }
+  }
+
+  for (auto pModelNode : modelNodes)
+  {
+    if (pModelNode->IsArray())
+    {
+      for (size_t i = 0; i < pModelNode->ArrayLength(); ++i)
+      {
         vc12DXML_Model *pModel = new vc12DXML_Model();
-        udResult res = pModel->Build(pItem->AsArray()->GetElement(i), globals);
+        udResult res = pModel->Build(pModelNode->AsArray()->GetElement(i), globals);
         if (res == udR_Success)
           m_models.push_back(pModel);
         else
@@ -303,7 +361,7 @@ udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &g
     else
     {
       vc12DXML_Model *pModel = new vc12DXML_Model();
-      udResult res = pModel->Build(pItem, globals);
+      udResult res = pModel->Build(pModelNode, globals);
       if (res == udR_Success)
         m_models.push_back(pModel);
       else
@@ -314,6 +372,63 @@ udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &g
   result = udR_Success;
 epilogue:
   return result;
+}
+
+bool vc12DXML_Project::TryLoad(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+{
+  bool result = false;
+  if (!pNode->IsVoid())
+  {
+    result = true;
+
+    // We could support multiple projects per file, but then should we support projects within projects?
+    // For now just extract all models and elements and dump them into one project.
+    // Perhaps we should replicate the xml structure in udStream as folders?
+    if (pNode->IsArray())
+    {
+      for (size_t i = 0; i < pNode->ArrayLength(); ++i)
+      {
+        if (AddProject(pNode->AsArray()->GetElement(i), globals) != udR_Success)
+          LOG_WARNING("Failed to load a project.");
+      }
+    }
+    else
+    {
+      if (AddProject(pNode, globals) != udR_Success)
+        LOG_WARNING("Failed to load project.");
+    }
+  }
+
+  return result;
+}
+
+udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+{
+  udResult result;
+
+  UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
+
+  // Try to find the root node...
+  do
+  {
+    if (TryLoad(&pNode->Get("xml12d.project"), globals))
+      break;
+
+    if (TryLoad(&pNode->Get("xml12d"), globals))
+      break;
+
+    LOG_WARNING("Failed to load any projects.");
+
+  } while (false);
+
+  result = udR_Success;
+epilogue:
+  return result;
+}
+
+udResult vc12DXML_Project::BeginBuild(udJSON const *pNode)
+{
+  return Build(pNode, m_globals);
 }
 
 udResult vc12DXML_LoadProject(vc12DXML_Project &project, const char *pFilePath)

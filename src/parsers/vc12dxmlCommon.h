@@ -72,6 +72,10 @@ public:
 
 private:
 
+  udResult AddProject(udJSON const *pNode, vc12DXML_ProjectGlobals &globals);
+  bool TryLoad(udJSON const *pNode, vc12DXML_ProjectGlobals &globals);
+
+private:
   char *m_pName;
   vc12DXML_ProjectGlobals m_globals; // Every 12dxml file has a set of globals that can change while parsing
   std::vector<vc12DXML_Item *> m_models;
