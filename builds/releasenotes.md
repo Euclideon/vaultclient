@@ -1,5 +1,18 @@
 udStream Version History
 
+Version 1.2
+  - Added helper when using Dropbox links
+  - Added markdown support
+  - Added scene explorer icons
+  - Added basic fly through recording
+  - Added 31700 and 19920 EPSG codes
+  - (Mac) Fixed an issue with fonts not loading
+  - Fixed several memory leaks
+  - Improved tesselation of globe
+  - Improved camera smoothing
+  - General UI improvements
+  - Updated to ImGui version 1.78
+
 Version 1.1
   - Improvements to the height/horizontal measurement tool
   - Set up the box, sphere and cylinder filers as proper tools
