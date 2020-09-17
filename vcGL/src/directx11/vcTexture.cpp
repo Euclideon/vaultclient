@@ -62,15 +62,8 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   return vcTexture_CreateAdv(ppTexture, vcTextureType_Texture2D, width, height, 1, pPixels, format, filterMode, false, vcTWM_Repeat, flags);
 }
 
-udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+udResult vcTexture_Init(vcTexture *pTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels = nullptr, vcTextureFormat format = vcTextureFormat_RGBA8, vcTextureFilterMode filterMode = vcTFM_Nearest, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None, int32_t aniFilter = 0)
 {
-  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
-    return udR_InvalidParameter_;
-
-  // only allow mip maps for certain formats
-  if (format != vcTextureFormat_RGBA8)
-    hasMipmaps = false;
-
   udResult result = udR_Success;
   DXGI_FORMAT texFormat = DXGI_FORMAT_UNKNOWN;
   int pixelBytes = 0;
@@ -83,8 +76,15 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   D3D11_SUBRESOURCE_DATA *pSubData = nullptr;
   UINT mipLevels = 1;
 
-  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
-  UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
+  if (pTexture->isTempClone)
+  {
+    pTexture->pSampler = nullptr;
+    
+    pTexture->pTextureD3D = nullptr;
+    pTexture->pTextureView = nullptr;
+
+    pTexture->isTempClone = false;
+  }
 
   if (isRenderTarget)
   {
@@ -224,23 +224,7 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
     }
 
     UD_ERROR_IF(g_pd3dDevice->CreateShaderResourceView(pTexture->pTextureD3D, &srvDesc, &pTexture->pTextureView) != S_OK, udR_InternalError);
-
-    uint32_t maxAnisotropic = vcGLState_GetMaxAnisotropy(aniFilter);
-
-    D3D11_SAMPLER_DESC sampDesc;
-    ZeroMemory(&sampDesc, sizeof(sampDesc));
-    sampDesc.Filter = maxAnisotropic == 0 ? vcTFMToD3D[filterMode] : D3D11_FILTER_ANISOTROPIC;
-    sampDesc.AddressU = vcTWMToD3D[wrapMode];
-    sampDesc.AddressV = vcTWMToD3D[wrapMode];
-    sampDesc.AddressW = vcTWMToD3D[wrapMode];
-    sampDesc.MipLODBias = 0.f;
-    sampDesc.MaxAnisotropy = maxAnisotropic;
-    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    for (int i = 0; i < 4; ++i)
-      sampDesc.BorderColor[i] = 1.f;
-    sampDesc.MinLOD = 0.f;
-    sampDesc.MaxLOD = hasMipmaps ? 4.0f : 0.f;
-    UD_ERROR_IF(g_pd3dDevice->CreateSamplerState(&sampDesc, &pTexture->pSampler) != S_OK, udR_InternalError);
+    UD_ERROR_CHECK(vcTexture_UpdateSampler(pTexture, filterMode, wrapMode, aniFilter));
   }
 
   if ((flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
@@ -273,6 +257,26 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   pTexture->d3dFormat = texFormat;
   vcGLState_ReportGPUWork(0, 0, size_t((pTexture->width * pTexture->height * pTexture->depth * pixelBytes) * (hasMipmaps ? 1.3333f : 1.0f)));
 
+epilogue:
+  return result;
+}
+
+udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+{
+  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
+    return udR_InvalidParameter_;
+
+  // only allow mip maps for certain formats
+  if (format != vcTextureFormat_RGBA8)
+    hasMipmaps = false;
+
+  udResult result = udR_Success;
+
+  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+  UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
+
+  UD_ERROR_CHECK(vcTexture_Init(pTexture, type, width, height, depth, pPixels, format, filterMode, hasMipmaps, wrapMode, flags, aniFilter));
+
   *ppTexture = pTexture;
   pTexture = nullptr;
 
@@ -282,7 +286,6 @@ epilogue:
 
   return result;
 }
-
 
 bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
 {
@@ -327,25 +330,95 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   return result;
 }
 
-udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height, int depth /*= 1*/)
+udResult vcTexture_Clone(vcTexture **ppTexture, vcTexture *pBaseTexture)
 {
-  if (pTexture == nullptr || !pTexture->isDynamic || pTexture->width != width || pTexture->height != height || pTexture->pTextureD3D == nullptr)
+  if (ppTexture == nullptr || pBaseTexture == nullptr)
     return udR_InvalidParameter_;
 
-  if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
+  udResult result = udR_Failure_;
+  vcTexture *pTexture = (vcTexture*)udMemDup(pBaseTexture, sizeof(vcTexture), 0, udAF_None);
+
+  UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
+
+  pTexture->isTempClone = true;
+
+  *ppTexture = pTexture;
+  pTexture = nullptr;
+  result = udR_Success;
+
+epilogue:
+  udFree(pTexture);
+
+  return result;
+}
+
+udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height, int depth /*= 1*/)
+{
+  if (pTexture == nullptr || ((!pTexture->isDynamic || pTexture->width != width || pTexture->height != height || pTexture->pTextureD3D == nullptr) && !pTexture->isTempClone))
     return udR_InvalidParameter_;
 
   udResult result = udR_Success;
 
-  int pixelBytes = 0;
-  vcTexture_GetFormatAndPixelSize(pTexture->format, pTexture->isRenderTarget, &pixelBytes);
+  if (pTexture->isTempClone)
+  {
+    result = vcTexture_Init(pTexture, pTexture->type, width, height, depth, pPixels);
+  }
+  else
+  {
+    if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
+      return udR_InvalidParameter_;
 
-  D3D11_MAPPED_SUBRESOURCE mappedResource;
-  UD_ERROR_IF(g_pd3dDeviceContext->Map(pTexture->pTextureD3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource) != S_OK, udR_InternalError);
-  memcpy(mappedResource.pData, pPixels, width * height * depth * pixelBytes);
-  g_pd3dDeviceContext->Unmap(pTexture->pTextureD3D, 0);
+    int pixelBytes = 0;
+    vcTexture_GetFormatAndPixelSize(pTexture->format, pTexture->isRenderTarget, &pixelBytes);
 
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
+    D3D11_MAPPED_SUBRESOURCE mappedResource;
+    UD_ERROR_IF(g_pd3dDeviceContext->Map(pTexture->pTextureD3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource) != S_OK, udR_InternalError);
+    memcpy(mappedResource.pData, pPixels, width * height * depth * pixelBytes);
+    g_pd3dDeviceContext->Unmap(pTexture->pTextureD3D, 0);
+
+    pTexture->width = width;
+    pTexture->height = height;
+    pTexture->depth = depth;
+    vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
+  }
+
+epilogue:
+  return result;
+}
+
+udResult vcTexture_UpdateSampler(vcTexture *pTexture, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, int32_t aniFilter /*= 0*/)
+{
+  if (pTexture == nullptr)
+    return udR_InvalidParameter_;
+
+  if (pTexture->isTempClone)
+    return udR_Success;
+
+  udResult result = udR_Success;
+
+  if (pTexture->pSampler != nullptr)
+    pTexture->pSampler->Release();
+
+  uint32_t maxAnisotropic = vcGLState_GetMaxAnisotropy(aniFilter);
+
+  D3D11_SAMPLER_DESC sampDesc;
+  ZeroMemory(&sampDesc, sizeof(sampDesc));
+  sampDesc.Filter = (maxAnisotropic == 0) ? vcTFMToD3D[filterMode] : D3D11_FILTER_ANISOTROPIC;
+
+  sampDesc.AddressU = vcTWMToD3D[wrapMode];
+  sampDesc.AddressV = vcTWMToD3D[wrapMode];
+  sampDesc.AddressW = vcTWMToD3D[wrapMode];
+
+  sampDesc.MipLODBias = 0.f;
+  sampDesc.MaxAnisotropy = maxAnisotropic;
+  sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+  for (int i = 0; i < 4; ++i)
+    sampDesc.BorderColor[i] = 1.f;
+
+  sampDesc.MinLOD = 0.f;
+  sampDesc.MaxLOD = /*pTexture->hasMips ? 4.0f :*/ 0.f;
+
+  UD_ERROR_IF(g_pd3dDevice->CreateSamplerState(&sampDesc, &pTexture->pSampler) != S_OK, udR_InternalError);
 
 epilogue:
   return result;
@@ -356,19 +429,22 @@ void vcTexture_Destroy(vcTexture **ppTexture)
   if (ppTexture == nullptr || *ppTexture == nullptr)
     return;
 
-  if ((*ppTexture)->pSampler != nullptr)
-    (*ppTexture)->pSampler->Release();
-
-  if ((*ppTexture)->pTextureD3D != nullptr)
-    (*ppTexture)->pTextureD3D->Release();
-
-  if ((*ppTexture)->pTextureView != nullptr)
-    (*ppTexture)->pTextureView->Release();
-
-  for (int i = 0; i < 2; ++i)
+  if (!(*ppTexture)->isTempClone)
   {
-    if ((*ppTexture)->pStagingTextureD3D[i] != nullptr)
-      (*ppTexture)->pStagingTextureD3D[i]->Release();
+    if ((*ppTexture)->pSampler != nullptr)
+      (*ppTexture)->pSampler->Release();
+
+    if ((*ppTexture)->pTextureD3D != nullptr)
+      (*ppTexture)->pTextureD3D->Release();
+
+    if ((*ppTexture)->pTextureView != nullptr)
+      (*ppTexture)->pTextureView->Release();
+
+    for (int i = 0; i < 2; ++i)
+    {
+      if ((*ppTexture)->pStagingTextureD3D[i] != nullptr)
+        (*ppTexture)->pStagingTextureD3D[i]->Release();
+    }
   }
 
   udFree(*ppTexture);

@@ -30,6 +30,7 @@ struct vcTexture
 
   bool isDynamic;
   bool isRenderTarget;
+  bool isTempClone;
 
   vcTextureType type;
   vcTextureCreationFlags flags;

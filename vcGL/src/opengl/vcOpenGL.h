@@ -43,10 +43,17 @@ struct vcTexture
   vcTextureFormat format;
   int width, height, depth;
 
+  vcTextureFilterMode filterMode;
+  vcTextureWrapMode wrapMode;
+  bool hasMipmaps;
+  int aniFilter;
+
   // Optional if the texture is configured with the `vcTCF_AsynchronousRead` flag
   // Provides asynchronous transfer. Internally ping pongs between these between Begin()/End() calls
   uint32_t pboIndex;
   GLuint pbos[2];
+
+  bool isTempClone;
 };
 
 struct vcFramebuffer

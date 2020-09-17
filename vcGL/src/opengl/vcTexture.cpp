@@ -95,11 +95,8 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   return vcTexture_CreateAdv(ppTexture, vcTextureType_Texture2D, width, height, 1, pPixels, format, filterMode, false, vcTWM_Repeat, flags);
 }
 
-udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+udResult vcTexture_Init(vcTexture *pTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels = nullptr, vcTextureFormat format = vcTextureFormat_RGBA8, vcTextureFilterMode filterMode = vcTFM_Nearest, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None, int32_t aniFilter = 0)
 {
-  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
-    return udR_InvalidParameter_;
-
   udResult result = udR_Success;
   GLenum target = vcTTToGL[type];
   GLint textureFormat = GL_INVALID_ENUM;
@@ -108,29 +105,13 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   int pixelBytes = 0;
   vcTexture_GetFormatAndPixelSize(format, &pixelBytes, &textureFormat, &pixelType, &pixelFormat);
 
-  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
-  UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
+  if (pTexture->isTempClone)
+  {
+    pTexture->isTempClone = false;
+  }
 
   glGenTextures(1, &pTexture->id);
   glBindTexture(target, pTexture->id);
-
-  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, vcTFMToGL[filterMode]);
-  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, hasMipmaps ? GL_LINEAR_MIPMAP_LINEAR : vcTFMToGL[filterMode]);
-  glTexParameteri(target, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
-  glTexParameteri(target, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
-
-  if (type == vcTextureType_Texture3D)
-    glTexParameteri(target, GL_TEXTURE_WRAP_R, vcTWMToGL[wrapMode]);
-
-  if (aniFilter > 0)
-  {
-    int32_t realAniso = vcGLState_GetMaxAnisotropy(aniFilter);
-#if UDPLATFORM_ANDROID
-    udUnused(realAniso);
-#else
-    glTexParameteri(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
-#endif
-  }
 
   switch (type)
   {
@@ -157,16 +138,42 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   }
   glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
-  glBindTexture(target, 0);
-
   pTexture->type = type;
   pTexture->flags = flags;
   pTexture->format = format;
   pTexture->width = width;
   pTexture->height = height;
   pTexture->depth = depth;
+  pTexture->hasMipmaps = hasMipmaps;
+  pTexture->filterMode = filterMode;
+  pTexture->wrapMode = wrapMode;
+  pTexture->aniFilter = aniFilter;
+
+  UD_ERROR_CHECK(vcTexture_UpdateSampler(pTexture, filterMode, wrapMode, aniFilter));
+  glBindTexture(target, 0);
 
   vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
+
+epilogue:
+  VERIFY_GL();
+  return result;
+}
+
+udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+{
+  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
+    return udR_InvalidParameter_;
+
+  // only allow mip maps for certain formats
+  if (format != vcTextureFormat_RGBA8)
+    hasMipmaps = false;
+
+  udResult result = udR_Success;
+
+  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+  UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
+
+  UD_ERROR_CHECK(vcTexture_Init(pTexture, type, width, height, depth, pPixels, format, filterMode, hasMipmaps, wrapMode, flags, aniFilter));
 
   *ppTexture = pTexture;
   pTexture = nullptr;
@@ -175,9 +182,7 @@ epilogue:
   if (pTexture != nullptr)
     vcTexture_Destroy(&pTexture);
 
-  VERIFY_GL();
   return result;
-
 }
 
 bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
@@ -223,9 +228,32 @@ bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, 
   return result;
 }
 
+udResult vcTexture_Clone(vcTexture **ppTexture, vcTexture *pBaseTexture)
+{
+  if (ppTexture == nullptr || pBaseTexture == nullptr)
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Failure_;
+
+  vcTexture *pTexture = (vcTexture*)udMemDup(pBaseTexture, sizeof(vcTexture), 0, udAF_None);
+  UD_ERROR_NULL(pTexture, udR_MemoryAllocationFailure);
+
+  pTexture->isTempClone = true;
+
+  *ppTexture = pTexture;
+  pTexture = nullptr;
+  result = udR_Success;
+
+epilogue:
+  udFree(pTexture);
+
+  return result;
+}
+
 udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int width, int height, int depth /*= 1*/)
 {
-  if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
+  // could change size here, but matching d3d functionality
+  if (pTexture == nullptr || ((pTexture->width != width || pTexture->height != height) && !pTexture->isTempClone))
     return udR_InvalidParameter_;
 
   if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
@@ -233,37 +261,79 @@ udResult vcTexture_UploadPixels(vcTexture *pTexture, const void *pPixels, int wi
 
   udResult result = udR_Success;
 
+  if (pTexture->isTempClone)
+  {
+    // fully re-create texture
+    result = vcTexture_Init(pTexture, pTexture->type, width, height, depth, pPixels);
+  }
+  else
+  {
+    GLenum target = vcTTToGL[pTexture->type];
+    GLint textureFormat = GL_INVALID_ENUM;
+    GLenum pixelType = GL_INVALID_ENUM;
+    GLint pixelFormat = GL_INVALID_ENUM;
+    int pixelBytes = 0;
+    vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes, &textureFormat, &pixelType, &pixelFormat);
+
+    glBindTexture(target, pTexture->id);
+    switch (pTexture->type)
+    {
+    case vcTextureType_Texture2D:
+      glTexImage2D(target, 0, textureFormat, width, height, 0, pixelFormat, pixelType, pPixels);
+      break;
+    case vcTextureType_Texture3D: // fall through
+    case vcTextureType_TextureArray:
+      glTexImage3D(target, 0, textureFormat, width, height, depth, 0, pixelFormat, pixelType, pPixels);
+      break;
+    case vcTextureType_Count:
+      break;
+    };
+    glBindTexture(target, 0);
+
+    pTexture->width = width;
+    pTexture->height = height;
+    pTexture->depth = depth;
+    vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
+  }
+
+  VERIFY_GL();
+  return result;
+}
+
+udResult vcTexture_UpdateSampler(vcTexture *pTexture, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, int32_t aniFilter /*= 0*/)
+{
+  if (pTexture == nullptr)
+    return udR_InvalidParameter_;
+
+  // TODO: implement this (will need to create a new texture)
+  if (pTexture->isTempClone)
+    return udR_Unsupported;
+
+  udResult result = udR_Success;
   GLenum target = vcTTToGL[pTexture->type];
   GLint textureFormat = GL_INVALID_ENUM;
-  GLenum pixelType = GL_INVALID_ENUM;
-  GLint pixelFormat = GL_INVALID_ENUM;
-  int pixelBytes = 0;
-  vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes, &textureFormat, &pixelType, &pixelFormat);
+  vcTexture_GetFormatAndPixelSize(pTexture->format, nullptr, &textureFormat);
 
   glBindTexture(target, pTexture->id);
 
-  switch (pTexture->type)
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, vcTFMToGL[filterMode]);
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, pTexture->hasMipmaps ? GL_LINEAR_MIPMAP_LINEAR : vcTFMToGL[filterMode]);
+  glTexParameteri(target, GL_TEXTURE_WRAP_S, vcTWMToGL[wrapMode]);
+  glTexParameteri(target, GL_TEXTURE_WRAP_T, vcTWMToGL[wrapMode]);
+
+  if (pTexture->type == vcTextureType_Texture3D)
+    glTexParameteri(target, GL_TEXTURE_WRAP_R, vcTWMToGL[wrapMode]);
+
+  if (aniFilter > 0)
   {
-  case vcTextureType_Texture2D:
-    glTexImage2D(target, 0, textureFormat, width, height, 0, pixelFormat, pixelType, pPixels);
-    break;
-  case vcTextureType_Texture3D: // fall through
-  case vcTextureType_TextureArray:
-    glTexImage3D(target, 0, textureFormat, width, height, depth, 0, pixelFormat, pixelType, pPixels);
-    break;
-  case vcTextureType_Count:
-    break;
-  };
+    int32_t realAniso = vcGLState_GetMaxAnisotropy(aniFilter);
+#if UDPLATFORM_ANDROID
+    udUnused(realAniso);
+#else
+    glTexParameteri(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, realAniso);
+#endif
+  }
 
-  glBindTexture(target, 0);
-
-  pTexture->width = width;
-  pTexture->height = height;
-  pTexture->depth = depth;
-  vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
-
-//epilogue:
-  VERIFY_GL();
   return result;
 }
 

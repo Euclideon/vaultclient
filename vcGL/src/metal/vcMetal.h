@@ -35,9 +35,12 @@ struct vcTexture
   uint32_t width;
   uint32_t height;
   uint32_t depth;
+  vcTextureType type;
   vcTextureFormat format;
   vcTextureCreationFlags flags;
   id<MTLBuffer> blitBuffer;
+
+  bool isTempClone;
 };
 
 struct vcFramebuffer

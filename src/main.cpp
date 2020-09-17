@@ -48,6 +48,7 @@
 #include "vcVerticalMeasureTool.h"
 #include "vcQueryNode.h"
 #include "vcViewpoint.h"
+#include "gl/vcTextureCache.h"
 
 #include "vcGLState.h"
 #include "vcFramebuffer.h"
@@ -369,13 +370,12 @@ void vcMain_MainLoop(vcState *pProgramState)
   udSleep(sleepMS);
   pProgramState->deltaTime += sleepMS * 0.001; // adjust delta
 
-#ifndef GIT_BUILD
+#if !defined(GIT_BUILD) && UDPLATFORM_WINDOWS
   if (pProgramState->hasContext && ImGui::IsKeyPressed(SDL_SCANCODE_P))
   {
     for (int viewportIndex = 0; viewportIndex < pProgramState->settings.activeViewportCount; ++viewportIndex)
       vcRender_ReloadShaders(pProgramState->pViewports[viewportIndex].pRenderContext, pProgramState->pWorkerPool);
   }
-
 #endif
 
   ImGuiGL_NewFrame(pProgramState->pWindow);
@@ -440,7 +440,10 @@ void vcMain_MainLoop(vcState *pProgramState)
   }
 
   if (pProgramState->finishedStartup)
+  {
     udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 8);
+    vcTextureCache_ConditionallyPruneGlobal();
+  }
   else
     pProgramState->finishedStartup = ((udWorkerPool_DoPostWork(pProgramState->pWorkerPool, 1) == udR_NothingToDo) && !udWorkerPool_HasActiveWorkers(pProgramState->pWorkerPool));
 
@@ -1094,6 +1097,7 @@ int main(int argc, char **args)
   // Set back to default buffer, vcRender_Init calls vcRender_ResizeScene which calls vcCreateFramebuffer
   // which binds the 0th framebuffer this isn't valid on iOS when using UIKit.
   vcFramebuffer_Bind(programState.pDefaultFramebuffer);
+  vcTextureCache_InitGlobal(programState.pWorkerPool);
 
   SDL_DisableScreenSaver();
 
@@ -1174,6 +1178,7 @@ epilogue:
 
   vcProject_Deinit(&programState, &programState.activeProject);
   vcTexture_Destroy(&programState.image.pImage);
+  vcTextureCache_DeinitGlobal();
 
   for (ImWchar *pGlyphs : programState.requiredGlyphs)
     udFree(pGlyphs);

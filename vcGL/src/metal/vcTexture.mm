@@ -102,9 +102,9 @@ udResult vcTexture_Create(vcTexture **ppTexture, uint32_t width, uint32_t height
   return vcTexture_CreateAdv(ppTexture, vcTextureType_Texture2D, width, height, 1, pPixels, format, filterMode, false, vcTWM_Repeat, flags);
 }
 
-udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+udResult vcTexture_Init(vcTexture *pText, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels = nullptr, vcTextureFormat format = vcTextureFormat_RGBA8, vcTextureFilterMode filterMode = vcTFM_Nearest, bool hasMipmaps = false, vcTextureWrapMode wrapMode = vcTWM_Repeat, vcTextureCreationFlags flags = vcTCF_None, int32_t aniFilter = 0)
 {
-  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
+  if (pText == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
     return udR_InvalidParameter_;
 
   udUnused(hasMipmaps);
@@ -116,7 +116,14 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   int pixelBytes = 0;
   vcTexture_GetFormatAndPixelSize(format, &pixelBytes, &pixelFormat, &storageMode, &usage);
 
-  vcTexture *pText = udAllocType(vcTexture, 1, udAF_Zero);
+  if (pText->isTempClone)
+  {
+    pText->texture = nil;
+    pText->sampler = nil;
+    pText->blitBuffer = nil;
+
+    pText->isTempClone = false;
+  }
 
   @autoreleasepool
   {
@@ -149,6 +156,7 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
       break;
     }
 
+    pText->type = type;
     pText->width = width;
     pText->height = height;
     pText->depth = depth;
@@ -179,8 +187,74 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
       [g_blitEncoder copyFromBuffer:temp sourceOffset:0 sourceBytesPerRow:row sourceBytesPerImage:len sourceSize:MTLSizeMake(width, height, pTextureDesc.depth) toTexture:pText->texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
     }
   }
-  
-  // Sampler
+
+  vcTexture_UpdateSampler(pText, filterMode, wrapMode, aniFilter);
+
+  if ((flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
+    pText->blitBuffer = [g_device newBufferWithLength:pixelBytes * pText->width * pText->height options:MTLResourceStorageModeShared];
+
+  vcGLState_ReportGPUWork(0, 0, pText->width * pText->height * pText->depth * pixelBytes);
+
+  return result;
+}
+
+udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t width, uint32_t height, uint32_t depth, const void *pPixels /*= nullptr*/, vcTextureFormat format /*= vcTextureFormat_RGBA8*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
+{
+  if (ppTexture == nullptr || width == 0 || height == 0 || format == vcTextureFormat_Unknown || format == vcTextureFormat_Count)
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Success;
+
+  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+  vcTexture_Init(pTexture, type, width, height, depth, pPixels, format, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
+
+  *ppTexture = pTexture;
+  pTexture = nullptr;
+
+  return result;
+}
+
+udResult vcTexture_Clone(vcTexture **ppTexture, vcTexture *pBaseTexture)
+{
+  if (ppTexture == nullptr || pBaseTexture == nullptr)
+    return udR_InvalidParameter_;
+
+  udResult result = udR_Failure_;
+
+  vcTexture *pTexture = udAllocType(vcTexture, 1, udAF_Zero);
+
+  pTexture->isTempClone = true;
+  pTexture->type = pBaseTexture->type;
+  pTexture->width = pBaseTexture->width;
+  pTexture->height = pBaseTexture->height;
+  pTexture->depth = pBaseTexture->depth;
+  pTexture->format = pBaseTexture->format;
+  pTexture->flags = pBaseTexture->flags;
+
+  @autoreleasepool
+  {
+    pTexture->texture = pBaseTexture->texture;
+    pTexture->sampler = pBaseTexture->sampler;
+    pTexture->blitBuffer = pBaseTexture->blitBuffer;
+  }
+
+  *ppTexture = pTexture;
+  pTexture = nullptr;
+  result = udR_Success;
+
+  return result;
+}
+
+udResult vcTexture_UpdateSampler(vcTexture *pTexture, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, int32_t aniFilter /*= 0*/)
+{
+  if (pTexture == nullptr)
+    return udR_InvalidParameter_;
+
+  if (pTexture->isTempClone)
+    return udR_Success;
+
+  udResult result = udR_Success;
+
   MTLSamplerDescriptor *pSamplerDesc = [MTLSamplerDescriptor new];
 
   if (filterMode == vcTFM_Nearest)
@@ -214,16 +288,7 @@ udResult vcTexture_CreateAdv(vcTexture **ppTexture, vcTextureType type, uint32_t
   else
     pSamplerDesc.maxAnisotropy = 1;
 
-  pText->sampler = [g_device newSamplerStateWithDescriptor:pSamplerDesc];
-
-  if ((flags & vcTCF_AsynchronousRead) == vcTCF_AsynchronousRead)
-    pText->blitBuffer = [g_device newBufferWithLength:pixelBytes * pText->width * pText->height options:MTLResourceStorageModeShared];
-
-  vcGLState_ReportGPUWork(0, 0, pText->width * pText->height * pText->depth * pixelBytes);
-  *ppTexture = pText;
-  pText = nullptr;
-
-  return result;
+  pTexture->sampler = [g_device newSamplerStateWithDescriptor:pSamplerDesc];
 }
 
 bool vcTexture_CreateFromMemory(struct vcTexture **ppTexture, void *pFileData, size_t fileLength, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)
@@ -269,7 +334,7 @@ bool vcTexture_CreateFromFilename(struct vcTexture **ppTexture, const char *pFil
 
 udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels, int width, int height, int depth /*= 1*/)
 {
-  if (pTexture == nullptr || pPixels == nullptr || width == 0 || height == 0)
+  if (pTexture == nullptr || ((pTexture->width != width || pTexture->height != height) && !pTexture->isTempClone))
     return udR_InvalidParameter_;
 
   if (pTexture->format == vcTextureFormat_Unknown || pTexture->format == vcTextureFormat_Count)
@@ -279,14 +344,21 @@ udResult vcTexture_UploadPixels(struct vcTexture *pTexture, const void *pPixels,
   int pixelBytes = 0;
   vcTexture_GetFormatAndPixelSize(pTexture->format, &pixelBytes);
 
-  id<MTLBuffer> pData = [g_device newBufferWithBytes:pPixels length:width * height * depth * pixelBytes options:MTLStorageModeShared];
-  [g_blitEncoder copyFromBuffer:pData sourceOffset:0 sourceBytesPerRow:width * pixelBytes sourceBytesPerImage:width * height * pixelBytes sourceSize:MTLSizeMake(width, height, depth) toTexture:pTexture->texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+  if (pTexture->isTempClone)
+  {
+    result = vcTexture_Init(pTexture, pTexture->type, width, height, depth, pPixels);
+  }
+  else
+  {
+    id<MTLBuffer> pData = [g_device newBufferWithBytes:pPixels length:width * height * depth * pixelBytes options:MTLStorageModeShared];
+    [g_blitEncoder copyFromBuffer:pData sourceOffset:0 sourceBytesPerRow:width * pixelBytes sourceBytesPerImage:width * height * pixelBytes sourceSize:MTLSizeMake(width, height, depth) toTexture:pTexture->texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
 #if UDPLATFORM_OSX
-  if (pTexture->texture.storageMode != MTLStorageModePrivate)
-    [g_blitEncoder synchronizeTexture:pTexture->texture slice:0 level:0];
+    if (pTexture->texture.storageMode != MTLStorageModePrivate)
+      [g_blitEncoder synchronizeTexture:pTexture->texture slice:0 level:0];
 #endif
   
-  vcGLState_FlushBlit();
+    vcGLState_FlushBlit();
+  }
   
   vcGLState_ReportGPUWork(0, 0, pTexture->width * pTexture->height * pTexture->depth * pixelBytes);
   return result;
