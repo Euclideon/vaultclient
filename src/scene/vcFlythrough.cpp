@@ -260,7 +260,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       {
         if (ImGui::Selectable(udTempStr_CommaInt(pProgramState->supportedVideoFPSs[i])))
         {
-          pProgramState->videoFPSIndex = i;
+          pProgramState->videoFPSIndex = (int)i;
           m_exportInfo.frameDelta = (1.0 / (double)pProgramState->supportedVideoFPSs[pProgramState->videoFPSIndex]);
         }
       }
