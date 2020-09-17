@@ -518,6 +518,8 @@
   "sceneExplorerProjectReadOnlyTitle": "Read Only!",
   "sceneExplorerProjectReadOnlyMessage": "The project you tried to modify is marked read only. You do not have permission to make changes.",
   "sceneExplorerUnsupportedFilesTitle": "Unsupported Files",
+  "sceneExplorerUnsupportedEncodingTitle": "File has an unsupported unicode format",
+  "sceneExplorerUnsupportedEncodingText": "The file you tried to load has an unrecognised encoding. Save the file using the encoding 'UTF-8' and try again.",
   "sceneExplorerUnsupportedFilesMessage": "The files you tried to add are currently unsupported by the application.",
   "sceneExplorerClearAllButton": "Clear All",
   "sceneExplorerErrorOpen": "Could not open the resource, perhaps it is missing or you don't have permission to access it",

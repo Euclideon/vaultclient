@@ -511,7 +511,8 @@ void vcMain_MainLoop(vcState *pProgramState)
           vcProject_CreateBlankScene(pProgramState, "12DXML Import", vcPSZ_StandardGeoJSON);
           vcModals_CloseModal(pProgramState, vcMT_Welcome);
 
-          vc12DXML_Load(pProgramState, pNextLoad);
+          if (vc12DXML_Load(pProgramState, pNextLoad) == udR_Unsupported)
+            vcModals_OpenModal(pProgramState, vcMT_UnsupportedEncoding);
         }
 #if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
