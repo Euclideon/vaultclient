@@ -4,7 +4,7 @@
 #include "vcSceneItem.h"
 #include "vcCamera.h"
 #include "udRenderContext.h"
-#include "../vcSettings.h"
+#include "vcSettings.h"
 
 struct udPointCloud;
 struct vcState;
