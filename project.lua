@@ -156,7 +156,7 @@ project "udStream"
 
 	filter { "system:macosx or ios" }
 		files { "builds/assets/**", "builds/releasenotes.md", "builds/defaultsettings.json" }
-		xcodebuildresources { "%.otf$", "%.png$", "%.jpg$", "%.json$", "%.dat$", "releasenotes", "defaultsettings" }
+		xcodebuildresources { "^builds/assets/.*%..*", "releasenotes", "defaultsettings" }
 		xcodebuildsettings { ["EXCLUDED_SOURCE_FILE_NAMES"] = excludedSourceFileNames }
 
 	filter { "system:emscripten" }
