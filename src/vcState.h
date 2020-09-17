@@ -268,9 +268,6 @@ struct vcState
     vcImageType imageType;
   } image, screenshot;
 
-  udChunkedArray<int> supportedVideoFPSs;
-  int videoFPSIndex;
-  int exportVideoFPS;
   bool exportVideo;
 
   struct 
