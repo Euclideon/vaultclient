@@ -10,7 +10,7 @@ project "vcTesting"
 	includedirs { "src", "../3rdParty/udcore/Include", "../3rdParty/udcore/3rdParty/googletest/include", "../src" }
 
 	-- files to test
-	files { "../src/vcUnitConversion.*", "../src/vcMath.h", "../src/vcGIS.*", "../src/vcStringFormat.*" }
+	files { "../src/vcUnitConversion.*", "../src/vcMath.h", "../src/vcGIS.*", "../src/vcStringFormat.*" , "../src/vcEndian.*" }
 
 	vpaths {
 		["client/*"] = { "../src/**" },
