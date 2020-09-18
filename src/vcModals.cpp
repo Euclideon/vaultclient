@@ -1418,7 +1418,7 @@ void vcModals_DrawUnsupportedEncoding(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    ImGui::TextWrapped(vcString::Get("sceneExplorerUnsupportedEncodingText"));
+    ImGui::TextWrapped("%s", vcString::Get("sceneExplorerUnsupportedEncodingText"));
 
     // Close buttons
     if (ImGui::Button(vcString::Get("popupClose")) || vcHotkey::IsPressed(vcB_Cancel))
