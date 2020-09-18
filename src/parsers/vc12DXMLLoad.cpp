@@ -98,8 +98,8 @@ epilogue:
 
 //----------------------------------------------------------------------------
 // 12dxml file parsing
-//----------------------------------------------------------------------------static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t *pOut)
-bool vc12DXML_IsGreyColour(const char *pStr, uint32_t *pOut)
+//----------------------------------------------------------------------------
+static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t *pOut)
 {
   if (pStr == nullptr || pOut == nullptr)
     return false;
