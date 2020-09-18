@@ -327,6 +327,7 @@
   "flythroughFPS": "FPS",
   "flythroughDefaultName": "Camera Path",
   "flythroughExport": "Export",
+  "flythroughExportPath": "Export Path",
   "menuSystem": "System",
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
