@@ -436,6 +436,7 @@ void vcProject_Deinit(vcState *pProgramData, vcProject *pProject)
 
   pProgramData->activeTool = vcActiveTool_Select;
   pProgramData->activeProject.pSlideshowViewpoint = nullptr;
+  pProgramData->pActiveViewport->cameraInput.pAttachedToSceneItem = nullptr;
   udFree(pProject->pRelativeBase);
   vcProject_RecursiveDestroyUserData(pProgramData, pProject->pRoot);
   udProject_Release(&pProject->pProject);
@@ -562,6 +563,9 @@ void vcProject_RemoveItem(vcState *pProgramState, udProjectNode *pParent, udProj
 
   if (pNode == pProgramState->activeProject.pSlideshowViewpoint)
     pProgramState->activeProject.pSlideshowViewpoint = nullptr;
+
+  if (pNode->pUserData == pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem)
+    pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = nullptr;
 
   vcSceneItem *pItem = pNode == nullptr ? nullptr : (vcSceneItem*)pNode->pUserData;
 
