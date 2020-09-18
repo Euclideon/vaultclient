@@ -19,8 +19,11 @@
 #define LOG_WARNING(...) {}
 #define LOG_INFO(...) {}
 
-static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t &out)
+static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t *pOut)
 {
+  if (pStr == nullptr || pOut == nullptr)
+    return false;
+
   bool success = false;
 
   if (udStrBeginsWithi(pStr, "grey "))
@@ -28,10 +31,10 @@ static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t &out)
     uint32_t scale = udStrAtou(pStr + 5); // Skip "grey "
     if (scale > 255)
       scale = 255;
-    out = 0xFF000000;
-    out |= (scale << 16);
-    out |= (scale << 8);
-    out |= (scale << 0);
+    *pOut = 0xFF000000;
+    *pOut |= (scale << 16);
+    *pOut |= (scale << 8);
+    *pOut |= (scale << 0);
     success = true;
   }
   return success;
@@ -80,7 +83,7 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
   }
 
   uint32_t grey = 0;
-  if (vc12DXML_IsGreyColour(pStr, grey))
+  if (vc12DXML_IsGreyColour(pStr, &grey))
     return grey;
 
   return 0xFFFF9D00;
@@ -137,8 +140,8 @@ static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> 
 }
 
 vc12DXML_ProjectGlobals::vc12DXML_ProjectGlobals()
-  : nullValue(-999.0)                 // Default defined in the spec
-  , colour(vc12DXML_ToColour("red"))  // Default defined in the spec
+  : nullValue(-999.0)   // Default defined in the spec
+  , colour(0xFFFF0000)  // red, default defined in the spec
 {
 
 }
