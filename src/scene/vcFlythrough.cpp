@@ -57,8 +57,6 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderDa
     {
       if (m_exportInfo.currentFrame >= 0)
       {
-        const char *pSavePath = udTempStr("_temp/%05d.%s", m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
-
         if (vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), udTempStr("%s/%05d.png", m_exportPath, m_exportInfo.currentFrame)) != udR_Success)
         {
           m_state = vcFTS_None;
