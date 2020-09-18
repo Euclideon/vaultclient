@@ -6,7 +6,7 @@ Version 1.2
   - Added scene explorer icons
   - Added basic fly through recording
   - Added 31700 and 19920 EPSG codes
-  - (Mac) Fixed an issue with fonts not loading
+  - (macOS) Fixed an issue with fonts not loading
   - Fixed several memory leaks
   - Improved tesselation of globe
   - Improved camera smoothing
