@@ -43,6 +43,7 @@ static struct
   { "Custom", "custom", nullptr, nullptr, nullptr, nullptr },
 };
 
+udResult vcSettingsUI_LoadColours(char* pFileName, vcVisualizationSettings* pVisualizationSettings);
 enum vcLASClassifications
 {
   vcLASClassifications_FirstReserved = 19,
@@ -1095,7 +1096,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
 {
   bool retVal = false;
 
-  const char *visualizationModes[] = {vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns")};
+  const char *visualizationModes[] = {vcString::Get("settingsVisModeDefault"), vcString::Get("settingsVisModeColour"), vcString::Get("settingsVisModeIntensity"), vcString::Get("settingsVisModeClassification"), vcString::Get("settingsVisModeDisplacementDistance"), vcString::Get("settingsVisModeDisplacementDirection"), vcString::Get("settingsVisModeGPSTime"), vcString::Get("settingsVisModeScanAngle"), vcString::Get("settingsVisModePointSourceID"), vcString::Get("settingsVisModeReturnNumber"), vcString::Get("settingsVisModeNumberOfReturns"),vcString::Get("settingsVisModeNamed")};
   UDCOMPILEASSERT(udLengthOf(visualizationModes) == vcVM_Count, "Update combo box!");
 
   bool hasDisplacementDistance = false;
@@ -1158,6 +1159,36 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   {
     retVal |= ImGui::SliderInt(vcString::Get("settingsVisMinIntensity"), &pVisualizationSettings->minIntensity, (int)vcSL_IntensityMin, pVisualizationSettings->maxIntensity);
     retVal |= ImGui::SliderInt(vcString::Get("settingsVisMaxIntensity"), &pVisualizationSettings->maxIntensity, pVisualizationSettings->minIntensity, (int)vcSL_IntensityMax);
+  }
+  break;
+  case vcVM_NamedAttribute:
+  {
+    retVal |= ImGui::Checkbox(vcString::Get("settingsVisRepeatNamedAttribute"), &pVisualizationSettings->namedAttribute.repeating);
+    const char* colourMapName = pVisualizationSettings->namedAttribute.colourScaleName;
+    //Here we could read the possible colour maps from the directory
+    const char* listItems[] = {
+    "acton", "bamako", "batlow", "berlin", "bilbao", "broc", "brocO", "buda", "cork", "corkO", "davos", "devon", "grayC", "hawaii", "imola", "lajolla", "lapaz", "lisbon", "nuuk", "oleron", "oslo", "roma", "romaO", "tofino", "tokyo", "turku", "vik", "vikO"
+    };
+    const int lengthListItems = 28;
+    int colourMapID = pVisualizationSettings->namedAttribute.colourScaleInd;
+    if (ImGui::Combo(vcString::Get("settingsVisColourFile"), &colourMapID, listItems, lengthListItems))
+    {
+      pVisualizationSettings->namedAttribute.colourScaleInd = colourMapID;
+      colourMapName = listItems[colourMapID];
+      char basePath[500] = "asset://assets/colourmaps/";
+      strcat(basePath, colourMapName);
+      strcat(basePath, ".txt");
+      strcpy(pVisualizationSettings->namedAttribute.colourScaleName, colourMapName);
+      if (vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings) != udR_Success)
+      {
+        //strcpy((char*)pVisualizationSettings->namedAttribute.colourFilePath, "C:/Users/BradenWockner/Downloads/ScientificColourMaps6/ScientificColourMaps6/hawaii/hawaii.txt");
+        strcpy((char*)basePath, "asset://assets/colourmaps/hawaii.txt");
+        vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings);
+      }
+
+    }
+    retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMinNamedAttr"), &pVisualizationSettings->namedAttribute.min, -20000, 30000);
+    retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMaxNamedAttr"), &pVisualizationSettings->namedAttribute.max, -20000, 30000);
   }
   break;
   case vcVM_Classification:
@@ -1303,4 +1334,37 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   ImGui::Unindent();
 
   return retVal;
+}
+
+udResult vcSettingsUI_LoadColours(char *pFileName, vcVisualizationSettings *pVisualizationSettings)
+{
+  char* loadedData = nullptr;
+  uint8_t* intColours = pVisualizationSettings->namedAttribute.colours;
+  udResult loadSuccess = udFile_Load(pFileName, (char**)&loadedData);
+  if(loadSuccess != udR_Success)
+  {
+    return loadSuccess;
+  }
+  char current = loadedData[0];
+  char word[20] = "";
+  int fileInd = 0;
+  int colourInd = 0;
+  while (current != '\0')
+  {
+    int wordInd = 0;
+    while (current != ' ' && current != '\n')
+    {
+
+      word[wordInd] = current;
+      ++wordInd;
+      ++fileInd;
+      current = loadedData[fileInd];
+    }
+    intColours[colourInd] = atof(word) * 256;
+    ++colourInd;
+    ++fileInd;
+    current = loadedData[fileInd];
+  }
+  udFree(loadedData);
+  return udR_Success;
 }
