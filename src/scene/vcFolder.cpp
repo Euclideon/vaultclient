@@ -356,6 +356,9 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
         if (ImGui::Selectable(vcString::Get("sceneExplorerRemoveItem")))
         {
+          if ((vcSceneItem*)(pNode->pUserData) == pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem)
+            pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem = nullptr;
+
           ImGui::EndPopup();
 
           if (pSceneItem->m_expanded)
