@@ -38,6 +38,7 @@ enum vcVisualizatationMode
   vcVM_PointSourceID,
   vcVM_ReturnNumber,
   vcVM_NumberOfReturns,
+  vcVM_NamedAttribute,
 
   vcVM_Count
 };
@@ -180,6 +181,16 @@ struct vcVisualizationSettings
     udChunkedArray<KV> colourMap;
     uint32_t defaultColour;
   } pointSourceID;
+
+  struct
+  {
+    float min;
+    float max;
+    uint8_t colours[256 * 3];
+    char colourScaleName[200];
+    int colourScaleInd;
+    bool repeating;
+  } namedAttribute;
 
   uint32_t returnNumberColours[s_maxReturnNumbers];
   uint32_t numberOfReturnsColours[s_maxReturnNumbers];

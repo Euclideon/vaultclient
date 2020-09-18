@@ -46,6 +46,96 @@ inline uint32_t vcVoxelShader_FadeAlpha(uint32_t firstColour, uint32_t secondCol
   return result;
 }
 
+uint32_t vcVoxelShader_HeightColourMap(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+  const float *pHeightValue = nullptr;
+  udPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void**)&pHeightValue);
+  int ind = (int)((*pHeightValue - pData->data.heightAttribute.min) / pData->data.heightAttribute.increment);
+  bool repeating = true;
+  if (!pData->data.heightAttribute.repeating)
+  {
+    if (ind > 255)
+      ind = 255;
+    else if (ind < 0)
+      ind = 0;
+  }
+  else
+    ind = udAbs(ind%255);
+  uint8_t red = *(3 * ind + pData->data.heightAttribute.colourArray);
+  uint8_t green = *(3 * ind + pData->data.heightAttribute.colourArray+1);
+  uint8_t blue = *(3 * ind + pData->data.heightAttribute.colourArray+2);
+  uint32_t colour = red<<16 |green<<8 | blue;
+  //memcpy(&colour, (int32_t*)(3 * ind + pData->data.heightAttribute.colourArray), 32);
+    //*(pData->data.heightAttribute.colourArray + 3 * ind);
+  //colour = colour >> 8;
+  return vcPCShaders_BuildAlpha(pData->pModel) | colour;
+
+  
+}
+
+uint32_t vcVoxelShader_HeightAttribute(udPointCloud *pPointCloud, const udVoxelID *pVoxelID, const void *pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+
+  uint32_t result = 0;
+  const float *pHeightValue = nullptr;
+  udPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void**)&pHeightValue);
+  if (pHeightValue != nullptr)
+  {
+    int row;
+    double dHeight;
+    double dStart;
+    for(row=0; row<256; ++row)
+    {
+      dStart = pData->data.heightAttribute.CTable[row*8 + 0];
+      double dEnd = pData->data.heightAttribute.CTable[row*8 + 1];
+      dHeight = dEnd - dStart;
+      if (*pHeightValue >= dStart&& *pHeightValue < dEnd)
+        break;
+    }
+    
+    uint8_t rStart = (uint8_t) pData->data.heightAttribute.CTable[row * 8 + 2];
+    uint8_t rEnd = (uint8_t) pData->data.heightAttribute.CTable[row * 8 + 5];
+    uint8_t red = (uint8_t) ((rEnd - rStart) / dHeight * (*pHeightValue - dStart) + rStart);
+
+    uint8_t gStart = (uint8_t) pData->data.heightAttribute.CTable[row * 8 + 3];
+    uint8_t gEnd = (uint8_t) pData->data.heightAttribute.CTable[row * 8 + 6];
+    uint8_t green = (uint8_t) ((gEnd - gStart) / dHeight * (*pHeightValue - dStart) +gStart);
+
+    uint8_t bStart = (uint8_t) pData->data.heightAttribute.CTable[row * 8 + 4];
+    uint8_t bEnd = (uint8_t) pData->data.heightAttribute.CTable[row * 8 + 7];
+    uint8_t blue = (uint8_t) ((bEnd - bStart) / dHeight * (*pHeightValue - dStart) + bStart);
+    result = (0x80 << 24 |red << 16 | green << 8 | blue);
+    vcUDRSData iData = {};
+    /*
+    iData.attributeOffset = pData->attributeOffset;
+    iData.pProgramData = pData->pProgramData;
+    iData.pModel = pData->pModel;
+    iData.data.intensity.minIntensity = 0;
+    iData.data.intensity.maxIntensity = 255;
+    iData.data.intensity.intensityRange = 255;
+    */
+
+    //result = vcVoxelShader_FadeAlpha(result, vcVoxelShader_Intensity(pPointCloud, pVoxelID, &iData));
+    /*
+    double min = pData->data.heightAttribute.minHeight;
+    double max = pData->data.heightAttribute.maxHeight;
+    double delta = (max - min)/2;
+
+
+    //double value = (*pHeightValue + max) / delta;
+    double value = *pHeightValue < (max + min) / 2 ? udAbs(*pHeightValue/min) : udAbs(*pHeightValue/max);
+    //float value = udMax(float(*pHeightValue - pData->data.heightAttribute.minHeight) / pData->data.heightAttribute.maxHeight, 0.f);
+    uint32_t channel = udMin((uint32_t)(udPow(value, 1) * 255.0), (uint32_t)255);
+
+    result = *pHeightValue<(max+min)/2 ? (channel * 0x00000001) : (channel * 0x00010000);
+    */
+  }
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | result;
+}
+
 uint32_t vcVoxelShader_DisplacementDistance(udPointCloud *pPointCloud, const udVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
