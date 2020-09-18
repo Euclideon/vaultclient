@@ -270,13 +270,6 @@ struct vcState
 
   bool exportVideo;
 
-  struct 
-  {
-    udChunkedArray<const char *> infoStrings;
-    udChunkedArray<const char *> textureAltStrings;
-    udChunkedArray<vcTexture*> textures;
-  } projectInfoTextures;
-
   vcFileDialog fileDialog;
 
   vcTranslationInfo languageInfo;
