@@ -11,6 +11,7 @@
 
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
+#include "imgui_internal.h"
 
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
 
@@ -273,14 +274,9 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       ImGui::EndCombo();
     }
 
-    vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, [] {});
+    vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
 
-    bool validPath = m_exportPath[0] != '\0';
-
-    if (!validPath)
-      ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-
-    if (ImGui::Button(vcString::Get("flythroughExport")) && validPath)
+    if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
     {
       m_state = vcFTS_Exporting;
       pProgramState->screenshot.pImage = nullptr;
@@ -288,9 +284,6 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
       pProgramState->exportVideo = true;
     }
-
-    if (!validPath)
-      ImGui::PopStyleVar();
   }
   else
   {
