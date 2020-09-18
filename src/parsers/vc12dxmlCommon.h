@@ -22,7 +22,7 @@ class vc12DXML_Item
 {
 public:
   virtual ~vc12DXML_Item();
-  virtual udResult Build(udJSON const *, vc12DXML_ProjectGlobals &) = 0;
+  virtual udResult Build(udJSON const *, vc12DXML_ProjectGlobals *) = 0;
   virtual void AddToProject(vcState *pProgramState, udProjectNode *pParent) = 0;
 };
 
@@ -32,7 +32,7 @@ public:
 
   vc12DXML_SuperString();
   ~vc12DXML_SuperString();
-  udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
+  udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals) override;
   void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 private:
 
@@ -49,8 +49,8 @@ public:
 
   vc12DXML_Model();
   ~vc12DXML_Model();
-  udResult BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlobals &globals);
-  udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
+  udResult BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals);
+  udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals) override;
   void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 
 private:
@@ -67,10 +67,13 @@ public:
   ~vc12DXML_Project();
   void SetName(const char *pName);
   udResult BeginBuild(udJSON const *pNode);
-  udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals) override;
+  udResult Build(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals) override;
   void AddToProject(vcState *pProgramState, udProjectNode *pParent) override;
 
 private:
+
+  udResult AddProject(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals);
+  bool TryLoad(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals);
 
   char *m_pName;
   vc12DXML_ProjectGlobals m_globals; // Every 12dxml file has a set of globals that can change while parsing

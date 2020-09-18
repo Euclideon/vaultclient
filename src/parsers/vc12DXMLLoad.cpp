@@ -19,7 +19,27 @@
 #define LOG_WARNING(...) {}
 #define LOG_INFO(...) {}
 
-// TODO support 'light' and 'dark' variants of all colours
+static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t *pOut)
+{
+  if (pStr == nullptr || pOut == nullptr)
+    return false;
+
+  bool success = false;
+
+  if (udStrBeginsWithi(pStr, "grey "))
+  {
+    uint32_t scale = udStrAtou(pStr + 5); // Skip "grey "
+    if (scale > 255)
+      scale = 255;
+    *pOut = 0xFF000000;
+    *pOut |= (scale << 16);
+    *pOut |= (scale << 8);
+    *pOut |= (scale << 0);
+    success = true;
+  }
+  return success;
+}
+
 static uint32_t vc12DXML_ToColour(const char *pStr)
 {
   struct ColourPair
@@ -30,6 +50,7 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
 
   static const ColourPair Colours[] =
   {
+    // Standard colours
     {"red",     0xFFFF0000},
     {"green",   0xFF00FF00},
     {"blue",    0xFF0000FF},
@@ -38,6 +59,21 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
     {"magenta", 0xFFFF00FF},
     {"black",   0xFF000000},
     {"white",   0xFFFFFFFF},
+    {"orange",  0xFFFF9D00},
+    {"purple",  0xFFB300FF},
+
+    // Non standard colours
+    {"brown",       0xFF964B00},
+    {"grey",        0xFF7D7D7D},
+    {"light red",   0xFFFF6464},
+    {"light green", 0xFF64FF64},
+    {"light blue",  0xFF6464FF},
+    {"dark red",    0xFFBF0000},
+    {"dark green",  0xFF00BF00},
+    {"dark blue",   0xFF0000BF},
+    {"dark grey",   0xFF646464},
+    {"light grey",  0xFF5E5E5E},
+    {"off yellow",  0xFFFAF3DC},
   };
 
   for (size_t i = 0; i < udLengthOf(Colours); ++i)
@@ -46,28 +82,38 @@ static uint32_t vc12DXML_ToColour(const char *pStr)
       return Colours[i].val;
   }
 
-  return 0xFFFF00FF;
+  uint32_t grey = 0;
+  if (vc12DXML_IsGreyColour(pStr, &grey))
+    return grey;
+
+  return 0xFFFF9D00;
 }
 
-static void SetGlobals(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+static void SetGlobals(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
 {
+  if (pNode == nullptr || pGlobals == nullptr)
+    return;
+
   const udJSON *pItem = nullptr;
 
   pItem = &pNode->Get("null");
   if (!pItem->IsVoid())
-    globals.nullValue = pItem->AsDouble();
+    pGlobals->nullValue = pItem->AsDouble();
 
   pItem = &pNode->Get("colour");
   if (!pItem->IsVoid())
-    globals.colour = vc12DXML_ToColour(pItem->AsString());
+    pGlobals->colour = vc12DXML_ToColour(pItem->AsString());
 }
 
-static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> &pointList, vc12DXML_ProjectGlobals &globals)
+static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> &pointList, vc12DXML_ProjectGlobals *pGlobals)
 {
+  if (pNode == nullptr || pGlobals == nullptr)
+    return;
+
   if (pNode->IsArray())
   {
     for (size_t i = 0; i < pNode->AsArray()->length; ++i)
-      vc12DXML_Ammend_data_3d(pNode->AsArray()->GetElement(i), pointList, globals);
+      vc12DXML_Ammend_data_3d(pNode->AsArray()->GetElement(i), pointList, pGlobals);
   }
   else
   {
@@ -84,7 +130,7 @@ static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> 
       for (int p = 0; p < 3; ++p)
       {
         if (udStrcmp(tokens[p], "null") == 0)
-          point[p] = globals.nullValue;
+          point[p] = pGlobals->nullValue;
         else
           point[p] = udStrAtof64(tokens[p]);
       }
@@ -94,8 +140,8 @@ static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> 
 }
 
 vc12DXML_ProjectGlobals::vc12DXML_ProjectGlobals()
-  : nullValue(-999.0)                 // Default defined in the spec
-  , colour(vc12DXML_ToColour("red"))  // Default defined in the spec
+  : nullValue(-999.0)   // Default defined in the spec
+  , colour(0xFFFF0000)  // red, default defined in the spec
 {
 
 }
@@ -119,7 +165,7 @@ vc12DXML_SuperString::~vc12DXML_SuperString()
   udFree(m_pName);
 }
 
-udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
 {
   udResult result;
   const udJSON *pItem = nullptr;
@@ -127,6 +173,7 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
   //double z = 0.0;
 
   UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
+  UD_ERROR_IF(pGlobals == nullptr, udR_InvalidParameter_);
 
   // TODO Some values can and MUST be pulled out before others.
   // <z> for example MUST be pulled out of the super_string block before reading any
@@ -143,7 +190,7 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
   //  z = pItem->AsDouble();
   //}
 
-  SetGlobals(pNode, globals);
+  SetGlobals(pNode, pGlobals);
 
   pItem = &pNode->Get("name");
   if (!pItem->IsVoid())
@@ -160,7 +207,7 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
   if (!pItem->IsVoid())
     m_colour = vc12DXML_ToColour(pItem->AsString());
   else
-    m_colour = globals.colour;
+    m_colour = pGlobals->colour;
 
   pItem = &pNode->Get("weight");
   if (!pItem->IsVoid())
@@ -168,7 +215,7 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
 
   pItem = &pNode->Get("data_3d");
   if (!pItem->IsVoid())
-    vc12DXML_Ammend_data_3d(&pItem->Get("p"), m_points, globals);
+    vc12DXML_Ammend_data_3d(&pItem->Get("p"), m_points, pGlobals);
 
   result = udR_Success;
 epilogue:
@@ -189,11 +236,13 @@ vc12DXML_Model::~vc12DXML_Model()
   udFree(m_pName);
 }
 
-udResult vc12DXML_Model::BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+udResult vc12DXML_Model::BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
 {
   udResult result;
   const udJSON *pItem = nullptr;
+
   UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
+  UD_ERROR_IF(pGlobals == nullptr, udR_InvalidParameter_);
 
   pItem = &pNode->Get("string_super");
   if (!pItem->IsVoid())
@@ -203,7 +252,7 @@ udResult vc12DXML_Model::BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlob
       for (size_t i = 0; i < pItem->ArrayLength(); ++i)
       {
         vc12DXML_SuperString *pSS = new vc12DXML_SuperString();
-        udResult res = pSS->Build(pItem->AsArray()->GetElement(i), globals);
+        udResult res = pSS->Build(pItem->AsArray()->GetElement(i), pGlobals);
         if (res == udR_Success)
           m_elements.push_back(pSS);
         else
@@ -213,7 +262,7 @@ udResult vc12DXML_Model::BuildChildren(udJSON const *pNode, vc12DXML_ProjectGlob
     else
     {
       vc12DXML_SuperString *pSS = new vc12DXML_SuperString();
-      udResult res = pSS->Build(pItem, globals);
+      udResult res = pSS->Build(pItem, pGlobals);
       if (res == udR_Success)
         m_elements.push_back(pSS);
       else
@@ -226,11 +275,13 @@ epilogue:
   return result;
 }
 
-udResult vc12DXML_Model::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+udResult vc12DXML_Model::Build(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
 {
   udResult result;
   const udJSON *pItem = nullptr;
+
   UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
+  UD_ERROR_IF(pGlobals == nullptr, udR_InvalidParameter_);
 
   // As per the spec, 'name' MUST be defined for models. But we don't check the format, just assume is correct.
   pItem = &pNode->Get("name");
@@ -242,7 +293,7 @@ udResult vc12DXML_Model::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &glo
 
   pItem = &pNode->Get("children");
   if (!pItem->IsVoid())
-    UD_ERROR_CHECK(BuildChildren(pItem, globals));
+    UD_ERROR_CHECK(BuildChildren(pItem, pGlobals));
 
   result = udR_Success;
 epilogue:
@@ -269,31 +320,48 @@ void vc12DXML_Project::SetName(const char *pName)
   m_pName = udStrdup(pName);
 }
 
-udResult vc12DXML_Project::BeginBuild(udJSON const *pNode)
-{
-  return Build(pNode, m_globals);
-}
-
-udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &globals)
+udResult vc12DXML_Project::AddProject(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
 {
   udResult result;
-  const udJSON *pRoot = nullptr;
+  std::vector<const udJSON *> modelNodes;
   const udJSON *pItem = nullptr;
 
   UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
-
-  pRoot = &pNode->Get("xml12d");
+  UD_ERROR_IF(pGlobals == nullptr, udR_InvalidParameter_);
 
   // Models
-  pItem = &pRoot->Get("model");
+  pItem = &pNode->Get("model");
+  if (!pItem->IsVoid())
+    modelNodes.push_back(pItem);
+
+  pItem = &pNode->Get("models");
   if (!pItem->IsVoid())
   {
     if (pItem->IsArray())
     {
       for (size_t i = 0; i < pItem->ArrayLength(); ++i)
       {
+        const udJSON *pTempNode = &pItem->AsArray()->GetElement(i)->Get("model");
+        if (!pTempNode->IsVoid())
+          modelNodes.push_back(pTempNode);
+      }
+    }
+    else
+    {
+      const udJSON *pTempNode = &pItem->Get("model");
+      if (!pTempNode->IsVoid())
+        modelNodes.push_back(pTempNode);
+    }
+  }
+
+  for (auto pModelNode : modelNodes)
+  {
+    if (pModelNode->IsArray())
+    {
+      for (size_t i = 0; i < pModelNode->ArrayLength(); ++i)
+      {
         vc12DXML_Model *pModel = new vc12DXML_Model();
-        udResult res = pModel->Build(pItem->AsArray()->GetElement(i), globals);
+        udResult res = pModel->Build(pModelNode->AsArray()->GetElement(i), pGlobals);
         if (res == udR_Success)
           m_models.push_back(pModel);
         else
@@ -303,7 +371,7 @@ udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &g
     else
     {
       vc12DXML_Model *pModel = new vc12DXML_Model();
-      udResult res = pModel->Build(pItem, globals);
+      udResult res = pModel->Build(pModelNode, pGlobals);
       if (res == udR_Success)
         m_models.push_back(pModel);
       else
@@ -314,6 +382,66 @@ udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals &g
   result = udR_Success;
 epilogue:
   return result;
+}
+
+bool vc12DXML_Project::TryLoad(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
+{
+  if (pNode == nullptr || pGlobals == nullptr)
+    return false;
+
+  bool result = false;
+  if (!pNode->IsVoid())
+  {
+    result = true;
+
+    // We could support multiple projects per file, but then should we support projects within projects?
+    // For now just extract all models and elements and dump them into one project.
+    // Perhaps we should replicate the xml structure in udStream as folders?
+    if (pNode->IsArray())
+    {
+      for (size_t i = 0; i < pNode->ArrayLength(); ++i)
+      {
+        if (AddProject(pNode->AsArray()->GetElement(i), pGlobals) != udR_Success)
+          LOG_WARNING("Failed to load a project.");
+      }
+    }
+    else
+    {
+      if (AddProject(pNode, pGlobals) != udR_Success)
+        LOG_WARNING("Failed to load project.");
+    }
+  }
+
+  return result;
+}
+
+udResult vc12DXML_Project::Build(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
+{
+  udResult result;
+
+  UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
+
+  // Try to find the root node...
+  do
+  {
+    if (TryLoad(&pNode->Get("xml12d.project"), pGlobals))
+      break;
+
+    if (TryLoad(&pNode->Get("xml12d"), pGlobals))
+      break;
+
+    LOG_WARNING("Failed to load any projects.");
+
+  } while (false);
+
+  result = udR_Success;
+epilogue:
+  return result;
+}
+
+udResult vc12DXML_Project::BeginBuild(udJSON const *pNode)
+{
+  return Build(pNode, &m_globals);
 }
 
 udResult vc12DXML_LoadProject(vc12DXML_Project &project, const char *pFilePath)
