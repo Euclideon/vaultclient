@@ -2469,6 +2469,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   {
     pProgramState->settings.viewports[0].resolution = pProgramState->exportVideoResolution;
     vcRender_ResizeScene(pProgramState, pProgramState->pActiveViewport->pRenderContext, pProgramState->exportVideoResolution.x, pProgramState->exportVideoResolution.y);
+    vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
+
+    // Immediately update camera
     vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->settings.viewports[0].resolution));
   }
 
