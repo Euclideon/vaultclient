@@ -23,7 +23,7 @@ static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t &out)
 {
   bool success = false;
 
-  if (udStrBeginsWithi(pStr, "grey ") == 0)
+  if (udStrBeginsWithi(pStr, "grey "))
   {
     uint32_t scale = udStrAtou(pStr + 5); // Skip "grey "
     if (scale > 255)
