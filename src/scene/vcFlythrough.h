@@ -32,6 +32,7 @@ private:
   double m_timePosition;
   double m_timeLength;
   char m_exportPath[vcMaxPathLength];
+  int m_selectedResolutionIndex;
   int m_selectedExportFPSIndex;
 
   struct
