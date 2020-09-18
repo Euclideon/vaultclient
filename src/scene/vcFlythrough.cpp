@@ -14,6 +14,11 @@
 #include "imgui_internal.h"
 
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
+const char *vcFlythroughExportFormats[] =
+{
+  "png",
+  "jpg"
+};
 static const udUInt2 vcScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
 const char *vcScreenshotResolutionNameKeys[] = { "settingsScreenshotRes720p", "settingsScreenshotRes1080p", "settingsScreenshotRes4K" };
 
@@ -28,6 +33,7 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_exportPath[0] = '\0';
   m_selectedResolutionIndex = (int)udLengthOf(vcScreenshotResolutions) - 1;
   m_selectedExportFPSIndex = 3;
+  m_selectedExportFormatIndex = 0;
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
 
   m_exportInfo.currentFrame = 0;
@@ -288,8 +294,19 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       ImGui::EndCombo();
     }
 
-    vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
+    if (ImGui::BeginCombo(vcString::Get("flythroughExportFormat"), vcFlythroughExportFormats[m_selectedExportFormatIndex]))
+    {
+      for (size_t i = 0; i < udLengthOf(vcFlythroughExportFormats); ++i)
+      {
+        if (ImGui::Selectable(vcFlythroughExportFormats[i]))
+          m_selectedExportFormatIndex = (int)i;
+      }
 
+      ImGui::EndCombo();
+    }
+
+    vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
+    
     if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
     {
       m_state = vcFTS_Exporting;

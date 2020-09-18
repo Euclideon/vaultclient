@@ -7,6 +7,7 @@
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#include "udFileHandler.h"
 
 struct AsyncTextureLoadInfo
 {
@@ -356,21 +357,34 @@ epilogue:
   return result;
 }
 
+struct vcTextureCallbackResult
+{
+  udFile *pFile;
+  udResult result;
+};
+
+void vcTexture_StbCallback(void *context, void *data, int size)
+{
+  vcTextureCallbackResult *pData = (vcTextureCallbackResult *)context;
+  pData->result = udFile_Write(pData->pFile, data, size);
+}
+
 udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, const char *pFilename)
 {
   if (pTexture == nullptr || pFramebuffer == nullptr || pFilename == nullptr)
     return udR_InvalidParameter_;
 
   udResult result;
-  int outLen = 0;
-  unsigned char *pWriteData = nullptr;
   vcTextureFormat format;
   size_t pixelSize;
   uint8_t *pFrameBufferPixels = nullptr;
   uint8_t *pPixelsOut = nullptr;
+  vcTextureCallbackResult callbackResult = { nullptr, udR_Success };
 
   udInt2 currSize = udInt2::zero();
   vcTexture_GetSize(pTexture, &currSize.x, &currSize.y);
+
+  UD_ERROR_CHECK(udFile_Open(&callbackResult.pFile, pFilename, udFOF_Create | udFOF_Write));
 
   //This assumes the framebuffer and the texture are the same format
   UD_ERROR_CHECK(vcTexture_GetFormat(pTexture, &format));
@@ -380,18 +394,21 @@ udResult vcTexture_SaveImage(vcTexture *pTexture, vcFramebuffer *pFramebuffer, c
   UD_ERROR_NULL(pFrameBufferPixels, udR_MemoryAllocationFailure);
 
   vcTexture_BeginReadPixels(pTexture, 0, 0, currSize.x, currSize.y, pFrameBufferPixels, pFramebuffer);
-
   UD_ERROR_CHECK(vcTexture_ConvertPixels(pFrameBufferPixels, format, &pPixelsOut, vcTextureFormat_RGBA8, currSize.x * currSize.y));
-
-  pWriteData = stbi_write_png_to_mem(pPixelsOut, 0, currSize.x, currSize.y, 4, &outLen);
-  UD_ERROR_NULL(pWriteData, udR_InternalError);
-
-  UD_ERROR_CHECK(udFile_Save(pFilename, pWriteData, outLen));
   
+  if (udStrEndsWithi(pFilename, "png"))
+    UD_ERROR_IF(stbi_write_png_to_func(vcTexture_StbCallback, &callbackResult, (int)currSize.x, (int)currSize.y, 4, pPixelsOut, 0) == 0, udR_InternalError);
+  else if (udStrEndsWithi(pFilename, "jpg"))
+    UD_ERROR_IF(stbi_write_jpg_to_func(vcTexture_StbCallback, &callbackResult, (int)currSize.x, (int)currSize.y, 4, pPixelsOut, 0) == 0, udR_InternalError);
+  else
+    UD_ERROR_SET(udR_Unsupported);
+
+  UD_ERROR_CHECK(callbackResult.result);
+
   result = udR_Success;
 epilogue:
-  if (pWriteData != nullptr)
-    STBIW_FREE(pWriteData);
+
+  udFile_Close(&callbackResult.pFile);
 
   udFree(pFrameBufferPixels);
   udFree(pPixelsOut);

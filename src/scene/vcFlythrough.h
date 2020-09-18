@@ -34,6 +34,7 @@ private:
   char m_exportPath[vcMaxPathLength];
   int m_selectedResolutionIndex;
   int m_selectedExportFPSIndex;
+  int m_selectedExportFormatIndex;
 
   struct
   {
