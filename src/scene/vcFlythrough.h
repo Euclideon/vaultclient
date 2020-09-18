@@ -45,7 +45,8 @@ private:
   } m_exportInfo;
 
   void UpdateCameraPosition(vcState *pProgramState);
-  void UpdateLinePoints();
+  void UpdateLinePoints();  void LoadFlightPoints(vcState *pProgramState);
+  void SaveFlightPoints(vcState *pProgramState);
 
 public:
   vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
