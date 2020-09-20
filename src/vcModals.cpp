@@ -658,27 +658,16 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
-    ImVec2 windowSize = ImGui::GetContentRegionAvail();
+
+    const char *pInfo = nullptr;
     if (ImGui::BeginChild("##infoModal", ImVec2(-1, -30), true, ImGuiWindowFlags_HorizontalScrollbar))
     {
-      for (size_t i = 0; i < pProgramState->projectInfoTextures.infoStrings.length; ++i)
-      {
-        ImGui::PushTextWrapPos(windowSize.x);
-        ImGui::Text("%s", pProgramState->projectInfoTextures.infoStrings[i]);
-        ImGui::PopTextWrapPos();
-        if (i < pProgramState->projectInfoTextures.infoStrings.length - 1)
-        {
-          int w, h;
-          if (vcTexture_GetSize(pProgramState->projectInfoTextures.textures[i], &w, &h) == udR_Success && (w > 1 || h > 1))
-            ImGui::Image(pProgramState->projectInfoTextures.textures[i], ImVec2((float)w, (float)h));
-          else
-            ImGui::TextWrapped("%s", pProgramState->projectInfoTextures.textureAltStrings[i]);
-        }
-      }
+      if (udProjectNode_GetMetadataString(pProgramState->activeProject.pRoot, "information", &pInfo, "") == udE_Success)
+        vcIGSW_Markdown(pProgramState, pInfo);
     }
     ImGui::EndChild();
 
-    if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pProgramState->projectInfoTextures.infoStrings.length == 0)
+    if (ImGui::Button(vcString::Get("popupOK"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel) || pInfo == nullptr)
       ImGui::CloseCurrentPopup();
 
     ImGui::EndPopup();
@@ -1201,8 +1190,6 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
       udProjectNode_SetName(pProgramState->activeProject.pProject, pProgramState->activeProject.pRoot, pProgramState->modelPath);
       udProjectNode_SetMetadataString(pProgramState->activeProject.pRoot, "information", information);
       udProjectNode_SetMetadataBool(pProgramState->activeProject.pRoot, "slideshow", pProgramState->activeProject.slideshow ? 1 : 0);
-
-      vcProject_UpdateProjectInformationDisplayTextures(pProgramState);
 
       ImGui::CloseCurrentPopup();
     }

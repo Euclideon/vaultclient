@@ -314,10 +314,6 @@ void vcSession_ChangeSession(vcState *pProgramState)
   pProgramState->loginStatus = vcLS_NoStatus;
   pProgramState->hasContext = true;
 
-  pProgramState->projectInfoTextures.infoStrings.Init(64);
-  pProgramState->projectInfoTextures.textureAltStrings.Init(64);
-  pProgramState->projectInfoTextures.textures.Init(64);
-
   vcModals_OpenModal(pProgramState, vcMT_Welcome);
 }
 
@@ -475,19 +471,6 @@ void vcSession_CleanupSession(vcState *pProgramState)
       vcTexture_Destroy(&item.pTexture);
     }
     pProgramState->featuredProjects.Deinit();
-  }
-
-  if (pProgramState->projectInfoTextures.textures.chunkElementCount > 0)
-  {
-    for (vcTexture *pTexture : pProgramState->projectInfoTextures.textures)
-      vcTexture_Destroy(&pTexture);
-    for (const char *pStr : pProgramState->projectInfoTextures.infoStrings)
-      udFree(pStr);
-    for (const char *pStr : pProgramState->projectInfoTextures.textureAltStrings)
-      udFree(pStr);
-    pProgramState->projectInfoTextures.infoStrings.Deinit();
-    pProgramState->projectInfoTextures.textureAltStrings.Deinit();
-    pProgramState->projectInfoTextures.textures.Deinit();
   }
 
   udWriteUnlockRWLock(pProgramState->pSessionLock);
