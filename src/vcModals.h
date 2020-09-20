@@ -16,6 +16,7 @@ enum vcModalTypes
   vcMT_ProjectReadOnly,
   vcMT_ProjectInfo,
   vcMT_UnsupportedFile,
+  vcMT_UnsupportedEncoding,
   vcMT_Profile,
   vcMT_Convert,
   vcMT_ChangePassword,

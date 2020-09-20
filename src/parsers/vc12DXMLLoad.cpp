@@ -19,6 +19,86 @@
 #define LOG_WARNING(...) {}
 #define LOG_INFO(...) {}
 
+//----------------------------------------------------------------------------
+// Unicode format detection. 
+//----------------------------------------------------------------------------
+
+#define MAX_BOM_BYTES 8
+
+enum vcUnicodeEncoding
+{
+  vcUE_ANSI,
+  vcUE_UTF8,
+  vcUE_UTF8BOM,
+  vcUE_UCS2BEBOM,
+  vcUE_UCS2LEBOM,
+  vcUE_UTF16BEBOM,
+  vcUE_UTF16LEBOM,
+  vcUE_Unknown
+};
+
+struct BOMBytes
+{
+  uint32_t nBytes;
+  uint8_t bytes[MAX_BOM_BYTES];
+};
+
+static vcUnicodeEncoding vcUnicode_GetEncodingFromBOM(const BOMBytes &bom)
+{
+  static uint8_t UTF8BOM[3] = {0xEF, 0xBB, 0xBF};
+  static uint8_t UTF16LEBOM[2] = {0xFF, 0xFE};
+  static uint8_t UTF16BEBOM[2] = {0xFE, 0xFF};
+
+  if (bom.nBytes >= 3 && memcmp(bom.bytes, UTF8BOM, 3) == 0)
+    return vcUE_UTF8BOM;
+
+  if (bom.nBytes >= 2 && memcmp(bom.bytes, UTF16LEBOM, 2) == 0)
+    return vcUE_UTF16LEBOM;
+
+  if (bom.nBytes >= 2 && memcmp(bom.bytes, UTF16BEBOM, 2) == 0)
+    return vcUE_UTF16BEBOM;
+
+  // Treat USC2 as UTF16 as UCS2 is a subset of UTF16 with identical BOMs
+
+  return vcUE_Unknown;
+}
+
+udResult vcUnicode_DetermineFileEncoding(const char *pFilePath, vcUnicodeEncoding *pEncoding)
+{
+  udResult result;
+  udFile *pFile = nullptr;
+  int64_t fileLength = -1;
+  size_t bytesRead = 0;
+  BOMBytes bom = {};
+
+  UD_ERROR_NULL(pFilePath, udR_InvalidParameter_);
+  UD_ERROR_NULL(pEncoding, udR_InvalidParameter_);
+
+  UD_ERROR_CHECK(udFile_Open(&pFile, pFilePath, udFOF_Read, &fileLength));
+  UD_ERROR_CHECK(udFile_Read(pFile, bom.bytes, MAX_BOM_BYTES, 0, udFSW_SeekCur, &bytesRead));
+
+  bom.nBytes = uint32_t(bytesRead);
+
+  *pEncoding = vcUE_Unknown;
+
+  do
+  {
+    *pEncoding = vcUnicode_GetEncodingFromBOM(bom);
+    if (*pEncoding != vcUE_Unknown)
+      break;
+
+    // TODO From here we can try to probe the file to determine the encoding.
+
+  } while (false);
+
+  result = udR_Success;
+epilogue:
+  return result;
+}
+
+//----------------------------------------------------------------------------
+// 12dxml file parsing
+//----------------------------------------------------------------------------
 static bool vc12DXML_IsGreyColour(const char *pStr, uint32_t *pOut)
 {
   if (pStr == nullptr || pOut == nullptr)
@@ -453,6 +533,14 @@ udResult vc12DXML_LoadProject(vc12DXML_Project &project, const char *pFilePath)
   udFilename fileName;
   char projectName[256] = {};
 
+  vcUnicodeEncoding encoding;
+
+  UD_ERROR_CHECK(vcUnicode_DetermineFileEncoding(pFilePath, &encoding));
+  UD_ERROR_IF(encoding == vcUE_UCS2LEBOM, udR_Unsupported);
+  UD_ERROR_IF(encoding == vcUE_UCS2BEBOM, udR_Unsupported);
+  UD_ERROR_IF(encoding == vcUE_UTF16LEBOM, udR_Unsupported);
+  UD_ERROR_IF(encoding == vcUE_UTF16BEBOM, udR_Unsupported);
+
   UD_ERROR_NULL(pFilePath, udR_InvalidParameter_);
 
   fileName.SetFromFullPath("%s", pFilePath);
@@ -460,7 +548,11 @@ udResult vc12DXML_LoadProject(vc12DXML_Project &project, const char *pFilePath)
   project.SetName(projectName);
 
   UD_ERROR_CHECK(udFile_Load(pFilePath, (void **)&pFileContents));
-  UD_ERROR_CHECK(xml.Parse(pFileContents));
+
+  if (encoding == vcUE_UTF8BOM)
+    UD_ERROR_CHECK(xml.Parse(pFileContents + 3));
+  else // Try to load as UTF8 or ANSI. Will fail here if anything else
+    UD_ERROR_CHECK(xml.Parse(pFileContents));
 
   UD_ERROR_CHECK(project.BeginBuild(&xml));
 
@@ -469,13 +561,19 @@ epilogue:
   return result;
 }
 
-void vc12DXML_Load(vcState *pProgramState, const char *pFilename)
+udResult vc12DXML_Load(vcState *pProgramState, const char *pFilename)
 {
+  udResult result;
   vc12DXML_Project project;
-  udResult result = vc12DXML_LoadProject(project, pFilename);
+
+  UD_ERROR_CHECK(vc12DXML_LoadProject(project, pFilename));
   if (result == udR_Success)
   {
     udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
     project.AddToProject(pProgramState, pParentNode);
   }
+
+  result = udR_Success;
+epilogue:
+  return result;
 }

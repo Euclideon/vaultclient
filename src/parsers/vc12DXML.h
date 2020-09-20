@@ -3,6 +3,6 @@
 
 #include "vcState.h"
 
-void vc12DXML_Load(vcState *pProgramState, const char *pFilename);
+udResult vc12DXML_Load(vcState *pProgramState, const char *pFilename);
 
 #endif // vc12DXML_h__

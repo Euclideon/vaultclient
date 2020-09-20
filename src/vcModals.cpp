@@ -1405,6 +1405,29 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawUnsupportedEncoding(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_UnsupportedEncoding))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerUnsupportedEncodingTitle"));
+
+  ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_Appearing);
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerUnsupportedEncodingTitle"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_UnsupportedEncoding))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    ImGui::TextWrapped("%s", vcString::Get("sceneExplorerUnsupportedEncodingText"));
+
+    // Close buttons
+    if (ImGui::Button(vcString::Get("popupClose")) || vcHotkey::IsPressed(vcB_Cancel))
+      ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_DrawImageViewer(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_ImageViewer))
@@ -1790,6 +1813,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProjectInfo(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
   vcModals_DrawUnsupportedFiles(pProgramState);
+  vcModals_DrawUnsupportedEncoding(pProgramState);
   vcModals_DrawProfile(pProgramState);
   vcModals_DrawChangePassword(pProgramState);
   vcModals_DrawConvert(pProgramState);
