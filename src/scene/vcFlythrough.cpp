@@ -264,6 +264,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     {
       pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
       m_state = vcFTS_Playing;
+      m_timePosition = 0.0;
     }
   }
 
