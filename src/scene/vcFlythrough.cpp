@@ -260,7 +260,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
   }
   else
   {
-    if (ImGui::Button(vcString::Get("flythroughPlay")))
+    if (ImGui::ButtonEx(vcString::Get("flythroughPlay"), ImVec2(0, 0), (m_flightPoints.length == 0 ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
     {
       pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
       m_state = vcFTS_Playing;
