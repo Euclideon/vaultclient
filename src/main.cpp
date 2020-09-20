@@ -1006,11 +1006,14 @@ int main(int argc, char **args)
   programState.settings.onScreenControls = false;
 #endif
 
+  for (int v = 0; v < vcMaxViewportCount; v++)
+  {
+    programState.settings.camera.moveSpeed[v] = 3.f;
+    programState.settings.camera.fieldOfView[v] = UD_PIf * 5.f / 18.f; // 50 degrees
+  }
   programState.settings.camera.lockAltitude = false;
-  programState.settings.camera.moveSpeed = 3.f;
   programState.settings.camera.nearPlane = s_CameraNearPlane;
   programState.settings.camera.farPlane = s_CameraFarPlane;
-  programState.settings.camera.fieldOfView = UD_PIf * 5.f / 18.f; // 50 degrees
 
   programState.settings.languageOptions.Init(4);
   programState.settings.visualization.pointSourceID.colourMap.Init(32);
@@ -1527,8 +1530,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2, nullptr, nullptr, "%.2f"))
           pProgramState->pActiveViewport->camera.headingPitch = UD_DEG2RAD(headingPitch);
 
-        if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
-          pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+        if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex]), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
+          pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] = udClamp(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex], vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
 
         if (pProgramState->geozone.latLongBoundMin != pProgramState->geozone.latLongBoundMax)
         {
@@ -2488,7 +2491,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
     // Immediately update camera
-    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->settings.viewports[0].resolution));
+    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, 0, udFloat2::create(pProgramState->settings.viewports[0].resolution));
   }
 
   if (pProgramState->exportVideo && pProgramState->settings.viewports[0].resolution != pProgramState->exportVideoResolution)
@@ -2544,7 +2547,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
         // Update camera immediately
-        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create((float)viewportResolution.x, (float)viewportResolution.y));
+        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, viewportIndex, udFloat2::create((float)viewportResolution.x, (float)viewportResolution.y));
       }
 
       bool renderEuclideonWatermark = pProgramState->settings.presentation.showEuclideonLogo;
@@ -2565,9 +2568,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
         // TODO: Hack! (Until we resolve multiple camera settings)
         vcCameraSettings settingsCopy = pProgramState->settings.camera;
-        settingsCopy.fieldOfView = UD_PIf * 10.0f / 18.f; // 10 degrees
+        settingsCopy.fieldOfView[viewportIndex] = UD_PIf * 10.0f / 18.f; // 10 degrees
 
-        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, settingsCopy, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y));
+        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, settingsCopy, viewportIndex, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y));
 
         // disable watermark rendering
         pProgramState->settings.presentation.showEuclideonLogo = false;
@@ -2578,7 +2581,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
 
       if (viewportIndex > 0)
       {
-        //uint8_t splitterSize = pProgramState->settings.window.touchscreenFriendly ? 6 : 3;
         udFloat2 splitterSize = udFloat2::create(pProgramState->settings.window.touchscreenFriendly ? 6.0f : 3.0f, (float)viewportResolution.y);
         vcIGSW_verticalSplitter(udTempStr("###viewportSpliter%d", viewportIndex), splitterSize, viewportIndex, ImGui::GetColumnWidth(viewportIndex), ImGui::GetColumnWidth(viewportIndex - 1));
       }

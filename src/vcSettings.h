@@ -124,11 +124,6 @@ enum vcSkyboxType
   vcSkyboxType_Atmosphere,
 };
 
-enum
-{
-  vcMaxViewportCount = 2,
-};
-
 struct vcLanguageOption
 {
   // Arbitrary limits

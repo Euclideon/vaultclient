@@ -151,10 +151,10 @@ udDouble4 vcCamera_GetNearPlane(const vcCamera &camera, const vcCameraSettings &
   return normal;
 }
 
-void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
+void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const int activeViewportIndex, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
-  double fov = settings.fieldOfView;
+  double fov = settings.fieldOfView[activeViewportIndex];
   double aspect = windowSize.x / windowSize.y;
   double zNear = settings.nearPlane;
   double zFar = settings.farPlane;
@@ -222,7 +222,7 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
       addPos = udNormalize3(addPos);
 
     addPos += vertPos * pViewport->camera.cameraUp;
-    addPos *= pCamSettings->moveSpeed * deltaTime;
+    addPos *= pCamSettings->moveSpeed[pProgramState->activeViewportIndex] * deltaTime;
 
     pViewport->cameraInput.smoothTranslation += addPos;
 
@@ -547,13 +547,13 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
         pViewport->gizmo.coordinateSystem = ((pViewport->gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene);
       if (vcHotkey::IsPressed(vcB_DecreaseCameraSpeed))
       {
-        pProgramState->settings.camera.moveSpeed *= 0.1f;
-        pProgramState->settings.camera.moveSpeed = udMax(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed);
+        pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] *= 0.1f;
+        pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] = udMax(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex], vcSL_CameraMinMoveSpeed);
       }
       else if (vcHotkey::IsPressed(vcB_IncreaseCameraSpeed))
       {
-        pProgramState->settings.camera.moveSpeed *= 10.f;
-        pProgramState->settings.camera.moveSpeed = udMin(pProgramState->settings.camera.moveSpeed, vcSL_CameraMaxMoveSpeed);
+        pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] *= 10.f;
+        pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] = udMin(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex], vcSL_CameraMaxMoveSpeed);
       }
     }
 
@@ -639,11 +639,11 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
     else
     {
       if (mouseWheel > 0)
-        pProgramState->settings.camera.moveSpeed *= (1.f + mouseWheel / 10.f);
+        pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] *= (1.f + mouseWheel / 10.f);
       else
-        pProgramState->settings.camera.moveSpeed /= (1.f - mouseWheel / 10.f);
+        pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] /= (1.f - mouseWheel / 10.f);
 
-      pProgramState->settings.camera.moveSpeed = udClamp(pProgramState->settings.camera.moveSpeed, vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+      pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] = udClamp(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex], vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
     }
   }
 
@@ -680,5 +680,5 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
   if (isFocused && pViewport->cameraInput.inputState == vcCIS_None)
     pViewport->isUsingAnchorPoint = false;
 
-  vcCamera_UpdateMatrices(pProgramState->geozone, &pViewport->camera, pProgramState->settings.camera, windowSize, &mousePos);
+  vcCamera_UpdateMatrices(pProgramState->geozone, &pViewport->camera, pProgramState->settings.camera, pProgramState->activeViewportIndex, windowSize, &mousePos);
 }

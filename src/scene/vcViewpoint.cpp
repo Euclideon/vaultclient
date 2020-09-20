@@ -249,27 +249,30 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   for (uint32_t i = 0; i < count && i < pProgramState->settings.visualization.s_maxReturnNumbers; ++i)
     udProjectNode_GetMetadataUint(m_pNode, udTempStr("visualisation.number_of_returns.colours[%i]", i), &pProgramState->settings.visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
 
-  // Camera lens
-  pStringVal = nullptr;
-  udProjectNode_GetMetadataString(m_pNode, "visualisation.camera_lens.preset", &pStringVal, nullptr);
-  if (udStrEqual(pStringVal, "custom"))
-    pProgramState->settings.camera.lensIndex = vcLS_Custom;
-  else if (udStrEqual(pStringVal, "15mm"))
-    pProgramState->settings.camera.lensIndex = vcLS_15mm;
-  else if (udStrEqual(pStringVal, "24mm"))
-    pProgramState->settings.camera.lensIndex = vcLS_24mm;
-  else if (udStrEqual(pStringVal, "30mm"))
-    pProgramState->settings.camera.lensIndex = vcLS_30mm;
-  else if (udStrEqual(pStringVal, "50mm"))
-    pProgramState->settings.camera.lensIndex = vcLS_50mm;
-  else if (udStrEqual(pStringVal, "70mm"))
-    pProgramState->settings.camera.lensIndex = vcLS_70mm;
-  else if (udStrEqual(pStringVal, "100mm"))
-    pProgramState->settings.camera.lensIndex = vcLS_100mm;
-
-  doubleVal = pProgramState->settings.camera.fieldOfView;
-  udProjectNode_GetMetadataDouble(m_pNode, "visualisation.camera_lens.custom_radians", &doubleVal, doubleVal);
-  pProgramState->settings.camera.fieldOfView = (float)doubleVal;
+  for (int v = 0; v < vcMaxViewportCount; v++) {
+    // Camera lens
+    pStringVal = nullptr;
+    udProjectNode_GetMetadataString(m_pNode, udTempStr("visualisation.camera_lens.preset[%d]", v), &pStringVal, nullptr);
+    if (udStrEqual(pStringVal, "custom"))
+      pProgramState->settings.camera.lensIndex[v] = vcLS_Custom;
+    else if (udStrEqual(pStringVal, "15mm"))
+      pProgramState->settings.camera.lensIndex[v] = vcLS_15mm;
+    else if (udStrEqual(pStringVal, "24mm"))
+      pProgramState->settings.camera.lensIndex[v] = vcLS_24mm;
+    else if (udStrEqual(pStringVal, "30mm"))
+      pProgramState->settings.camera.lensIndex[v] = vcLS_30mm;
+    else if (udStrEqual(pStringVal, "50mm"))
+      pProgramState->settings.camera.lensIndex[v] = vcLS_50mm;
+    else if (udStrEqual(pStringVal, "70mm"))
+       pProgramState->settings.camera.lensIndex[v] = vcLS_70mm;
+    else if (udStrEqual(pStringVal, "100mm"))
+       pProgramState->settings.camera.lensIndex[v] = vcLS_100mm;
+    
+    doubleVal = pProgramState->settings.camera.fieldOfView[v];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("visualisation.camera_lens.custom_radians[%i]", v), &doubleVal, doubleVal);
+    pProgramState->settings.camera.fieldOfView[v] = (float)doubleVal;
+    
+  }
 
   // Skybox
   pStringVal = nullptr;
@@ -499,8 +502,12 @@ void vcViewpoint::SaveSettings(vcState *pProgramState, udProjectNode *pNode)
     "100mm",
   };
   UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
-  udProjectNode_SetMetadataString(pNode, "visualisation.camera_lens.preset", lensNameArray[pProgramState->settings.camera.lensIndex]);
-  udProjectNode_SetMetadataDouble(pNode, "visualisation.camera_lens.custom_radians", pProgramState->settings.camera.fieldOfView);
+
+  for (int v = 0; v < vcMaxViewportCount; v++)
+  {
+    udProjectNode_SetMetadataString(pNode, udTempStr("visualisation.camera_lens.preset[%d]", v), lensNameArray[pProgramState->settings.camera.lensIndex[v]]);
+    udProjectNode_SetMetadataDouble(pNode, udTempStr("visualisation.camera_lens.custom_radians[%d]", v), pProgramState->settings.camera.fieldOfView[v]);
+  }
 
   // Skybox
   const char *skyboxOptions[] = { "none", "colour", "simple", "atmosphere" };
