@@ -94,7 +94,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderDa
 
     if (offset == -1)
     {
-      if (m_flightPoints.length <= 1 || m_flightPoints[m_flightPoints.length - 1].m_CameraPosition != newFlightPoint.m_CameraPosition)
+      if (m_flightPoints.length <= 1 || m_flightPoints[m_flightPoints.length - 1].m_CameraPosition != newFlightPoint.m_CameraPosition || m_flightPoints[m_flightPoints.length - 1].m_CameraHeadingPitch != newFlightPoint.m_CameraHeadingPitch)
         m_flightPoints.PushBack(newFlightPoint);
       else
         m_flightPoints[m_flightPoints.length - 1].time = m_timePosition;
