@@ -5,6 +5,7 @@
 
 #include "vcRender.h"
 #include "vcFramebuffer.h"
+//#include "vcLineRenderer.h"
 
 #include "udMath.h"
 #include "udStringUtil.h"
@@ -34,6 +35,7 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_selectedResolutionIndex = (int)udLengthOf(vcScreenshotResolutions) - 1;
   m_selectedExportFPSIndex = 3;
   m_selectedExportFormatIndex = 0;
+  m_pLine = nullptr;
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
 
   m_exportInfo.currentFrame = 0;
@@ -47,7 +49,7 @@ void vcFlythrough::OnNodeUpdate(vcState *pProgramState)
   ChangeProjection(pProgramState->geozone);
 }
 
-void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderData*/)
+void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   int offset = -1; // The index of the _next_ node
 
@@ -139,6 +141,11 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderDa
       UpdateCameraPosition(pProgramState);
     }
   }
+
+  if (m_selected && m_pLine != nullptr && m_flightPoints.length > 1)
+    pRenderData->lines.PushBack(m_pLine);
+
+  pRenderData;
 }
 
 void vcFlythrough::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
@@ -382,5 +389,18 @@ void vcFlythrough::UpdateCameraPosition(vcState *pProgramState)
 
       break;
     }
+  }
+}
+
+void vcFlythrough::UpdateLinePoints()
+{
+  if (m_flightPoints.length > 1)
+  {
+    if (m_pLine == nullptr)
+      vcLineRenderer_CreateLine(&m_pLine);
+    udDouble3 *pPositions = udAllocType(udDouble3, m_flightPoints.length, udAF_Zero);
+    for (size_t i = 0; i < m_flightPoints.length; ++i)
+      pPositions[i] = m_flightPoints[i].m_CameraPosition;
+    vcLineRenderer_UpdatePoints(m_pLine, pPositions, m_flightPoints.length, vcIGSW_BGRAToImGui(0xFFFFFF00), 2.0, false);
   }
 }
