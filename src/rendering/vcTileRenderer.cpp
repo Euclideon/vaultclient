@@ -1402,7 +1402,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     vcTileRenderer_RecursiveBuildRenderList(pTileRenderer, pRootNode, layer, nullptr, nullptr);
   }
 
-  float tileSkirtLength = 6378137.0f; // TODO: Read actual planet radius
+  // variable skirt length to handle logZ when close (tile logZ is done in vertex shader)
+  float tileSkirtLength = 8000.0f + (float)pTileRenderer->cameraDistanceToSurface;
 
   for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
   {
