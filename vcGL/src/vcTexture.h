@@ -24,6 +24,8 @@ enum vcTextureFormat
 
   vcTextureFormat_RG8,
 
+  vcTextureFormat_R32F,
+
   vcTextureFormat_D32F,
 
   vcTextureFormat_Count
