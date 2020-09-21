@@ -1,5 +1,5 @@
 {
-  "appName": "udStream",
+  "appName": "udStream {0} ({1})",
   "copyright": "Euclideon Pty Ltd",
   "supportEmail": "support@euclideon.com",
   "logincolours": [ "087387", "087387", "04313b", "055668" ],

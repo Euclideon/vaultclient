@@ -934,6 +934,19 @@ void vcMain_AsyncResumeSession(void *pProgramStatePtr)
   vcSession_Resume(pProgramState);
 }
 
+void vcMain_SetWindowName(vcState *pProgramState)
+{
+  const char *strings[] = { UDSTRINGIFY(VCVERSION_VERSION_ARRAY_PARTIAL), UDSTRINGIFY(VCVERSION_BUILD_NUMBER) };
+
+  const char *pWindowName = vcStringFormat(pProgramState->branding.appName, strings, udLengthOf(strings));
+
+  if (pWindowName != nullptr)
+  {
+    SDL_SetWindowTitle(pProgramState->pWindow, pWindowName);
+    udFree(pWindowName);
+  }
+}
+
 int main(int argc, char **args)
 {
 #if UDPLATFORM_WINDOWS
@@ -1075,11 +1088,7 @@ int main(int argc, char **args)
   vcMain_LoadSettings(&programState);
   vcSettings_LoadBranding(&programState);
 
-#if UDPLATFORM_EMSCRIPTEN
-  SDL_SetWindowTitle(programState.pWindow, udTempStr("%s (" UDSTRINGIFY(VCVERSION_BUILD_NUMBER) ")", programState.branding.appName));
-#else
-  SDL_SetWindowTitle(programState.pWindow, udTempStr("%s (" UDSTRINGIFY(VCVERSION_BUILD_NUMBER) ")", programState.branding.appName));
-#endif
+  vcMain_SetWindowName(&programState);
 
 #if UDPLATFORM_EMSCRIPTEN
   // This needs to be here because the settings will load with the incorrect resolution (1280x720)
