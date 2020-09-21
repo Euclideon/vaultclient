@@ -20,7 +20,7 @@ project "udStream"
 	files { "builds/assets/branding/*.json" }
 	files { "3rdParty/atmosphere/atmosphere/**", "3rdParty/atmosphere/external/dimensional_types/math/**" }
 	files { "3rdParty/poly2tri/**.h", "3rdParty/poly2tri/**.cpp" }
-    files { "3rdParty/LercLib/**.h","3rdParty/LercLib/**.hpp", "3rdParty/LercLib/**.cpp" }
+	files { "3rdParty/LercLib/**.h", "3rdParty/LercLib/**.hpp", "3rdParty/LercLib/**.cpp" }
 
 	--This project includes
 	includedirs { "src", "src/scene", "src/rendering" }
