@@ -154,7 +154,7 @@ udDouble4 vcCamera_GetNearPlane(const vcCamera &camera, const vcCameraSettings &
 void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const int activeViewportIndex, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
-  double fov = settings.fieldOfView[activeViewportIndex];
+  double fov = !settings.mapMode[activeViewportIndex] ? settings.fieldOfView[activeViewportIndex] : UD_PIf * 10.0f / 18.f; // 10 degrees;
   double aspect = windowSize.x / windowSize.y;
   double zNear = settings.nearPlane;
   double zFar = settings.farPlane;

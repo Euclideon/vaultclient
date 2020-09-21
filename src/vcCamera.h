@@ -115,6 +115,7 @@ struct vcCameraSettings
   vcCameraScrollWheelMode scrollWheelMode;
 
   bool keepAboveSurface;
+  bool mapMode[vcMaxViewportCount];
 };
 
 // Lens Sizes

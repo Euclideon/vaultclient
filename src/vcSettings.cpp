@@ -569,6 +569,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->camera.moveSpeed[v] = data.Get("camera.moveSpeed[%d]", v).AsFloat(10.f);
       pSettings->camera.lensIndex[v] = data.Get("camera.lensId[%d]", v).AsInt(vcLS_30mm);
       pSettings->camera.fieldOfView[v] = data.Get("camera.fieldOfView[%d]", v).AsFloat(vcLens30mm);
+      pSettings->camera.mapMode[v] = data.Get("camera.mapMode[%d]", v).AsBool(false);
     }
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
   }
@@ -648,7 +649,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     {
       pSettings->viewports[viewportIndex].resolution.x = data.Get("viewports.viewport[%d].width", viewportIndex).AsInt(128);
       pSettings->viewports[viewportIndex].resolution.y = data.Get("viewports.viewport[%d].height", viewportIndex).AsInt(128);
-      pSettings->viewports[viewportIndex].mapMode = data.Get("viewports.viewport[%d].mapMode", viewportIndex).AsBool(false);
     }
   }
 
@@ -759,6 +759,7 @@ bool vcSettings_Save(vcSettings *pSettings)
     data.Set("camera.moveSpeed[%d] = %f", v, pSettings->camera.moveSpeed[v]);
     data.Set("camera.lensId[%d] = %i", v, pSettings->camera.lensIndex[v]);
     data.Set("camera.fieldOfView[%d] = %f", v, pSettings->camera.fieldOfView[v]);
+    data.Set("camera.mapMode[%d] = %s", v, pSettings->camera.mapMode[v] ? "true" : "false");
   }
   data.Set("camera.nearPlane = %f", pSettings->camera.nearPlane);
   data.Set("camera.farPlane = %f", pSettings->camera.farPlane);
@@ -977,7 +978,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   {
     data.Set("viewports.viewport[%d].width = %d", viewportIndex, pSettings->viewports[viewportIndex].resolution.x);
     data.Set("viewports.viewport[%d].height = %d", viewportIndex, pSettings->viewports[viewportIndex].resolution.y);
-    data.Set("viewports.viewport[%d].mapMode = %s", viewportIndex, pSettings->viewports[viewportIndex].mapMode ? "true" : "false");
   }
 
   // Save

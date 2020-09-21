@@ -1639,7 +1639,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       // TODO: Putting this here for now
       if (pProgramState->settings.activeViewportCount > 1)
-        ImGui::Checkbox(udTempStr("%s##secondViewportMapMode", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.viewports[1].mapMode);
+        ImGui::Checkbox(udTempStr("%s##secondViewportMapMode", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.camera.mapMode[1]);
     }
 
     ImGui::End();
@@ -2551,7 +2551,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       }
 
       bool renderEuclideonWatermark = pProgramState->settings.presentation.showEuclideonLogo;
-      bool isFixedOrthographicViewport = viewportIndex != 0 && pProgramState->settings.viewports[viewportIndex].mapMode;
+      bool isFixedOrthographicViewport = viewportIndex != 0 && pProgramState->settings.camera.mapMode[viewportIndex];
       if (isFixedOrthographicViewport)
       {
         // Manually set camera
@@ -2567,10 +2567,9 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
 
         // TODO: Hack! (Until we resolve multiple camera settings)
-        vcCameraSettings settingsCopy = pProgramState->settings.camera;
-        settingsCopy.fieldOfView[viewportIndex] = UD_PIf * 10.0f / 18.f; // 10 degrees
+        //vcCameraSettings settingsCopy = pProgramState->settings.camera;
 
-        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, settingsCopy, viewportIndex, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y));
+        vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, viewportIndex, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y));
 
         // disable watermark rendering
         pProgramState->settings.presentation.showEuclideonLogo = false;
