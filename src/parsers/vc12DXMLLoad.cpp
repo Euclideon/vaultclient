@@ -15,9 +15,9 @@
 *                not be obeyed!
 */
 
-#define LOG_ERROR(...) {}
-#define LOG_WARNING(...) {}
-#define LOG_INFO(...) {}
+#define LOG_ERROR(...) do {}while(false)
+#define LOG_WARNING(...) do {}while(false)
+#define LOG_INFO(...) do {}while(false)
 
 //----------------------------------------------------------------------------
 // Unicode format detection. 
@@ -185,15 +185,15 @@ static void SetGlobals(udJSON const *pNode, vc12DXML_ProjectGlobals *pGlobals)
     pGlobals->colour = vc12DXML_ToColour(pItem->AsString());
 }
 
-static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> &pointList, vc12DXML_ProjectGlobals *pGlobals)
+static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> *pPointList, const vc12DXML_ProjectGlobals *pGlobals)
 {
-  if (pNode == nullptr || pGlobals == nullptr)
+  if (pNode == nullptr || pPointList == nullptr || pGlobals == nullptr)
     return;
 
   if (pNode->IsArray())
   {
     for (size_t i = 0; i < pNode->AsArray()->length; ++i)
-      vc12DXML_Ammend_data_3d(pNode->AsArray()->GetElement(i), pointList, pGlobals);
+      vc12DXML_Ammend_data_3d(pNode->AsArray()->GetElement(i), pPointList, pGlobals);
   }
   else
   {
@@ -214,7 +214,42 @@ static void vc12DXML_Ammend_data_3d(udJSON const *pNode, std::vector<udDouble3> 
         else
           point[p] = udStrAtof64(tokens[p]);
       }
-      pointList.push_back(point);
+      pPointList->push_back(point);
+    }
+  }
+}
+
+static void vc12DXML_Ammend_data_2d(udJSON const *pNode, std::vector<udDouble3> *pPointList, double z, const vc12DXML_ProjectGlobals *pGlobals)
+{
+  if (pNode == nullptr || pPointList == nullptr || pGlobals == nullptr)
+    return;
+
+  if (pNode->IsArray())
+  {
+    for (size_t i = 0; i < pNode->AsArray()->length; ++i)
+      vc12DXML_Ammend_data_2d(pNode->AsArray()->GetElement(i), pPointList, z, pGlobals);
+  }
+  else
+  {
+    char str[128] = {};
+    char *tokens[2] = {};
+    udDouble3 point = {};
+    point[2] = z;
+    udStrcpy(str, pNode->AsString());
+    if (udStrTokenSplit(str, " ", tokens, 2) != 2)
+    {
+      LOG_WARNING("Malformed data_2d vertex item");
+    }
+    else
+    {
+      for (int p = 0; p < 2; ++p)
+      {
+        if (udStrcmp(tokens[p], "null") == 0)
+          point[p] = pGlobals->nullValue;
+        else
+          point[p] = udStrAtof64(tokens[p]);
+      }
+      pPointList->push_back(point);
     }
   }
 }
@@ -249,26 +284,25 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
 {
   udResult result;
   const udJSON *pItem = nullptr;
-  //bool has_z = false;
-  //double z = 0.0;
+  bool has_z = false;
+  double z = 0.0;
 
   UD_ERROR_IF(pNode == nullptr, udR_InvalidParameter_);
   UD_ERROR_IF(pGlobals == nullptr, udR_InvalidParameter_);
 
-  // TODO Some values can and MUST be pulled out before others.
-  // <z> for example MUST be pulled out of the super_string block before reading any
-  // 3d/2d data, regardless of where <z> sits in the file in relation to the data.
-  // From the spec:
-  //   - There is exactly 0 or 1 <z> tag per string.
-  //   - Its position is irrelevant, it is global to the string
-  //pItem = &pNode->Get("z");
-  //UD_ERROR_IF(pItem->IsArray(), udR_InvalidConfiguration);
-  //
-  //if (!pItem->IsVoid())
-  //{
-  //  has_z = true;
-  //  z = pItem->AsDouble();
-  //}
+  pItem = &pNode->Get("z");
+
+  if (pItem->IsArray())
+  {
+    LOG_ERROR("More than one <z> tags in string");
+    UD_ERROR_SET(udR_InvalidConfiguration); // Fail as we don't know which <z> to take.
+  }
+  
+  if (!pItem->IsVoid())
+  {
+    has_z = true;
+    z = pItem->AsDouble();
+  }
 
   SetGlobals(pNode, pGlobals);
 
@@ -295,7 +329,16 @@ udResult vc12DXML_SuperString::Build(udJSON const *pNode, vc12DXML_ProjectGlobal
 
   pItem = &pNode->Get("data_3d");
   if (!pItem->IsVoid())
-    vc12DXML_Ammend_data_3d(&pItem->Get("p"), m_points, pGlobals);
+    vc12DXML_Ammend_data_3d(&pItem->Get("p"), &m_points, pGlobals);
+  
+  pItem = &pNode->Get("data_2d");
+  if (!pItem->IsVoid())
+  {
+    if (!has_z)
+      LOG_WARNING("data_2d present but <z> tag was not found");
+    else
+      vc12DXML_Ammend_data_2d(&pItem->Get("p"), &m_points, z, pGlobals);
+  }
 
   result = udR_Success;
 epilogue:
