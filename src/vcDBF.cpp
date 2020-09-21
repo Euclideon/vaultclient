@@ -673,15 +673,15 @@ uint32_t vcDBF_GetRecordCount(vcDBF *pDBF)
   return (uint32_t)pDBF->records.length;
 }
 
-int32_t vcDBF_GetStringFieldIndex(vcDBF *pDBF)
+uint16_t vcDBF_GetStringFieldIndex(vcDBF *pDBF)
 {
   for (size_t i = 0; i < pDBF->records.length; i++)
   {
     if (pDBF->pFields[i].fieldType == 'C')
-      return i;
+      return (uint16_t)i;
   }
 
-  return -1;
+  return (uint16_t)-1;
 }
 
 udResult vcDBF_AddField(vcDBF *pDBF, char *pFieldName, char fieldType, uint8_t fieldLen)
@@ -730,7 +730,7 @@ epilogue:
   return result;
 }
 
-udResult vcDBF_GetRecord(vcDBF *pDBF, vcDBF_Record **ppRecord, uint32_t recordIndex)
+udResult vcDBF_GetRecord(vcDBF *pDBF, vcDBF_Record **ppRecord, uint16_t recordIndex)
 {
   if (pDBF == nullptr)
     return udR_InvalidParameter_;

@@ -6,22 +6,22 @@
 #include "vcDBF.h"
 #include "udStringUtil.h"
 
-enum class vcSHP_Type
+enum vcSHPType
 {
-  Empty = 0,
-  Point = 1,
-  Polyline = 3,
-  Polygon = 5,
-  MultiPoint = 8,
-  PointZ = 11,
-  PolylineZ = 13,
-  PolygonZ = 15,
-  MultiPointZ = 18,
-  PointM = 21,
-  PolylineM = 23,
-  PolygonM = 25,
-  MultiPointM = 28,
-  MultiPatch = 31
+  vcSHPType_Empty = 0,
+  vcSHPType_Point = 1,
+  vcSHPType_Polyline = 3,
+  vcSHPType_Polygon = 5,
+  vcSHPType_MultiPoint = 8,
+  vcSHPType_PointZ = 11,
+  vcSHPType_PolylineZ = 13,
+  vcSHPType_PolygonZ = 15,
+  vcSHPType_MultiPointZ = 18,
+  vcSHPType_PointM = 21,
+  vcSHPType_PolylineM = 23,
+  vcSHPType_PolygonM = 25,
+  vcSHPType_MultiPointM = 28,
+  vcSHPType_MultiPatch = 31
 };
 
 // file header, 100 bytes
@@ -29,7 +29,7 @@ struct vcSHP_Header
 {
   uint32_t fileLength;
   int32_t version;
-  vcSHP_Type shapeType;
+  vcSHPType shapeType;
   // Minimum bounding rectangle (MBR) of all shapes contained within the dataset; four doubles in the following order: min X, min Y, max X, max Y
   udDouble2 MBRmin;
   udDouble2 MBRmax;
@@ -149,7 +149,7 @@ struct vcSHP_Record
 {
   int32_t id;
   uint32_t length;
-  vcSHP_Type shapeType;
+  vcSHPType shapeType;
   vcSHP_RecordData data;
 };
 
@@ -165,28 +165,28 @@ struct vcSHP
   vcDBF *pDBF;
 
   udResult projectionLoad;
-  char *WKTString = nullptr;
+  char *WKTString;
 };
 
 void vcSHP_ReleaseRecord(vcSHP_Record &record)
 {
   switch (record.shapeType)
   {
-  case vcSHP_Type::Polyline:
-  case vcSHP_Type::Polygon:
+  case vcSHPType::vcSHPType_Polyline:
+  case vcSHPType::vcSHPType_Polygon:
   {
     udFree(record.data.poly.parts);
     udFree(record.data.poly.points);
   }
   break;
-  case vcSHP_Type::MultiPoint:
+  case vcSHPType::vcSHPType_MultiPoint:
   {
     udFree(record.data.multiPoint.points);
   }
   break;
-  case vcSHP_Type::PolylineZ:
-  case vcSHP_Type::PolygonZ:
-  case vcSHP_Type::MultiPatch:
+  case vcSHPType::vcSHPType_PolylineZ:
+  case vcSHPType::vcSHPType_PolygonZ:
+  case vcSHPType::vcSHPType_MultiPatch:
   {
     udFree(record.data.polyZ.parts);
     udFree(record.data.polyZ.points);
@@ -195,15 +195,15 @@ void vcSHP_ReleaseRecord(vcSHP_Record &record)
       udFree(record.data.polyZ.MValue);
   }
   break;
-  case vcSHP_Type::MultiPointZ:
+  case vcSHPType::vcSHPType_MultiPointZ:
   {
     udFree(record.data.multiPointZ.points);
     if (record.data.multiPointZ.MValue != nullptr)
       udFree(record.data.multiPointZ.MValue);
   }
   break;
-  case vcSHP_Type::PolylineM:
-  case vcSHP_Type::PolygonM:
+  case vcSHPType::vcSHPType_PolylineM:
+  case vcSHPType::vcSHPType_PolygonM:
   {
     udFree(record.data.polyM.parts);
     udFree(record.data.polyM.points);
@@ -212,15 +212,14 @@ void vcSHP_ReleaseRecord(vcSHP_Record &record)
       udFree(record.data.polyM.MValue);
   }
   break;
-  case vcSHP_Type::MultiPointM:
+  case vcSHPType::vcSHPType_MultiPointM:
   {
     udFree(record.data.multiPointM.points);
     if (record.data.multiPointM.MValue != nullptr)
       udFree(record.data.multiPointM.MValue);
   }
   break;
-  default:
-  break;
+
   }
 }
 
@@ -269,7 +268,7 @@ static uint32_t UnpackInt32(bool localBigEndian, uint32_t readPos, int32_t *dest
   return readPos + 4;
 }
 
-udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP_Type defaultShape)
+udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHPType defaultShape)
 {
   udResult result;
   uint8_t id[4] = {};
@@ -294,19 +293,19 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
 
   // shape type check
   readPosition = UnpackInt32(pSHP->localBigEndian, readPosition, &type, buffer);
-  record.shapeType = (vcSHP_Type)type;
+  record.shapeType = (vcSHPType)type;
   UD_ERROR_IF(record.shapeType != defaultShape, udR_ParseError);
 
   switch (record.shapeType)
   {
-  case vcSHP_Type::Point:
+  case vcSHPType::vcSHPType_Point:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.point.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.point.y, buffer);
   }
   break;
-  case vcSHP_Type::Polyline:
-  case vcSHP_Type::Polygon:
+  case vcSHPType::vcSHPType_Polyline:
+  case vcSHPType::vcSHPType_Polygon:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.poly.MBRmin.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.poly.MBRmin.y, buffer);
@@ -331,7 +330,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
 
   }
   break;
-  case vcSHP_Type::MultiPoint:
+  case vcSHPType::vcSHPType_MultiPoint:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPoint.MBRmin.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPoint.MBRmin.y, buffer);
@@ -349,7 +348,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     }
   }
   break;
-  case vcSHP_Type::PointZ:
+  case vcSHPType::vcSHPType_PointZ:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.point.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.point.y, buffer);
@@ -357,9 +356,9 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointZ.MValue, buffer); // M
   }
   break;
-  case vcSHP_Type::PolylineZ:
-  case vcSHP_Type::PolygonZ:
-  case vcSHP_Type::MultiPatch:
+  case vcSHPType::vcSHPType_PolylineZ:
+  case vcSHPType::vcSHPType_PolygonZ:
+  case vcSHPType::vcSHPType_MultiPatch:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.polyZ.MBRmin.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.polyZ.MBRmin.y, buffer);
@@ -407,7 +406,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
 
   }
   break;
-  case vcSHP_Type::MultiPointZ:
+  case vcSHPType::vcSHPType_MultiPointZ:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPointZ.MBRmin.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPointZ.MBRmin.y, buffer);
@@ -449,7 +448,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
 
   }
   break;
-  case vcSHP_Type::PointM:
+  case vcSHPType::vcSHPType_PointM:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.point.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.point.y, buffer);
@@ -457,8 +456,8 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.pointM.MValue, buffer); // M
   }
   break;
-  case vcSHP_Type::PolylineM:
-  case vcSHP_Type::PolygonM:
+  case vcSHPType::vcSHPType_PolylineM:
+  case vcSHPType::vcSHPType_PolygonM:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.polyM.MBRmin.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.polyM.MBRmin.y, buffer);
@@ -496,7 +495,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
     }
   }
   break;
-  case vcSHP_Type::MultiPointM:
+  case vcSHPType::vcSHPType_MultiPointM:
   {
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPointM.MBRmin.x, buffer);
     readPosition = UnpackDouble(pSHP->localBigEndian, readPosition, &record.data.multiPointM.MBRmin.y, buffer);
@@ -567,7 +566,7 @@ udResult vcSHP_LoadShpFile(vcSHP *pSHP, const char *pFilename)
     header.fileLength = (UINT_MAX / 2) * 2;
 
   header.version = (headerBuffer[31] << 24) | (headerBuffer[30] << 16) | (headerBuffer[29] << 8) | headerBuffer[28];
-  header.shapeType = (vcSHP_Type)((int32_t)((headerBuffer[35] << 24) | (headerBuffer[34] << 16) | (headerBuffer[33] << 8) | headerBuffer[32]));
+  header.shapeType = (vcSHPType)((int32_t)((headerBuffer[35] << 24) | (headerBuffer[34] << 16) | (headerBuffer[33] << 8) | headerBuffer[32]));
 
   offset = 36;
   offset = UnpackDouble(pSHP->localBigEndian, offset, &header.MBRmin.x, headerBuffer);
@@ -633,12 +632,13 @@ udResult vcSHP_LoadFileGroup(vcSHP *pSHP, const char *pFilename)
   vcSHP_LoadDbfFile(pSHP, extraFileName);
 
   memcpy(extraFileName + nameLen, "prj", 3);
+  pSHP->WKTString = nullptr;
   pSHP->projectionLoad = udFile_Load(extraFileName, &pSHP->WKTString);
 
   return result;
 }
 
-void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record, vcDBF_Record *pDBFRecord, int32_t stringIndex)
+void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record, vcDBF_Record *pDBFRecord, uint16_t stringIndex)
 {
   char buffer[256] = {};
   const char *nodeName = "";
@@ -659,41 +659,41 @@ void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Re
 
   switch (record.shapeType)
   {
-  case vcSHP_Type::Point:
+  case vcSHPType::vcSHPType_Point:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &record.data.point, 1);
   break;
-  case vcSHP_Type::Polyline:
+  case vcSHPType::vcSHPType_Polyline:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, record.data.poly.points, record.data.poly.pointsCount);
   break;
-  case vcSHP_Type::Polygon:
+  case vcSHPType::vcSHPType_Polygon:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, record.data.poly.points, record.data.poly.pointsCount);
   break;
-  case vcSHP_Type::MultiPoint:
+  case vcSHPType::vcSHPType_MultiPoint:
   vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.multiPointZ.points, record.data.multiPointZ.pointsCount);
   break;
-  case vcSHP_Type::PointZ:
+  case vcSHPType::vcSHPType_PointZ:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &record.data.pointZ.point, 1);
   break;
-  case vcSHP_Type::PolylineZ:
+  case vcSHPType::vcSHPType_PolylineZ:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, record.data.polyZ.points, record.data.polyZ.pointsCount);
   break;
-  case vcSHP_Type::PolygonZ:
-  case vcSHP_Type::MultiPatch:
+  case vcSHPType::vcSHPType_PolygonZ:
+  case vcSHPType::vcSHPType_MultiPatch:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, record.data.polyZ.points, record.data.polyZ.pointsCount);
   break;
-  case vcSHP_Type::MultiPointZ:
+  case vcSHPType::vcSHPType_MultiPointZ:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.multiPointZ.points, record.data.multiPointZ.pointsCount);
   break;
-  case vcSHP_Type::PointM:
+  case vcSHPType::vcSHPType_PointM:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &record.data.pointM.point, 1);
   break;
-  case vcSHP_Type::PolylineM:
+  case vcSHPType::vcSHPType_PolylineM:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, record.data.polyM.points, record.data.polyM.pointsCount);
   break;
-  case vcSHP_Type::PolygonM:
+  case vcSHPType::vcSHPType_PolygonM:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, record.data.polyM.points, record.data.polyM.pointsCount);
   break;
-  case vcSHP_Type::MultiPointM:
+  case vcSHPType::vcSHPType_MultiPointM:
     vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, record.data.multiPointM.points, record.data.multiPointM.pointsCount);
   break;
   default:
@@ -705,37 +705,34 @@ void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Re
 
 udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
 {
-  udResult result;
-
-  vcSHP shp;
-  result = vcSHP_LoadFileGroup(&shp, pFilename);
-
-  printf("load file done. name: %s result: %d\n", pFilename, result);  
-
-  // TODO: create scene from .prj file, can't work correctly, need to be fixed.
-  vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
-  if (shp.projectionLoad == udR_Success)
-  {
-    printf("%s \n", shp.WKTString);
-    udGeoZone zone = {};
-    udGeoZone_SetFromWKT(&zone, shp.WKTString);
-    zone.latLongBoundMin = shp.shpHeader.MBRmin;
-    zone.latLongBoundMax = shp.shpHeader.MBRmax;
-
-    vcGIS_ChangeSpace(&pProgramState->geozone, zone);
-  }
-  
-  udProjectNode *pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-
-  uint16_t stringIndex = vcDBF_GetStringFieldIndex(shp.pDBF);  
+  vcSHP shp = {};
+  udProjectNode *pParentNode = nullptr;
+  uint16_t stringIndex = 0;
   vcDBF_Record *pDBFRecord = nullptr;
-  for (size_t i = 0; i < shp.shpRecords.length; ++i)
+  udGeoZone zone = {};
+
+  udResult result = vcSHP_LoadFileGroup(&shp, pFilename);
+  UD_ERROR_CHECK(result);
+
+  vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
+  // keep for future requirements. if the zone is set to no geolocated, all coordinates inside shapre files need to transfer from local position.
+  //if (shp.projectionLoad == udR_Success)
+  //{
+  //  udGeoZone_SetFromWKT(&zone, shp.WKTString); // srid missing
+  //  vcGIS_ChangeSpace(&pProgramState->geozone, zone);
+  //}
+  // ====
+  
+  pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
+  stringIndex = vcDBF_GetStringFieldIndex(shp.pDBF);
+  for (uint16_t i = 0; i < (uint16_t)shp.shpRecords.length; ++i)
   {
-    if (stringIndex >= 0)
+    if (stringIndex != (uint16_t)(-1))
       vcDBF_GetRecord(shp.pDBF, &pDBFRecord, i);
 
     vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i], pDBFRecord, stringIndex);
   }
 
+epilogue:
   return result;
 }
