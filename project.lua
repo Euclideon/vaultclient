@@ -17,6 +17,7 @@ project "udStream"
 	files { "builds/releasenotes.md" }
 	files { "builds/defaultsettings.json" }
 	files { "builds/assets/lang/*.json" }
+	files { "builds/assets/branding/*.json" }
 	files { "3rdParty/atmosphere/atmosphere/**", "3rdParty/atmosphere/external/dimensional_types/math/**" }
 	files { "3rdParty/poly2tri/**.h", "3rdParty/poly2tri/**.cpp" }
 
