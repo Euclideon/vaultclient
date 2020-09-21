@@ -363,14 +363,8 @@ bool BitStuffer2::BitUnStuff_Before_Lerc2v3(const Byte** ppByte, size_t& nBytesR
   if (numBytes != numBytesLL || nBytesRemaining < numBytes)
     return false;
 
-  try
-  {
-    dataVec.resize(numElements, 0);    // init with 0
-  }
-  catch (const std::exception&)
-  {
-    return false;
-  }
+
+  dataVec.resize(numElements, 0);    // init with 0
 
   unsigned int* arr = (unsigned int*)(*ppByte);
   unsigned int* srcPtr = arr;
@@ -499,15 +493,8 @@ bool BitStuffer2::BitUnStuff(const Byte** ppByte, size_t& nBytesRemaining, vecto
   if (nBytesRemaining < numBytesUsed)
     return false;
 
-  try
-  {
-    dataVec.resize(numElements);
-    m_tmpBitStuffVec.resize(numUInts);
-  }
-  catch (const std::exception&)
-  {
-    return false;
-  }
+  dataVec.resize(numElements);
+  m_tmpBitStuffVec.resize(numUInts);
 
   m_tmpBitStuffVec[numUInts - 1] = 0;    // set last uint to 0
 
