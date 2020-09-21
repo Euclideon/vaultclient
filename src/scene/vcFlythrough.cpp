@@ -51,6 +51,9 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData * /*pRenderDa
 {
   int offset = -1; // The index of the _next_ node
 
+  if (!m_selected)
+    m_state = vcFTS_None;
+
   if (m_state == vcFTS_Exporting)
   {
     if (pProgramState->screenshot.pImage != nullptr)
