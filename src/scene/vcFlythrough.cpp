@@ -5,7 +5,6 @@
 
 #include "vcRender.h"
 #include "vcFramebuffer.h"
-//#include "vcLineRenderer.h"
 
 #include "udMath.h"
 #include "udStringUtil.h"
@@ -144,8 +143,6 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_selected && m_pLine != nullptr && m_flightPoints.length > 1)
     pRenderData->lines.PushBack(m_pLine);
-
-  pRenderData;
 }
 
 void vcFlythrough::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
