@@ -1181,11 +1181,12 @@ epilogue:
     vcRender_Destroy(&programState, &programState.pViewports[viewportIndex].pRenderContext);
   }
   programState.settings.activeViewportCount = 0;
+  programState.pActiveViewport = nullptr;
   udFree(programState.pViewports);
   vcString::FreeTable(&programState.languageInfo);
   vcSession_Logout(&programState);
 
-  vcProject_Deinit(&programState, &programState.activeProject);
+  vcProject_Deinit(&programState, &programState.activeProject); // deinit again
   vcTexture_Destroy(&programState.image.pImage);
   vcTextureCache_DeinitGlobal();
 
