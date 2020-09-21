@@ -124,7 +124,10 @@ bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, f
   int startVertexCount = drawList->VtxBuffer.Size;
   int startIndexCount = drawList->IdxBuffer.Size;
 
-  drawList->AddQuadFilled(ImVec2(-halfLabelSize.x + offset.x, -halfLabelSize.y + offset.y), ImVec2(halfLabelSize.x + offset.x, -halfLabelSize.y + offset.y), ImVec2(halfLabelSize.x + offset.x, halfLabelSize.y + offset.y), ImVec2(-halfLabelSize.x + offset.x, halfLabelSize.y + offset.y), pLabelRenderer->backColourRGBA);
+  ImVec2 p0 = ImVec2(-halfLabelSize.x + offset.x, -halfLabelSize.y + offset.y);
+  ImVec2 p1 = ImVec2(halfLabelSize.x + offset.x, halfLabelSize.y + offset.y);
+  ImGui::PushClipRect(p0, p1, false);
+  drawList->AddRectFilled(p0, p1, pLabelRenderer->backColourRGBA);
   drawList->AddText(ImVec2(-halfLabelSize.x + offset.x, -halfLabelSize.y + offset.y), pLabelRenderer->textColourRGBA, pLabelRenderer->pText);
 
   int vtxAdd = drawList->VtxBuffer.Size - vtx;
@@ -156,6 +159,7 @@ bool vcLabelRenderer_Render(ImDrawList *drawList, vcLabelInfo *pLabelRenderer, f
   currRect.w = clip_rect.w;
 
   vcShader_Bind(nullptr);
+  ImGui::PopClipRect();
 
   return true;
 }
