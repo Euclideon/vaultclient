@@ -186,15 +186,27 @@ void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID
       m_flightPoints[i].m_CameraHeadingPitch = pProgramState->pViewports[0].camera.headingPitch;
     }
 
+    if (vcIGSW_IsItemHovered())
+      ImGui::SetTooltip("%s", vcString::Get("flythroughCopyPosition"));
+
     ImGui::SameLine();
 
     if (ImGui::Button("+V"))
       addAfter = (int)i;
 
+    if (vcIGSW_IsItemHovered())
+      ImGui::SetTooltip("%s", vcString::Get("flythroughAddAfter"));
+
     ImGui::SameLine();
 
-    if (i != 0 && ImGui::Button("X"))
-      removeAt = (int)i;
+    if (i != 0)
+    {
+      if (ImGui::Button("X"))
+        removeAt = (int)i;
+
+      if (vcIGSW_IsItemHovered())
+        ImGui::SetTooltip("%s", vcString::Get("flythroughRemoveAt"));
+    }
 
     ImGui::NextColumn();
 
