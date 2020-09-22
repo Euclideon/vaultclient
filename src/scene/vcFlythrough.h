@@ -48,6 +48,8 @@ private:
   void UpdateLinePoints();
   void LoadFlightPoints(vcState *pProgramState);
   void SaveFlightPoints(vcState *pProgramState);
+  void SmoothFlightPoints();
+  void LerpFlightPoints(const double &timePosition, const vcFlightPoint &flightPoint1, const vcFlightPoint &flightPoint2, udDouble3 *pLerpedPosition, udDouble2 *pLerpedHeadingPitch);
 
 public:
   vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);

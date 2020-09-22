@@ -324,6 +324,7 @@
   "flythroughPlayStop": "Stop",
   "flythroughPlaying": "Playing",
   "flythroughPlay": "Play",
+  "flythroughSmooth": "Smooth",
   "flythroughResolution": "Resolution",
   "flythroughFPS": "FPS",
   "flythroughDefaultName": "Camera Path",
