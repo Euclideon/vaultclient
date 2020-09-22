@@ -44,9 +44,11 @@ private:
     double frameDelta;
   } m_exportInfo;
 
+  vcState *m_pProgramState;
+
   void UpdateCameraPosition(vcState *pProgramState);
   void UpdateLinePoints();
-  void LoadFlightPoints(vcState *pProgramState);
+  void LoadFlightPoints(vcState *pProgramState, const udGeoZone &zone);
   void SaveFlightPoints(vcState *pProgramState);
 
 public:

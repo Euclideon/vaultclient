@@ -38,6 +38,8 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_pLine = nullptr;
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
 
+  m_pProgramState = pProgramState;
+
   m_exportInfo.currentFrame = 0;
   m_exportInfo.frameDelta = (1.0 / (double)vcFlythroughExportFPS[m_selectedExportFPSIndex]);
 
@@ -46,7 +48,6 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
 
 void vcFlythrough::OnNodeUpdate(vcState *pProgramState)
 {
-  LoadFlightPoints(pProgramState);  
   ChangeProjection(pProgramState->geozone);
 }
 
@@ -378,9 +379,9 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = nullptr;
 }
 
-void vcFlythrough::ChangeProjection(const udGeoZone & /*newZone*/)
+void vcFlythrough::ChangeProjection(const udGeoZone &newZone)
 {
-
+  LoadFlightPoints(m_pProgramState, newZone);
 }
 
 void vcFlythrough::Cleanup(vcState * /*pProgramState*/)
@@ -433,11 +434,11 @@ void vcFlythrough::UpdateLinePoints()
   }
 }
 
-void vcFlythrough::LoadFlightPoints(vcState *pProgramState)
+void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zone)
 {
   udDouble3 *pFPPositions;
   int numFrames;
-  vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, &pFPPositions, &numFrames);
+  vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, zone, &pFPPositions, &numFrames);
 
   m_flightPoints.Clear();
 
