@@ -159,6 +159,9 @@ void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID
   int removeAt = -1;
   int addAfter = -1;
 
+  if (m_flightPoints.length > 2 && ImGui::Button(vcString::Get("flythroughSmooth")))
+    SmoothFlightPoints();
+  
   ImGui::Columns(7);
 
   for (size_t i = 0; i < m_flightPoints.length; ++i)
@@ -272,11 +275,6 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
   switch (m_state)
   {
   case vcFTS_None:
-    if (m_flightPoints.length > 2 && ImGui::Button(vcString::Get("flythroughSmooth")))
-    {
-      SmoothFlightPoints();
-    }
-
     if (ImGui::BeginCombo(vcString::Get("flythroughResolution"), vcString::Get(vcScreenshotResolutionNameKeys[m_selectedResolutionIndex])))
     {
       for (size_t i = 0; i < udLengthOf(vcScreenshotResolutions); ++i)
@@ -489,7 +487,7 @@ void vcFlythrough::SmoothFlightPoints()
   }
 }
 
-void vcFlythrough::LerpFlightPoints(const double &timePosition, const vcFlightPoint &flightPoint1, const vcFlightPoint &flightPoint2, udDouble3 *pLerpedPosition, udDouble2 *pLerpedHeadingPitch)
+void vcFlythrough::LerpFlightPoints(double timePosition, const vcFlightPoint &flightPoint1, const vcFlightPoint &flightPoint2, udDouble3 *pLerpedPosition, udDouble2 *pLerpedHeadingPitch)
 {
   double lerp = (timePosition - flightPoint1.time) / (flightPoint2.time - flightPoint1.time);
 
