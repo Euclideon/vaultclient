@@ -2501,7 +2501,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
     vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer);
 
     // Immediately update camera
-    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, udFloat2::create(pProgramState->settings.viewports[0].resolution));
+    vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, 0, udFloat2::create(pProgramState->settings.viewports[0].resolution));
   }
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
