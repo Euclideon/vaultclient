@@ -174,30 +174,38 @@ void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID
     udDouble3 positionTemp = m_flightPoints[i].m_CameraPosition;
     udDouble2 rotationTemp = m_flightPoints[i].m_CameraHeadingPitch;
 
-    ImGui::InputDouble("PX", &positionTemp.x);
-
-    ImGui::NextColumn();
-    ImGui::InputDouble("PY", &positionTemp.y);
-
-    ImGui::NextColumn();
-    ImGui::InputDouble("PZ", &positionTemp.z);
-
-    ImGui::NextColumn();
-    ImGui::InputDouble("RH", &rotationTemp.x);
-
-    ImGui::NextColumn();
-    ImGui::InputDouble("RP", &rotationTemp.y);
-
-    for (int j = 0; j < 3; ++j)
+    if (ImGui::InputDouble("PX", &positionTemp.x))
     {
-      if (isfinite(positionTemp[j]))
-        m_flightPoints[i].m_CameraPosition[j] = positionTemp[j];
+      if (isfinite(positionTemp.x))
+        m_flightPoints[i].m_CameraPosition.x = positionTemp.x;
     }
 
-    for (int j = 0; j < 2; ++j)
+    ImGui::NextColumn();
+    if (ImGui::InputDouble("PY", &positionTemp.y))
     {
-      if (isfinite(rotationTemp[j]))
-        m_flightPoints[i].m_CameraHeadingPitch[j] = rotationTemp[j];
+      if (isfinite(positionTemp.y))
+        m_flightPoints[i].m_CameraPosition.y = positionTemp.y;
+    }
+
+    ImGui::NextColumn();
+    if (ImGui::InputDouble("PZ", &positionTemp.z))
+    {
+      if (isfinite(positionTemp.z))
+        m_flightPoints[i].m_CameraPosition.z = positionTemp.z;
+    }
+
+    ImGui::NextColumn();
+    if (ImGui::InputDouble("RH", &rotationTemp.x))
+    {
+      if (isfinite(rotationTemp.x))
+        m_flightPoints[i].m_CameraHeadingPitch.x = rotationTemp.x;
+    }
+
+    ImGui::NextColumn();
+    if (ImGui::InputDouble("RP", &rotationTemp.y))
+    {
+      if (isfinite(rotationTemp.y))
+        m_flightPoints[i].m_CameraHeadingPitch.y = rotationTemp.y;
     }
 
     ImGui::NextColumn();
