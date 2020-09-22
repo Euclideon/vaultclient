@@ -12,6 +12,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "imgui_internal.h"
+#include "vcModals.h"
 
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
 const char *vcFlythroughExportFormats[] =
@@ -61,7 +62,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       if (m_exportInfo.currentFrame >= 0)
       {
-        if (vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), udTempStr("%s/%05d.png", m_exportPath, m_exportInfo.currentFrame)) != udR_Success)
+        if (vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex])) != udR_Success)
         {
           m_state = vcFTS_None;
           pProgramState->exportVideo = false;
@@ -308,12 +309,15 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
     if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' || m_flightPoints.length == 0 ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
     {
-      m_state = vcFTS_Exporting;
-      pProgramState->screenshot.pImage = nullptr;
-      m_exportInfo.currentFrame = -2;
-      pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
-      pProgramState->exportVideo = true;
-      pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
+      if (vcModals_OverwriteExistingFile(pProgramState, udTempStr("%s/%05d.%s", m_exportPath, 0, vcFlythroughExportFormats[m_selectedExportFormatIndex]), vcString::Get("flythroughExportAlreadyExists")))
+      {
+        m_state = vcFTS_Exporting;
+        pProgramState->screenshot.pImage = nullptr;
+        m_exportInfo.currentFrame = -2;
+        pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
+        pProgramState->exportVideo = true;
+        pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
+      }
     }
     break;
   case vcFTS_Playing:
