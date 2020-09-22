@@ -690,6 +690,8 @@
   "toolFilterBoxContinue": "Select a second point to complete the filter",
   "toolFilterCylinderStart": "Select the center point of the cylinder to begin the filter",
   "toolFilterCylinderContinue": "Select a second point to complete the filter",
+  "toolCrossSectionStart": "Select a point on one edge of the cross section to begin...",
+  "toolCrossSectionContinue": "Select a second point to set the orientation and width of the cross section",
   "bindingsTitle": "Key Bindings",
   "bindingsSettingsSave": "Save",
   "bindingsColumnName": "Name",
