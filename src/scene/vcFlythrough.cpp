@@ -166,7 +166,7 @@ void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID
     ImGui::PushID(udTempStr("ftpt_%zu", (*pItemID)));
 
     double minTime = (i == 0 ? 0 : m_flightPoints[i-1].time);
-    double maxTime = (i == 0 ? 0 : (i == m_flightPoints.length - 1 ? m_flightPoints[i].time + 10.0 : m_flightPoints[i + 1].time));
+    double maxTime = (i == m_flightPoints.length - 1 ? m_flightPoints[i].time + 10.0 : m_flightPoints[i + 1].time);
 
     if (ImGui::DragScalar("T", ImGuiDataType_Double, &m_flightPoints[i].time, 0.1f, &minTime, &maxTime))
     {
