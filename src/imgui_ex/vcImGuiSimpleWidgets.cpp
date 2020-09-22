@@ -327,6 +327,7 @@ void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText)
   config.tooltipCallback = ImGui::defaultMarkdownTooltipCallback;
 
   config.headingFormats[0].font = pProgramState->pBigFont;
+  config.headingFormats[1].font = pProgramState->pMidFont;
 
   config.boldFont = pProgramState->pBoldFont;
   config.italicFont = pProgramState->pItalicFont;
