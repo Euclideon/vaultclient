@@ -46,6 +46,7 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
 
 void vcFlythrough::OnNodeUpdate(vcState *pProgramState)
 {
+  LoadFlightPoints(pProgramState);  
   ChangeProjection(pProgramState->geozone);
 }
 
@@ -285,10 +286,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       for (size_t i = 0; i < udLengthOf(vcFlythroughExportFPS); ++i)
       {
         if (ImGui::Selectable(udTempStr("%d", vcFlythroughExportFPS[i])))
-        {
           m_selectedExportFPSIndex = (int)i;
-          m_exportInfo.frameDelta = (1.0 / (double)vcFlythroughExportFPS[m_selectedExportFPSIndex]);
-        }
       }
 
       ImGui::EndCombo();
@@ -337,6 +335,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
         m_state = vcFTS_Exporting;
         pProgramState->screenshot.pImage = nullptr;
         m_exportInfo.currentFrame = -2;
+        m_exportInfo.frameDelta = (1.0 / (double)vcFlythroughExportFPS[m_selectedExportFPSIndex]);
         pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
         pProgramState->exportVideo = true;
         pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
@@ -355,6 +354,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     if (ImGui::Button(vcString::Get("flythroughRecordStop")))
     {
       UpdateLinePoints();
+      SaveFlightPoints(pProgramState);
       m_state = vcFTS_None;
     }
 
@@ -431,4 +431,43 @@ void vcFlythrough::UpdateLinePoints()
     vcLineRenderer_UpdatePoints(m_pLine, pPositions, m_flightPoints.length, vcIGSW_BGRAToImGui(0xFFFFFF00), 2.0, false);
     udFree(pPositions);
   }
+}
+
+void vcFlythrough::LoadFlightPoints(vcState *pProgramState)
+{
+  udDouble3 *pFPPositions;
+  int numFrames;
+  vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, &pFPPositions, &numFrames);
+
+  m_flightPoints.Clear();
+
+  for (size_t i = 0; i < (size_t)numFrames; ++i)
+  {
+    vcFlightPoint flightPoint;
+    flightPoint.m_CameraPosition = pFPPositions[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("time[%zu]", i), &flightPoint.time, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].x", i), &flightPoint.m_CameraHeadingPitch.x, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].y", i), &flightPoint.m_CameraHeadingPitch.y, 0.0);
+
+    m_flightPoints.PushBack(flightPoint);
+  }
+
+  udFree(pFPPositions);
+  m_timeLength = m_flightPoints.length > 0 ? m_flightPoints[m_flightPoints.length - 1].time : 0.0;
+}
+
+void vcFlythrough::SaveFlightPoints(vcState *pProgramState)
+{
+  for (size_t i = 0; i < m_flightPoints.length; ++i)
+  {
+    udProjectNode_SetMetadataDouble(m_pNode, udTempStr("time[%zu]", i), m_flightPoints[i].time);
+    udProjectNode_SetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].x", i), m_flightPoints[i].m_CameraHeadingPitch.x);
+    udProjectNode_SetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].y", i), m_flightPoints[i].m_CameraHeadingPitch.y);
+  }
+
+  udDouble3 *pFPPositions = udAllocType(udDouble3, m_flightPoints.length, udAF_Zero);
+  for (size_t i = 0; i < m_flightPoints.length; ++i)
+    pFPPositions[i] = m_flightPoints[i].m_CameraPosition;
+  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_LineString, pFPPositions, (int)m_flightPoints.length);
+  udFree(pFPPositions);
 }
