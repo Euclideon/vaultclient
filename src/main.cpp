@@ -2551,7 +2551,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       }
 
       bool renderEuclideonWatermark = pProgramState->settings.presentation.showEuclideonLogo;
-      bool isFixedOrthographicViewport = viewportIndex != 0 && pProgramState->settings.camera.mapMode[viewportIndex];
+      bool isFixedOrthographicViewport = pProgramState->settings.camera.mapMode[viewportIndex];
       if (isFixedOrthographicViewport)
       {
         // Manually set camera
