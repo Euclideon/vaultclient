@@ -169,7 +169,6 @@ void vcCrossSectionNode::UpdateFilters()
 void vcCrossSectionNode::EndQuery(vcState *pProgramState, const udDouble3 & /*position*/, bool isPreview /*= false*/)
 {
   udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, m_position);
-  udDouble3 north = vcGIS_GetWorldLocalNorth(pProgramState->geozone, m_position);
   udPlane<double> plane = udPlane<double>::create(m_position, up);
   
   udDouble3 endPoint = {};
