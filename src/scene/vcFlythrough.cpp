@@ -418,7 +418,7 @@ void vcFlythrough::LoadFlightPoints(vcState *pProgramState)
 
   m_flightPoints.Clear();
 
-  for (int i = 0; i < numFrames; ++i)
+  for (size_t i = 0; i < (size_t)numFrames; ++i)
   {
     vcFlightPoint flightPoint;
     flightPoint.m_CameraPosition = pFPPositions[i];
