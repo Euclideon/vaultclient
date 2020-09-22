@@ -238,53 +238,9 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
   if (ImGui::SliderScalar(vcString::Get("flythroughPlaybackTime"), ImGuiDataType_Double, &m_timePosition, &zero, &m_timeLength))
     UpdateCameraPosition(pProgramState);
 
-  if (m_state != vcFTS_Recording)
+  switch (m_state)
   {
-    if (ImGui::Button(vcString::Get("flythroughRecord")))
-    {
-      m_state = vcFTS_Recording;
-
-      if (m_flightPoints.length == 0)
-      {
-        vcFlightPoint *pPoint = m_flightPoints.PushBack();
-
-        pPoint->m_CameraPosition = pProgramState->pViewports[0].camera.position;
-        pPoint->m_CameraHeadingPitch = pProgramState->pViewports[0].camera.headingPitch;
-        pPoint->time = 0.0;
-      }
-    }
-  }
-  else
-  {
-    if (ImGui::Button(vcString::Get("flythroughRecordStop")))
-      m_state = vcFTS_None;
-
-    ImGui::SameLine();
-
-    ImGui::TextUnformatted(vcString::Get("flythroughRecording"));
-  }
-
-  if (m_state == vcFTS_Playing)
-  {
-    if (ImGui::Button(vcString::Get("flythroughPlayStop")))
-      m_state = vcFTS_None;
-
-    ImGui::SameLine();
-
-    ImGui::TextUnformatted(vcString::Get("flythroughPlaying"));
-  }
-  else
-  {
-    if (ImGui::ButtonEx(vcString::Get("flythroughPlay"), ImVec2(0, 0), (m_flightPoints.length == 0 ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
-    {
-      pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
-      m_state = vcFTS_Playing;
-      m_timePosition = 0.0;
-    }
-  }
-
-  if (m_state != vcFTS_Exporting)
-  {
+  case vcFTS_None:
     if (ImGui::BeginCombo(vcString::Get("flythroughResolution"), vcString::Get(vcScreenshotResolutionNameKeys[m_selectedResolutionIndex])))
     {
       for (size_t i = 0; i < udLengthOf(vcScreenshotResolutions); ++i)
@@ -322,7 +278,30 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     }
 
     vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
-    
+
+    if (ImGui::Button(vcString::Get("flythroughRecord")))
+    {
+      m_state = vcFTS_Recording;
+
+      if (m_flightPoints.length == 0)
+      {
+        vcFlightPoint *pPoint = m_flightPoints.PushBack();
+
+        pPoint->m_CameraPosition = pProgramState->pViewports[0].camera.position;
+        pPoint->m_CameraHeadingPitch = pProgramState->pViewports[0].camera.headingPitch;
+        pPoint->time = 0.0;
+      }
+    }
+    ImGui::SameLine();
+
+    if (ImGui::ButtonEx(vcString::Get("flythroughPlay"), ImVec2(0, 0), (m_flightPoints.length == 0 ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
+    {
+      pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
+      m_state = vcFTS_Playing;
+      m_timePosition = 0.0;
+    }
+    ImGui::SameLine();
+
     if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' || m_flightPoints.length == 0 ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
     {
       m_state = vcFTS_Exporting;
@@ -332,9 +311,24 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       pProgramState->exportVideo = true;
       pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
     }
-  }
-  else
-  {
+    break;
+  case vcFTS_Playing:
+    if (ImGui::Button(vcString::Get("flythroughPlayStop")))
+      m_state = vcFTS_None;
+
+    ImGui::SameLine();
+
+    ImGui::TextUnformatted(vcString::Get("flythroughPlaying"));
+    break;
+  case vcFTS_Recording:
+    if (ImGui::Button(vcString::Get("flythroughRecordStop")))
+      m_state = vcFTS_None;
+
+    ImGui::SameLine();
+
+    ImGui::TextUnformatted(vcString::Get("flythroughRecording"));
+    break;
+  case vcFTS_Exporting:
     if (ImGui::Button("stopExport"))
     {
       m_state = vcFTS_None;
@@ -343,6 +337,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = nullptr;
       pProgramState->exportVideo = false;
     }
+    break;
   }
 
   if (m_state != vcFTS_Playing && m_state != vcFTS_Exporting && pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem == this)
