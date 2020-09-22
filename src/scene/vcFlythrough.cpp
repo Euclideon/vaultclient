@@ -273,7 +273,9 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
   {
   case vcFTS_None:
     if (m_flightPoints.length > 2 && ImGui::Button(vcString::Get("flythroughSmooth")))
+    {
       SmoothFlightPoints();
+    }
 
     if (ImGui::BeginCombo(vcString::Get("flythroughResolution"), vcString::Get(vcScreenshotResolutionNameKeys[m_selectedResolutionIndex])))
     {
@@ -476,26 +478,15 @@ void vcFlythrough::SaveFlightPoints(vcState *pProgramState)
 
 void vcFlythrough::SmoothFlightPoints()
 {
-  size_t numCulledFPs = 0;
-  size_t flightPointIndex = 1;
-  while (flightPointIndex < m_flightPoints.length - 1)
+  for (size_t flightPointIndex = 1; flightPointIndex < m_flightPoints.length - 1; ++flightPointIndex)
   {
-    for (; flightPointIndex < m_flightPoints.length - 1; ++flightPointIndex)
-    {
-      udDouble3 expectedPos = udDouble3::zero();
-      LerpFlightPoints(m_flightPoints[flightPointIndex].time, m_flightPoints[flightPointIndex - 1], m_flightPoints[flightPointIndex + 1], &expectedPos, nullptr);
+    udDouble3 expectedPos = udDouble3::zero();
+    LerpFlightPoints(m_flightPoints[flightPointIndex].time, m_flightPoints[flightPointIndex - 1], m_flightPoints[flightPointIndex + 1], &expectedPos, nullptr);
 
-      double distance = udMag3(m_flightPoints[flightPointIndex - 1].m_CameraPosition - m_flightPoints[flightPointIndex + 1].m_CameraPosition);
-      if (udMag3(m_flightPoints[flightPointIndex].m_CameraPosition - expectedPos) < udMax(UD_EPSILON, distance / 1000.0))
-      {
-        m_flightPoints.RemoveAt(flightPointIndex);
-        ++numCulledFPs;
-        break;
-      }
-    }
+    double distance = udMag3(m_flightPoints[flightPointIndex - 1].m_CameraPosition - m_flightPoints[flightPointIndex + 1].m_CameraPosition);
+    if (udMag3(m_flightPoints[flightPointIndex].m_CameraPosition - expectedPos) < udMax(UD_EPSILON, distance / 1000.0))
+      m_flightPoints.RemoveAt(flightPointIndex--);
   }
-
-  printf("Culled %d Flight Points\n\n", (int)numCulledFPs);
 }
 
 void vcFlythrough::LerpFlightPoints(const double &timePosition, const vcFlightPoint &flightPoint1, const vcFlightPoint &flightPoint2, udDouble3 *pLerpedPosition, udDouble2 *pLerpedHeadingPitch)
