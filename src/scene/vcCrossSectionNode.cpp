@@ -139,6 +139,8 @@ vcGizmoAllowedControls vcCrossSectionNode::GetAllowedControls()
   return (vcGizmoAllowedControls)(vcGAC_Translation | vcGAC_Rotation);
 }
 
+inline udGeometryDouble3 &udGeometry_FromMath(const udDouble3 &v) { return *((udGeometryDouble3 *)&v); }
+
 void vcCrossSectionNode::UpdateFilters()
 {
   if (m_pFilter == nullptr)
@@ -155,14 +157,14 @@ void vcCrossSectionNode::UpdateFilters()
   if (!m_inverted)
   {
     udGeometry_InitCSG(&m_geometry[0], &m_geometry[1], &m_geometry[2], udGCSGO_Intersection);
-    udGeometry_InitHalfSpace(&m_geometry[1], *(udGeometryDouble3*)&m_position, *(udGeometryDouble3*)&normalA);
-    udGeometry_InitHalfSpace(&m_geometry[2], *(udGeometryDouble3*)&halfPlane2, *(udGeometryDouble3*)&normalB);
+    udGeometry_InitHalfSpace(&m_geometry[1], udGeometry_FromMath(m_position), udGeometry_FromMath(normalA));
+    udGeometry_InitHalfSpace(&m_geometry[2], udGeometry_FromMath(halfPlane2), udGeometry_FromMath(normalB));
   }
   else
   {
     udGeometry_InitCSG(&m_geometry[0], &m_geometry[1], &m_geometry[2], udGCSGO_Union);
-    udGeometry_InitHalfSpace(&m_geometry[1], *(udGeometryDouble3*)&m_position, *(udGeometryDouble3*)&normalB);
-    udGeometry_InitHalfSpace(&m_geometry[2], *(udGeometryDouble3*)&halfPlane2, *(udGeometryDouble3*)&normalA);
+    udGeometry_InitHalfSpace(&m_geometry[1], udGeometry_FromMath(m_position), udGeometry_FromMath(normalB));
+    udGeometry_InitHalfSpace(&m_geometry[2], udGeometry_FromMath(halfPlane2), udGeometry_FromMath(normalA));
   }
 }
 
