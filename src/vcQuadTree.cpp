@@ -135,7 +135,21 @@ void vcQuadTree_UpdateNodesActiveDEM(vcQuadTree *pQuadTree, vcQuadTreeNode *pNod
   pNode->activeDemMinMax = pNode->demMinMax;
 
   if (!pQuadTree->pSettings->maptiles.demEnabled)
-    pNode->activeDemMinMax = udInt2::zero();
+    pNode->activeDemMinMax = udFloat2::zero();
+}
+
+bool vcQuadTree_IsVisibleLeafNode(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
+{
+  if (vcQuadTree_IsLeafNode(pNode))
+    return true;
+
+  for (int c = 0; c < NodeChildCount; ++c)
+  {
+    if (pQuadTree->nodes.pPool[pNode->childBlockIndex + c].touched)
+      return false;
+  }
+
+  return true;
 }
 
 void vcQuadTree_CalculateNodeAABB(vcQuadTree *pQuadTree, vcQuadTreeNode *pNode)
@@ -217,7 +231,7 @@ void vcQuadTree_CalculateBlockGeometry(vcQuadTree *pQuadTree, uint32_t blockInde
   }
 }
 
-void vcQuadTree_InitBlock(vcQuadTree *pQuadTree, uint32_t blockIndex, const udInt3 &blockSlippy, const udInt2 &parentDemMinMax)
+void vcQuadTree_InitBlock(vcQuadTree *pQuadTree, uint32_t blockIndex, const udInt3 &blockSlippy, const udFloat2 &parentDemMinMax)
 {
   for (int c = 0; c < NodeChildCount; ++c)
   {
@@ -471,7 +485,7 @@ void vcQuadTree_Reroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords)
     udInt3 newRootSlippy = udInt3::create(pOldRoot->slippyPosition.x >> 1, pOldRoot->slippyPosition.y >> 1, pOldRoot->slippyPosition.z - 1);
     udInt3 newRootBlockSlippy = udInt3::create((newRootSlippy.x >> 1) << 1, (newRootSlippy.y >> 1) << 1, newRootSlippy.z);
 
-    vcQuadTree_InitBlock(pQuadTree, newRootBlockIndex, newRootBlockSlippy, udInt2::zero());
+    vcQuadTree_InitBlock(pQuadTree, newRootBlockIndex, newRootBlockSlippy, udFloat2::zero());
     for (uint32_t c = 0; c < NodeChildCount; ++c)
     {
       // preserve spatial position of root in its root block
@@ -512,7 +526,7 @@ void vcQuadTree_CompleteReroot(vcQuadTree *pQuadTree, const udInt3 &slippyCoords
   }
 
   udInt3 rootBlockCoords = udInt3::create((slippyCoords.x >> 1) << 1, (slippyCoords.y >> 1) << 1, slippyCoords.z);
-  vcQuadTree_InitBlock(pQuadTree, freeBlockIndex, rootBlockCoords, udInt2::zero());
+  vcQuadTree_InitBlock(pQuadTree, freeBlockIndex, rootBlockCoords, udFloat2::zero());
   for (uint32_t c = 0; c < NodeChildCount; ++c)
   {
     // preserve spatial position of root in its block
