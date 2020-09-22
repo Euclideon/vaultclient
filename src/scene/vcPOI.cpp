@@ -1844,16 +1844,11 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 
     // Calculate area
     m_meshArea = 0.0;
-    for (int i = 0; i < numIndices; i += 3)
+    for (int i = 0; i < (int)triPoints.length; i += 3)
     {
-      int index1 = pIndices[i];
-      int index2 = pIndices[i + 1];
-      int index3 = pIndices[i + 2];
-
-      udDouble3 e1 = udDouble3::create(pVerts[index2].position - pVerts[index1].position);
-      udDouble3 e2 = udDouble3::create(pVerts[index3].position - pVerts[index1].position);
+      udDouble3 e1 = udDouble3::create(pVerts[i + 1].position - pVerts[i].position);
+      udDouble3 e2 = udDouble3::create(pVerts[i + 2].position - pVerts[i].position);
       udDouble3 e3 = udCross3<double>(e1, e2);
-
       m_meshArea += udMag3(e3) / 2.0;
     }
 
