@@ -141,7 +141,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     }
   }
 
-  if (m_selected && m_pLine != nullptr && m_flightPoints.length > 1)
+  if (m_selected && m_state == vcFTS_None && m_pLine != nullptr && m_flightPoints.length > 1)
     pRenderData->lines.PushBack(m_pLine);
 }
 
@@ -355,7 +355,7 @@ void vcFlythrough::ChangeProjection(const udGeoZone & /*newZone*/)
 
 void vcFlythrough::Cleanup(vcState * /*pProgramState*/)
 {
-  // Nothing to clean up
+  vcLineRenderer_DestroyLine(&m_pLine);
 }
 
 void vcFlythrough::SetCameraPosition(vcState *pProgramState)
@@ -393,11 +393,12 @@ void vcFlythrough::UpdateLinePoints()
 {
   if (m_flightPoints.length > 1)
   {
-    if (m_pLine == nullptr)
-      vcLineRenderer_CreateLine(&m_pLine);
+    vcLineRenderer_DestroyLine(&m_pLine);
+    vcLineRenderer_CreateLine(&m_pLine);
     udDouble3 *pPositions = udAllocType(udDouble3, m_flightPoints.length, udAF_Zero);
     for (size_t i = 0; i < m_flightPoints.length; ++i)
       pPositions[i] = m_flightPoints[i].m_CameraPosition;
     vcLineRenderer_UpdatePoints(m_pLine, pPositions, m_flightPoints.length, vcIGSW_BGRAToImGui(0xFFFFFF00), 2.0, false);
+    udFree(pPositions);
   }
 }
