@@ -168,6 +168,21 @@ struct vcSHP
   char *WKTString;
 };
 
+uint16_t vcSHP_GetFirstDBFStringFieldIndex(vcDBF *pDBF)
+{
+  char type;
+  udResult result = udR_Failure_;
+
+  for (uint16_t i = 0; i < vcDBF_GetFieldCount(pDBF); i++)
+  {
+    result = vcDBF_GetFieldType(pDBF, i, &type);
+    if (result == udR_Success && type == 'C')
+      return i;
+  }
+
+  return (uint16_t)-1;
+}
+
 void vcSHP_ReleaseRecord(vcSHP_Record &record)
 {
   switch (record.shapeType)
@@ -711,8 +726,8 @@ udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
   vcDBF_Record *pDBFRecord = nullptr;
   udGeoZone zone = {};
 
-  udResult result = vcSHP_LoadFileGroup(&shp, pFilename);
-  UD_ERROR_CHECK(result);
+  udResult result = udR_Failure_;
+  UD_ERROR_CHECK(vcSHP_LoadFileGroup(&shp, pFilename));
 
   vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
   // keep for future requirements. if the zone is set to no geolocated, all coordinates inside shapre files need to transfer from local position.
@@ -723,12 +738,12 @@ udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
   //}
   // ====
   
-  pParentNode = pProgramState->sceneExplorer.clickedItem.pItem != nullptr ? pProgramState->sceneExplorer.clickedItem.pItem : pProgramState->activeProject.pRoot;
-  stringIndex = vcDBF_GetStringFieldIndex(shp.pDBF);
-  for (uint16_t i = 0; i < (uint16_t)shp.shpRecords.length; ++i)
+  pParentNode = pProgramState->activeProject.pRoot;
+  stringIndex = vcSHP_GetFirstDBFStringFieldIndex(shp.pDBF);
+  for (size_t i = 0; i < shp.shpRecords.length; ++i)
   {
     if (stringIndex != (uint16_t)(-1))
-      vcDBF_GetRecord(shp.pDBF, &pDBFRecord, i);
+      vcDBF_GetRecord(shp.pDBF, &pDBFRecord, (uint32_t)i);
 
     vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i], pDBFRecord, stringIndex);
   }
