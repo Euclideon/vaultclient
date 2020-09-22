@@ -306,7 +306,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     {
       m_state = vcFTS_Exporting;
       pProgramState->screenshot.pImage = nullptr;
-      m_exportInfo.currentFrame = -1;
+      m_exportInfo.currentFrame = -2;
       pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
       pProgramState->exportVideo = true;
       pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
