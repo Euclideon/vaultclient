@@ -53,6 +53,7 @@ namespace vcHotkey
     "AddBoxFilter",
     "AddSphereFilter",
     "AddCylinderFilter",
+    "AddSimpleCrossSection",
   };
   UDCOMPILEASSERT(udLengthOf(vcHotkey::bindNames) == vcB_Count, "Hotkey count discrepancy.");
 

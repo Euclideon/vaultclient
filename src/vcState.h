@@ -90,6 +90,7 @@ enum vcActiveTool
   vcActiveTool_AddBoxFilter, // Add box filter in the current mouse position
   vcActiveTool_AddSphereFilter,// Add sphere filter in the current mouse position
   vcActiveTool_AddCylinderFilter,// Add cylinder filter in the current mouse position
+  vcActiveTool_AddSimpleCrossSection,// Add simple cross simple filter in the current mouse position
 
   vcActiveTool_Count
 };

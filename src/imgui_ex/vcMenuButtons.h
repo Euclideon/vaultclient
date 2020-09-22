@@ -36,6 +36,7 @@ enum vcMenuBarButtonIcon
   vcMBBI_AddBoxFilter = 23,
   vcMBBI_AddSphereFilter = 24,
   vcMBBI_AddCylinderFilter = 25,
+  vcMBBI_AddCrossSectionFilter = 26,
 
   // Reserved 22-29
 
