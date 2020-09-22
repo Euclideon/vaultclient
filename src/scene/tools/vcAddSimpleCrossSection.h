@@ -1,5 +1,5 @@
-#ifndef vcAddCylinderFilter_h__
-#define vcAddCylinderFilter_h__
+#ifndef vcAddSimpleCrossSection_h__
+#define vcAddSimpleCrossSection_h__
 
 #include "vcSceneTool.h"
 
@@ -18,4 +18,4 @@ private:
   static vcAddSimpleCrossSection m_instance;
 };
 
-#endif //vcAddCylinderFilter_h__
+#endif //vcAddSimpleCrossSection_h__
