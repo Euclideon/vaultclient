@@ -190,13 +190,13 @@ void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID
 
     for (int j = 0; j < 3; ++j)
     {
-      if (!isinf(positionTemp[j]))
+      if (isfinite(positionTemp[j]))
         m_flightPoints[i].m_CameraPosition[j] = positionTemp[j];
     }
 
     for (int j = 0; j < 2; ++j)
     {
-      if (!isinf(rotationTemp[j]))
+      if (isfinite(rotationTemp[j]))
         m_flightPoints[i].m_CameraHeadingPitch[j] = rotationTemp[j];
     }
 
