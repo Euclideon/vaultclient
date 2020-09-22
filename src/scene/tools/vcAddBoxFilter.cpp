@@ -12,8 +12,21 @@ vcAddBoxFilter vcAddBoxFilter::m_instance;
 
 void vcAddBoxFilter::SceneUI(vcState *pProgramState)
 {
-  if ((pProgramState->sceneExplorer.selectedItems.size() == 1) && (pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData != nullptr))
+  udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+  if (pItem == nullptr)
   {
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcString::Get("toolFilterBoxStart"));
+    ImGui::PopFont();
+  }
+  else if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter") && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+  {
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcString::Get("toolFilterBoxContinue"));
+    ImGui::PopFont();
+
+    ImGui::Separator();
+
     vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData;
     pSceneItem->HandleSceneEmbeddedUI(pProgramState);
   }

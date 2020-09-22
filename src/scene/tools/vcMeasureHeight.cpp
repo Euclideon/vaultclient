@@ -14,17 +14,24 @@ vcMeasureHeight vcMeasureHeight::m_instance;
 
 void vcMeasureHeight::SceneUI(vcState *pProgramState)
 {
-  ImGui::Separator();
-  ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
   udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
-  if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "MHeight") && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+  if (pItem == nullptr)
+  {
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcString::Get("toolMeasureStart"));
+    ImGui::PopFont();
+  }
+  else if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "MHeight") && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
   {
     vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
 
     char bufferA[128];
     char bufferB[128];
     vcHotkey::GetKeyName(vcB_Cancel, bufferB);
-    ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+    ImGui::PopFont();
 
     ImGui::Separator();
 

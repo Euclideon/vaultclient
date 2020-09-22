@@ -12,8 +12,21 @@ vcAddSphereFilter vcAddSphereFilter::m_instance;
 
 void vcAddSphereFilter::SceneUI(vcState *pProgramState)
 {
-  if ((pProgramState->sceneExplorer.selectedItems.size() == 1) && (pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData != nullptr))
+  udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+  if (pItem == nullptr)
   {
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcString::Get("toolFilterSphereStart"));
+    ImGui::PopFont();
+  }
+  else if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter") && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+  {
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcString::Get("toolFilterSphereContinue"));
+    ImGui::PopFont();
+
+    ImGui::Separator();
+
     vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.selectedItems[0].pItem->pUserData;
     pSceneItem->HandleSceneEmbeddedUI(pProgramState);
   }
