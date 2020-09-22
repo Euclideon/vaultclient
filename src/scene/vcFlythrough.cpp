@@ -393,8 +393,8 @@ void vcFlythrough::UpdateLinePoints()
 {
   if (m_flightPoints.length > 1)
   {
-    vcLineRenderer_DestroyLine(&m_pLine);
-    vcLineRenderer_CreateLine(&m_pLine);
+    if (m_pLine == nullptr)
+      vcLineRenderer_CreateLine(&m_pLine);
     udDouble3 *pPositions = udAllocType(udDouble3, m_flightPoints.length, udAF_Zero);
     for (size_t i = 0; i < m_flightPoints.length; ++i)
       pPositions[i] = m_flightPoints[i].m_CameraPosition;
