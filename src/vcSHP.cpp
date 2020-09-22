@@ -642,10 +642,10 @@ epilogue:
   return result;
 }
 
-void vcUDP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record, vcDBF_Record *pDBFRecord, uint16_t stringIndex)
+void vcSHP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record &record, vcDBF_Record *pDBFRecord, uint16_t stringIndex)
 {
   char buffer[256] = {};
-  if (pDBFRecord != nullptr && !pDBFRecord->deleted && stringIndex >= 0)
+  if (pDBFRecord != nullptr && !pDBFRecord->deleted && stringIndex != (uint16_t)(-1))
   {
     udStrcpy(buffer, pDBFRecord->pFields[stringIndex].pString);
     udStrStripWhiteSpace(buffer);
@@ -730,7 +730,7 @@ udResult vcSHP_Load(vcState *pProgramState, const udFilename &fileName)
     if (stringIndex != (uint16_t)(-1))
       vcDBF_GetRecord(shp.pDBF, &pDBFRecord, (uint32_t)i);
 
-    vcUDP_AddModel(pProgramState, pParentNode, shp.shpRecords[i], pDBFRecord, stringIndex);
+    vcSHP_AddModel(pProgramState, pParentNode, shp.shpRecords[i], pDBFRecord, stringIndex);
   }
 
 epilogue:
