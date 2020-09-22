@@ -309,12 +309,15 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
     if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' || m_flightPoints.length == 0 ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
     {
-      m_state = vcFTS_Exporting;
-      pProgramState->screenshot.pImage = nullptr;
-      m_exportInfo.currentFrame = -2;
-      pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
-      pProgramState->exportVideo = true;
-      pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
+      if (vcModals_OverwriteExistingFile(pProgramState, udTempStr("%s/%05d.%s", m_exportPath, 0, vcFlythroughExportFormats[m_selectedExportFormatIndex]), vcString::Get("flythroughExportAlreadyExists")))
+      {
+        m_state = vcFTS_Exporting;
+        pProgramState->screenshot.pImage = nullptr;
+        m_exportInfo.currentFrame = -2;
+        pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
+        pProgramState->exportVideo = true;
+        pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
+      }
     }
     break;
   case vcFTS_Playing:
