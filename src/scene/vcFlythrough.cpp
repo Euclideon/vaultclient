@@ -2,6 +2,7 @@
 
 #include "vcState.h"
 #include "vcStrings.h"
+#include "vcSettings.h"
 
 #include "vcRender.h"
 #include "vcFramebuffer.h"
@@ -179,21 +180,21 @@ void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID
     if (ImGui::InputDouble("PX", &positionTemp.x))
     {
       if (isfinite(positionTemp.x))
-        m_flightPoints[i].m_CameraPosition.x = positionTemp.x;
+        m_flightPoints[i].m_CameraPosition.x = udClamp(positionTemp.x, -vcSL_GlobalLimit, vcSL_GlobalLimit);
     }
 
     ImGui::NextColumn();
     if (ImGui::InputDouble("PY", &positionTemp.y))
     {
       if (isfinite(positionTemp.y))
-        m_flightPoints[i].m_CameraPosition.y = positionTemp.y;
+        m_flightPoints[i].m_CameraPosition.y = udClamp(positionTemp.y, -vcSL_GlobalLimit, vcSL_GlobalLimit);
     }
 
     ImGui::NextColumn();
     if (ImGui::InputDouble("PZ", &positionTemp.z))
     {
       if (isfinite(positionTemp.z))
-        m_flightPoints[i].m_CameraPosition.z = positionTemp.z;
+        m_flightPoints[i].m_CameraPosition.z = udClamp(positionTemp.z, -vcSL_GlobalLimit, vcSL_GlobalLimit);
     }
 
     ImGui::NextColumn();
