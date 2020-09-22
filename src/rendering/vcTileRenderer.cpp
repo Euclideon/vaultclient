@@ -1451,7 +1451,7 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     }
 
     // Because of limitations of float32, morph the terrain into a globe shape, using height as a T (this avoids 'wobbly' terrain)
-    static const double minMorphHeightMeters = 2000.0;
+    static const double minMorphHeightMeters = 8000.0;
     static const double maxMorphHeightMeters = 30000.0;
     float globeMorphDelta = 0.0f;
     if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)

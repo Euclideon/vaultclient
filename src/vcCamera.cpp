@@ -313,8 +313,12 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     udDouble3 towards = pViewport->worldAnchorPoint - pViewport->camera.position;
     if (udMagSq3(towards) > 0)
     {
+      double minDistance = 10.0;
       double maxDistance = 0.9 * pCamSettings->farPlane; // limit to 90% of visible distance
       double distanceToPoint = udMin(udMag3(towards), maxDistance);
+
+      if (pViewport->cameraInput.mouseInput.y > 0)
+        distanceToPoint = udMax(distanceToPoint - minDistance, 0.0);
 
       addPos = distanceToPoint * pViewport->cameraInput.mouseInput.y * udNormalize3(towards);
     }
