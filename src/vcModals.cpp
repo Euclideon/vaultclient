@@ -54,7 +54,7 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 }
 
 // Presents user with a message if the specified file exists, then returns false if user declines to overwrite the file
-bool vcModals_OverwriteExistingFile(vcState* pProgramState, const char* pFilename, const char* pFileExistingMsg)
+bool vcModals_OverwriteExistingFile(vcState *pProgramState, const char *pFilename, const char *pFileExistingMsg)
 {
   bool result = true;
   if (udFileExists(pFilename) == udR_Success)
