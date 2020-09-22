@@ -21,7 +21,7 @@ void vcAddBoxFilter::SceneUI(vcState *pProgramState)
 
 void vcAddBoxFilter::HandlePicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
 {
-  if (!pProgramState->pActiveViewport->pickingSuccess)
+  if (!pProgramState->pActiveViewport->isMouseOver)
     return;
 
   if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == udPNT_QueryFilter)
@@ -44,7 +44,7 @@ void vcAddBoxFilter::HandlePicking(vcState *pProgramState, vcRenderData & /*rend
 
 void vcAddBoxFilter::PreviewPicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
 {
-  if (!pProgramState->pActiveViewport->pickingSuccess)
+  if (!pProgramState->pActiveViewport->isMouseOver)
     return;
 
   udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
