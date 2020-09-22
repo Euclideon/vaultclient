@@ -8,6 +8,7 @@
 
 struct udPointCloud;
 struct vcState;
+struct vcLineInstance;
 
 struct vcFlightPoint
 {
@@ -35,6 +36,7 @@ private:
   int m_selectedResolutionIndex;
   int m_selectedExportFPSIndex;
   int m_selectedExportFormatIndex;
+  vcLineInstance *m_pLine;
 
   struct
   {
@@ -43,6 +45,7 @@ private:
   } m_exportInfo;
 
   void UpdateCameraPosition(vcState *pProgramState);
+  void UpdateLinePoints();
 
 public:
   vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
