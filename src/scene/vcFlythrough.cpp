@@ -409,6 +409,7 @@ void vcFlythrough::UpdateLinePoints()
     udFree(pPositions);
   }
 }
+
 void vcFlythrough::LoadFlightPoints(vcState *pProgramState)
 {
   udDouble3 *pFPPositions;
@@ -417,7 +418,7 @@ void vcFlythrough::LoadFlightPoints(vcState *pProgramState)
 
   m_flightPoints.Clear();
 
-  for (size_t i = 0; i < numFrames; ++i)
+  for (int i = 0; i < numFrames; ++i)
   {
     vcFlightPoint flightPoint;
     flightPoint.m_CameraPosition = pFPPositions[i];
