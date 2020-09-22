@@ -61,6 +61,14 @@ struct vcUDRSData
     {
       const uint32_t *pColours; //length == 256
     } numberOfReturns;
+    struct
+    {
+      bool repeating;
+      float bottomHeight;
+      float topHeight;
+      udFloat3 bottomColour;
+      udFloat3 topColour;
+    } colourByHeight;
   } data;
 };
 
@@ -75,3 +83,4 @@ uint32_t vcVoxelShader_ScanAngle(udPointCloud *pPointCloud,const udVoxelID *pVox
 uint32_t vcVoxelShader_PointSourceID(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
 uint32_t vcVoxelShader_ReturnNumber(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
 uint32_t vcVoxelShader_NumberOfReturns(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+uint32_t vcVoxelShader_ColourByHeight(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);

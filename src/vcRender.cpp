@@ -1658,6 +1658,17 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         pVoxelShaderData[numVisibleModels].data.intensity.minIntensity = (uint16_t)pVisSettings->minIntensity;
         pVoxelShaderData[numVisibleModels].data.intensity.intensityRange = (float)(pVisSettings->maxIntensity - pVisSettings->minIntensity);
       }
+      else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_ColourByHeight) && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "Height", &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
+      {
+        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_ColourByHeight;
+
+        pVoxelShaderData[numVisibleModels].data.colourByHeight.bottomHeight = pVisSettings->colourByHeight.bottomHeight;
+        pVoxelShaderData[numVisibleModels].data.colourByHeight.topHeight = pVisSettings->colourByHeight.topHeight;
+        pVoxelShaderData[numVisibleModels].data.colourByHeight.repeating = pVisSettings->colourByHeight.repeating;
+
+        pVoxelShaderData[numVisibleModels].data.colourByHeight.bottomColour = pVisSettings->colourByHeight.bottomColour;
+        pVoxelShaderData[numVisibleModels].data.colourByHeight.topColour = pVisSettings->colourByHeight.topColour;
+      }
       else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_Classification) && udAttributeSet_GetOffsetOfStandardAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, udSA_Classification, &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;

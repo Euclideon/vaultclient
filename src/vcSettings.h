@@ -38,6 +38,7 @@ enum vcVisualizatationMode
   vcVM_PointSourceID,
   vcVM_ReturnNumber,
   vcVM_NumberOfReturns,
+  vcVM_ColourByHeight,
 
   vcVM_Count
 };
@@ -185,6 +186,15 @@ struct vcVisualizationSettings
     udChunkedArray<KV> colourMap;
     uint32_t defaultColour;
   } pointSourceID;
+
+  struct
+  {
+    float bottomHeight;
+    float topHeight;
+    udFloat3 bottomColour;
+    udFloat3 topColour;
+    bool repeating;
+  } colourByHeight;
 
   uint32_t returnNumberColours[s_maxReturnNumbers];
   uint32_t numberOfReturnsColours[s_maxReturnNumbers];
@@ -479,6 +489,9 @@ const int vcSL_MaxDepthMax = 25;
 
 const float vcSL_IntensityMin = 0.f;
 const float vcSL_IntensityMax = 65535.f;
+
+const float vcSL_HeightMin = -40000.0f;
+const float vcSL_HeightMax = 40000.0f;
 
 const float vcSL_GPSTimeMin = 0.f;
 

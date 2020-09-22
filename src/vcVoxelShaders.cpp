@@ -46,6 +46,26 @@ inline uint32_t vcVoxelShader_FadeAlpha(uint32_t firstColour, uint32_t secondCol
   return result;
 }
 
+uint32_t vcVoxelShader_ColourByHeight(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  vcUDRSData *pData = (vcUDRSData *)pUserData;
+  const float *pHeightValue = nullptr;
+  udPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void**)&pHeightValue);
+  float t = ((*pHeightValue - pData->data.colourByHeight.bottomHeight) / (pData->data.colourByHeight.topHeight - pData->data.colourByHeight.bottomHeight));
+  if (!pData->data.colourByHeight.repeating)
+    t = udClamp(t, 0.0f, 1.0f);
+  else
+    t = udClampWrap(t, 0.0f, 1.0f);
+
+  udFloat3 col = udLerp(pData->data.colourByHeight.bottomColour, pData->data.colourByHeight.topColour, t);
+  uint8_t red = (uint8_t)(col.x * 255.f);
+  uint8_t green = (uint8_t)(col.y * 255.f);
+  uint8_t blue = (uint8_t)(col.z * 255.f);
+  uint32_t colour = red << 16 | green << 8 | blue;
+
+  return vcPCShaders_BuildAlpha(pData->pModel) | colour;
+}
+
 uint32_t vcVoxelShader_DisplacementDistance(udPointCloud *pPointCloud, const udVoxelID *pVoxelID, const void *pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
