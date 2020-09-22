@@ -57,7 +57,6 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 bool vcModals_OverwriteExistingFile(vcState* pProgramState, const char* pFilename, const char* pFileExistingMsg)
 {
   bool result = true;
-  //const char *pFileExistsMsg = nullptr;
   if (udFileExists(pFilename) == udR_Success)
   {
     const SDL_MessageBoxButtonData buttons[] = {
@@ -78,7 +77,6 @@ bool vcModals_OverwriteExistingFile(vcState* pProgramState, const char* pFilenam
     int buttonid = 0;
     if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
       result = false;
-    //udFree(pFileExistingMsg);
   }
   return result;
 }
