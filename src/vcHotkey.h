@@ -51,6 +51,7 @@ enum vcBind
   vcB_AddBoxFilter,
   vcB_AddSphereFilter,
   vcB_AddCylinderFilter,
+  vcB_AddSimpleCrossSection,
 
   vcB_Count,
   vcB_Invalid = vcB_Count

@@ -87,9 +87,10 @@ enum vcActiveTool
 
   vcActiveTool_Annotate, //Single POI
   vcActiveTool_Inspect, // Inspects the voxel under the mouse
-  vcActiveTool_AddBoxFilter, // Add box filter in the current mouse position
-  vcActiveTool_AddSphereFilter,// Add sphere filter in the current mouse position
-  vcActiveTool_AddCylinderFilter,// Add cylinder filter in the current mouse position
+  vcActiveTool_AddBoxFilter, // Add box filter at the current mouse position
+  vcActiveTool_AddSphereFilter,// Add sphere filter at the current mouse position
+  vcActiveTool_AddCylinderFilter,// Add cylinder filter at the current mouse position
+  vcActiveTool_AddSimpleCrossSection,// Add simple cross section filter at the current mouse position
 
   vcActiveTool_Count
 };

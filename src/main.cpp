@@ -2064,6 +2064,13 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         vcProject_ClearSelection(pProgramState);
         pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
       }
+
+      // Add Filter Cross Section
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddCrossSection"), vcB_AddSimpleCrossSection, vcMBBI_AddCrossSectionFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSimpleCrossSection)) || (vcHotkey::IsPressed(vcB_AddSimpleCrossSection) && !ImGui::IsAnyItemActive()))
+      {
+        vcProject_ClearSelection(pProgramState);
+        pProgramState->activeTool = vcActiveTool_AddSimpleCrossSection;
+      }
     }
 
     ImGui::End();

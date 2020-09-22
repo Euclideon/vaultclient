@@ -518,6 +518,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     vcHotkey::Set(vcB_AddBoxFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddBoxFilter)).AsInt(SDL_SCANCODE_I));
     vcHotkey::Set(vcB_AddSphereFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddSphereFilter)).AsInt(SDL_SCANCODE_J));
     vcHotkey::Set(vcB_AddCylinderFilter, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddCylinderFilter)).AsInt(SDL_SCANCODE_K));
+    vcHotkey::Set(vcB_AddSimpleCrossSection, data.Get("keys.%s", vcHotkey::GetBindName(vcB_AddSimpleCrossSection)).AsInt(vcMOD_Ctrl | SDL_SCANCODE_L));
   }
 
   if (group == vcSC_All || group == vcSC_Connection)
