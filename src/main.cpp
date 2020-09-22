@@ -406,7 +406,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
   if (pProgramState->pFontTTFData != nullptr && ImGui::GetIO().Fonts->IsBuilt())
   {
-    ImFont *fonts[] = { ImGui::GetDefaultFont(), pProgramState->pBigFont, pProgramState->pItalicFont, pProgramState->pBoldFont, pProgramState->pBoldItalicFont };
+    ImFont *fonts[] = { ImGui::GetDefaultFont(), pProgramState->pMidFont, pProgramState->pBigFont, pProgramState->pItalicFont, pProgramState->pBoldFont, pProgramState->pBoldItalicFont };
 
     for (ImFont *pFont : fonts)
     {
@@ -893,6 +893,11 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
     bigFontCfg.FontDataOwnedByAtlas = false;
     bigFontCfg.MergeMode = false;
 
+    const float MidFontSize = 26.f;
+    ImFontConfig midFontCfg = ImFontConfig();
+    midFontCfg.FontDataOwnedByAtlas = false;
+    midFontCfg.MergeMode = false;
+
     static ImWchar basicCharacterRanges[] =
     {
       0x0020, 0x00FF, // Basic Latin + Latin Supplement
@@ -905,6 +910,9 @@ void vcMain_LoadFontMT(void *pLoadInfoPtr)
 
     ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, basicCharacterRanges);
     pLoadInfo->pProgramState->pBigFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, BigFontSize, &bigFontCfg, basicCharacterRanges);
+
+    ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, FontSize, &fontCfg, basicCharacterRanges);
+    pLoadInfo->pProgramState->pMidFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pLoadInfo->pData, (int)pLoadInfo->dataLen, MidFontSize, &midFontCfg, basicCharacterRanges);
   }
 
   pLoadInfo->pProgramState->requiredGlyphs.Init(32);

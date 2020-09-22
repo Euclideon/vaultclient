@@ -145,6 +145,7 @@ struct vcState
   int fontTTFDataLen;
   udChunkedArray<ImWchar *> requiredGlyphs;
 
+  ImFont *pMidFont;
   ImFont *pBigFont;
   ImFont *pItalicFont;
   ImFont *pBoldFont;
