@@ -326,7 +326,10 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     break;
   case vcFTS_Recording:
     if (ImGui::Button(vcString::Get("flythroughRecordStop")))
+    {
+      UpdateLinePoints();
       m_state = vcFTS_None;
+    }
 
     ImGui::SameLine();
 
