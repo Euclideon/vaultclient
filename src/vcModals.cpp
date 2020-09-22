@@ -54,22 +54,23 @@ void vcModals_DrawLoggedOut(vcState *pProgramState)
 }
 
 // Presents user with a message if the specified file exists, then returns false if user declines to overwrite the file
-bool vcModals_OverwriteExistingFile(vcState *pProgramState, const char *pFilename)
+bool vcModals_OverwriteExistingFile(vcState* pProgramState, const char* pFilename, const char* pFileExistingMsg)
 {
   bool result = true;
-  const char *pFileExistsMsg = nullptr;
+  //const char *pFileExistsMsg = nullptr;
   if (udFileExists(pFilename) == udR_Success)
   {
     const SDL_MessageBoxButtonData buttons[] = {
       { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, vcString::Get("popupConfirmNo") },
       { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, vcString::Get("popupConfirmYes") },
     };
-    pFileExistsMsg = vcStringFormat(vcString::Get("convertFileExistsMessage"), pFilename);
+    if (pFileExistingMsg == nullptr)
+      pFileExistingMsg = vcStringFormat(vcString::Get("convertFileExistsMessage"), pFilename);
     SDL_MessageBoxData messageboxdata = {
       SDL_MESSAGEBOX_INFORMATION,
       pProgramState->pWindow,
       vcString::Get("convertFileExistsTitle"),
-      pFileExistsMsg,
+      pFileExistingMsg,
       SDL_arraysize(buttons),
       buttons,
       nullptr
@@ -77,7 +78,7 @@ bool vcModals_OverwriteExistingFile(vcState *pProgramState, const char *pFilenam
     int buttonid = 0;
     if (SDL_ShowMessageBox(&messageboxdata, &buttonid) != 0 || buttonid == 0)
       result = false;
-    udFree(pFileExistsMsg);
+    //udFree(pFileExistingMsg);
   }
   return result;
 }

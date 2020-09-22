@@ -12,6 +12,7 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "imgui_internal.h"
+#include "vcModals.h"
 
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
 const char *vcFlythroughExportFormats[] =
@@ -61,7 +62,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       if (m_exportInfo.currentFrame >= 0)
       {
-        if (vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), udTempStr("%s/%05d.png", m_exportPath, m_exportInfo.currentFrame)) != udR_Success)
+        if (vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex])) != udR_Success)
         {
           m_state = vcFTS_None;
           pProgramState->exportVideo = false;
