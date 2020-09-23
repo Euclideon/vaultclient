@@ -2554,16 +2554,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       bool isFixedOrthographicViewport = pProgramState->settings.camera.mapMode[viewportIndex];
       if (isFixedOrthographicViewport)
       {
-        // Manually set camera
-        if (pProgramState->geozone.projection != udGZPT_ECEF)
-          pProgramState->pActiveViewport->camera.position = udDouble3::create(pProgramState->pViewports[0].camera.position.x, pProgramState->pViewports[0].camera.position.y, pProgramState->pActiveViewport->camera.position.z);
-        else
-        {
-          udDouble3 cam_pos_latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[0].camera.position);
-          udDouble3 cam__map_pos_latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
-          cam_pos_latLong.z = cam__map_pos_latLong.z;
-          pProgramState->pActiveViewport->camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, cam_pos_latLong);
-        }
         pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
 
         vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, viewportIndex, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y));

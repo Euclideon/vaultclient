@@ -47,17 +47,42 @@ void vcCamera_UpdateSmoothing(vcState * pProgramState, vcCamera *pCamera, vcCame
       pCamInput->smoothTranslation -= step;
       if (pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
       {
-        if (pProgramState->geozone.projection != udGZPT_ECEF)
+        for (int v = 0; v < vcMaxViewportCount; v++)
         {
-          pProgramState->pViewports[0].camera.position.x = pCamera->position.x;
-          pProgramState->pViewports[0].camera.position.y = pCamera->position.y;
+          if (!pProgramState->settings.camera.mapMode[v])
+          {
+            if (pProgramState->geozone.projection != udGZPT_ECEF)
+            {
+                  pProgramState->pViewports[v].camera.position.x = pCamera->position.x;
+                  pProgramState->pViewports[v].camera.position.y = pCamera->position.y;
+            }
+            else
+            {
+              udDouble3 camMapPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pCamera->position);
+              udDouble3 camPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[v].camera.position);
+              camMapPosLatLong.z = camPosLatLong.z;
+              pProgramState->pViewports[v].camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, camMapPosLatLong);
+            }
+          }
         }
-        else
+      }
+      else
+      {
+        for (int v = 0; v < vcMaxViewportCount; v++)
         {
-          udDouble3 camMapPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pCamera->position);
-          udDouble3 camPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[0].camera.position);
-          camMapPosLatLong.z = camPosLatLong.z;
-          pProgramState->pViewports[0].camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, camMapPosLatLong);
+          if (pProgramState->settings.camera.mapMode[v])
+          {
+            if (pProgramState->geozone.projection != udGZPT_ECEF)
+              pProgramState->pViewports[v].camera.position = udDouble3::create(pCamera->position.x, pCamera->position.y, pProgramState->pViewports[v].camera.position.z);
+            else
+            {
+              udDouble3 camPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pCamera->position);
+              udDouble3 camMapPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[v].camera.position);
+              camPosLatLong.z = camMapPosLatLong.z;
+              pProgramState->pViewports[v].camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, camPosLatLong);
+            }
+            pProgramState->pViewports[v].camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
+          }
         }
       }
     }
