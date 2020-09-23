@@ -337,8 +337,11 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
         distanceToPoint = udMax(distanceToPoint - minDistance, 0.0);
 
       addPos = distanceToPoint * pViewport->cameraInput.mouseInput.y * udNormalize3(towards);
+      if (pCamSettings->mapMode[pProgramState->activeViewportIndex])
+      {
+        addPos = -1 * distanceToPoint * pViewport->cameraInput.mouseInput.y * pViewport->camera.cameraUp;
+      }
     }
-
     pViewport->cameraInput.smoothTranslation += addPos;
   }
   break;
