@@ -673,6 +673,15 @@ uint32_t vcDBF_GetRecordCount(vcDBF *pDBF)
   return (uint32_t)pDBF->records.length;
 }
 
+udResult vcDBF_GetFieldType(vcDBF *pDBF, uint16_t fieldIndex, char *pType)
+{
+  if (pDBF == nullptr || fieldIndex >= pDBF->fieldCount)
+    return udR_InvalidParameter_;
+
+  *pType = pDBF->pFields[fieldIndex].fieldType;
+  return udR_Success;
+}
+
 udResult vcDBF_AddField(vcDBF *pDBF, char *pFieldName, char fieldType, uint8_t fieldLen)
 {
   if (pDBF == nullptr)

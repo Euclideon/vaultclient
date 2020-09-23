@@ -52,6 +52,7 @@
 
 #include "vcGLState.h"
 #include "vcFramebuffer.h"
+#include "vcSHP.h"
 
 #include "tools/vcSceneTool.h"
 
@@ -513,6 +514,11 @@ void vcMain_MainLoop(vcState *pProgramState)
 
           if (vc12DXML_Load(pProgramState, pNextLoad) == udR_Unsupported)
             vcModals_OpenModal(pProgramState, vcMT_UnsupportedEncoding);
+        }
+        else if (udStrEquali(pExt, ".shp"))
+        {
+          vcModals_CloseModal(pProgramState, vcMT_Welcome);
+          vcSHP_Load(pProgramState, pNextLoad);
         }
 #if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
@@ -2336,6 +2342,8 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
         udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
       }
     }
+    if (ImGui::MenuItem(vcString::Get("sceneExplorerAddShapeFile"), nullptr, nullptr))
+      vcModals_OpenModal(pProgramState, vcMT_ImportShapeFile);
 
     ImGui::EndPopup();
   }
