@@ -1776,7 +1776,11 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
   renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (udRenderContextPointMode)pProgramState->settings.presentation.pointMode;
-  renderOptions.flags = (udRenderContextFlags)(udRCF_LogarithmicDepth | udRCF_ManualStreamerUpdate);
+
+  if (pProgramState->exportVideo || pProgramState->settings.screenshot.taking)
+    renderOptions.flags = (udRenderContextFlags)(udRCF_LogarithmicDepth | udRCF_BlockingStreaming);
+  else
+    renderOptions.flags = (udRenderContextFlags)(udRCF_LogarithmicDepth | udRCF_ManualStreamerUpdate);
 
   udError result = udRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderTarget, pModels, numVisibleModels, &renderOptions);
 
