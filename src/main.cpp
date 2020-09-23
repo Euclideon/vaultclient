@@ -2566,9 +2566,6 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
         }
         pProgramState->pActiveViewport->camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
 
-        // TODO: Hack! (Until we resolve multiple camera settings)
-        //vcCameraSettings settingsCopy = pProgramState->settings.camera;
-
         vcCamera_UpdateMatrices(pProgramState->geozone, &pProgramState->pActiveViewport->camera, pProgramState->settings.camera, viewportIndex, udFloat2::create((float)pProgramState->settings.viewports[viewportIndex].resolution.x, (float)pProgramState->settings.viewports[viewportIndex].resolution.y));
 
         // disable watermark rendering

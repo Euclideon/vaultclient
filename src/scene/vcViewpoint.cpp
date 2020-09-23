@@ -249,7 +249,8 @@ void vcViewpoint::ApplySettings(vcState *pProgramState)
   for (uint32_t i = 0; i < count && i < pProgramState->settings.visualization.s_maxReturnNumbers; ++i)
     udProjectNode_GetMetadataUint(m_pNode, udTempStr("visualisation.number_of_returns.colours[%i]", i), &pProgramState->settings.visualization.numberOfReturnsColours[i], pProgramState->settings.visualization.numberOfReturnsColours[i]);
 
-  for (int v = 0; v < vcMaxViewportCount; v++) {
+  for (int v = 0; v < vcMaxViewportCount; v++)
+  {
     // Camera lens
     pStringVal = nullptr;
     udProjectNode_GetMetadataString(m_pNode, udTempStr("visualisation.camera_lens.preset[%d]", v), &pStringVal, nullptr);

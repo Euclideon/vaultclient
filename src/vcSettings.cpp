@@ -566,10 +566,10 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     // Camera
     for (int v = 0; v < vcMaxViewportCount; v++)
     {
-      pSettings->camera.moveSpeed[v] = data.Get("camera.moveSpeed[%d]", v).AsFloat(10.f);
-      pSettings->camera.lensIndex[v] = data.Get("camera.lensId[%d]", v).AsInt(vcLS_30mm);
-      pSettings->camera.fieldOfView[v] = data.Get("camera.fieldOfView[%d]", v).AsFloat(vcLens30mm);
-      pSettings->camera.mapMode[v] = data.Get("camera.mapMode[%d]", v).AsBool(false);
+      pSettings->camera.moveSpeed[v] = data.Get("camera.moveSpeed[%d]", v).AsFloat(data.Get("camera.moveSpeed").AsFloat(10.f));
+      pSettings->camera.lensIndex[v] = data.Get("camera.lensId[%d]", v).AsInt(data.Get("camera.lensId").AsInt(vcLS_30mm));
+      pSettings->camera.fieldOfView[v] = data.Get("camera.fieldOfView[%d]", v).AsFloat(data.Get("camera.fielOfView").AsFloat(vcLS_30mm));
+      pSettings->camera.mapMode[v] = data.Get("camera.mapMode[%d]", v).AsBool(data.Get("viewports.viewport[%d].mapMode", v).AsBool(false));
     }
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
   }
