@@ -28,7 +28,6 @@
 #include "vcVerticalMeasureTool.h"
 #include "vcFlythrough.h"
 #include "vcCrossSectionNode.h"
-#include "vcSHPNode.h"
 
 void HandleNodeSelection(vcState* pProgramState, udProjectNode *pParent, udProjectNode* pNode)
 {
@@ -126,8 +125,6 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcFlythrough(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "XSlice"))
         pNode->pUserData = new vcCrossSectionNode(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "SHP"))
-        pNode->pUserData = new vcSHPNode(&pProgramState->activeProject, pNode, pProgramState);
       else
         pNode->pUserData = new vcUnsupportedNode(&pProgramState->activeProject, pNode, pProgramState); // Catch all
     }
