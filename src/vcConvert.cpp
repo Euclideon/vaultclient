@@ -414,7 +414,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   // Options pane --------------------------------
   ImGui::NextColumn();
-
+  
   if (pSelectedJob == nullptr)
   {
     ImGui::TextUnformatted(vcString::Get("convertNoJobSelected"));
@@ -799,10 +799,6 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
     ImGui::EndChild();
   }
-
-  // end columns?
-  static bool convertSupportURLHovered = false;
-  vcIGSW_URLText("Help with Converting: ", pProgramState->branding.supportURLConverting, &convertSupportURLHovered);
 }
 
 void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob)

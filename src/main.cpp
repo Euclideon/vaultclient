@@ -3088,7 +3088,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       }
 
       static bool loginSupportURLHovered = false;
-      vcIGSW_URLText("Trouble Logging in? Visit ", pProgramState->branding.supportURLLogin, &loginSupportURLHovered);
+      vcIGSW_URLText(vcString::Get("supportLoginPrefix"), pProgramState->branding.supportURLLogin, &loginSupportURLHovered);
     }
     ImGui::End();
   }
