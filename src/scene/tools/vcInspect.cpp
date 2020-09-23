@@ -14,7 +14,10 @@ vcInspect vcInspect::m_instance;
 
 void vcInspect::SceneUI(vcState *pProgramState)
 {
-  ImGui::TextUnformatted(vcString::Get("toolInspectRunning"));
+  ImGui::PushFont(pProgramState->pMidFont);
+  ImGui::TextWrapped("%s", vcString::Get("toolInspectRunning"));
+  ImGui::PopFont();
+
   ImGui::Separator();
 
   if (pProgramState->pActiveViewport->udModelNodeAttributes.IsObject())

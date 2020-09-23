@@ -21,7 +21,10 @@ void vcMeasureArea::SceneUI(vcState *pProgramState)
     char bufferA[128];
     char bufferB[128];
     vcHotkey::GetKeyName(vcB_Cancel, bufferB);
-    ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+    ImGui::PopFont();
 
     ImGui::Separator();
 
@@ -29,13 +32,14 @@ void vcMeasureArea::SceneUI(vcState *pProgramState)
   }
   else
   {
-    ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcString::Get("toolMeasureStart"));
+    ImGui::PopFont();
   }
 }
 
 void vcMeasureArea::HandlePicking(vcState *pProgramState, vcRenderData & /*renderData*/, const vcRenderPickResult & /*pickResult*/)
 {
-
   //Are these checks necessary? If a tool is being used would that not suggest we indeed have a valid clickedItem?
   if (pProgramState->sceneExplorer.clickedItem.pItem != nullptr && pProgramState->sceneExplorer.clickedItem.pItem->itemtype == udPNT_PointOfInterest)
   {

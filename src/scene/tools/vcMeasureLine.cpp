@@ -21,7 +21,10 @@ void vcMeasureLine::SceneUI(vcState *pProgramState)
     char bufferA[128];
     char bufferB[128];
     vcHotkey::GetKeyName(vcB_Cancel, bufferB);
-    ImGui::TextUnformatted(vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcStringFormat(bufferA, udLengthOf(bufferA), vcString::Get("toolMeasureNext"), bufferB));
+    ImGui::PopFont();
 
     ImGui::Separator();
 
@@ -29,7 +32,9 @@ void vcMeasureLine::SceneUI(vcState *pProgramState)
   }
   else
   {
-    ImGui::TextUnformatted(vcString::Get("toolMeasureStart"));
+    ImGui::PushFont(pProgramState->pMidFont);
+    ImGui::TextWrapped("%s", vcString::Get("toolMeasureStart"));
+    ImGui::PopFont();
   }
 }
 

@@ -1482,6 +1482,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           vcIGSW_ShowLoadStatusIndicator(vcSLS_Loading, "sceneExplorerExporting");
           ImGui::TextUnformatted(vcString::Get("sceneExplorerExportRunning"));
         }
+
+        if (pProgramState->activeTool != vcActiveTool_Select)
+          ImGui::Separator();
       }
 
       {

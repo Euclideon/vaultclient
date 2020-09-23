@@ -18,8 +18,6 @@ vcAnnotate::vcAnnotate()
 
 void vcAnnotate::SceneUI(vcState * /*pProgramState*/)
 {
-  ImGui::Separator();
-
   static bool isFirst = true;
   if (isFirst)
   {
