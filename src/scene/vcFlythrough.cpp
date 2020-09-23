@@ -481,8 +481,11 @@ void vcFlythrough::SmoothFlightPoints()
     udDouble3 expectedPos = udDouble3::zero();
     LerpFlightPoints(m_flightPoints[flightPointIndex].time, m_flightPoints[flightPointIndex - 1], m_flightPoints[flightPointIndex + 1], &expectedPos, nullptr);
 
-    double distance = udMag3(m_flightPoints[flightPointIndex - 1].m_CameraPosition - m_flightPoints[flightPointIndex + 1].m_CameraPosition);
-    if (udMag3(m_flightPoints[flightPointIndex].m_CameraPosition - expectedPos) < udMax(UD_EPSILON, distance / 1000.0))
+    double distanceSq = udMagSq(m_flightPoints[flightPointIndex - 1].m_CameraPosition - m_flightPoints[flightPointIndex + 1].m_CameraPosition);
+
+    // Used 1000th of the distance for the offset and eyeballed for good results 
+    double maxOffsetDistanceSq = udMax(UD_EPSILON, distanceSq / 1000000.0);
+    if (udMagSq(m_flightPoints[flightPointIndex].m_CameraPosition - expectedPos) < maxOffsetDistanceSq)
       m_flightPoints.RemoveAt(flightPointIndex--);
   }
 }
