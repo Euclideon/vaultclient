@@ -2,6 +2,7 @@
   "appName": "udStream {0} ({1})",
   "copyright": "Euclideon Pty Ltd",
   "supportEmail": "support@euclideon.com",
+  "loginSupportURL": "http://www.google.com/"
   "logincolours": [ "087387", "087387", "04313b", "055668" ],
 
   "_lastItem": "End of branding file"
