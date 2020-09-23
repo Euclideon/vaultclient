@@ -71,9 +71,18 @@ void vcCrossSectionNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *p
 {
   bool changed = false;
 
-  if (ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_position.x, 3))
+  udDouble3 positionTemp = m_position;
+  ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &positionTemp.x, 3);
+  if (ImGui::IsItemDeactivatedAfterEdit())
+  {
+    for (int i = 0; i < 3; ++i)
+    {
+      if (isfinite(positionTemp[i]))
+        m_position[i] = positionTemp[i];
+    }
+
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
-  changed |= ImGui::IsItemDeactivatedAfterEdit();
+  }
 
   if (ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_headingPitch.x, 2))
   {
