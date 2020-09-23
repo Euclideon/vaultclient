@@ -285,6 +285,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHP
   record.id = (id[0] << 24) | (id[1] << 16) | (id[2] << 8) | id[3];
   offset += 4;
 
+  //the file stores the length in shorts.
   UD_ERROR_CHECK(udFile_Read(pFile, length, 4 * sizeof(uint8_t)));
   record.length = (length[0] << 24) | (length[1] << 16) | (length[2] << 8) | length[3];
   record.length *= 2;
