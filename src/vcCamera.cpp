@@ -230,7 +230,7 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     addPos = orientation.apply(addPos);
 
     // Translation
-    if ((pCamSettings->mapMode || pCamSettings->lockAltitude) && addPos != udDouble3::zero())
+    if ((pCamSettings->mapMode[pProgramState->activeViewportIndex] || pCamSettings->lockAltitude) && addPos != udDouble3::zero())
       addPos -= udDot(pViewport->camera.cameraUp, addPos) * pViewport->camera.cameraUp;
 
     if (addPos != udDouble3::zero())
@@ -246,7 +246,7 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
       pViewport->camera.position = udDouble3::zero();
 
     udDouble2 rotation = udDouble2::create(-pViewport->cameraInput.mouseInput.x, pViewport->cameraInput.mouseInput.y) * 0.5; // Because this messes with HEADING, has to be reversed
-    if (pCamSettings->mapMode) rotation = udDouble2::zero();
+    if (pCamSettings->mapMode[pProgramState->activeViewportIndex]) rotation = udDouble2::zero();
     udDouble2 result = pViewport->camera.headingPitch + rotation;
     if (result.y > UD_HALF_PI)
       rotation.y = UD_HALF_PI - pViewport->camera.headingPitch.y;
