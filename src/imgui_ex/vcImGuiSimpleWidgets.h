@@ -38,4 +38,6 @@ void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText, const ch
 bool vcIGSW_DegreesScalar(const char *pLabel, udDouble2 *pData);
 bool vcIGSW_DegreesScalar(const char *pLabel, udDouble3 *pData);
 
+void vcIGSW_URLText(const char *pPrefixText, const char *pURL, bool *pHoveredStatus);
+
 #endif // vcImGuiSimpleWidgets_h__

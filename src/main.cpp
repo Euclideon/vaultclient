@@ -3088,17 +3088,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
       }
 
       static bool loginSupportURLHovered = false;
-      ImGui::TextUnformatted("Trouble Logging in? Visit ");
-      ImGui::SameLine(0.0f, 0.0f);
-      ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[loginSupportURLHovered ? ImGuiCol_ButtonHovered : ImGuiCol_ButtonActive]);
-      ImGui::Text("%s", pProgramState->branding.loginSupportURL);
-      ImGui::PopStyleColor();
-      loginSupportURLHovered = ImGui::IsItemHovered();
-      if (loginSupportURLHovered)
-      {
-        if (ImGui::IsMouseClicked(0))
-          vcWebFile_OpenBrowser(pProgramState->branding.loginSupportURL);
-      }
+      vcIGSW_URLText("Trouble Logging in? Visit ", pProgramState->branding.supportURLLogin, &loginSupportURLHovered);
     }
     ImGui::End();
   }
