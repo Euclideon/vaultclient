@@ -252,11 +252,27 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     double vertPos = addPos.z;
 
     addPos.z = 0.0;
-    addPos = orientation.apply(addPos);
 
     // Translation
-    if ((pCamSettings->mapMode[pProgramState->activeViewportIndex] || pCamSettings->lockAltitude) && addPos != udDouble3::zero())
-      addPos -= udDot(pViewport->camera.cameraUp, addPos) * pViewport->camera.cameraUp;
+    if (pCamSettings->mapMode[pProgramState->activeViewportIndex])
+    {
+      if (pProgramState->geozone.projection == udGZPT_ECEF)
+        addPos = -addPos;
+      //else
+      udDouble3 addPosNS = udDot(pViewport->camera.cameraNorth, addPos) * pViewport->camera.cameraNorth;
+
+      udDouble3 cameraWest = udCross(pViewport->camera.cameraNorth, pViewport->camera.cameraUp);
+      udDouble3 addPosWE = udDot(cameraWest, addPos) * cameraWest;
+
+      addPos = addPosNS * fabs(addPos.y) + addPosWE * fabs(addPos.x);
+    }
+    else
+    {
+      addPos = orientation.apply(addPos);
+
+      if (pCamSettings->lockAltitude && addPos != udDouble3::zero())
+        addPos -= udDot(pViewport->camera.cameraUp, addPos) * pViewport->camera.cameraUp;
+    }
 
     if (addPos != udDouble3::zero())
       addPos = udNormalize3(addPos);
