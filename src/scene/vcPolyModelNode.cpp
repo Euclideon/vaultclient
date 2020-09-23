@@ -74,25 +74,7 @@ void vcPolyModelNode::OnNodeUpdate(vcState *pProgramState)
   vcProject_GetNodeMetadata(m_pNode, "ignoreTint", &m_ignoreTint, false);
   vcProject_GetNodeMetadata(m_pNode, "yUp", &m_flipAxis, false);
 
-  if (m_pNode->geomCount != 0)
-  {
-    udDouble3 *pPosition = nullptr;
-    udDouble3 scale;
-    udDouble3 euler;
-
-    vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, pProgramState->geozone, &pPosition, nullptr);
-
-    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
-    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
-    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &euler.z, 0.0);
-    udProjectNode_GetMetadataDouble(m_pNode, "transform.scale.x", &scale.x, 1.0);
-    udProjectNode_GetMetadataDouble(m_pNode, "transform.scale.y", &scale.y, 1.0);
-    udProjectNode_GetMetadataDouble(m_pNode, "transform.scale.z", &scale.z, 1.0);
-
-    m_matrix = udDouble4x4::rotationYPR(UD_DEG2RAD(euler), *pPosition) * udDouble4x4::scaleNonUniform(scale);
-
-    udFree(pPosition);
-  }
+  ChangeProjection(pProgramState->geozone);
 }
 
 void vcPolyModelNode::AddToScene(vcState * /*pProgramState*/, vcRenderData *pRenderData)
@@ -230,9 +212,9 @@ void vcPolyModelNode::Cleanup(vcState * /*pProgramState*/)
   vcPolygonModel_Destroy(&m_pModel);
 }
 
-void vcPolyModelNode::ChangeProjection(const udGeoZone & /*newZone*/)
+void vcPolyModelNode::ChangeProjection(const udGeoZone &newZone)
 {
-  // Improve geolocation support
+  LoadTransforms(newZone);
 }
 
 udDouble4x4 vcPolyModelNode::GetWorldSpaceMatrix()
@@ -246,4 +228,27 @@ udDouble3 vcPolyModelNode::GetLocalSpacePivot()
     return udDouble3::zero();
 
   return m_pModel->origin;
+}
+
+void vcPolyModelNode::LoadTransforms(const udGeoZone &zone)
+{
+  if (m_pNode->geomCount != 0)
+  {
+    udDouble3 *pPosition = nullptr;
+    udDouble3 scale;
+    udDouble3 euler;
+
+    vcProject_FetchNodeGeometryAsCartesian(m_pProject, m_pNode, zone, &pPosition, nullptr);
+
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.y", &euler.x, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.p", &euler.y, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.rotation.r", &euler.z, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.scale.x", &scale.x, 1.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.scale.y", &scale.y, 1.0);
+    udProjectNode_GetMetadataDouble(m_pNode, "transform.scale.z", &scale.z, 1.0);
+
+    m_matrix = udDouble4x4::rotationYPR(UD_DEG2RAD(euler), *pPosition) * udDouble4x4::scaleNonUniform(scale);
+
+    udFree(pPosition);
+  }
 }
