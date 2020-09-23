@@ -28,8 +28,6 @@ public:
   udDouble3 GetLocalSpacePivot() override;
 
 private:
-  void LoadTransforms(const udGeoZone &zone);
-
   udDouble4x4 m_matrix;
 
   vcGLStateCullMode m_cullFace;
