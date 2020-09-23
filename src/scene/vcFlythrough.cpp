@@ -113,6 +113,8 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
       for (size_t i = offset + 1; i < m_flightPoints.length; ++i)
         m_flightPoints[i].time += pProgramState->deltaTime;
+
+      m_timeLength = m_flightPoints[m_flightPoints.length - 1].time;
     }
   }
 
