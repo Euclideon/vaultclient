@@ -616,30 +616,29 @@ epilogue:
   return result;
 }
 
-udResult vcSHP_LoadFileGroup(vcSHP *pSHP, const udFilename &fileName)
+udResult vcSHP_LoadFileGroup(vcSHP *pSHP, const char *pFileName)
 {
-  if (pSHP == nullptr || !fileName.HasFilename())
+  if (pSHP == nullptr || pFileName == nullptr)
     return udR_InvalidParameter_;
 
-  udFilename dbfName = fileName;
-  dbfName.SetExtension(".dbf");
-
-  udFilename prjName = fileName;
-  prjName.SetExtension(".prj");
+  udFilename loadFile(pFileName);
+  if(!loadFile.HasFilename())
+    return udR_InvalidParameter_;
 
   // load shp file
   udResult result = udR_Failure_;
-  UD_ERROR_CHECK(vcSHP_LoadShpFile(pSHP, fileName.GetPath()));
+  UD_ERROR_CHECK(vcSHP_LoadShpFile(pSHP, pFileName));
 
   // load dbf file
-  vcDBF_Load(&pSHP->pDBF, dbfName.GetPath());
+  loadFile.SetExtension(".dbf");
+  vcDBF_Load(&pSHP->pDBF, loadFile.GetPath());
 
   // load prj file
+  loadFile.SetExtension(".prj");
   pSHP->WKTString = nullptr;
-  pSHP->projectionLoad = udFile_Load(prjName.GetPath(), &pSHP->WKTString);
+  pSHP->projectionLoad = udFile_Load(loadFile.GetPath(), &pSHP->WKTString);
 
 epilogue:
-
   return result;
 }
 
@@ -704,7 +703,7 @@ void vcSHP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Re
   
 }
 
-udResult vcSHP_Load(vcState *pProgramState, const udFilename &fileName)
+udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
 {
   vcSHP shp = {};
   udProjectNode *pParentNode = nullptr;
@@ -712,7 +711,7 @@ udResult vcSHP_Load(vcState *pProgramState, const udFilename &fileName)
   vcDBF_Record *pDBFRecord = nullptr;
 
   udResult result = udR_Failure_;
-  UD_ERROR_CHECK(vcSHP_LoadFileGroup(&shp, fileName));
+  UD_ERROR_CHECK(vcSHP_LoadFileGroup(&shp, pFilename));
 
   vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
   // keep for future requirements. if the zone is set to no geolocated, all coordinates inside shapre files need to transfer from local position.

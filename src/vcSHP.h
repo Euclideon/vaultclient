@@ -3,7 +3,6 @@
 
 #include "vcState.h"
 #include "udResult.h"
-#include "udPlatformUtil.h"
 
-udResult vcSHP_Load(vcState *pProgramState, const udFilename &filename);
+udResult vcSHP_Load(vcState *pProgramState, const char *pFilename);
 #endif

@@ -518,7 +518,7 @@ void vcMain_MainLoop(vcState *pProgramState)
         else if (udStrEquali(pExt, ".shp"))
         {
           vcModals_CloseModal(pProgramState, vcMT_Welcome);
-          vcSHP_Load(pProgramState, loadFile);
+          vcSHP_Load(pProgramState, pNextLoad);
         }
 #if VC_HASCONVERT
         else if (convertDrop) // Everything else depends on where it was dropped
