@@ -367,7 +367,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     ImGui::TextUnformatted(vcString::Get("flythroughRecording"));
     break;
   case vcFTS_Exporting:
-    if (ImGui::Button("stopExport"))
+    if (ImGui::Button(vcString::Get("flythroughExportStop")))
     {
       m_state = vcFTS_None;
       pProgramState->screenshot.pImage = nullptr;
