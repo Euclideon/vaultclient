@@ -1083,7 +1083,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
     vcCameraSettings cameraSettings = {};
     cameraSettings.nearPlane = s_CameraNearPlane;
     cameraSettings.farPlane = s_CameraFarPlane;
-    cameraSettings.fieldOfView = pViewShedData->fieldOfView;
+    cameraSettings.fieldOfView[pProgramState->activeViewportIndex] = pViewShedData->fieldOfView;
 
     // set up cameras for these renders
     vcCamera shadowRenderCameras[ViewShedMapCount] = {};
@@ -1093,7 +1093,7 @@ void vcRender_RenderAndApplyViewSheds(vcState *pProgramState, vcRenderContext *p
 
       double rot = (UD_DEG2RAD(360.0) / ViewShedMapCount) * r;
       shadowRenderCameras[r].headingPitch = udDouble2::create(-rot, 0);
-      vcCamera_UpdateMatrices(pProgramState->geozone, &shadowRenderCameras[r], cameraSettings, atlasSize, nullptr);
+      vcCamera_UpdateMatrices(pProgramState->geozone, &shadowRenderCameras[r], cameraSettings, pProgramState->activeViewportIndex, atlasSize, nullptr);
 
       pRenderContext->shadowShader.params.shadowMapVP[r] = udFloat4x4::create(shadowRenderCameras[r].matrices.projectionUD * (shadowRenderCameras[r].matrices.view * udInverse(pProgramState->pActiveViewport->camera.matrices.view)));
     }

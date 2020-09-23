@@ -318,9 +318,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSameTime").AsBool(true);
     pSettings->presentation.skybox.useLiveTime = data.Get("skybox.uselivetime").AsBool(false);
 
-    pSettings->camera.lensIndex = data.Get("camera.lensId").AsInt(vcLS_30mm);
-    pSettings->camera.fieldOfView = data.Get("camera.fieldOfView").AsFloat(vcLens30mm);
-
     pSettings->objectHighlighting.enable = data.Get("objectHighlighting.enable").AsBool(true);
     pSettings->objectHighlighting.colour = data.Get("objectHighlighting.colour").AsFloat4(udFloat4::create(0.925f, 0.553f, 0.263f, 1.0f));
     pSettings->objectHighlighting.thickness = data.Get("objectHighlighting.thickness").AsFloat(2.0f);
@@ -567,7 +564,13 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       udStrcpy(pSettings->loginInfo.email, data.Get("login.username").AsString());
 
     // Camera
-    pSettings->camera.moveSpeed = data.Get("camera.moveSpeed").AsFloat(10.f);
+    for (int v = 0; v < vcMaxViewportCount; v++)
+    {
+      pSettings->camera.moveSpeed[v] = data.Get("camera.moveSpeed[%d]", v).AsFloat(data.Get("camera.moveSpeed").AsFloat(10.f));
+      pSettings->camera.lensIndex[v] = data.Get("camera.lensId[%d]", v).AsInt(data.Get("camera.lensId").AsInt(vcLS_30mm));
+      pSettings->camera.fieldOfView[v] = data.Get("camera.fieldOfView[%d]", v).AsFloat(data.Get("camera.fielOfView").AsFloat(vcLS_30mm));
+      pSettings->camera.mapMode[v] = data.Get("camera.mapMode[%d]", v).AsBool(data.Get("viewports.viewport[%d].mapMode", v).AsBool(false));
+    }
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
   }
 
@@ -646,7 +649,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     {
       pSettings->viewports[viewportIndex].resolution.x = data.Get("viewports.viewport[%d].width", viewportIndex).AsInt(128);
       pSettings->viewports[viewportIndex].resolution.y = data.Get("viewports.viewport[%d].height", viewportIndex).AsInt(128);
-      pSettings->viewports[viewportIndex].mapMode = data.Get("viewports.viewport[%d].mapMode", viewportIndex).AsBool(false);
     }
   }
 
@@ -752,11 +754,15 @@ bool vcSettings_Save(vcSettings *pSettings)
   }
 
   // Camera
-  data.Set("camera.moveSpeed = %f", pSettings->camera.moveSpeed);
+  for (int v = 0; v < vcMaxViewportCount; v++)
+  {
+    data.Set("camera.moveSpeed[%d] = %f", v, pSettings->camera.moveSpeed[v]);
+    data.Set("camera.lensId[%d] = %i", v, pSettings->camera.lensIndex[v]);
+    data.Set("camera.fieldOfView[%d] = %f", v, pSettings->camera.fieldOfView[v]);
+    data.Set("camera.mapMode[%d] = %s", v, pSettings->camera.mapMode[v] ? "true" : "false");
+  }
   data.Set("camera.nearPlane = %f", pSettings->camera.nearPlane);
   data.Set("camera.farPlane = %f", pSettings->camera.farPlane);
-  data.Set("camera.fieldOfView = %f", pSettings->camera.fieldOfView);
-  data.Set("camera.lensId = %i", pSettings->camera.lensIndex);
 
   data.Set("camera.invertMouseX = %s", pSettings->camera.invertMouseX ? "true" : "false");
   data.Set("camera.invertMouseY = %s", pSettings->camera.invertMouseY ? "true" : "false");
@@ -972,7 +978,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   {
     data.Set("viewports.viewport[%d].width = %d", viewportIndex, pSettings->viewports[viewportIndex].resolution.x);
     data.Set("viewports.viewport[%d].height = %d", viewportIndex, pSettings->viewports[viewportIndex].resolution.y);
-    data.Set("viewports.viewport[%d].mapMode = %s", viewportIndex, pSettings->viewports[viewportIndex].mapMode ? "true" : "false");
   }
 
   // Save

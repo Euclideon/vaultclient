@@ -1453,7 +1453,7 @@ void vcPOI::DoFlythrough(vcState *pProgramState)
     }
     else
     {
-      double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed * pProgramState->deltaTime;
+      double remainingMovementThisFrame = pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] * pProgramState->deltaTime;
       udDoubleQuat startQuat = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
 
       udDouble3 updatedPosition = {};

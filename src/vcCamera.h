@@ -5,6 +5,11 @@
 #include "vcMath.h"
 #include "vcGIS.h"
 
+enum
+{
+  vcMaxViewportCount = 2,
+};
+
 enum vcCameraPivotMode
 {
   vcCPM_Tumble,
@@ -96,20 +101,21 @@ struct vcCameraInput
 
 struct vcCameraSettings
 {
-  float moveSpeed;
+  float moveSpeed[vcMaxViewportCount];
   float nearPlane;
   float farPlane;
-  float fieldOfView;
+  float fieldOfView[vcMaxViewportCount];
   bool invertMouseX;
   bool invertMouseY;
   bool invertControllerX;
   bool invertControllerY;
-  int lensIndex;
+  int lensIndex[vcMaxViewportCount];
   bool lockAltitude;
   vcCameraPivotMode cameraMouseBindings[3]; // bindings for camera settings
   vcCameraScrollWheelMode scrollWheelMode;
 
   bool keepAboveSurface;
+  bool mapMode[vcMaxViewportCount];
 };
 
 // Lens Sizes
@@ -137,7 +143,7 @@ enum vcLensSizes
 // Applies movement to camera
 void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, int viewportIndex, udDouble3 oscMove, udFloat2 windowSize, udFloat2 mousePos);
 
-void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
+void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const int activeViewportIndex, const udFloat2 &windowSize, const udFloat2 *pMousePos = nullptr);
 
 udDouble4 vcCamera_GetNearPlane(const vcCamera &camera, const vcCameraSettings &settings);
 
