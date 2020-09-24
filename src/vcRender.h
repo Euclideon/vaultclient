@@ -95,7 +95,8 @@ struct vcRenderData
   udChunkedArray<vcRenderPolyInstance> polyModels;
   udChunkedArray<vcWaterRenderer*> waterVolumes;
   udChunkedArray<vcImageRenderInfo*> images;
-  udChunkedArray<vcLineInstance*> lines;
+  udChunkedArray<vcLineInstance*> lines; // non depth tested
+  udChunkedArray<vcLineInstance*> depthLines; // depth tested
 
   udChunkedArray<vcViewShedData> viewSheds;
   udChunkedArray<vcPins> pins;

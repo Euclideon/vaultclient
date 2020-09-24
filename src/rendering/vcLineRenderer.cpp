@@ -102,7 +102,7 @@ epilogue:
   return result;
 }
 
-udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPoints, size_t pointCount, const udFloat4 &colour, float width, bool closed)
+udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPoints, size_t pointCount, const udFloat4 &colour, float width, bool closed, int originPointIndex /*= 0*/)
 {
   // Cleanup previous state
   vcMesh_Destroy(&pLine->pMesh);
@@ -118,7 +118,7 @@ udResult vcLineRenderer_UpdatePoints(vcLineInstance *pLine, const udDouble3 *pPo
   size_t vertCount = segmentCount * 4;
   vcLineVertex *pVerts = nullptr;
   vcMesh *pMesh = nullptr;
-  udDouble3 origin = pPoints[0];
+  udDouble3 origin = pPoints[udMin(pointCount - 1, originPointIndex)];
   size_t indexCount = segmentCount * 6;
   int *pIndices = nullptr;
   size_t vertIndex = 0;

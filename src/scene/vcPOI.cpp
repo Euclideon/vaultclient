@@ -1285,7 +1285,7 @@ void vcPOI::AddFenceToScene(vcRenderData *pRenderData)
   if (m_line.fenceMode != vcRRVM_ScreenLine && m_pFence != nullptr)
     pRenderData->fences.PushBack(m_pFence);
   else if (m_line.fenceMode == vcRRVM_ScreenLine && m_pLine != nullptr)
-    pRenderData->lines.PushBack(m_pLine);
+    pRenderData->depthLines.PushBack(m_pLine);
 }
 
 void vcPOI::AddLabelsToScene(vcRenderData *pRenderData, const vcUnitConversionData *pConversionData)

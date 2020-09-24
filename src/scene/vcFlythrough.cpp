@@ -150,7 +150,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   }
 
   if (m_selected && m_state == vcFTS_None && m_pLine != nullptr && m_flightPoints.length > 1)
-    pRenderData->lines.PushBack(m_pLine);
+    pRenderData->depthLines.PushBack(m_pLine);
 }
 
 void vcFlythrough::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
