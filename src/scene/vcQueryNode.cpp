@@ -218,7 +218,12 @@ vcMenuBarButtonIcon vcQueryNode::GetSceneExplorerIcon()
     return vcMBBI_AddCylinderFilter;
   case vcQNFS_Sphere:
     return vcMBBI_AddSphereFilter;
+  case vcQNFS_Count: // Fallthrough
+  case vcQNFS_None:
+    return vcMBBI_AddBoxFilter;
   }
+
+  return vcMBBI_AddBoxFilter;
 }
 
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
