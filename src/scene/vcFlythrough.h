@@ -39,7 +39,7 @@ private:
   vcLineInstance *m_pLine;
   int m_selectedFlightPoint;
 
-  udDouble3 m_middlePosition;
+  udDouble3 m_centerPoint;
 
   struct
   {
@@ -51,6 +51,7 @@ private:
 
   void UpdateCameraPosition(vcState *pProgramState);
   void UpdateLinePoints();
+  void UpdateCenterPoint();
   void LoadFlightPoints(vcState *pProgramState, const udGeoZone &zone);
   void SaveFlightPoints(vcState *pProgramState);
   void SmoothFlightPoints();

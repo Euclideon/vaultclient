@@ -71,16 +71,19 @@ void vcFlythrough::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   if (m_selectedFlightPoint == -1)
   {
     for (vcFlightPoint &flightPoint : m_flightPoints)
+    {
       flightPoint.m_CameraPosition = (delta * udDouble4x4::translation(flightPoint.m_CameraPosition)).axis.t.toVector3();
+
+      //flightPoint.m_CameraHeadingPitch;
+    }
   }
   else
   {
     m_flightPoints[m_selectedFlightPoint].m_CameraPosition = (delta * udDouble4x4::translation(m_flightPoints[m_selectedFlightPoint].m_CameraPosition)).axis.t.toVector3();
   }
 
+  UpdateCenterPoint();
   SaveFlightPoints(pProgramState);
-
-
 }
 
 udDouble4x4 vcFlythrough::GetWorldSpaceMatrix()
@@ -507,30 +510,17 @@ void vcFlythrough::UpdateLinePoints()
 
 void vcFlythrough::UpdateCenterPoint()
 {
+  if (m_flightPoints.length == 0)
+  {
+    m_centerPoint = udDouble3::zero();
+    return;
+  }
+
   udDouble3 min = udDouble3::create(DBL_MAX);
   udDouble3 max = udDouble3::create(-DBL_MAX);
 
-}
-
-void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zone)
-{
-  udDouble3 *pFPPositions;
-  int numFrames;
-  vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, zone, &pFPPositions, &numFrames);
-
-  m_flightPoints.Clear();
-
-
-  for (size_t i = 0; i < (size_t)numFrames; ++i)
+  for (const vcFlightPoint &flightPoint : m_flightPoints)
   {
-    vcFlightPoint flightPoint;
-    flightPoint.m_CameraPosition = pFPPositions[i];
-    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("time[%zu]", i), &flightPoint.time, 0.0);
-    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].x", i), &flightPoint.m_CameraHeadingPitch.x, 0.0);
-    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].y", i), &flightPoint.m_CameraHeadingPitch.y, 0.0);
-
-    m_flightPoints.PushBack(flightPoint);
-
     min.x = udMin(min.x, flightPoint.m_CameraPosition.x);
     min.y = udMin(min.y, flightPoint.m_CameraPosition.y);
     min.z = udMin(min.z, flightPoint.m_CameraPosition.z);
@@ -540,7 +530,29 @@ void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zon
   }
 
   m_centerPoint = (min + max) / 2.0;
+}
 
+void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zone)
+{
+  udDouble3 *pFPPositions;
+  int numFrames;
+  vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, zone, &pFPPositions, &numFrames);
+
+  m_flightPoints.Clear();
+  
+  for (size_t i = 0; i < (size_t)numFrames; ++i)
+  {
+    vcFlightPoint flightPoint;
+    flightPoint.m_CameraPosition = pFPPositions[i];
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("time[%zu]", i), &flightPoint.time, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].x", i), &flightPoint.m_CameraHeadingPitch.x, 0.0);
+    udProjectNode_GetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].y", i), &flightPoint.m_CameraHeadingPitch.y, 0.0);
+
+    m_flightPoints.PushBack(flightPoint);
+  }
+
+  UpdateCenterPoint();
+  
   udFree(pFPPositions);
   m_timeLength = m_flightPoints.length > 0 ? m_flightPoints[m_flightPoints.length - 1].time : 0.0;
 }
