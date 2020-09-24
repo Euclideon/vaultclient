@@ -278,41 +278,6 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
   switch (m_state)
   {
   case vcFTS_None:
-    if (ImGui::BeginCombo(vcString::Get("flythroughResolution"), vcString::Get(vcScreenshotResolutionNameKeys[m_selectedResolutionIndex])))
-    {
-      for (size_t i = 0; i < udLengthOf(vcScreenshotResolutions); ++i)
-      {
-        if (ImGui::Selectable(vcString::Get(vcScreenshotResolutionNameKeys[i])))
-          m_selectedResolutionIndex = (int)i;
-      }
-
-      ImGui::EndCombo();
-    }
-
-    if (ImGui::BeginCombo(vcString::Get("flythroughFPS"), udTempStr("%d", vcFlythroughExportFPS[m_selectedExportFPSIndex])))
-    {
-      for (size_t i = 0; i < udLengthOf(vcFlythroughExportFPS); ++i)
-      {
-        if (ImGui::Selectable(udTempStr("%d", vcFlythroughExportFPS[i])))
-          m_selectedExportFPSIndex = (int)i;
-      }
-
-      ImGui::EndCombo();
-    }
-
-    if (ImGui::BeginCombo(vcString::Get("flythroughExportFormat"), vcFlythroughExportFormats[m_selectedExportFormatIndex]))
-    {
-      for (size_t i = 0; i < udLengthOf(vcFlythroughExportFormats); ++i)
-      {
-        if (ImGui::Selectable(vcFlythroughExportFormats[i]))
-          m_selectedExportFormatIndex = (int)i;
-      }
-
-      ImGui::EndCombo();
-    }
-
-    vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
-
     if (ImGui::Button(vcString::Get("flythroughRecord")))
     {
       m_state = vcFTS_Recording;
@@ -334,21 +299,61 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       m_state = vcFTS_Playing;
       m_timePosition = 0.0;
     }
-    ImGui::SameLine();
-
-    if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' || m_flightPoints.length == 0 ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
+    
+    if (ImGui::BeginMenu(vcString::Get("flythroughExport"), m_flightPoints.length > 0))
     {
-      if (vcModals_OverwriteExistingFile(pProgramState, udTempStr("%s/%05d.%s", m_exportPath, 0, vcFlythroughExportFormats[m_selectedExportFormatIndex]), vcString::Get("flythroughExportAlreadyExists")))
+      if (ImGui::BeginCombo(vcString::Get("flythroughResolution"), vcString::Get(vcScreenshotResolutionNameKeys[m_selectedResolutionIndex])))
       {
-        m_state = vcFTS_Exporting;
-        pProgramState->screenshot.pImage = nullptr;
-        m_exportInfo.currentFrame = -2;
-        m_exportInfo.frameDelta = (1.0 / (double)vcFlythroughExportFPS[m_selectedExportFPSIndex]);
-        pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
-        pProgramState->exportVideo = true;
-        pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
+        for (size_t i = 0; i < udLengthOf(vcScreenshotResolutions); ++i)
+        {
+          if (ImGui::Selectable(vcString::Get(vcScreenshotResolutionNameKeys[i])))
+            m_selectedResolutionIndex = (int)i;
+        }
+
+        ImGui::EndCombo();
       }
+
+      if (ImGui::BeginCombo(vcString::Get("flythroughFPS"), udTempStr("%d", vcFlythroughExportFPS[m_selectedExportFPSIndex])))
+      {
+        for (size_t i = 0; i < udLengthOf(vcFlythroughExportFPS); ++i)
+        {
+          if (ImGui::Selectable(udTempStr("%d", vcFlythroughExportFPS[i])))
+            m_selectedExportFPSIndex = (int)i;
+        }
+
+        ImGui::EndCombo();
+      }
+
+      if (ImGui::BeginCombo(vcString::Get("flythroughExportFormat"), vcFlythroughExportFormats[m_selectedExportFormatIndex]))
+      {
+        for (size_t i = 0; i < udLengthOf(vcFlythroughExportFormats); ++i)
+        {
+          if (ImGui::Selectable(vcFlythroughExportFormats[i]))
+            m_selectedExportFormatIndex = (int)i;
+        }
+
+        ImGui::EndCombo();
+      }
+
+      vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
+
+      if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
+      {
+        if (vcModals_OverwriteExistingFile(pProgramState, udTempStr("%s/%05d.%s", m_exportPath, 0, vcFlythroughExportFormats[m_selectedExportFormatIndex]), vcString::Get("flythroughExportAlreadyExists")))
+        {
+          m_state = vcFTS_Exporting;
+          pProgramState->screenshot.pImage = nullptr;
+          m_exportInfo.currentFrame = -2;
+          m_exportInfo.frameDelta = (1.0 / (double)vcFlythroughExportFPS[m_selectedExportFPSIndex]);
+          pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
+          pProgramState->exportVideo = true;
+          pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
+        }
+      }
+
+      ImGui::EndMenu();
     }
+
     break;
   case vcFTS_Playing:
     if (ImGui::Button(vcString::Get("flythroughPlayStop")))
