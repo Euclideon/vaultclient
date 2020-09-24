@@ -37,6 +37,9 @@ private:
   int m_selectedExportFPSIndex;
   int m_selectedExportFormatIndex;
   vcLineInstance *m_pLine;
+  int m_selectedFlightPoint;
+
+  udDouble3 m_middlePosition;
 
   struct
   {
@@ -58,9 +61,12 @@ public:
   ~vcFlythrough() {};
 
   void OnNodeUpdate(vcState *pProgramState) override;
+  void SelectSubitem(uint64_t internalId) override;
+  bool IsSubitemSelected(uint64_t internalId) override;
+  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
+  udDouble4x4 GetWorldSpaceMatrix() override;
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
-  void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
   void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
   void HandleSceneEmbeddedUI(vcState *pProgramState) override;
   void Cleanup(vcState *pProgramState) override;

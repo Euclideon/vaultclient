@@ -14,6 +14,7 @@
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "imgui_internal.h"
 #include "vcModals.h"
+#include "vcInternalModels.h"
 
 #include "vcFeatures.h"
 
@@ -39,8 +40,9 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_selectedExportFPSIndex = 3;
   m_selectedExportFormatIndex = 0;
   m_pLine = nullptr;
+  m_selectedFlightPoint = -1;
+  m_centerPoint = udDouble3::zero();
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
-
   m_pProgramState = pProgramState;
 
   m_exportInfo.currentFrame = 0;
@@ -52,6 +54,43 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
 void vcFlythrough::OnNodeUpdate(vcState *pProgramState)
 {
   ChangeProjection(pProgramState->geozone);
+}
+
+void vcFlythrough::SelectSubitem(uint64_t internalId)
+{
+  m_selectedFlightPoint = ((int)internalId) - 1;
+}
+
+bool vcFlythrough::IsSubitemSelected(uint64_t internalId)
+{
+  return (m_selected && (m_selectedFlightPoint == ((int)internalId - 1) || m_selectedFlightPoint == -1));
+}
+
+void vcFlythrough::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
+{
+  if (m_selectedFlightPoint == -1)
+  {
+    for (vcFlightPoint &flightPoint : m_flightPoints)
+      flightPoint.m_CameraPosition = (delta * udDouble4x4::translation(flightPoint.m_CameraPosition)).axis.t.toVector3();
+  }
+  else
+  {
+    m_flightPoints[m_selectedFlightPoint].m_CameraPosition = (delta * udDouble4x4::translation(m_flightPoints[m_selectedFlightPoint].m_CameraPosition)).axis.t.toVector3();
+  }
+
+  SaveFlightPoints(pProgramState);
+
+
+}
+
+udDouble4x4 vcFlythrough::GetWorldSpaceMatrix()
+{
+  if (m_flightPoints.length == 0)
+    return udDouble4x4::identity();
+  else if (m_selectedFlightPoint == -1)
+    return udDouble4x4::translation(m_centerPoint);
+  else
+    return udDouble4x4::translation(m_flightPoints[m_selectedFlightPoint].m_CameraPosition);
 }
 
 void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
@@ -151,11 +190,28 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_selected && m_state == vcFTS_None && m_pLine != nullptr && m_flightPoints.length > 1)
     pRenderData->depthLines.PushBack(m_pLine);
-}
 
-void vcFlythrough::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
-{
-  // Do something
+  if (m_selected)
+  {
+    for (int i = 0; i < m_flightPoints.length; ++i)
+    {
+      if (m_selectedFlightPoint != -1 && i != m_selectedFlightPoint)
+        continue;
+
+      vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+
+      pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
+      udDouble3 linearDistance = (pProgramState->pActiveViewport->camera.position - m_flightPoints[i].m_CameraPosition);
+      pInstance->worldMat = udDouble4x4::translation(m_flightPoints[i].m_CameraPosition) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
+      pInstance->pSceneItem = this;
+      pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
+      pInstance->sceneItemInternalId = (uint64_t)i + 1;
+      pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
+      pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+      pInstance->selectable = true;
+      pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.85f);
+    }
+  }
 }
 
 void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -444,9 +500,16 @@ void vcFlythrough::UpdateLinePoints()
     udDouble3 *pPositions = udAllocType(udDouble3, m_flightPoints.length, udAF_Zero);
     for (size_t i = 0; i < m_flightPoints.length; ++i)
       pPositions[i] = m_flightPoints[i].m_CameraPosition;
-    vcLineRenderer_UpdatePoints(m_pLine, pPositions, m_flightPoints.length, vcIGSW_BGRAToImGui(0xFFFFFF00), 2.0, false);
+    vcLineRenderer_UpdatePoints(m_pLine, pPositions, m_flightPoints.length, vcIGSW_BGRAToImGui(0xFFFFFF00), 8.0, false);
     udFree(pPositions);
   }
+}
+
+void vcFlythrough::UpdateCenterPoint()
+{
+  udDouble3 min = udDouble3::create(DBL_MAX);
+  udDouble3 max = udDouble3::create(-DBL_MAX);
+
 }
 
 void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zone)
@@ -457,6 +520,7 @@ void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zon
 
   m_flightPoints.Clear();
 
+
   for (size_t i = 0; i < (size_t)numFrames; ++i)
   {
     vcFlightPoint flightPoint;
@@ -466,7 +530,16 @@ void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zon
     udProjectNode_GetMetadataDouble(m_pNode, udTempStr("cameraHeadingPitch[%zu].y", i), &flightPoint.m_CameraHeadingPitch.y, 0.0);
 
     m_flightPoints.PushBack(flightPoint);
+
+    min.x = udMin(min.x, flightPoint.m_CameraPosition.x);
+    min.y = udMin(min.y, flightPoint.m_CameraPosition.y);
+    min.z = udMin(min.z, flightPoint.m_CameraPosition.z);
+    max.x = udMax(max.x, flightPoint.m_CameraPosition.x);
+    max.y = udMax(max.y, flightPoint.m_CameraPosition.y);
+    max.z = udMax(max.z, flightPoint.m_CameraPosition.z);
   }
+
+  m_centerPoint = (min + max) / 2.0;
 
   udFree(pFPPositions);
   m_timeLength = m_flightPoints.length > 0 ? m_flightPoints[m_flightPoints.length - 1].time : 0.0;
