@@ -6,6 +6,7 @@
 #include "vcStringFormat.h"
 #include "vcModals.h"
 #include "vcQueryNode.h"
+#include "vcCrossSectionNode.h"
 #include "vcSettingsUI.h"
 #include "vcClassificationColours.h"
 
@@ -724,11 +725,13 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
     bool matrixEqual = udMatrixEqualApprox(m_defaultMatrix, m_sceneMatrix);
     if (matrixEqual && ImGui::BeginMenu(vcString::Get("sceneExplorerExportPointCloud")))
     {
-      static vcQueryNode *s_pQuery = nullptr;
+      static vcQueryNode* s_pQuery = nullptr;
+      static vcCrossSectionNode *s_pCrossSection = nullptr;
 
       if (ImGui::IsWindowAppearing())
       {
         s_pQuery = nullptr;
+        s_pCrossSection = nullptr;
 
         // Set a default file name to be exported if there isn't.
         if (udStrlen(pProgramState->modelPath) == 0)
@@ -743,12 +746,16 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
         }
       }
 
-      if (ImGui::BeginCombo(vcString::Get("sceneExplorerExportQueryFilter"), (s_pQuery == nullptr ? vcString::Get("sceneExplorerExportEntireModel") : s_pQuery->m_pNode->pName)))
+      if (ImGui::BeginCombo(vcString::Get("sceneExplorerExportQueryFilter"), (s_pQuery == nullptr ? (s_pCrossSection == nullptr ? vcString::Get("sceneExplorerExportEntireModel") : s_pCrossSection->m_pNode->pName) : s_pQuery->m_pNode->pName)))
       {
-        if (ImGui::MenuItem(vcString::Get("sceneExplorerExportEntireModel"), nullptr, (s_pQuery == nullptr)))
+        if (ImGui::MenuItem(vcString::Get("sceneExplorerExportEntireModel"), nullptr, (s_pQuery == nullptr && s_pCrossSection == nullptr)))
+        {
           s_pQuery = nullptr;
+          s_pCrossSection = nullptr;
+        }
 
         ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, (vcSceneItem**)&s_pQuery, "QFilter", true);
+        ContextMenuListModels(pProgramState, pProgramState->activeProject.pFolder->m_pNode, (vcSceneItem**)&s_pCrossSection, "XSlice", true);
         ImGui::EndCombo();
       }
 
@@ -761,7 +768,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
           if (!udStrchr(pProgramState->modelPath, "."))
             udStrcat(pProgramState->modelPath, SupportedTileTypes_QueryExport[0]);
 
-          udQueryFilter *pFilter = ((s_pQuery == nullptr) ? nullptr : s_pQuery->m_pFilter);
+          udQueryFilter *pFilter = ((s_pQuery == nullptr) ? ((s_pCrossSection == nullptr) ? nullptr : s_pCrossSection->m_pFilter) : s_pQuery->m_pFilter);
           udPointCloud *pCloud = m_pPointCloud;
 
           ++pProgramState->backgroundWork.exportsRunning;
