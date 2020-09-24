@@ -252,11 +252,22 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     double vertPos = addPos.z;
 
     addPos.z = 0.0;
-    addPos = orientation.apply(addPos);
 
     // Translation
-    if ((pCamSettings->mapMode[pProgramState->activeViewportIndex] || pCamSettings->lockAltitude) && addPos != udDouble3::zero())
-      addPos -= udDot(pViewport->camera.cameraUp, addPos) * pViewport->camera.cameraUp;
+    if (pCamSettings->mapMode[pProgramState->activeViewportIndex])
+    {
+      udDouble3 addPosNS = pViewport->camera.cameraNorth * addPos.y;
+      udDouble3 addPosEW = udCross(pViewport->camera.cameraNorth, pViewport->camera.cameraUp) * addPos.x;
+
+      addPos = addPosNS + addPosEW;
+    }
+    else
+    {
+      addPos = orientation.apply(addPos);
+
+      if (pCamSettings->lockAltitude && addPos != udDouble3::zero())
+        addPos -= udDot(pViewport->camera.cameraUp, addPos) * pViewport->camera.cameraUp;
+    }
 
     if (addPos != udDouble3::zero())
       addPos = udNormalize3(addPos);
