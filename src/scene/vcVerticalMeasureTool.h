@@ -25,6 +25,8 @@ public:
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
   void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
+  vcMenuBarButtonIcon GetSceneExplorerIcon() override;
+
   void HandleSceneEmbeddedUI(vcState *pProgramState) override;
   void Cleanup(vcState *pProgramState) override;
   void ChangeProjection(const udGeoZone &newZone) override;

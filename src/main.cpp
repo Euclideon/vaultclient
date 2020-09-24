@@ -1967,7 +1967,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuSettings"), vcB_OpenSettingsMenu, vcMBBI_Settings, vcMBBG_SameGroup))
         pProgramState->openSettings = true;
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuToggleViewport"), vcB_Invalid, vcMBBI_SaveViewport, vcMBBG_SameGroup))
+      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuToggleViewport"), vcB_Invalid, vcMBBI_SplitViewport, vcMBBG_SameGroup))
         vcMain_ToggleViewport(pProgramState);
 
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), vcB_Invalid, vcMBBI_Help, vcMBBG_SameGroup))
@@ -2265,7 +2265,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     }
   }
 
-  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpointWithVisSetting"), vcB_Invalid, vcMBBI_SaveViewport, vcMBBG_SameGroup))
+  if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddViewpointWithVisSetting"), vcB_Invalid, vcMBBI_SaveViewportWithVis, vcMBBG_SameGroup))
   {
     udProjectNode *pNode = nullptr;
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Camera", vcString::Get("viewpointDefaultName"), nullptr, nullptr) == udE_Success)

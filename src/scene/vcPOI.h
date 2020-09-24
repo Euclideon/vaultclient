@@ -116,6 +116,7 @@ public:
   void HandleContextMenu(vcState *pProgramState) override;
   void HandleAttachmentUI(vcState *pProgramState) override;
   void HandleToolUI(vcState *pProgramState) override;
+  vcMenuBarButtonIcon GetSceneExplorerIcon() override;
 
   void Cleanup(vcState *pProgramState) override;
   void ChangeProjection(const udGeoZone &newZone) override;

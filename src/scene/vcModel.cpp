@@ -869,6 +869,11 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
 #endif //VC_HASCONVERT
 }
 
+vcMenuBarButtonIcon vcModel::GetSceneExplorerIcon()
+{
+  return vcMBBI_UDS;
+}
+
 void vcModel::Cleanup(vcState * /*pProgramState*/)
 {
   udPointCloud_Unload(&m_pPointCloud);

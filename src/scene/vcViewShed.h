@@ -23,6 +23,8 @@ public:
   void ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta) override;
   void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
   void HandleSceneEmbeddedUI(vcState *pProgramState) override;
+  vcMenuBarButtonIcon GetSceneExplorerIcon() override;
+
   void Cleanup(vcState *pProgramState) override;
   void ChangeProjection(const udGeoZone &newZone) override;
 

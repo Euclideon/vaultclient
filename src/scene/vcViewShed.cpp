@@ -91,6 +91,11 @@ void vcViewShed::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
     udProjectNode_SetMetadataUint(m_pNode, "hiddenColour", m_hiddenColour);
 }
 
+vcMenuBarButtonIcon vcViewShed::GetSceneExplorerIcon()
+{
+  return vcMBBI_ViewShed;
+}
+
 void vcViewShed::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 *pPoints = nullptr;
