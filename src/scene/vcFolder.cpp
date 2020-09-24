@@ -107,19 +107,19 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcMedia(&pProgramState->activeProject, pNode, pProgramState);
       else if (pNode->itemtype == udPNT_Viewpoint)
         pNode->pUserData = new vcViewpoint(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "I3S"))
+      else if (pNode->itemtype == udPNT_I3S)
         pNode->pUserData = new vcI3S(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "Water"))
+      else if (pNode->itemtype == udPNT_Water)
         pNode->pUserData = new vcWater(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "ViewMap"))
+      else if (pNode->itemtype == udPNT_ViewShed)
         pNode->pUserData = new vcViewShed(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
+      else if (pNode->itemtype == udPNT_Polygon)
         pNode->pUserData = new vcPolyModelNode(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "QFilter"))
+      else if (pNode->itemtype == udPNT_QueryFilter)
         pNode->pUserData = new vcQueryNode(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "Places"))
+      else if (pNode->itemtype == udPNT_Places)
         pNode->pUserData = new vcPlaceLayer(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "MHeight"))
+      else if (pNode->itemtype == udPNT_HeightMeasurement)
         pNode->pUserData = new vcVerticalMeasureTool(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "FlyPath"))
         pNode->pUserData = new vcFlythrough(&pProgramState->activeProject, pNode, pProgramState);
