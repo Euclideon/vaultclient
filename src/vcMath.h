@@ -351,7 +351,6 @@ T udProjectedArea(udVector4<T> const &plane, udVector3<T> const *pPoints, size_t
   {
     size_t ind = (i == nPoints - 1) ? 0 : i + 1;
     udVector3<T> v1 = udProjectPointToPlane<T>(pPoints[ind], plane) - centroid;
-    v1 = udProjectPointToPlane<T>(pPoints[ind], plane) - centroid;
     area += udMag3(udCross3(v0, v1));
     v0 = v1;
   }
