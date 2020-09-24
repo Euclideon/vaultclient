@@ -377,13 +377,13 @@ void vcModel::ChangeProjection(const udGeoZone &newZone)
 
   m_changeZones = false;
 
-  if (newZone.srid != 0)
-  {
-    if (m_pCurrentZone != nullptr)
-      m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pCurrentZone, newZone);
-    else if (m_pPreferredProjection != nullptr)
-      m_sceneMatrix = udGeoZone_TransformMatrix(m_baseMatrix, *m_pPreferredProjection, newZone);
-  }
+  if (newZone.srid == 0)
+    return;
+
+  if (m_pCurrentZone != nullptr)
+    m_sceneMatrix = udGeoZone_TransformMatrix(m_sceneMatrix, *m_pCurrentZone, newZone);
+  else if (m_pPreferredProjection != nullptr)
+    m_sceneMatrix = udGeoZone_TransformMatrix(m_baseMatrix, *m_pPreferredProjection, newZone);
 
   if (m_pCurrentZone == nullptr)
     m_pCurrentZone = udAllocType(udGeoZone, 1, udAF_None);
