@@ -1534,8 +1534,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         for (int v = 0; v < vcMaxViewportCount; v++)
         {
           if (v < pProgramState->settings.activeViewportCount)
-            if (ImGui::SliderFloat(udTempStr("%s %d",vcString::Get("sceneCameraMoveSpeed"), v), &(pProgramState->settings.camera.moveSpeed[v]), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
+          {
+            if (ImGui::SliderFloat(udTempStr("%s %d", vcString::Get("sceneCameraMoveSpeed"), v), &(pProgramState->settings.camera.moveSpeed[v]), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
               pProgramState->settings.camera.moveSpeed[v] = udClamp(pProgramState->settings.camera.moveSpeed[v], vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+          }
         }
 
         if (pProgramState->geozone.latLongBoundMin != pProgramState->geozone.latLongBoundMax)
@@ -1645,9 +1647,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       // TODO: Putting this here for now
       if (pProgramState->settings.activeViewportCount > 1)
       {
-        ImGui::Checkbox(udTempStr("%s##firstViewportMapMode", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.camera.mapMode[0]);
+        ImGui::Checkbox(udTempStr("%s %d##firstViewportMapMode", vcString::Get("orthographicCameraViewport"), 1), &pProgramState->settings.camera.mapMode[0]);
         ImGui::SameLine();
-        ImGui::Checkbox(udTempStr("%s##secondViewportMapMode", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.camera.mapMode[1]);
+        ImGui::Checkbox(udTempStr("%s %d##secondViewportMapMode", vcString::Get("orthographicCameraViewport"), 2), &pProgramState->settings.camera.mapMode[1]);
       }
     }
 
