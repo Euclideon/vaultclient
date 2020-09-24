@@ -258,7 +258,6 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     {
       if (pProgramState->geozone.projection == udGZPT_ECEF)
         addPos = -addPos;
-      //else
       udDouble3 addPosNS = udDot(pViewport->camera.cameraNorth, addPos) * pViewport->camera.cameraNorth;
 
       udDouble3 cameraWest = udCross(pViewport->camera.cameraNorth, pViewport->camera.cameraUp);
