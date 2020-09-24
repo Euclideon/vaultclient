@@ -15,6 +15,8 @@
 #include "imgui_internal.h"
 #include "vcModals.h"
 
+#include "vcFeatures.h"
+
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
 const char *vcFlythroughExportFormats[] =
 {
