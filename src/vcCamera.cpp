@@ -28,6 +28,50 @@ void vcCamera_StopSmoothing(vcCameraInput *pCamInput)
   pCamInput->smoothRotation = udDouble2::zero();
 }
 
+void vcCamera_UpdateCameraMap(vcState* pProgramState, vcCamera* pCamera)
+{
+  if (pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
+  {
+    for (int v = 0; v < vcMaxViewportCount; v++)
+    {
+      if (!pProgramState->settings.camera.mapMode[v])
+      {
+        if (pProgramState->geozone.projection != udGZPT_ECEF)
+        {
+          pProgramState->pViewports[v].camera.position.x = pCamera->position.x;
+          pProgramState->pViewports[v].camera.position.y = pCamera->position.y;
+        }
+        else
+        {
+          udDouble3 camMapPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pCamera->position);
+          udDouble3 camPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[v].camera.position);
+          camMapPosLatLong.z = camPosLatLong.z;
+          pProgramState->pViewports[v].camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, camMapPosLatLong);
+        }
+      }
+    }
+  }
+  else
+  {
+    for (int v = 0; v < vcMaxViewportCount; v++)
+    {
+      if (pProgramState->settings.camera.mapMode[v])
+      {
+        if (pProgramState->geozone.projection != udGZPT_ECEF)
+          pProgramState->pViewports[v].camera.position = udDouble3::create(pCamera->position.x, pCamera->position.y, pProgramState->pViewports[v].camera.position.z);
+        else
+        {
+          udDouble3 camPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pCamera->position);
+          udDouble3 camMapPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[v].camera.position);
+          camPosLatLong.z = camMapPosLatLong.z;
+          pProgramState->pViewports[v].camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, camPosLatLong);
+        }
+        pProgramState->pViewports[v].camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
+      }
+    }
+  }
+}
+
 void vcCamera_UpdateSmoothing(vcState * pProgramState, vcCamera *pCamera, vcCameraInput *pCamInput, double deltaTime, const udDouble3 &worldAnchorNormal, const udDouble3 &worldAnchorPoint, const udGeoZone &geozone)
 {
   static const double minSmoothingThreshold = 0.00001;
@@ -45,46 +89,7 @@ void vcCamera_UpdateSmoothing(vcState * pProgramState, vcCamera *pCamera, vcCame
       udDouble3 step = pCamInput->smoothTranslation * udMin(1.0, stepAmount * sCameraTranslationSmoothingSpeed);
       pCamera->position += step;
       pCamInput->smoothTranslation -= step;
-      if (pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
-      {
-        for (int v = 0; v < vcMaxViewportCount; v++)
-        {
-          if (!pProgramState->settings.camera.mapMode[v])
-          {
-            if (pProgramState->geozone.projection != udGZPT_ECEF)
-            {
-                  pProgramState->pViewports[v].camera.position.x = pCamera->position.x;
-                  pProgramState->pViewports[v].camera.position.y = pCamera->position.y;
-            }
-            else
-            {
-              udDouble3 camMapPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pCamera->position);
-              udDouble3 camPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[v].camera.position);
-              camMapPosLatLong.z = camPosLatLong.z;
-              pProgramState->pViewports[v].camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, camMapPosLatLong);
-            }
-          }
-        }
-      }
-      else
-      {
-        for (int v = 0; v < vcMaxViewportCount; v++)
-        {
-          if (pProgramState->settings.camera.mapMode[v])
-          {
-            if (pProgramState->geozone.projection != udGZPT_ECEF)
-              pProgramState->pViewports[v].camera.position = udDouble3::create(pCamera->position.x, pCamera->position.y, pProgramState->pViewports[v].camera.position.z);
-            else
-            {
-              udDouble3 camPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pCamera->position);
-              udDouble3 camMapPosLatLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pViewports[v].camera.position);
-              camPosLatLong.z = camMapPosLatLong.z;
-              pProgramState->pViewports[v].camera.position = udGeoZone_LatLongToCartesian(pProgramState->geozone, camPosLatLong);
-            }
-            pProgramState->pViewports[v].camera.headingPitch = udDouble2::create(0.0f, -UD_HALF_PI);
-          }
-        }
-      }
+      vcCamera_UpdateCameraMap(pProgramState, pCamera);
     }
     else
     {
@@ -139,6 +144,8 @@ void vcCamera_UpdateSmoothing(vcState * pProgramState, vcCamera *pCamera, vcCame
       // Save it back to the camera
       pCamera->position = worldAnchorPoint + rotation.apply(direction); // define new position
       pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(geozone, pCamera->position, orientation);
+
+      vcCamera_UpdateCameraMap(pProgramState, pCamera);
     }
     else
     {
@@ -295,6 +302,9 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
 
   case vcCIS_Orbiting:
   {
+    if (pCamSettings->mapMode[pProgramState->activeViewportIndex])
+      break;
+
     double distanceToPointSqr = udMagSq3(pViewport->worldAnchorPoint - pViewport->camera.position);
     if (distanceToPointSqr != 0.0 && (pViewport->cameraInput.mouseInput.x != 0 || pViewport->cameraInput.mouseInput.y != 0))
     {
@@ -328,9 +338,10 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
 
     double travelProgress = udEase(pViewport->cameraInput.progress, udET_CubicInOut);
     pViewport->camera.position = pViewport->cameraInput.startPosition + moveVector * travelProgress;
-
     if (pViewport->camera.headingPitch.y > UD_PI)
       pViewport->camera.headingPitch.y -= UD_2PI;
+
+    vcCamera_UpdateCameraMap(pProgramState, &pViewport->camera);
   }
   break;
 
@@ -356,6 +367,9 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     pViewport->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pViewport->camera.position, udSlerp(pViewport->cameraInput.startAngle, pViewport->cameraInput.targetAngle, travelProgress));
     if (pViewport->camera.headingPitch.y > UD_PI)
       pViewport->camera.headingPitch.y -= UD_2PI;
+
+    vcCamera_UpdateCameraMap(pProgramState, &pViewport->camera);
+
   }
   break;
 
