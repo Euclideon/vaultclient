@@ -869,41 +869,44 @@ void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
   UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
   for (int v = 0; v < vcMaxViewportCount; v++)
   {
-    if (ImGui::Combo(udTempStr("%s %d", vcString::Get("settingsViewportCameraLens"),v), &pProgramState->settings.camera.lensIndex[v], lensNameArray, (int)udLengthOf(lensNameArray)))
+    if (v < pProgramState->settings.activeViewportCount)
     {
-      switch (pProgramState->settings.camera.lensIndex[v])
+      if (ImGui::Combo(udTempStr("%s %d", vcString::Get("settingsViewportCameraLens"), v), &pProgramState->settings.camera.lensIndex[v], lensNameArray, (int)udLengthOf(lensNameArray)))
       {
-      case vcLS_Custom:
-        /*Custom FoV*/
-        break;
-      case vcLS_15mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens15mm;
-        break;
-      case vcLS_24mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens24mm;
-        break;
-      case vcLS_30mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens30mm;
-        break;
-      case vcLS_50mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens50mm;
-        break;
-      case vcLS_70mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens70mm;
-        break;
-      case vcLS_100mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens100mm;
-        break;
+        switch (pProgramState->settings.camera.lensIndex[v])
+        {
+        case vcLS_Custom:
+          /*Custom FoV*/
+          break;
+        case vcLS_15mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens15mm;
+          break;
+        case vcLS_24mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens24mm;
+          break;
+        case vcLS_30mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens30mm;
+          break;
+        case vcLS_50mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens50mm;
+          break;
+        case vcLS_70mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens70mm;
+          break;
+        case vcLS_100mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens100mm;
+          break;
+        }
       }
-    }
 
-    if (pProgramState->settings.camera.lensIndex[v] == vcLS_Custom)
-    {
-      float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView[v]);
-      ImGui::Indent();
-      if (ImGui::SliderFloat(udTempStr("%s %d", vcString::Get("settingsViewportFOV"), v), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
-        pProgramState->settings.camera.fieldOfView[v] = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
-      ImGui::Unindent();
+      if (pProgramState->settings.camera.lensIndex[v] == vcLS_Custom)
+      {
+        float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView[v]);
+        ImGui::Indent();
+        if (ImGui::SliderFloat(udTempStr("%s %d", vcString::Get("settingsViewportFOV"), v), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
+          pProgramState->settings.camera.fieldOfView[v] = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
+        ImGui::Unindent();
+      }
     }
   }
 

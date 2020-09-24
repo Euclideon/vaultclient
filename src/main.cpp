@@ -1531,8 +1531,12 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2, nullptr, nullptr, "%.2f"))
           pProgramState->pActiveViewport->camera.headingPitch = UD_DEG2RAD(headingPitch);
 
-        if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex]), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
-          pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] = udClamp(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex], vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+        for (int v = 0; v < vcMaxViewportCount; v++)
+        {
+          if (v < pProgramState->settings.activeViewportCount)
+            if (ImGui::SliderFloat(udTempStr("%s %d",vcString::Get("sceneCameraMoveSpeed"), v), &(pProgramState->settings.camera.moveSpeed[v]), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
+              pProgramState->settings.camera.moveSpeed[v] = udClamp(pProgramState->settings.camera.moveSpeed[v], vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+        }
 
         if (pProgramState->geozone.latLongBoundMin != pProgramState->geozone.latLongBoundMax)
         {
@@ -1640,7 +1644,11 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       // TODO: Putting this here for now
       if (pProgramState->settings.activeViewportCount > 1)
+      {
+        ImGui::Checkbox(udTempStr("%s##firstViewportMapMode", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.camera.mapMode[0]);
+        ImGui::SameLine();
         ImGui::Checkbox(udTempStr("%s##secondViewportMapMode", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.camera.mapMode[1]);
+      }
     }
 
     ImGui::End();
