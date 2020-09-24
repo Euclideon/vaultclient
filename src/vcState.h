@@ -199,11 +199,8 @@ struct vcState
   int64_t streamingMemory;
   double lastSuccessfulSave;
 
-  vcTexture *pCompanyLogo;
-  vcTexture *pCompanyWatermark;
   vcTexture *pUITexture;
   vcTexture *pWhiteTexture;
-  vcTexture *pInputsTexture;
 
   bool finishedStartup;
   bool forceLogout;

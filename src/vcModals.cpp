@@ -3,6 +3,7 @@
 #include "vcState.h"
 #include "vcPOI.h"
 #include "vcTexture.h"
+#include "gl/vcTextureCache.h"
 #include "vcRender.h"
 #include "vcStrings.h"
 #include "vcConvert.h"
@@ -236,7 +237,8 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       int x = 0;
       int y = 0;
 
-      vcTexture_GetSize(pProgramState->pCompanyLogo, &x, &y);
+      vcTexture *pTexture = vcTextureCache_Get("asset://assets/branding/logo.png", vcTFM_Linear, true, vcTWM_Clamp);
+      vcTexture_GetSize(pTexture, &x, &y);
 
       float xf = (float)x;
       float yf = (float)y;
@@ -254,7 +256,9 @@ void vcModals_DrawWelcome(vcState *pProgramState)
       }
 
       ImGui::SetCursorPosX((windowSize.x - xf) / 2);
-      ImGui::Image(pProgramState->pCompanyLogo, ImVec2(xf, yf));
+      ImGui::Image(pTexture, ImVec2(xf, yf));
+
+      vcTextureCache_Release(&pTexture);
     }
 
     ImGui::Spacing();
@@ -1725,7 +1729,9 @@ void vcModals_DrawInputHelper(vcState* pProgramState)
     ImVec2 size = ImGui::GetWindowSize();
     ImVec2 itemSize = {};
 
-    ImGui::Image(pProgramState->pInputsTexture, ImVec2(850.f, 330.f));
+    vcTexture *pTexture = vcTextureCache_Get("asset://assets/textures/inputbackground.png", vcTFM_Linear);
+    ImGui::Image(pTexture, ImVec2(850.f, 330.f));
+    vcTextureCache_Release(&pTexture);
 
     const float ComboY = 50.f;
     const float ComboWidth = 150.f;

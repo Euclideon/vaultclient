@@ -17,6 +17,8 @@
 #include "vcLineRenderer.h"
 #include "vcPinRenderer.h"
 
+#include "gl/vcTextureCache.h"
+
 #include "stb_image.h"
 #include <vector>
 
@@ -1546,7 +1548,11 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
 
   // Watermark
   if (pProgramState->settings.presentation.showEuclideonLogo)
-    vcRender_RenderWatermark(pRenderContext, pProgramState->pCompanyWatermark);
+  {
+    vcTexture *pTexture = vcTextureCache_Get("asset://assets/branding/logo.png", vcTFM_Linear, true, vcTWM_Clamp);
+    vcRender_RenderWatermark(pRenderContext, pTexture);
+    vcTextureCache_Release(&pTexture);
+  }
 
   vcGLState_ResetState();
   vcShader_Bind(nullptr);
