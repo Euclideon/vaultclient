@@ -299,7 +299,8 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       m_state = vcFTS_Playing;
       m_timePosition = 0.0;
     }
-    
+
+#if VC_HASCONVERT
     if (ImGui::BeginMenu(vcString::Get("flythroughExport"), m_flightPoints.length > 0))
     {
       if (ImGui::BeginCombo(vcString::Get("flythroughResolution"), vcString::Get(vcScreenshotResolutionNameKeys[m_selectedResolutionIndex])))
@@ -353,7 +354,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
       ImGui::EndMenu();
     }
-
+#endif // VC_HASCONVERT
     break;
   case vcFTS_Playing:
     if (ImGui::Button(vcString::Get("flythroughPlayStop")))
