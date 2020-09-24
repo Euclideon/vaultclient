@@ -212,6 +212,8 @@ struct vcRenderContext
 
   vcTileRenderer *pTileRenderer;
 
+  vcLineInstance* pCameraFrustumLines;
+
   uint16_t previousPickedId;
   float previousFrameDepth;
   udFloat2 currentMouseUV;
@@ -323,6 +325,8 @@ udResult vcRender_Init(vcState *pProgramState, vcRenderContext **ppRenderContext
   UD_ERROR_CHECK(vcTileRenderer_Create(&pRenderContext->pTileRenderer, pWorkerPool, &pProgramState->settings));
   UD_ERROR_CHECK(vcLineRenderer_Create(&pRenderContext->pLineRenderer, pWorkerPool));
   UD_ERROR_CHECK(vcPinRenderer_Create(&pRenderContext->pPinRenderer));
+
+  UD_ERROR_CHECK(vcLineRenderer_CreateLine(&pRenderContext->pCameraFrustumLines));
 
   UD_ERROR_CHECK(vcRender_LoadShaders(pRenderContext, pProgramState->pWorkerPool));
   UD_ERROR_CHECK(vcRender_ResizeScene(pProgramState, pRenderContext, sceneResolution.x, sceneResolution.y));
@@ -511,6 +515,8 @@ udResult vcRender_Destroy(vcState *pProgramState, vcRenderContext **ppRenderCont
 
   vcRender_DestroyShaders(pRenderContext);
   vcTexture_Destroy(&pRenderContext->skyboxShaderPanorama.pSkyboxTexture);
+
+  vcLineRenderer_DestroyLine(&pRenderContext->pCameraFrustumLines);
 
   UD_ERROR_CHECK(vcPinRenderer_Destroy(&pRenderContext->pPinRenderer));
   UD_ERROR_CHECK(vcAtmosphereRenderer_Destroy(&pRenderContext->pAtmosphereRenderer));
@@ -1256,17 +1262,28 @@ void vcRender_RenderUI(vcState *pProgramState, vcRenderContext *pRenderContext, 
 void vcRender_TransparentPass(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData)
 {
   vcGLState_SetBlendMode(vcGLSBM_Interpolative);
-  vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
 
   // lines
-  vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
-  udDouble4 nearPlane = vcCamera_GetNearPlane(pProgramState->pActiveViewport->camera, pProgramState->settings.camera);
-  for (size_t i = 0; i < renderData.lines.length; ++i)
-    vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, nearPlane);
+  {
+    vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_None);
+    udDouble4 nearPlane = vcCamera_GetNearPlane(pProgramState->pActiveViewport->camera, pProgramState->settings.camera);
+
+    // depth tested
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
+    for (size_t i = 0; i < renderData.depthLines.length; ++i)
+      vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.depthLines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, nearPlane);
+
+    // non-depth tested
+    vcGLState_SetDepthStencilMode(vcGLSDM_Always, false);
+    for (size_t i = 0; i < renderData.lines.length; ++i)
+      vcLineRenderer_Render(pRenderContext->pLineRenderer, renderData.lines[i], pProgramState->pActiveViewport->camera.matrices.viewProjection, pProgramState->settings.viewports[pProgramState->activeViewportIndex].resolution, nearPlane);
+
+  }
 
   // Images
   {
     vcGLState_SetFaceMode(vcGLSFM_Solid, vcGLSCM_Front);
+    vcGLState_SetDepthStencilMode(vcGLSDM_LessOrEqual, false);
 
     uint32_t imageIds = vcObjectId_SceneItems + (uint32_t)(renderData.polyModels.length);
     for (uint32_t i = 0; i < renderData.images.length; ++i)
@@ -1497,6 +1514,29 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
   vcMesh_Render(gInternalMeshes[vcInternalMeshType_ImGuiQuad]);
 }
 
+void vcRender_RenderMainCameraFrustum(vcState* pProgramState, vcRenderContext *pRenderContext, vcRenderData& renderData)
+{
+  // assumptions: viewport 0 is 'main' viewport
+  vcCamera* pDisplayFrustumCamera = &pProgramState->pViewports[0].camera;
+
+  udDouble3 points[4] = {};
+
+  // use the map mode camera position as the base (these should visually appear at the same point for the map)
+  points[1] = pProgramState->pActiveViewport->camera.position - pProgramState->pActiveViewport->camera.cameraUp * 100.0f;
+  points[2] = points[1];
+
+  udDouble4 farPointA = pDisplayFrustumCamera->matrices.inverseViewProjection * udDouble4::create(-1.0f, 0.0f, 1.0f, 1.0f);
+  farPointA /= farPointA.w;
+  points[0] = farPointA.toVector3();
+
+  udDouble4 farPointB = pDisplayFrustumCamera->matrices.inverseViewProjection * udDouble4::create(1.0f, 0.0f, 1.0f, 1.0f);
+  farPointB /= farPointB.w;
+  points[3] = farPointB.toVector3();
+
+  vcLineRenderer_UpdatePoints(pRenderContext->pCameraFrustumLines, points, udLengthOf(points), udFloat4::one(), 3.0f, false, 1);
+  renderData.lines.PushBack(pRenderContext->pCameraFrustumLines);
+}
+
 void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContext, vcRenderData &renderData, vcFramebuffer *pDefaultFramebuffer)
 {
   udUnused(pDefaultFramebuffer);
@@ -1515,6 +1555,10 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
     for (size_t i = 0; i < renderData.pins.length; ++i)
       vcPinRenderer_AddPin(pRenderContext->pPinRenderer, pProgramState, renderData.pins[i].pSceneItem, renderData.pins[i].pPinAddress, renderData.pins[i].position, renderData.pins[i].count);
   }
+
+  // Camera frustum (map mode)
+  if (pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
+    vcRender_RenderMainCameraFrustum(pProgramState, pRenderContext, renderData);
 
   // Render and upload UD buffers
   if (renderData.models.length > 0)
