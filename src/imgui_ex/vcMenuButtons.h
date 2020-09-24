@@ -26,7 +26,7 @@ enum vcMenuBarButtonIcon
   vcMBBI_AddFolder = 14,
   vcMBBI_Remove = 15,
   vcMBBI_AddOther = 16,
-  vcMBBI_SaveViewport = 17,
+  vcMBBI_Media = 17,
   vcMBBI_Settings = 18,
   vcMBBI_Inspect = 19,
 
@@ -37,8 +37,9 @@ enum vcMenuBarButtonIcon
   vcMBBI_AddSphereFilter = 24,
   vcMBBI_AddCylinderFilter = 25,
   vcMBBI_AddCrossSectionFilter = 26,
-
-  // Reserved 22-29
+  vcMBBI_SaveViewport = 27,
+  vcMBBI_SaveViewportWithVis = 28,
+  vcMBBI_SplitViewport = 29,
 
   vcMBBI_Burger = 30,
   vcMBBI_Layers = 31,
@@ -59,7 +60,12 @@ enum vcMenuBarButtonIcon
   vcMBBI_Convert = 45,
   vcMBBI_Open = 46,
 
-  //Reserved = 47+
+  //Reserved = 47-49
+
+  vcMBBI_ViewShed = 50,
+  vcMBBI_UDS = 51,
+
+  //Reserved = 5X+
 };
 
 enum vcMenuBarButtonGap

@@ -208,6 +208,19 @@ void vcQueryNode::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
   }
 }
 
+vcMenuBarButtonIcon vcQueryNode::GetSceneExplorerIcon()
+{
+  switch (m_shape)
+  {
+  case vcQNFS_Box:
+    return vcMBBI_AddBoxFilter;
+  case vcQNFS_Cylinder:
+    return vcMBBI_AddCylinderFilter;
+  case vcQNFS_Sphere:
+    return vcMBBI_AddSphereFilter;
+  }
+}
+
 void vcQueryNode::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 *pPoint = nullptr;

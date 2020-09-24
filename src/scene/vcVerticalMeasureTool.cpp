@@ -231,6 +231,11 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
   }
 }
 
+vcMenuBarButtonIcon vcVerticalMeasureTool::GetSceneExplorerIcon()
+{
+  return vcMBBI_MeasureHeight;
+}
+
 void vcVerticalMeasureTool::HandleSceneEmbeddedUI(vcState *pProgramState)
 {
   char buffer[128];

@@ -46,6 +46,7 @@ public:
   void HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID) override;
   void HandleSceneEmbeddedUI(vcState *pProgramState) override;
   void HandleContextMenu(vcState *pProgramState) override;
+  vcMenuBarButtonIcon GetSceneExplorerIcon() override;
 
   void Cleanup(vcState *pProgramState) override;
 

@@ -118,6 +118,11 @@ void vcCrossSectionNode::HandleSceneEmbeddedUI(vcState * /*pProgramState*/)
   }
 }
 
+vcMenuBarButtonIcon vcCrossSectionNode::GetSceneExplorerIcon()
+{
+  return vcMBBI_AddCrossSectionFilter;
+}
+
 void vcCrossSectionNode::ChangeProjection(const udGeoZone &newZone)
 {
   udDouble3 *pPoint = nullptr;

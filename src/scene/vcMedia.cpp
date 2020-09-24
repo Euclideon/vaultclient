@@ -333,7 +333,7 @@ void vcMedia::HandleContextMenu(vcState *pProgramState)
 
 vcMenuBarButtonIcon vcMedia::GetSceneExplorerIcon()
 {
-  return vcMBBI_SaveViewport;
+  return vcMBBI_Media;
 }
 
 void vcMedia::ChangeProjection(const udGeoZone &newZone)

@@ -977,6 +977,11 @@ void vcPOI::HandleToolUI(vcState *pProgramState)
   HandleSceneEmbeddedUI(pProgramState);
 }
 
+vcMenuBarButtonIcon vcPOI::GetSceneExplorerIcon()
+{
+  return vcMBBI_AddPointOfInterest;
+}
+
 void vcPOI::InsertPoint(const udDouble3 &position)
 {
   m_line.numPoints++;
