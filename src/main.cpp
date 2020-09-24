@@ -42,7 +42,6 @@
 #include "vcSession.h"
 #include "vcPOI.h"
 #include "vcStringFormat.h"
-#include "vcInternalTexturesData.h"
 #include "vcHotkey.h"
 #include "vcConstants.h"
 #include "vcVerticalMeasureTool.h"
@@ -1141,13 +1140,9 @@ int main(int argc, char **args)
   vcMain_AsyncLoad(&programState, "asset://assets/branding/icon.png", vcMain_LoadIconMT);
   vcMain_AsyncLoad(&programState, "asset://assets/data/NotoSansCJK-Regular.ttc", vcMain_LoadFontMT);
 
-  vcTexture_AsyncCreateFromFilename(&programState.pCompanyLogo, programState.pWorkerPool, "asset://assets/branding/logo.png", vcTFM_Linear, true, vcTWM_Clamp);
   vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png", vcTFM_Linear);
-  vcTexture_AsyncCreateFromFilename(&programState.pInputsTexture, programState.pWorkerPool, "asset://assets/textures/inputbackground.png", vcTFM_Linear);
 
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
-
-  vcTexture_CreateFromMemory(&programState.pCompanyWatermark, (void *)logoData, logoDataSize, nullptr, nullptr, vcTFM_Linear);
 
   vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
@@ -1185,10 +1180,7 @@ epilogue:
   ImGui::DestroyContext();
 
   vcConvert_Deinit(&programState);
-  vcTexture_Destroy(&programState.pCompanyLogo);
-  vcTexture_Destroy(&programState.pCompanyWatermark);
   vcTexture_Destroy(&programState.pUITexture);
-  vcTexture_Destroy(&programState.pInputsTexture);
   vcTexture_Destroy(&programState.pWhiteTexture);
 
   for (size_t i = 0; i < programState.loadList.length; i++)
@@ -2755,15 +2747,15 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
   float baseY = size.y - vcLBS_LoginBoxY - 160;
   pDrawList->AddBezierCurve(ImVec2(0, baseY), ImVec2(size.x * 0.33f, baseY + amt), ImVec2(size.x * 0.67f, baseY - amt), ImVec2(size.x, baseY), 0xFFFFFFFF, 4.f);
 
-  if (pProgramState->pCompanyLogo != nullptr)
+  int sizeX = 0;
+  int sizeY = 0;
+
+  vcTexture *pTexture = vcTextureCache_Get("asset://assets/branding/logo.png", vcTFM_Linear, true, vcTWM_Clamp);
+  vcTexture_GetSize(pTexture, &sizeX, &sizeY);
+  if (sizeX > 1 && sizeY > 1)
   {
     logoFade += pProgramState->deltaTime * 10; // Fade in really fast
     uint32_t fadeIn = (0xFFFFFF | (udMin(uint32_t(logoFade * 255), 255U) << 24));
-
-    int sizeX = 0;
-    int sizeY = 0;
-
-    vcTexture_GetSize(pProgramState->pCompanyLogo, &sizeX, &sizeY);
 
     if (sizeX > 0 && sizeY > 0)
     {
@@ -2776,7 +2768,7 @@ void vcMain_ShowStartupScreen(vcState *pProgramState)
         scaling = udMin(0.9f * (size.y - vcLBS_LoginBoxH) / udMax(vcLBS_LogoAreaSize, sizeY), 1.f);
 
       float yOff = (size.y - vcLBS_LoginBoxH) / 2.f;
-      pDrawList->AddImage(pProgramState->pCompanyLogo, ImVec2((size.x - sizeX * scaling) / 2.f, yOff - (scaling * sizeY * 0.5f)), ImVec2((size.x + sizeX * scaling) / 2, yOff + (sizeY * scaling * 0.5f)), ImVec2(0, 0), ImVec2(1, 1), fadeIn);
+      pDrawList->AddImage(pTexture, ImVec2((size.x - sizeX * scaling) / 2.f, yOff - (scaling * sizeY * 0.5f)), ImVec2((size.x + sizeX * scaling) / 2, yOff + (sizeY * scaling * 0.5f)), ImVec2(0, 0), ImVec2(1, 1), fadeIn);
 
       //Leaving this here for when someone inevitably needs to fix the scaling issues
       //pDrawList->AddRect(ImVec2((size.x - sizeX * scaling) / 2.f, yOff - (scaling * sizeY * 0.5f)), ImVec2((size.x + sizeX * scaling) / 2, yOff + (sizeY * scaling * 0.5f)), 0xFF00FFFF);
