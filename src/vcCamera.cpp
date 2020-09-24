@@ -256,14 +256,10 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     // Translation
     if (pCamSettings->mapMode[pProgramState->activeViewportIndex])
     {
-      if (pProgramState->geozone.projection == udGZPT_ECEF)
-        addPos = -addPos;
-      udDouble3 addPosNS = udDot(pViewport->camera.cameraNorth, addPos) * pViewport->camera.cameraNorth;
+      udDouble3 addPosNS = pViewport->camera.cameraNorth * addPos.y;
+      udDouble3 addPosEW = udCross(pViewport->camera.cameraNorth, pViewport->camera.cameraUp) * addPos.x;
 
-      udDouble3 cameraWest = udCross(pViewport->camera.cameraNorth, pViewport->camera.cameraUp);
-      udDouble3 addPosWE = udDot(cameraWest, addPos) * cameraWest;
-
-      addPos = addPosNS * fabs(addPos.y) + addPosWE * fabs(addPos.x);
+      addPos = addPosNS + addPosEW;
     }
     else
     {
