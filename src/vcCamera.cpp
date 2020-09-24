@@ -89,6 +89,7 @@ void vcCamera_UpdateSmoothing(vcState * pProgramState, vcCamera *pCamera, vcCame
       udDouble3 step = pCamInput->smoothTranslation * udMin(1.0, stepAmount * sCameraTranslationSmoothingSpeed);
       pCamera->position += step;
       pCamInput->smoothTranslation -= step;
+
       vcCamera_UpdateCameraMap(pProgramState, pCamera);
     }
     else
@@ -358,7 +359,9 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
       pViewport->cameraInput.inputState = vcCIS_None;
       pViewport->camera.headingPitch = pViewport->cameraInput.headingPitch;
       pViewport->camera.position = pViewport->worldAnchorPoint;
-      
+
+      vcCamera_UpdateCameraMap(pProgramState, &pViewport->camera);
+
       break;
     }
 
