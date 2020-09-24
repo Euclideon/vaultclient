@@ -2632,7 +2632,7 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       renderData.pins.Deinit();
 
       // Handle context menu
-      if (!isFixedOrthographicViewport && (wasViewportContextMenuOpenLastFrame == -1 || wasViewportContextMenuOpenLastFrame == viewportIndex))
+      if ((wasViewportContextMenuOpenLastFrame == -1 || wasViewportContextMenuOpenLastFrame == viewportIndex))
       {
         if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
