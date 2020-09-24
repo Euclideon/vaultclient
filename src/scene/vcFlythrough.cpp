@@ -486,7 +486,10 @@ void vcFlythrough::SmoothFlightPoints()
     // Used 1000th of the distance for the offset and eyeballed for good results 
     double maxOffsetDistanceSq = udMax(UD_EPSILON, distanceSq / 1000000.0);
     if (udMagSq(m_flightPoints[flightPointIndex].m_CameraPosition - expectedPos) < maxOffsetDistanceSq)
-      m_flightPoints.RemoveAt(flightPointIndex--);
+    {
+      m_flightPoints.RemoveAt(flightPointIndex);
+      --flightPointIndex;
+    }
   }
 }
 
