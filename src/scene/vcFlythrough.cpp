@@ -161,6 +161,9 @@ void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID
   int removeAt = -1;
   int addAfter = -1;
 
+  if (m_flightPoints.length > 2 && ImGui::Button(vcString::Get("flythroughSmooth")))
+    SmoothFlightPoints();
+  
   ImGui::Columns(7);
 
   for (size_t i = 0; i < m_flightPoints.length; ++i)
@@ -421,10 +424,7 @@ void vcFlythrough::UpdateCameraPosition(vcState *pProgramState)
       }
       else
       {
-        double lerp = (m_timePosition - m_flightPoints[i - 1].time) / (m_flightPoints[i].time - m_flightPoints[i - 1].time);
-
-        pProgramState->pViewports[0].camera.position = udLerp(m_flightPoints[i - 1].m_CameraPosition, m_flightPoints[i].m_CameraPosition, lerp);
-        pProgramState->pViewports[0].camera.headingPitch = udLerp(m_flightPoints[i - 1].m_CameraHeadingPitch, m_flightPoints[i].m_CameraHeadingPitch, lerp);
+        LerpFlightPoints(m_timePosition, m_flightPoints[i - 1], m_flightPoints[i], &pProgramState->pViewports[0].camera.position, &pProgramState->pViewports[0].camera.headingPitch);
       }
 
       break;
@@ -483,4 +483,34 @@ void vcFlythrough::SaveFlightPoints(vcState *pProgramState)
     pFPPositions[i] = m_flightPoints[i].m_CameraPosition;
   vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_LineString, pFPPositions, (int)m_flightPoints.length);
   udFree(pFPPositions);
+}
+
+void vcFlythrough::SmoothFlightPoints()
+{
+  for (size_t flightPointIndex = 1; flightPointIndex < m_flightPoints.length - 1; ++flightPointIndex)
+  {
+    udDouble3 expectedPos = udDouble3::zero();
+    LerpFlightPoints(m_flightPoints[flightPointIndex].time, m_flightPoints[flightPointIndex - 1], m_flightPoints[flightPointIndex + 1], &expectedPos, nullptr);
+
+    double distanceSq = udMagSq(m_flightPoints[flightPointIndex - 1].m_CameraPosition - m_flightPoints[flightPointIndex + 1].m_CameraPosition);
+
+    // Used 1000th of the distance for the offset and eyeballed for good results 
+    double maxOffsetDistanceSq = udMax(UD_EPSILON, distanceSq / 1000000.0);
+    if (udMagSq(m_flightPoints[flightPointIndex].m_CameraPosition - expectedPos) < maxOffsetDistanceSq)
+    {
+      m_flightPoints.RemoveAt(flightPointIndex);
+      --flightPointIndex;
+    }
+  }
+}
+
+void vcFlythrough::LerpFlightPoints(double timePosition, const vcFlightPoint &flightPoint1, const vcFlightPoint &flightPoint2, udDouble3 *pLerpedPosition, udDouble2 *pLerpedHeadingPitch)
+{
+  double lerp = (timePosition - flightPoint1.time) / (flightPoint2.time - flightPoint1.time);
+
+  if (pLerpedPosition != nullptr)
+    *pLerpedPosition = udLerp(flightPoint1.m_CameraPosition, flightPoint2.m_CameraPosition, lerp);
+
+  if (pLerpedHeadingPitch != nullptr)
+    *pLerpedHeadingPitch = udLerp(flightPoint1.m_CameraHeadingPitch, flightPoint2.m_CameraHeadingPitch, lerp);
 }
