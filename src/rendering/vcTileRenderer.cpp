@@ -1441,8 +1441,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
   }
 
   // Variable skirt length to handle logZ when close (tile logZ is done in vertex shader)
-  const float EarthRadius = 6378137.0f; // TODO: Read this in
-  float tileSkirtLength = udClamp((float)pTileRenderer->cameraDistanceToSurface, 8000.0f, EarthRadius * 0.5f);
+  float halfEarthRadius = 0.5f * (float)pTileRenderer->quadTree.geozone.semiMinorAxis;
+  float tileSkirtLength = udClamp((float)pTileRenderer->cameraDistanceToSurface, 8000.0f, halfEarthRadius);
 
   for (int layer = 0; layer < pTileRenderer->pSettings->maptiles.activeLayerCount; ++layer)
   {
