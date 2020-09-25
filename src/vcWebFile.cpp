@@ -108,9 +108,34 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
   pFile->fpRead = vcWebFile_SeekRead;
   pFile->fpClose = vcWebFile_Close;
 
+  if (udStrchr(pFilename, " ") != nullptr)
+  {
+    size_t len = udStrlen(pFilename);
+    char *pTemp = udAllocType(char, len * 3 + 1, udAF_Zero);
+    const char *pSrc = pFilename;
+    for (char *pDst = pTemp; *pSrc != '\0'; ++pSrc, ++pDst)
+    {
+      if (*pSrc == ' ')
+      {
+        udStrcpy(pDst, len * 3 + 1, "%20");
+        pDst += 2;
+      }
+      else
+      {
+        *pDst = *pSrc;
+      }
+    }
+    pFile->pFilenameCopy = pTemp;
+    pFile->filenameCopyRequiresFree = true;
+  }
+  else
+  {
+    pFile->pFilenameCopy = pFilename;
+  }
+
   if ((flags & udFOF_FastOpen) == 0)
   {
-    UD_ERROR_IF(udWeb_RequestAdv(pFilename, options, &pData, &dataLength, &responseCode) != udE_Success, udR_OpenFailure);
+    UD_ERROR_IF(udWeb_RequestAdv(pFile->pFilenameCopy, options, &pData, &dataLength, &responseCode) != udE_Success, udR_OpenFailure);
 
     // TODO: (EVC-615) JIRA task to expand these
     if (responseCode == 403)
