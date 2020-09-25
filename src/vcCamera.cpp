@@ -89,8 +89,6 @@ void vcCamera_UpdateSmoothing(vcState * pProgramState, vcCamera *pCamera, vcCame
       udDouble3 step = pCamInput->smoothTranslation * udMin(1.0, stepAmount * sCameraTranslationSmoothingSpeed);
       pCamera->position += step;
       pCamInput->smoothTranslation -= step;
-
-      vcCamera_UpdateCameraMap(pProgramState, pCamera);
     }
     else
     {
@@ -145,14 +143,13 @@ void vcCamera_UpdateSmoothing(vcState * pProgramState, vcCamera *pCamera, vcCame
       // Save it back to the camera
       pCamera->position = worldAnchorPoint + rotation.apply(direction); // define new position
       pCamera->headingPitch = vcGIS_QuaternionToHeadingPitch(geozone, pCamera->position, orientation);
-
-      vcCamera_UpdateCameraMap(pProgramState, pCamera);
     }
     else
     {
       pCamInput->smoothOrbit = udDouble2::zero();
     }
   }
+  vcCamera_UpdateCameraMap(pProgramState, pCamera);
 }
 
 void vcCamera_BeginCameraPivotModeMouseBinding(vcState *pProgramState, vcViewport *pViewport, int bindingIndex)
@@ -341,8 +338,6 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     pViewport->camera.position = pViewport->cameraInput.startPosition + moveVector * travelProgress;
     if (pViewport->camera.headingPitch.y > UD_PI)
       pViewport->camera.headingPitch.y -= UD_2PI;
-
-    vcCamera_UpdateCameraMap(pProgramState, &pViewport->camera);
   }
   break;
 
@@ -360,8 +355,6 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
       pViewport->camera.headingPitch = pViewport->cameraInput.headingPitch;
       pViewport->camera.position = pViewport->worldAnchorPoint;
 
-      vcCamera_UpdateCameraMap(pProgramState, &pViewport->camera);
-
       break;
     }
 
@@ -370,9 +363,6 @@ void vcCamera_Apply(vcState *pProgramState, vcViewport *pViewport, vcCameraSetti
     pViewport->camera.headingPitch = vcGIS_QuaternionToHeadingPitch(pProgramState->geozone, pViewport->camera.position, udSlerp(pViewport->cameraInput.startAngle, pViewport->cameraInput.targetAngle, travelProgress));
     if (pViewport->camera.headingPitch.y > UD_PI)
       pViewport->camera.headingPitch.y -= UD_2PI;
-
-    vcCamera_UpdateCameraMap(pProgramState, &pViewport->camera);
-
   }
   break;
 
