@@ -820,5 +820,7 @@
   "toolCrossSectionContinue": "Sélectionnez un deuxième point pour définir l'orientation et la largeur de la section transversale",
   "dropboxHelperTitle": "Aide Dropbox",
   "dropboxHelperMessage": "Le fichier que vous essayez de charger utilise une URL Dropbox non prise en charge. Souhaitez-vous essayer de le changer? De: \"{0}\" À: \"{1}\"",
+  "bindingsAddSimpleCrossSection": "Clé pour ajouter un nouveau filtre de section transversale",
+  "linkConfirmBrowserTooltip": "Ouvrez le lien suivant dans un nouvel onglet de navigateur:",
   "_last": "Last item so no one forgets the comma on the line above"
 }

@@ -820,5 +820,7 @@
   "toolCrossSectionContinue": "2番目の点を選択して、断面の方向と幅を設定します",
   "dropboxHelperTitle": "Dropboxヘルパー",
   "dropboxHelperMessage": "ロードしようとしているファイルは、サポートされていないDropbox URLを使用しています。変更してみますか？差出人： \"{0}\"差出人： \"{1}\"",
+  "bindingsAddSimpleCrossSection": "新しい断面フィルターを追加するためのキー",
+  "linkConfirmBrowserTooltip": "新しいブラウザタブで次のリンクを開きます。",
   "_last": "Last item so no one forgets the comma on the line above"
 }
