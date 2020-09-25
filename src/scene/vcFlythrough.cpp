@@ -199,9 +199,9 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   {
     pRenderData->depthLines.PushBack(m_pLine);
 
-    for (int i = 0; i < m_flightPoints.length; ++i)
+    for (size_t i = 0; i < m_flightPoints.length; ++i)
     {
-      if (m_selectedFlightPoint != -1 && i != m_selectedFlightPoint)
+      if (m_selectedFlightPoint != -1 && (int)i != m_selectedFlightPoint)
         continue;
 
       vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
@@ -542,7 +542,7 @@ void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zon
   vcProject_FetchNodeGeometryAsCartesian(&pProgramState->activeProject, m_pNode, zone, &pFPPositions, &numFrames);
 
   m_flightPoints.Clear();
-  
+
   for (size_t i = 0; i < (size_t)numFrames; ++i)
   {
     vcFlightPoint flightPoint;

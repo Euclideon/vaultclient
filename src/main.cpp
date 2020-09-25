@@ -2440,7 +2440,7 @@ void vcRenderGizmo(vcState *pProgramState, const ImVec2 &viewportPosition, const
       vcGizmoAllowedControls allowedControls = vcGAC_All;
       for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
         allowedControls = (vcGizmoAllowedControls)(allowedControls & ((vcSceneItem*)ref.pItem->pUserData)->GetAllowedControls());
-      
+
       //read direction axes again.
       if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Scale || pProgramState->pActiveViewport->gizmo.coordinateSystem == vcGCS_Local)
       {
@@ -2454,7 +2454,7 @@ void vcRenderGizmo(vcState *pProgramState, const ImVec2 &viewportPosition, const
       }
 
       vcGizmo_Manipulate(pProgramState->pActiveViewport->gizmo.pContext, &pProgramState->pActiveViewport->camera, pProgramState->pActiveViewport->gizmo.direction, pProgramState->pActiveViewport->gizmo.operation, pProgramState->pActiveViewport->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
-      
+
       if (!(delta == udDouble4x4::identity()))
       {
         for (vcSceneItemRef &ref : pProgramState->sceneExplorer.selectedItems)
