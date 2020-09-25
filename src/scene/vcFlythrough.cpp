@@ -71,6 +71,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         {
           m_state = vcFTS_None;
           pProgramState->exportVideo = false;
+          vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
         }
       }
 
@@ -124,11 +125,27 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_state == vcFTS_Playing || m_state == vcFTS_Exporting)
   {
+    if (pProgramState->flythroughExportCancel)
+    {
+      if (m_state == vcFTS_Exporting)
+      {
+        m_state = vcFTS_None;
+        pProgramState->screenshot.pImage = nullptr;
+        m_exportInfo.currentFrame = -1;
+        pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = nullptr;
+        pProgramState->exportVideo = false;
+        vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
+      }
+
+      pProgramState->flythroughExportCancel = false;
+    }
+
     if (m_timePosition > m_timeLength)
     {
       if (m_state == vcFTS_Exporting)
       {
         pProgramState->exportVideo = false;
+        vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
         //system("./assets/bin/ffmpeg.exe -y -f image2 -framerate 60 -i ./_temp/%05d.png -c:v vp9 -b:v 1M output.avi");
         //udFindDir *pDir = nullptr;
         //udOpenDir(&pDir, "./_temp");
@@ -345,6 +362,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 
       if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
       {
+        vcModals_OpenModal(pProgramState, vcMT_FlythroughExport);
         if (vcModals_OverwriteExistingFile(pProgramState, udTempStr("%s/%05d.%s", m_exportPath, 0, vcFlythroughExportFormats[m_selectedExportFormatIndex]), vcString::Get("flythroughExportAlreadyExists")))
         {
           m_state = vcFTS_Exporting;
@@ -382,14 +400,6 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
     ImGui::TextUnformatted(vcString::Get("flythroughRecording"));
     break;
   case vcFTS_Exporting:
-    if (ImGui::Button(vcString::Get("flythroughExportStop")))
-    {
-      m_state = vcFTS_None;
-      pProgramState->screenshot.pImage = nullptr;
-      m_exportInfo.currentFrame = -1;
-      pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = nullptr;
-      pProgramState->exportVideo = false;
-    }
     break;
   }
 

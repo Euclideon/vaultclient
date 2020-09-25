@@ -1046,6 +1046,8 @@ int main(int argc, char **args)
   programState.activeViewportIndex = 0;
   programState.pActiveViewport = &programState.pViewports[programState.activeViewportIndex];
 
+  programState.flythroughExportCancel = false;
+
   for (int i = 1; i < argc; ++i)
   {
 #if UDPLATFORM_OSX

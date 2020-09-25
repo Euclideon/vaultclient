@@ -22,6 +22,7 @@ enum vcModalTypes
   vcMT_ChangePassword,
   vcMT_ShowInputInfo,
   vcMT_ImportShapeFile,
+  vcMT_FlythroughExport,
 
   vcMT_Count
 };
