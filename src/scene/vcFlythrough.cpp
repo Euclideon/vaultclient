@@ -66,22 +66,26 @@ bool vcFlythrough::IsSubitemSelected(uint64_t internalId)
   return (m_selected && (m_selectedFlightPoint == ((int)internalId - 1) || m_selectedFlightPoint == -1));
 }
 
+void vcFlythrough_ApplyDeltaToFlightPoint(vcFlightPoint *pFlightPoint, const udDouble4x4 &delta, const udGeoZone &geozone)
+{
+  udDoubleQuat orientation = delta.extractQuaternion() * vcGIS_HeadingPitchToQuaternion(geozone, pFlightPoint->m_CameraPosition, pFlightPoint->m_CameraHeadingPitch);
+  pFlightPoint->m_CameraHeadingPitch = vcGIS_QuaternionToHeadingPitch(geozone, pFlightPoint->m_CameraPosition, orientation);
+  pFlightPoint->m_CameraPosition = (delta * udDouble4x4::translation(pFlightPoint->m_CameraPosition)).axis.t.toVector3();
+};
+
 void vcFlythrough::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   if (m_selectedFlightPoint == -1)
   {
     for (vcFlightPoint &flightPoint : m_flightPoints)
-    {
-      flightPoint.m_CameraPosition = (delta * udDouble4x4::translation(flightPoint.m_CameraPosition)).axis.t.toVector3();
-
-      //flightPoint.m_CameraHeadingPitch;
-    }
+      vcFlythrough_ApplyDeltaToFlightPoint(&flightPoint, delta, pProgramState->geozone);
   }
   else
   {
-    m_flightPoints[m_selectedFlightPoint].m_CameraPosition = (delta * udDouble4x4::translation(m_flightPoints[m_selectedFlightPoint].m_CameraPosition)).axis.t.toVector3();
+    vcFlythrough_ApplyDeltaToFlightPoint(&m_flightPoints[m_selectedFlightPoint], delta, pProgramState->geozone);
   }
 
+  UpdateLinePoints();
   UpdateCenterPoint();
   SaveFlightPoints(pProgramState);
 }
@@ -192,10 +196,9 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   }
 
   if (m_selected && m_state == vcFTS_None && m_pLine != nullptr && m_flightPoints.length > 1)
+  {
     pRenderData->depthLines.PushBack(m_pLine);
 
-  if (m_selected)
-  {
     for (int i = 0; i < m_flightPoints.length; ++i)
     {
       if (m_selectedFlightPoint != -1 && i != m_selectedFlightPoint)
