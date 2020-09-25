@@ -71,7 +71,7 @@ void vcAddSimpleCrossSection::PreviewPicking(vcState *pProgramState, vcRenderDat
   }
 }
 
-void vcAddSimpleCrossSection::Cancel(vcState *pProgramState)
+void vcAddSimpleCrossSection::OnCancel(vcState *pProgramState)
 {
   udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
   if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "XSlice"))

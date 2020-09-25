@@ -13,7 +13,7 @@ public:
 
   void HandlePicking(vcState *pProgramState, vcRenderData &renderData, const vcRenderPickResult &pickResult) override;
   void PreviewPicking(vcState *pProgramState, vcRenderData &renderData, const vcRenderPickResult &pickResult) override;
-  void Cancel(vcState *pProgramState) override;
+  void OnCancel(vcState *pProgramState) override;
 
 private:
   static vcAddSimpleCrossSection m_instance;

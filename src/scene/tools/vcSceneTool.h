@@ -12,7 +12,7 @@ public:
   virtual void SceneUI(vcState *pProgramState);
   virtual void HandlePicking(vcState *pProgramState, vcRenderData &renderData, const vcRenderPickResult &pickResult);
   virtual void PreviewPicking(vcState *pProgramState, vcRenderData &renderData, const vcRenderPickResult &pickResult);
-  virtual void Cancel(vcState *pProgramState); // Essentially a 'cancel' command has been issued (esc key was pressed)
+  virtual void OnCancel(vcState *pProgramState);
 
   static vcSceneTool *tools[vcActiveTool_Count];
 };
@@ -20,6 +20,6 @@ public:
 inline void vcSceneTool::SceneUI(vcState *) {};
 inline void vcSceneTool::HandlePicking(vcState *, vcRenderData &, const vcRenderPickResult &) {};
 inline void vcSceneTool::PreviewPicking(vcState *, vcRenderData &, const vcRenderPickResult &) {};
-inline void vcSceneTool::Cancel(vcState *) {};
+inline void vcSceneTool::OnCancel(vcState *) {};
 
 #endif //vcSceneTool_h__
