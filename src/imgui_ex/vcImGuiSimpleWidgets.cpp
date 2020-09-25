@@ -337,7 +337,11 @@ void vcIGSW_MarkDownToolTip(ImGui::MarkdownTooltipCallbackData data)
   }
   else
   {
-    ImGui::SetTooltip("%s Open in browser\n%.*s", data.linkIcon, data.linkData.linkLength, data.linkData.link);
+    const char *pString = nullptr;
+    udSprintf(&pString, "%s\n%.*s", vcString::Get("linkConfirmBrowserTooltip"), data.linkData.linkLength, data.linkData.link);
+    if (pString != nullptr)
+      ImGui::SetTooltip(pString);
+    udFree(pString);
   }
 }
 

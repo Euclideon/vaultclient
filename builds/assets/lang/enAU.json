@@ -737,6 +737,7 @@
   "bindingsAddBoxFilter": "Key to add box filter",
   "bindingsAddSphereFilter": "Key to add sphere filter",
   "bindingsAddCylinderFilter": "Key to add cylinder filter",
+  "bindingsAddSimpleCrossSection": "Key to add a new cross section filter",
   "errorUnknown": "An unexpected error occurred.",
   "errorCorruptData": "Corrupt data.",
   "errorUnsupported": "Unsupported file formats.",
@@ -818,5 +819,6 @@
   "yUp": "Y up",
   "dropboxHelperTitle": "Dropbox Helper",
   "dropboxHelperMessage": "The file you're trying to load is using an unsupported Dropbox URL.\nWould you like to try changing it?\nFrom: \"{0}\"\nTo: \"{1}\"",
+  "linkConfirmBrowserTooltip": "Open the following link in a new browser tab:",
   "_last": "Last item so no one forgets the comma on the line above"
 }
