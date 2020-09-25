@@ -208,7 +208,11 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       ImGui::BeginGroup();
       vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
       if (icon != vcMBBI_None)
-        vcMenuBarButton(pProgramState->pUITexture, pNode->pName, vcB_Invalid, icon, vcMBBG_FirstItem, false, (18.f / 24.f), udTempStr("###SXIIcon%zu", *pItemID));
+      {
+        udFloat4 iconUV = vcGetIconUV(icon);
+        float Size = 24.f;
+        ImGui::Image(pProgramState->pUITexture, ImVec2(Size, Size), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+      }
 
       ImGui::SameLine();
 
