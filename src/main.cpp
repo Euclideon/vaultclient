@@ -1484,7 +1484,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       {
         if (pProgramState->activeTool != vcActiveTool_Select && !pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
+        {
+          vcSceneTool::tools[pProgramState->activeTool]->OnCancel(pProgramState);
           pProgramState->activeTool = vcActiveTool_Select;
+        }
 
         vcSceneTool::tools[pProgramState->activeTool]->SceneUI(pProgramState);
       }
