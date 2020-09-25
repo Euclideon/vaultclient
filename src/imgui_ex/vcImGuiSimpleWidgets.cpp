@@ -340,7 +340,7 @@ void vcIGSW_MarkDownToolTip(ImGui::MarkdownTooltipCallbackData data)
     const char *pString = nullptr;
     udSprintf(&pString, "%s\n%.*s", vcString::Get("linkConfirmBrowserTooltip"), data.linkData.linkLength, data.linkData.link);
     if (pString != nullptr)
-      ImGui::SetTooltip(pString);
+      ImGui::SetTooltip("%s", pString);
     udFree(pString);
   }
 }
