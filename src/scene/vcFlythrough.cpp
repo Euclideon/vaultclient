@@ -49,6 +49,19 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   OnNodeUpdate(pProgramState);
 }
 
+void vcFlythrough::CancelExport(vcState *pProgramState)
+{
+  if (m_state == vcFTS_Exporting)
+  {
+    m_state = vcFTS_None;
+    pProgramState->screenshot.pImage = nullptr;
+    m_exportInfo.currentFrame = -1;
+    pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = nullptr;
+    pProgramState->exportVideo = false;
+    vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
+  }
+}
+
 void vcFlythrough::OnNodeUpdate(vcState *pProgramState)
 {
   ChangeProjection(pProgramState->geozone);
@@ -125,21 +138,6 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (m_state == vcFTS_Playing || m_state == vcFTS_Exporting)
   {
-    if (pProgramState->flythroughExportCancel)
-    {
-      if (m_state == vcFTS_Exporting)
-      {
-        m_state = vcFTS_None;
-        pProgramState->screenshot.pImage = nullptr;
-        m_exportInfo.currentFrame = -1;
-        pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = nullptr;
-        pProgramState->exportVideo = false;
-        vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
-      }
-
-      pProgramState->flythroughExportCancel = false;
-    }
-
     if (m_timePosition > m_timeLength)
     {
       if (m_state == vcFTS_Exporting)

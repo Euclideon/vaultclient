@@ -27,6 +27,7 @@
 #include "udServerAPI.h"
 
 #include "stb_image.h"
+#include "vcFlythrough.h"
 
 bool gShowInputControlsNextHack = false;
 
@@ -1820,20 +1821,23 @@ void vcModals_DrawFlythroughExport(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_FlythroughExport))
   {
     ImGui::OpenPopup("###modalFlythroughExport");
-    ImGui::SetNextWindowSize(ImVec2(210, 70), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(215, 70), ImGuiCond_FirstUseEver);
   }
 
   if (ImGui::BeginPopupModal("###modalFlythroughExport", nullptr, ImGuiWindowFlags_NoTitleBar))
   {
-    if (pProgramState->closeModals & (1 << vcMT_FlythroughExport))
+    if (pProgramState->closeModals & (1 << vcMT_FlythroughExport) || !pProgramState->exportVideo)
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
 
-    ImGui::TextUnformatted(vcString::Get("flythroughExporting"));
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerExportRunning"));
 
-    if (ImGui::Button(vcString::Get("flythroughExportCancel"), ImVec2(200, 30)))
-      pProgramState->flythroughExportCancel = true;
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(200, 30)))
+    {
+      vcFlythrough *pFlythrough = (vcFlythrough *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+      pFlythrough->CancelExport(pProgramState);
+    }
 
     ImGui::EndPopup();
   }

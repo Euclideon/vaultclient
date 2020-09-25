@@ -231,8 +231,6 @@ struct vcState
   char modelPath[vcMaxPathLength];
   bool modalTempBool;
 
-  bool flythroughExportCancel;
-
   int renaming;
   char renameText[30];
 
