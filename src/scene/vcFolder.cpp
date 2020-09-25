@@ -205,33 +205,37 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
       ImGui::SameLine();
 
-      ImGui::BeginGroup();
-      vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
-      if (icon != vcMBBI_None)
-      {
-        udFloat4 iconUV = vcGetIconUV(icon);
-        float Size = 24.f;
-        ImGui::Image(pProgramState->pUITexture, ImVec2(Size, Size), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
-      }
-
-      ImGui::SameLine();
-
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
 
       if (pSceneItem->m_pActiveWarningStatus != nullptr)
         vcIGSW_ShowLoadStatusIndicator(vcSLS_Pending, pSceneItem->m_pActiveWarningStatus);
       
       // The actual model
+      ImGui::BeginGroup();
       ImGui::SetNextItemOpen(pSceneItem->m_expanded, ImGuiCond_Always);
-      ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
+      ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_NoTreePushOnOpen;
       if (pSceneItem->m_selected)
         flags |= ImGuiTreeNodeFlags_Selected;
+      if (!pSceneItem->m_editName)
+        flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+
+      pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
+      ImGui::SameLine();
+
+      vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
+      if (icon != vcMBBI_None)
+      {
+        udFloat4 iconUV = vcGetIconUV(icon);
+        float Size = 18.f;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3);
+        ImGui::Image(pProgramState->pUITexture, ImVec2(Size, Size), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+      }
+
+      ImGui::SameLine();
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
 
       if (pSceneItem->m_editName)
       {
-        pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
-        ImGui::SameLine();
-
         if (pSceneItem->m_pName == nullptr)
         {
           pSceneItem->m_pName = udStrdup(pNode->pName);
@@ -267,7 +271,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           pSceneItem->m_nameCapacity = 0;
         }
 
-        pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags, "%s", pNode->pName);
+        ImGui::Text("%s", pNode->pName);
         if (pSceneItem->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode && ImGui::GetIO().KeysDown[vcHotkey::Get(vcB_RenameSceneItem)])
           pSceneItem->m_editName = true;
       }
@@ -366,9 +370,6 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         {
           ImGui::EndPopup();
 
-          if (pSceneItem->m_expanded)
-            ImGui::TreePop();
-
           vcProject_RemoveItem(pProgramState, m_pNode, pNode);
           pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 
@@ -402,6 +403,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       // Show additional settings from ImGui
       if (pSceneItem->m_expanded)
       {
+        ImGui::TreePush(udTempStr("###SXIName%zu", *pItemID));
         ImGui::Indent();
         ImGui::PushID(udTempStr("SXIExpanded%zu", *pItemID));
 
