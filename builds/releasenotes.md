@@ -1,19 +1,23 @@
-udStream Version History
+# udStream Version History
 
-Version 1.2
+## Version 1.2
+  - Added preliminary support for 12DXML and Vector Shape Files
+  - Added basic fly-through playback, recording and exporting to image sequence
+  - Added basic markdown support to project info and viewport description
+  - Added icons to elements in the scene explorer
+  - Added dismiss forever button to the input control modal
+  - Added seperate camera settings per viewport
   - Added helper when using Dropbox links
-  - Added markdown support
-  - Added scene explorer icons
-  - Added basic fly through recording
-  - Added 31700 and 19920 EPSG codes
-  - (macOS) Fixed an issue with fonts not loading
-  - Fixed several memory leaks
+  - Added cross-section filter tool
   - Improved tesselation of globe
   - Improved camera smoothing
-  - General UI improvements
-  - Updated to ImGui version 1.78
+  - Improved camera controls when in map mode
+  - Improved font support to avoid loading the full glyph set when it wasn't being used
+  - (macOS/Android) Fixed an issue with fonts not loading at all
+  - Fixed stability issues related to items before they were loaded
+  - General improvements to UI
 
-Version 1.1
+## Version 1.1
   - Improvements to the height/horizontal measurement tool
   - Set up the box, sphere and cylinder filers as proper tools
   - Added support for multiple map layers
@@ -31,7 +35,7 @@ Version 1.1
   - Optimizations to map tile loading
   - Updated to udSDK version 2.0
 
-Version 1.0
+## Version 1.0
   - Renamed the product to "udStream" as part of the 1.0 release
   - Added machine translations for lots of additional language support
     - Where possible the system language is used by default
@@ -45,7 +49,7 @@ Version 1.0
   - Added setting to stop camera going underground
   - Added setting to choose between Imperial and Metric
 
-Version 0.6.1 (Minor Bug Fix Release)
+## Version 0.6.1 (Minor Bug Fix Release)
   - Added helper system for translations
     - Updated Chinese translations
     - Received Japanese translation from Kimoto Group <support-geoverse@kimoto.co.jp>
@@ -62,7 +66,7 @@ Version 0.6.1 (Minor Bug Fix Release)
   - Fixed several issues for non-geolocated models
   - Optimisations to map tile loading
 
-Version 0.6.0
+## Version 0.6.0
   - Major overhaul to the entire UI
     - Moved the frequently used tools to the UI
     - Added key bindings for many of the tools
@@ -88,7 +92,7 @@ Version 0.6.0
   - Added Euclideon hosted Elevation data to the terrain
   - [Experimental] Atmospheric Scattering (available as a skybox)
 
-Version 0.5.0
+## Version 0.5.0
   - Reenabled FBX conversion on Windows and macOS
   - Viewsheds now work on polygon models
   - Added (basic) point displacement calculations
@@ -112,7 +116,7 @@ Version 0.5.0
   - Added high-resolution screenshot export support
   - Added ability to export a model (optionally with a filter) to UDS or LAS
 
-Version 0.4.0
+## Version 0.4.0
   - Conversion Improvements
     - Fixed issue with resetting some conversion types
     - Increased support for additional types of FBX files
@@ -155,10 +159,10 @@ Version 0.4.0
     - Media node images load correctly more often
     - Sped up excessive login and license checkout times that were occurring when in very slow network environments with machines that have very fast per core CPUs
 
-Version 0.3.1
+## Version 0.3.1
   - Improvements
     - Added support for FBX (macOS and Windows)
-    - Previously used map tile servers’ names aren't leaked in the cache system
+    - Previously used map tile serversâ€™ names aren't leaked in the cache system
     - Added support for selecting directories correctly in the temporary and output directory modals
     - Reordered the convert jobs panel so the information that is more relevant is first
     - Images in the scene can be set to reload over time
@@ -174,7 +178,7 @@ Version 0.3.1
     - Improved conversion support for OBJ, PTX and PTS from broken files submitted by the community (thanks everyone!)
     - Restored initial licence request information and made it clearer when a license is being requested
 
-Version 0.3.0
+## Version 0.3.0
   - Improvements
     - Projects can be exported as GeoJSON
       - Lots of preparation work for collaborative projects
@@ -206,7 +210,7 @@ Version 0.3.0
     - Minor improvements to line and area POI display and added the construction fence
     - Live feeds are loaded in chunks to preserve performance
 
-Version 0.2.3
+## Version 0.2.3
   - Improvements
     - Added Gamepad/Xbox Controller functionality for camera movement (EVC-203)
     - Removed the troublesome CSV importer for POI's/Labels (EVC-494)
@@ -238,7 +242,7 @@ Version 0.2.3
     - Added a delay for the tool tips (EVC-416)
     - Fixed issues with OBJ's with empty string texture names not being processed correctly
 
-Version 0.2.2
+## Version 0.2.2
   - Fixed an issue with the camera misbehaving when looking straight down in perspective mode
   - Added camera smoothing (EVC-471)
   - The file dialog modal now starts loading after pressing enter/return on the input name field (EVC-414)
@@ -250,7 +254,7 @@ Version 0.2.2
     - Map Tiles defaults to the new tile server (http://slippy.vault.euclideon.com)
   - Using updated backgrounds for the login screen (VASS-18 & VASS-19)
 
-Version 0.2.1
+## Version 0.2.1
   - Scene & Scene Explorer changes
     - Map tiles now fade in (EVC-361)
     - The projected space and camera position are reset back to 0 when clearing the scene
@@ -320,7 +324,7 @@ Version 0.2.1
     - Fixed a number of issues relating to loading with URLs (EVC-365, EVC-376, EVC-377)
     - Fixed various typos (EVC-379, EVC-380, EVC-381, EVC-419, EVC-422)
 
-Version 0.2.0
+## Version 0.2.0
   - Added user guide, we will continue to improve this in the next release to cover all existing features
   - Added a menu bar for frequently changed settings (EVC-298)
     - Added keyboard shortcuts for those settings as well (EVC-238)
@@ -352,7 +356,7 @@ Version 0.2.0
     - Better support for concatenated PTS files (UD-19)
     - Fixed issue with classification being averaged instead of picking one of the points for LOD calculations (UD-2)
 
-Version 0.1.2
+## Version 0.1.2
   - Seperated the project codes for Vault Server / Vault Development kit (EVA) from the Euclideon Vault Client codes (EVC)
   - Changed the rotation of the camera in the UI to display in degrees (EVC-70)
   - Added proxy support and added option to ignore peer and host certificate verification (EVA-391)
@@ -362,7 +366,7 @@ Version 0.1.2
   - Fixed an issue with some convert settings being lost after reset (EVC-112)
   - Fixed some issues related to sessions not being kept alive correctly, leaving Client in a mixed state where it's partially logged out (EVA-54, EVC-282)
 
-Version 0.1.1
+## Version 0.1.1
   - Now has UI to show when a new version is available
   - Improved camera panning to move based on hovered point (EVA-289)
   - UDS, UDG, SSF and UDM files are immediately added to scene and then processed in the background
@@ -390,5 +394,5 @@ Version 0.1.1
     - UDS files are unlocked in the OS after being removed from the scene (Resolves EVA-382)
   - Changed our version numbering system, now [Major].[Minor].[Revision].[BuildID]
 
-Version 0.1.0
+## Version 0.1.0
   - Initial Public Release
