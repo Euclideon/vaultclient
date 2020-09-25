@@ -205,10 +205,10 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
       ImGui::SameLine();
 
+      ImGui::BeginGroup();
       vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
-      bool iconClicked = false;
       if (icon != vcMBBI_None)
-        iconClicked = vcMenuBarButton(pProgramState->pUITexture, pNode->pName, vcB_Invalid, icon, vcMBBG_FirstItem, false, (18.f / 24.f), udTempStr("###SXIIcon%zu", *pItemID));
+        vcMenuBarButton(pProgramState->pUITexture, pNode->pName, vcB_Invalid, icon, vcMBBG_FirstItem, false, (18.f / 24.f), udTempStr("###SXIIcon%zu", *pItemID));
 
       ImGui::SameLine();
 
@@ -267,8 +267,9 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         if (pSceneItem->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode && ImGui::GetIO().KeysDown[vcHotkey::Get(vcB_RenameSceneItem)])
           pSceneItem->m_editName = true;
       }
+      ImGui::EndGroup();
 
-      bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()) || iconClicked);
+      bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
       if (sceneExplorerItemClicked)
       {
         if (ImGui::GetIO().KeyShift && pProgramState->sceneExplorer.selectStartItem.pItem == nullptr && pProgramState->sceneExplorer.selectedItems.size() > 0)
