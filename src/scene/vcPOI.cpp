@@ -1332,50 +1332,48 @@ void vcPOI::AddFillPolygonToScene(vcState *pProgramState, vcRenderData *pRenderD
   pInstance->selectable = true;
 }
 
-static double Det(double a, double b, double c, double d)
+static double vcPOI_Det(double a, double b, double c, double d)
 {
   return a * d - b * c;
 }
 
-static bool LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3 &line1Point2, const udDouble3 &line2Point1, const udDouble3 &line2Point2, udDouble3 *pIntersectPoint = nullptr)
+static bool vcPOI_LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3 &line1Point2, const udDouble3 &line2Point1, const udDouble3 &line2Point2, udDouble3 *pIntersectPoint = nullptr)
 {
-  double detL1 = Det(line1Point1.x, line1Point1.y, line1Point2.x, line1Point2.y);
-  double detL2 = Det(line2Point1.x, line2Point1.y, line2Point2.x, line2Point2.y);
+  double detL1 = vcPOI_Det(line1Point1.x, line1Point1.y, line1Point2.x, line1Point2.y);
+  double detL2 = vcPOI_Det(line2Point1.x, line2Point1.y, line2Point2.x, line2Point2.y);
   udDouble3 line1Dif = line1Point1 - line1Point2;
   udDouble3 line2Dif = line2Point1 - line2Point2;
 
-  double denom = Det(line1Dif.x, line1Dif.y, line2Dif.x, line2Dif.y);
+  double denom = vcPOI_Det(line1Dif.x, line1Dif.y, line2Dif.x, line2Dif.y);
 
   if (denom == 0.0)
     return false;
 
   udDouble3 intersectPoint = udDouble3::create(
-    Det(detL1, line1Dif.x, detL2, line2Dif.x) / denom,
-    Det(detL1, line1Dif.y, detL2, line2Dif.y) / denom,
+    vcPOI_Det(detL1, line1Dif.x, detL2, line2Dif.x) / denom,
+    vcPOI_Det(detL1, line1Dif.y, detL2, line2Dif.y) / denom,
     0.0);
 
   // Calculate Z
+  const udDouble2 intersectPoint2 = udDouble2::create(intersectPoint.x, intersectPoint.y);
+
+  udDouble3 pointPositions[4];
+  pointPositions[0] = line1Point1;
+  pointPositions[1] = line1Point2;
+  pointPositions[2] = line2Point1;
+  pointPositions[3] = line2Point2;
+
+  double influence[4];
+  double totalInfluence = 0.0;
+  for (int64_t i = 0; i < 4; ++i)
   {
-    const udDouble2 intersectPoint2 = udDouble2::create(intersectPoint.x, intersectPoint.y);
-
-    udDouble3 pointPositions[4];
-    pointPositions[0] = line1Point1;
-    pointPositions[1] = line1Point2;
-    pointPositions[2] = line2Point1;
-    pointPositions[3] = line2Point2;
-
-    double influence[4];
-    double totalInfluence = 0.0;
-    for (int64_t i = 0; i < 4; ++i)
-    {
-      influence[i] = 1.0 / udMag2(intersectPoint2 - udDouble2::create(pointPositions[i].x, pointPositions[i].y));
-      totalInfluence += influence[i];
-    }
-
-    for (int64_t i = 0; i < 4; ++i)
-      intersectPoint.z += pointPositions[i].z * (influence[i] / totalInfluence);
+    influence[i] = 1.0 / udMag2(intersectPoint2 - udDouble2::create(pointPositions[i].x, pointPositions[i].y));
+    totalInfluence += influence[i];
   }
-  
+
+  for (int64_t i = 0; i < 4; ++i)
+    intersectPoint.z += pointPositions[i].z * (influence[i] / totalInfluence);
+
   // Calculate Bounds
   udDouble4 line1Bounds;
   line1Bounds.x = udMin(line1Point1.x, line1Point2.x);
@@ -1397,157 +1395,151 @@ static bool LineLineIntersection2D(const udDouble3 &line1Point1, const udDouble3
 
   if (pIntersectPoint)
   {
-    pIntersectPoint->x = Det(detL1, line1Dif.x, detL2, line2Dif.x) / denom;
-    pIntersectPoint->y = Det(detL1, line1Dif.y, detL2, line2Dif.y) / denom;
+    pIntersectPoint->x = vcPOI_Det(detL1, line1Dif.x, detL2, line2Dif.x) / denom;
+    pIntersectPoint->y = vcPOI_Det(detL1, line1Dif.y, detL2, line2Dif.y) / denom;
     pIntersectPoint->z = intersectPoint.z;
   }
 
   return true;
 }
 
-static double DistancePointToLine(const udDouble2 &linePoint1, const udDouble2 &linePoint2, const udDouble2 &point)
+static double vcPOI_DistancePointToLine(const udDouble2 &linePoint1, const udDouble2 &linePoint2, const udDouble2 &point)
 {
-  double m = (linePoint2.y - linePoint1.y) / (linePoint2.x - linePoint1.x);
-  double b = linePoint1.y - (m * linePoint1.x);
+  double gradient = (linePoint2.y - linePoint1.y) / (linePoint2.x - linePoint1.x);
+  double intersectionDistance = linePoint1.y - (gradient * linePoint1.x);
 
-  double x = (m * point.y + point.x - m * b) / (m * m + 1.0);
-  double y = (m * m * point.y + m * point.x + b) / (m * m + 1.0);
+  double x = (gradient * point.y + point.x - gradient * intersectionDistance) / (gradient * gradient + 1.0);
+  double y = (gradient * gradient * point.y + gradient * point.x + intersectionDistance) / (gradient * gradient + 1.0);
 
   return udMag2(udDouble2::create(x, y) - point);
 }
 
-void CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunkedArray<udDouble3> *pPerimeterPoints)
+void vcPOI_CalculatePerimeter_RemoveConnectionFromList(udChunkedArray<int> *pConnections, int pointConnection)
 {
-  struct Point
-  {
-    void Init()
+  for (size_t i = 0; i < pConnections->length; ++i)
+    if ((*pConnections)[i] == pointConnection)
     {
-      pointConnections.Init(4); // Unlikely to have more than 4 connections
+      pConnections->RemoveAt(i);
+      break;
     }
+}
 
-    void Deinit()
-    {
-      pointConnections.Deinit();
-    }
+void vcPOI_CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunkedArray<udDouble3> *pPerimeterPoints)
+{
+  const size_t pointConnectionsChunkSize = 4;
 
-    void RemoveConnection(const int &pointConnection)
-    {
-      for (size_t i = 0; i < pointConnections.length; ++i)
-        if (pointConnections[i] == pointConnection)
-        {
-          pointConnections.RemoveAt(i);
-          break;
-        }
-    }
-
-    udDouble3 position;
-    udChunkedArray<int> pointConnections;
-  };
-  udChunkedArray<Point> points;
-  points.Init(64);
+  udChunkedArray<udDouble3> pointPositions;
+  udChunkedArray<udChunkedArray<int>> pointConnections;
+  pointPositions.Init(64);
+  pointConnections.Init(64);
 
   // Connect points circularly in list order
   for (size_t i = 0; i < originalPoints.length; ++i)
   {
-    Point newPoint;
-    newPoint.Init();
-    newPoint.position = originalPoints[i];
-    newPoint.pointConnections.PushBack((int)i == 0 ? (int)(originalPoints.length - 1) : (int)(i - 1));
-    newPoint.pointConnections.PushBack((int)i == (int)(originalPoints.length - 1) ? 0 : (int)(i + 1));
+    udDouble3 newPointPosition;
+    udChunkedArray<int> newPointConnection;
+    newPointConnection.Init(pointConnectionsChunkSize);
+    newPointPosition = originalPoints[i];
+    newPointConnection.PushBack((int)i == 0 ? (int)(originalPoints.length - 1) : (int)(i - 1));
+    newPointConnection.PushBack((int)i == (int)(originalPoints.length - 1) ? 0 : (int)(i + 1));
 
-    points.PushBack(newPoint);
+    pointPositions.PushBack(newPointPosition);
+    pointConnections.PushBack(newPointConnection);
   }
 
   // Search for Line crosses and Split
-  bool continueSplitting = true;
-  while (continueSplitting)
+  //bool continueSplitting = true;
+  while (true)
   {
-    continueSplitting = false;
-    for (size_t i = 0; i < points.length; ++i)
-      for (int pointConnection : points[i].pointConnections)
+    //continueSplitting = false;
+    bool splitFound = false;
+    for (size_t i = 0; i < pointPositions.length; ++i)
+    {
+      for (int pointConnection : pointConnections[i])
       {
-        bool splitFound = false;
         udInt2 line1 = udInt2::create((int32_t)i, (int32_t)pointConnection);
-        for (size_t i2 = i + 1; i2 < points.length; ++i2)
+        for (size_t i2 = i + 1; i2 < pointPositions.length; ++i2)
         {
           if (pointConnection != (int)i2)
-            for (int pointConnection2 : points[i2].pointConnections)
+          {
+            for (int pointConnection2 : pointConnections[i2])
             {
               if ((int)i != pointConnection2 && pointConnection != pointConnection2)
               {
                 udInt2 line2 = udInt2::create((int32_t)i2, (int32_t)pointConnection2);
 
                 udDouble3 splitPoint;
-                if (LineLineIntersection2D(
-                  points[line1.x].position,
-                  points[line1.y].position,
-                  points[line2.x].position,
-                  points[line2.y].position, &splitPoint))
+                if (vcPOI_LineLineIntersection2D(pointPositions[line1.x], pointPositions[line1.y], pointPositions[line2.x], pointPositions[line2.y], &splitPoint))
                 {
                   // New point to connect the 4 other points
-                  Point newPoint;
-                  newPoint.Init();
-                  newPoint.position = splitPoint;
-                  newPoint.pointConnections.PushBack(line1.x);
-                  newPoint.pointConnections.PushBack(line1.y);
-                  newPoint.pointConnections.PushBack(line2.x);
-                  newPoint.pointConnections.PushBack(line2.y);
+                  udDouble3 newPointPosition;
+                  udChunkedArray<int> newPointConnection;
+                  newPointConnection.Init(pointConnectionsChunkSize);
+                  newPointPosition = splitPoint;
+                  newPointConnection.PushBack(line1.x);
+                  newPointConnection.PushBack(line1.y);
+                  newPointConnection.PushBack(line2.x);
+                  newPointConnection.PushBack(line2.y);
 
-                  points.PushBack(newPoint);
-                  int newPointIndex = (int)points.length - 1;
-                  for (int64_t connectionIndex = 0; connectionIndex < (int64_t)newPoint.pointConnections.length; ++connectionIndex)
-                    points[newPoint.pointConnections[connectionIndex]].pointConnections.PushBack(newPointIndex);
-                  
+                  pointPositions.PushBack(newPointPosition);
+                  pointConnections.PushBack(newPointConnection);
+
+                  int newPointIndex = (int)pointPositions.length - 1;
+                  for (int64_t connectionIndex = 0; connectionIndex < (int64_t)newPointConnection.length; ++connectionIndex)
+                    pointConnections[newPointConnection[connectionIndex]].PushBack(newPointIndex);
+
                   // Remove Connections between crossing points
-                  points[line1.x].RemoveConnection(line1.y);
-                  points[line1.y].RemoveConnection(line1.x);
-                  points[line2.x].RemoveConnection(line2.y);
-                  points[line2.y].RemoveConnection(line2.x);
+                  vcPOI_CalculatePerimeter_RemoveConnectionFromList(&pointConnections[line1.x], line1.y);
+                  vcPOI_CalculatePerimeter_RemoveConnectionFromList(&pointConnections[line1.y], line1.x);
+                  vcPOI_CalculatePerimeter_RemoveConnectionFromList(&pointConnections[line2.x], line2.y);
+                  vcPOI_CalculatePerimeter_RemoveConnectionFromList(&pointConnections[line2.y], line2.x);
 
                   splitFound = true;
                   break;
                 }
               }
             }
+          }
 
           // Need to break because line1 is now invalid
           if (splitFound)
-          {
-            continueSplitting = true;
             break;
-          }
         }
 
         if (splitFound)
-        {
-          i = (int)points.length;
           break;
-        }
       }
+
+      if (splitFound)
+        break;
+    }
+
+    if (!splitFound)
+      break;
   }
 
   // Trace the edge of the shape to get an outline
 
   // Find StartPoint
-  int64_t startPoint = -1;
+  int startPoint = -1;
   double highestPoint = -DBL_MAX;
-  for (int64_t i = 0; i < (int64_t)points.length; ++i)
-    if (points[i].position.y > highestPoint)
+  for (int i = 0; i < (int)pointPositions.length; ++i)
+    if (pointPositions[i].y > highestPoint)
     {
       startPoint = i;
-      highestPoint = points[i].position.y;
+      highestPoint = pointPositions[i].y;
     }
 
-  udChunkedArray<int64_t> perimeterPoints;
+  udChunkedArray<int> perimeterPoints;
   perimeterPoints.Init(64);
 
-  int64_t prevPoint = startPoint;
-  int64_t currentPoint = startPoint;
+  int prevPoint = startPoint;
+  int currentPoint = startPoint;
   double prevClosestAngle = DBL_MAX;
-  for (const int64_t &pointIndex : points[startPoint].pointConnections)
+  for (const int &pointIndex : pointConnections[startPoint])
   {
-    const udDouble3 &pos = points[startPoint].position;
-    const udDouble3 &target = points[pointIndex].position;
+    const udDouble3 &pos = pointPositions[startPoint];
+    const udDouble3 &target = pointPositions[pointIndex];
 
     double angle = -atan2(pos.y - target.y, pos.x - target.x);
 
@@ -1568,15 +1560,15 @@ void CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunk
     perimeterPoints.PushBack(currentPoint);
 
     // Reverse the previous angle
-    double prevAngle = -atan2(points[currentPoint].position.y - points[prevPoint].position.y, points[currentPoint].position.x - points[prevPoint].position.x);
+    double prevAngle = -atan2(pointPositions[currentPoint].y - pointPositions[prevPoint].y, pointPositions[currentPoint].x - pointPositions[prevPoint].x);
 
-    int64_t closestPoint = -1;
+    int closestPoint = -1;
     double closestAngle = DBL_MAX;
-    const udDouble3 &pos = points[currentPoint].position;
-    for (const int64_t &pointIndex : points[currentPoint].pointConnections)
+    const udDouble3 &pos = pointPositions[currentPoint];
+    for (const int &pointIndex : pointConnections[currentPoint])
       if (pointIndex != prevPoint)
       {
-        const udDouble3 &target = points[pointIndex].position;
+        const udDouble3 &target = pointPositions[pointIndex];
         double angle = -atan2(pos.y - target.y, pos.x - target.x);
 
         // Ensure the angle is positive relative to the previous angle
@@ -1595,49 +1587,58 @@ void CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunk
   }
 
   // Finalize
-  for (const int64_t &pointIndex : perimeterPoints)
-    pPerimeterPoints->PushBack(points[pointIndex].position);
+  for (const int &pointIndex : perimeterPoints)
+    pPerimeterPoints->PushBack(pointPositions[pointIndex]);
 
+  pointPositions.Deinit();
+  pointConnections.Deinit();
   perimeterPoints.Deinit();
 }
 
-bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDouble3> *pTrianglePoints)
+bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDouble3> *pTrianglePoints)
 {
+  const size_t pointInfoChunkSize = 512;
+  const size_t pointInfoLinePointsChunkSize = 512;
+
   udDouble3 pivotPoint = pPoints[0];
 
-  // Point Info
-  struct PointInfo
-  {
-    void Init() { lines.Init(512); }
-    void DeInit() { lines.Deinit(); }
+  //// Point Info
+  //struct PointInfo
+  //{
+  //  void Init() { lines.Init(512); }
+  //  void DeInit() { lines.Deinit(); }
+  //
+  //  udDouble3 position;
+  //  udChunkedArray<int> lines;
+  //};
 
-    udDouble3 position;
-    udChunkedArray<int> lines;
-  };
+  //udChunkedArray<PointInfo> points;
+  //points.Init(512);
 
-  udChunkedArray<PointInfo> points;
-  points.Init(512);
+  udChunkedArray<udDouble3> pointInfoPositions;
+  udChunkedArray<udChunkedArray<int>> pointInfoLines;
+  pointInfoPositions.Init(pointInfoChunkSize);
+  pointInfoLines.Init(pointInfoChunkSize);
+
   for (int i = 0; i < numPoints; ++i)
   {
     int prevIndex = (i == 0 ? numPoints : i) - 1;
     if (udMag3(pPoints[i] - pPoints[prevIndex]) < UD_EPSILON)
       continue;
 
-    PointInfo pointInfo;
-    pointInfo.Init();
-    pointInfo.position = pPoints[i];
-    points.PushBack(pointInfo);
+    pointInfoPositions.PushBack(pPoints[i]);
+    pointInfoLines.PushBack();
+    pointInfoLines[pointInfoLines.length].Init(pointInfoLinePointsChunkSize);
   }
     
   // Remove duplicate Points
   while (true)
   {
     bool unnecessaryPointRemoved = false;
-    int64_t lastIndex = points.length - 1;
-    for (int64_t i = 0; i < (int64_t)points.length; ++i)
+    for (int i = 0; i < (int)pointInfoPositions.length; ++i)
     {
-      int64_t prevIndex = i == 0 ? lastIndex : i - 1;
-      int64_t nextIndex = i == lastIndex ? 0 : i + 1;
+      int prevIndex = i == 0 ? ((int)pointInfoPositions.length - 1) : i - 1;
+      int nextIndex = i == ((int)pointInfoPositions.length - 1) ? 0 : i + 1;
 
       udDouble2 curPointPos2 = udDouble2::create(points[i].position.x, points[i].position.y);
       udDouble2 nextPointPos2 = udDouble2::create(points[nextIndex].position.x, points[nextIndex].position.y);
@@ -1646,7 +1647,7 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
       if (udMag2(curPointPos2 - prevPointPos2) < UD_EPSILON
         || udMag2(curPointPos2 - nextPointPos2) < UD_EPSILON
         || udMag2(prevPointPos2 - nextPointPos2) < UD_EPSILON
-        || DistancePointToLine(prevPointPos2, nextPointPos2, curPointPos2) < UD_EPSILON)
+        || vcPOI_DistancePointToLine(prevPointPos2, nextPointPos2, curPointPos2) < UD_EPSILON)
       {
         points.RemoveAt(i);
         unnecessaryPointRemoved = true;
@@ -1668,9 +1669,10 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
 
   udChunkedArray<udDouble3> perimeterPoints;
   perimeterPoints.Init(64);
-  CalculatePerimeter(pointPositions, &perimeterPoints);
+  vcPOI_CalculatePerimeter(pointPositions, &perimeterPoints);
     
   // Separate pinch-points in the mesh
+  /*
   struct PointMesh
   {
     void Init()
@@ -1685,6 +1687,9 @@ bool CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<udDoub
 
     udChunkedArray<int> pointIndices;
   };
+  */
+
+  //udChunkedArray<int> 
 
   udChunkedArray<int> perimeterPointsIndices;
   perimeterPointsIndices.Init(64);
@@ -1822,7 +1827,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 
     udChunkedArray<udDouble3> triPoints;
     triPoints.Init(512);
-    if (!CalculateTriangles(pModifiedVerts, m_line.numPoints, &triPoints))
+    if (!vcPOI_CalculateTriangles(pModifiedVerts, m_line.numPoints, &triPoints))
     {
       triPoints.Deinit();
       return;
