@@ -57,6 +57,8 @@ public:
   vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcFlythrough() {};
 
+  void CancelExport(vcState *pProgramState);
+
   void OnNodeUpdate(vcState *pProgramState) override;
 
   void AddToScene(vcState *pProgramState, vcRenderData *pRenderData) override;
