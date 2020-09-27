@@ -107,19 +107,19 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         pNode->pUserData = new vcMedia(&pProgramState->activeProject, pNode, pProgramState);
       else if (pNode->itemtype == udPNT_Viewpoint)
         pNode->pUserData = new vcViewpoint(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "I3S"))
+      else if (pNode->itemtype == udPNT_I3S)
         pNode->pUserData = new vcI3S(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "Water"))
+      else if (pNode->itemtype == udPNT_Water)
         pNode->pUserData = new vcWater(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "ViewMap"))
+      else if (pNode->itemtype == udPNT_ViewShed)
         pNode->pUserData = new vcViewShed(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "Polygon"))
+      else if (pNode->itemtype == udPNT_Polygon)
         pNode->pUserData = new vcPolyModelNode(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "QFilter"))
+      else if (pNode->itemtype == udPNT_QueryFilter)
         pNode->pUserData = new vcQueryNode(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "Places"))
+      else if (pNode->itemtype == udPNT_Places)
         pNode->pUserData = new vcPlaceLayer(&pProgramState->activeProject, pNode, pProgramState);
-      else if (udStrEqual(pNode->itemtypeStr, "MHeight"))
+      else if (pNode->itemtype == udPNT_HeightMeasurement)
         pNode->pUserData = new vcVerticalMeasureTool(&pProgramState->activeProject, pNode, pProgramState);
       else if (udStrEqual(pNode->itemtypeStr, "FlyPath"))
         pNode->pUserData = new vcFlythrough(&pProgramState->activeProject, pNode, pProgramState);
@@ -205,29 +205,37 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
       ImGui::SameLine();
 
-      vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
-      bool iconClicked = false;
-      if (icon != vcMBBI_None)
-        iconClicked = vcMenuBarButton(pProgramState->pUITexture, pNode->pName, vcB_Invalid, icon, vcMBBG_FirstItem, false, (18.f / 24.f), udTempStr("###SXIIcon%zu", *pItemID));
-
-      ImGui::SameLine();
-
       vcIGSW_ShowLoadStatusIndicator((vcSceneLoadStatus)pSceneItem->m_loadStatus);
 
       if (pSceneItem->m_pActiveWarningStatus != nullptr)
         vcIGSW_ShowLoadStatusIndicator(vcSLS_Pending, pSceneItem->m_pActiveWarningStatus);
       
       // The actual model
+      ImGui::BeginGroup();
       ImGui::SetNextItemOpen(pSceneItem->m_expanded, ImGuiCond_Always);
-      ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
+      ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_NoTreePushOnOpen;
       if (pSceneItem->m_selected)
         flags |= ImGuiTreeNodeFlags_Selected;
+      if (!pSceneItem->m_editName)
+        flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+
+      pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
+      ImGui::SameLine();
+
+      vcMenuBarButtonIcon icon = pSceneItem->GetSceneExplorerIcon();
+      if (icon != vcMBBI_None)
+      {
+        udFloat4 iconUV = vcGetIconUV(icon);
+        float Size = 18.f;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3);
+        ImGui::Image(pProgramState->pUITexture, ImVec2(Size, Size), ImVec2(iconUV.x, iconUV.y), ImVec2(iconUV.z, iconUV.w));
+      }
+
+      ImGui::SameLine();
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
 
       if (pSceneItem->m_editName)
       {
-        pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags);
-        ImGui::SameLine();
-
         if (pSceneItem->m_pName == nullptr)
         {
           pSceneItem->m_pName = udStrdup(pNode->pName);
@@ -263,12 +271,13 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
           pSceneItem->m_nameCapacity = 0;
         }
 
-        pSceneItem->m_expanded = ImGui::TreeNodeEx(udTempStr("###SXIName%zu", *pItemID), flags, "%s", pNode->pName);
+        ImGui::Text("%s", pNode->pName);
         if (pSceneItem->m_selected && pProgramState->sceneExplorer.selectedItems.back().pParent == m_pNode && pProgramState->sceneExplorer.selectedItems.back().pItem == pNode && ImGui::GetIO().KeysDown[vcHotkey::Get(vcB_RenameSceneItem)])
           pSceneItem->m_editName = true;
       }
+      ImGui::EndGroup();
 
-      bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()) || iconClicked);
+      bool sceneExplorerItemClicked = ((ImGui::IsMouseReleased(0) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) || (!pSceneItem->m_selected && ImGui::IsItemActive()));
       if (sceneExplorerItemClicked)
       {
         if (ImGui::GetIO().KeyShift && pProgramState->sceneExplorer.selectStartItem.pItem == nullptr && pProgramState->sceneExplorer.selectedItems.size() > 0)
@@ -361,9 +370,6 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         {
           ImGui::EndPopup();
 
-          if (pSceneItem->m_expanded)
-            ImGui::TreePop();
-
           vcProject_RemoveItem(pProgramState, m_pNode, pNode);
           pProgramState->sceneExplorer.clickedItem = { nullptr, nullptr };
 
@@ -397,6 +403,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
       // Show additional settings from ImGui
       if (pSceneItem->m_expanded)
       {
+        ImGui::TreePush(udTempStr("###SXIName%zu", *pItemID));
         ImGui::Indent();
         ImGui::PushID(udTempStr("SXIExpanded%zu", *pItemID));
 

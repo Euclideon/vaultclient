@@ -61,6 +61,8 @@ public:
   vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);
   ~vcFlythrough() {};
 
+  void CancelExport(vcState *pProgramState);
+
   void OnNodeUpdate(vcState *pProgramState) override;
   void SelectSubitem(uint64_t internalId) override;
   bool IsSubitemSelected(uint64_t internalId) override;

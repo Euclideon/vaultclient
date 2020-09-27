@@ -27,6 +27,7 @@
 #include "udServerAPI.h"
 
 #include "stb_image.h"
+#include "vcFlythrough.h"
 
 bool gShowInputControlsNextHack = false;
 
@@ -1815,6 +1816,33 @@ void vcModals_DrawImportShapeFile(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawFlythroughExport(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_FlythroughExport))
+  {
+    ImGui::OpenPopup("###modalFlythroughExport");
+    ImGui::SetNextWindowSize(ImVec2(215, 70), ImGuiCond_FirstUseEver);
+  }
+
+  if (ImGui::BeginPopupModal("###modalFlythroughExport", nullptr, ImGuiWindowFlags_NoTitleBar))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_FlythroughExport) || !pProgramState->exportVideo)
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerExportRunning"));
+
+    if (ImGui::Button(vcString::Get("sceneExplorerCancelButton"), ImVec2(200, 30)))
+    {
+      vcFlythrough *pFlythrough = (vcFlythrough *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+      pFlythrough->CancelExport(pProgramState);
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -1849,6 +1877,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProfile(pProgramState);
   vcModals_DrawChangePassword(pProgramState);
   vcModals_DrawConvert(pProgramState);
+  vcModals_DrawFlythroughExport(pProgramState);
 
   if (gShowInputControlsNextHack && !pProgramState->modalOpen && pProgramState->hasUsedMouse)
   {

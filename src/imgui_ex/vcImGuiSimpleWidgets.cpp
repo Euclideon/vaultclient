@@ -20,6 +20,11 @@ struct vcIGSWResizeContainer
   size_t *pBufferSize;
 };
 
+struct vcIGSWMarkdownContext
+{
+  ImVec2 areaSize;
+};
+
 int vcIGSW_ResizeString(ImGuiInputTextCallbackData *pData)
 {
   if (pData->EventFlag == ImGuiInputTextFlags_CallbackResize)
@@ -280,32 +285,38 @@ void vcIGSW_verticalSplitter(const char* label, const udFloat2& size, const int 
   ImGui::PopStyleVar();
 }
 
-void LinkCallback(ImGui::MarkdownLinkCallbackData data_)
+void vcIGSW_MarkDownLinkCallback(ImGui::MarkdownLinkCallbackData data)
 {
   char buffer[256] = {};
-  udStrncpy(buffer, data_.link, data_.linkLength);
+  udStrncpy(buffer, data.link, data.linkLength);
 
-  if (!data_.isImage)
+  if (!data.isImage)
     vcWebFile_OpenBrowser(buffer);
 }
 
-inline ImGui::MarkdownImageData ImageCallback(ImGui::MarkdownLinkCallbackData data_)
+inline ImGui::MarkdownImageData vcIGSW_MarkDownImageCallback(ImGui::MarkdownLinkCallbackData data)
 {
   char buffer[256] = "\0";
-  udStrncpy(buffer, data_.link, data_.linkLength);
+  udStrncpy(buffer, data.link, data.linkLength);
 
   ImGui::MarkdownImageData imageData = {};
+
+  vcIGSWMarkdownContext *pContext = (vcIGSWMarkdownContext *)data.userData;
 
   vcTexture *pImage = vcTextureCache_Get(buffer, vcTFM_Linear);
 
   if (pImage != nullptr)
   {
+    float scalar = 1.f;
     int width = 0;
     int height = 0;
     vcTexture_GetSize(pImage, &width, &height);
 
+    if (width > pContext->areaSize.x)
+      scalar = pContext->areaSize.x / width;
+
     imageData.isValid = true;
-    imageData.size = ImVec2((float)width, (float)height);
+    imageData.size = ImVec2(scalar * width, scalar * height);
     imageData.user_texture_id = pImage;
 
     vcTextureCache_Release(&pImage);
@@ -318,13 +329,34 @@ inline ImGui::MarkdownImageData ImageCallback(ImGui::MarkdownLinkCallbackData da
   return imageData;
 }
 
+void vcIGSW_MarkDownToolTip(ImGui::MarkdownTooltipCallbackData data)
+{
+  if (data.linkData.isImage)
+  {
+    ImGui::SetTooltip("%.*s", data.linkData.textLength, data.linkData.text);
+  }
+  else
+  {
+    const char *pString = nullptr;
+    udSprintf(&pString, "%s\n%.*s", vcString::Get("linkConfirmBrowserTooltip"), data.linkData.linkLength, data.linkData.link);
+    if (pString != nullptr)
+      ImGui::SetTooltip("%s", pString);
+    udFree(pString);
+  }
+}
+
 void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText)
 {
+  vcIGSWMarkdownContext context = {};
+  context.areaSize = ImGui::GetContentRegionAvail();
+
   ImGui::MarkdownConfig config = {};
 
-  config.linkCallback = LinkCallback;
-  config.imageCallback = ImageCallback;
-  config.tooltipCallback = ImGui::defaultMarkdownTooltipCallback;
+  config.userData = &context;
+
+  config.linkCallback = vcIGSW_MarkDownLinkCallback;
+  config.imageCallback = vcIGSW_MarkDownImageCallback;
+  config.tooltipCallback = vcIGSW_MarkDownToolTip;
 
   config.headingFormats[0].font = pProgramState->pBigFont;
   config.headingFormats[1].font = pProgramState->pMidFont;

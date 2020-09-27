@@ -19,7 +19,7 @@ void vcAddCylinderFilter::SceneUI(vcState *pProgramState)
     ImGui::TextWrapped("%s", vcString::Get("toolFilterCylinderStart"));
     ImGui::PopFont();
   }
-  else if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter") && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
+  else if (pItem != nullptr && pItem->itemtype == udPNT_QueryFilter && pProgramState->sceneExplorer.clickedItem.pItem->pUserData != nullptr)
   {
     ImGui::PushFont(pProgramState->pMidFont);
     ImGui::TextWrapped("%s", vcString::Get("toolFilterCylinderContinue"));
@@ -61,7 +61,7 @@ void vcAddCylinderFilter::PreviewPicking(vcState *pProgramState, vcRenderData & 
     return;
 
   udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
-  if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "QFilter"))
+  if (pItem != nullptr && pItem->itemtype == udPNT_QueryFilter)
   {
     vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
     if (!pSceneItem->m_visible)
