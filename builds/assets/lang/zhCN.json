@@ -818,5 +818,7 @@
   "toolFilterCylinderContinue": "选择下个点以完成筛选",
   "toolCrossSectionStart": "在横截面的一个边缘上选择一个点以开始...",
   "toolCrossSectionContinue": "选择下个点以设置横截面的方向和宽度",
+  "bindingsAddSimpleCrossSection": "添加横截面过滤器的快捷键",
+  "linkConfirmBrowserTooltip": "在新的浏览器页面中打开链接：",
   "_last": "Last item so no one forgets the comma on the line above"
 }

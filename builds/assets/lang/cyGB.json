@@ -820,5 +820,7 @@
   "toolCrossSectionContinue": "Dewiswch ail bwynt i osod cyfeiriadedd a lled y groestoriad",
   "dropboxHelperTitle": "Heliwr Dropbox",
   "dropboxHelperMessage": "Mae'r ffeil rydych chi'n ceisio ei llwytho yn defnyddio URL Dropbox heb gefnogaeth. Hoffech chi geisio ei newid? O: \"{0}\" I: \"{1}\"",
+  "bindingsAddSimpleCrossSection": "Allwedd i ychwanegu hidlydd trawsdoriad newydd",
+  "linkConfirmBrowserTooltip": "Agorwch y ddolen ganlynol mewn tab porwr newydd:",
   "_last": "Last item so no one forgets the comma on the line above"
 }

@@ -820,5 +820,7 @@
   "toolCrossSectionContinue": "Pilih titik kedua untuk menetapkan orientasi dan lebar keratan rentas",
   "dropboxHelperTitle": "Pembantu Dropbox",
   "dropboxHelperMessage": "Fail yang anda cuba muatkan menggunakan URL Dropbox yang tidak disokong. Adakah anda ingin mencubanya? Dari: \"{0}\" Ke: \"{1}\"",
+  "bindingsAddSimpleCrossSection": "Kunci untuk menambah penapis keratan rentas baru",
+  "linkConfirmBrowserTooltip": "Buka pautan berikut di tab penyemak imbas baru:",
   "_last": "Last item so no one forgets the comma on the line above"
 }

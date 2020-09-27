@@ -820,5 +820,7 @@
   "toolCrossSectionContinue": "Выберите вторую точку, чтобы задать ориентацию и ширину поперечного сечения.",
   "dropboxHelperTitle": "Dropbox Helper",
   "dropboxHelperMessage": "Файл, который вы пытаетесь загрузить, использует неподдерживаемый URL-адрес Dropbox. Хотите попробовать изменить это? От: \"{0}\" Кому: \"{1}\"",
+  "bindingsAddSimpleCrossSection": "Ключ для добавления нового фильтра поперечного сечения",
+  "linkConfirmBrowserTooltip": "Откройте следующую ссылку в новой вкладке браузера:",
   "_last": "Last item so no one forgets the comma on the line above"
 }
