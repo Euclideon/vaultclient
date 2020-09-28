@@ -1494,7 +1494,7 @@ void vcRender_RenderWatermark(vcRenderContext *pRenderContext, vcTexture *pWater
   vcTexture_GetSize(pWatermark, &imageSize.x, &imageSize.y);
 
   // Scale the logo with scene resolution, maintaining aspect ratio
-  static const float ImageToSceneRatio = 3.0f;
+  static const float ImageToSceneRatio = 4.0f; //(1/x)
   udFloat2 logoScaleDimensions = udFloat2::create(pRenderContext->sceneResolution.x / (imageSize.x * ImageToSceneRatio), pRenderContext->sceneResolution.y / (imageSize.y * ImageToSceneRatio));
   float logoScale = udMin(1.0f, udMin(logoScaleDimensions.x, logoScaleDimensions.y));
 
