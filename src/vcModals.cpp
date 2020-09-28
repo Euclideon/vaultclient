@@ -655,7 +655,9 @@ void vcModals_DrawProjectInfo(vcState *pProgramState)
   if (pProgramState->openModals & (1 << vcMT_ProjectInfo))
     ImGui::OpenPopup(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName));
 
-  ImGui::SetNextWindowSize(ImVec2(600, 600), ImGuiCond_Appearing);
+  ImVec2 displaySize = ImGui::GetMainViewport()->Size;
+
+  ImGui::SetNextWindowSize(ImVec2(udMin(600.f, displaySize.x), udMin(600.f, displaySize.y)), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(udTempStr("%s###projectInfo", pProgramState->activeProject.pRoot->pName), nullptr, ImGuiWindowFlags_NoSavedSettings))
   {
     if (pProgramState->closeModals & (1 << vcMT_ProjectInfo))
