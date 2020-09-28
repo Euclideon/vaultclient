@@ -21,7 +21,7 @@ vcSceneItem::vcSceneItem(vcProject *pProject, udProjectNode *pNode, vcState * /*
   m_pProject(pProject),
   m_loadStatus(0),
   m_pActiveWarningStatus(nullptr),
-  m_visible(true),
+  //m_visible(true),
   m_selected(false),
   m_expanded(false),
   m_editName(false),
@@ -30,6 +30,7 @@ vcSceneItem::vcSceneItem(vcProject *pProject, udProjectNode *pNode, vcState * /*
   m_lastUpdateTime(0.0),
   m_pPreferredProjection(nullptr)
 {
+  udProjectNode_GetMetadataBool(pNode, "Visible", (uint32_t*)&m_visible, true);
   m_metadata.SetVoid();
   m_pNode = pNode;
 }

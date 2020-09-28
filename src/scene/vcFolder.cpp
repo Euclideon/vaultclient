@@ -200,6 +200,7 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         {
           vcSceneItem *pOtherSceneItem = (vcSceneItem *)sceneItemRef.pItem->pUserData;
           pOtherSceneItem->m_visible = pSceneItem->m_visible;
+          udProjectNode_SetMetadataBool(pOtherSceneItem->m_pNode, "Visible", pOtherSceneItem->m_visible);
         }
       }
 
