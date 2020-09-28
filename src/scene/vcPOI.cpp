@@ -1417,11 +1417,13 @@ static double vcPOI_DistancePointToLine(const udDouble2 &linePoint1, const udDou
 void vcPOI_CalculatePerimeter_RemoveConnectionFromList(udChunkedArray<int> *pConnections, int pointConnection)
 {
   for (size_t i = 0; i < pConnections->length; ++i)
+  {
     if ((*pConnections)[i] == pointConnection)
     {
       pConnections->RemoveAt(i);
       break;
     }
+  }
 }
 
 void vcPOI_CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, udChunkedArray<udDouble3> *pPerimeterPoints)
@@ -1519,10 +1521,10 @@ void vcPOI_CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, u
   // Find StartPoint
   int startPoint = -1;
   double highestPoint = -DBL_MAX;
-  for (int i = 0; i < (int)pointPositions.length; ++i)
+  for (size_t i = 0; i < pointPositions.length; ++i)
     if (pointPositions[i].y > highestPoint)
     {
-      startPoint = i;
+      startPoint = (int)i;
       highestPoint = pointPositions[i].y;
     }
 
@@ -1613,17 +1615,17 @@ bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<
 
     pointInfoPositions.PushBack(pPoints[i]);
     pointInfoLines.PushBack();
-    pointInfoLines[pointInfoLines.length].Init(pointInfoLinePointsChunkSize);
+    pointInfoLines[pointInfoLines.length - 1].Init(pointInfoLinePointsChunkSize);
   }
     
   // Remove duplicate Points
   while (true)
   {
     bool unnecessaryPointRemoved = false;
-    for (int i = 0; i < (int)pointInfoPositions.length; ++i)
+    for (size_t i = 0; i < pointInfoPositions.length; ++i)
     {
-      int prevIndex = i == 0 ? ((int)pointInfoPositions.length - 1) : i - 1;
-      int nextIndex = i == ((int)pointInfoPositions.length - 1) ? 0 : i + 1;
+      int prevIndex = (int)(i == 0 ? (pointInfoPositions.length - 1) : i - 1);
+      int nextIndex = (int)(i == (pointInfoPositions.length - 1) ? 0 : i + 1);
 
       udDouble2 curPointPos2 = udDouble2::create(pointInfoPositions[i].x, pointInfoPositions[i].y);
       udDouble2 nextPointPos2 = udDouble2::create(pointInfoPositions[nextIndex].x, pointInfoPositions[nextIndex].y);
@@ -1666,9 +1668,9 @@ bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<
   while (true)
   {
     bool cutFound = false;
-    for (int64_t pointListIndex = 1; pointListIndex < (int64_t)perimeterPointsIndices.length; ++pointListIndex)
+    for (int pointListIndex = 1; pointListIndex < (int)perimeterPointsIndices.length; ++pointListIndex)
     {
-      for (int64_t pointListIndex2 = pointListIndex - 1; pointListIndex2 >= 0; --pointListIndex2)
+      for (int pointListIndex2 = pointListIndex - 1; pointListIndex2 >= 0; --pointListIndex2)
       {
         int pointIndex = perimeterPointsIndices[pointListIndex];
         int pointIndex2 = perimeterPointsIndices[pointListIndex2];
@@ -1676,7 +1678,7 @@ bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<
         {
           udChunkedArray<int> newPointMeshVertices;
           newPointMeshVertices.Init(64);
-          for (int64_t i = pointListIndex - 1; i >= pointListIndex2; --i)
+          for (int i = pointListIndex - 1; i >= pointListIndex2; --i)
           {
             newPointMeshVertices.PushBack(perimeterPointsIndices[i]);
             if (i < pointListIndex)
@@ -1686,7 +1688,7 @@ bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<
 
           // Ensure Loop ends
           cutFound = true;
-          pointListIndex = perimeterPointsIndices.length;
+          pointListIndex = (int)perimeterPointsIndices.length;
           break;
         }
       }
