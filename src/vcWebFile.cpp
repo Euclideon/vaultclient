@@ -130,7 +130,8 @@ udResult vcWebFile_Open(udFile **ppFile, const char *pFilename, udFileOpenFlags 
   }
   else
   {
-    pFile->pFilenameCopy = pFilename;
+    pFile->pFilenameCopy = udStrdup(pFilename);
+    pFile->filenameCopyRequiresFree = true;
   }
 
   if ((flags & udFOF_FastOpen) == 0)
