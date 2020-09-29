@@ -199,16 +199,52 @@ udDouble4 vcCamera_GetNearPlane(const vcCamera &camera, const vcCameraSettings &
 void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcCameraSettings &settings, const int activeViewportIndex, const udFloat2 &windowSize, const udFloat2 *pMousePos /*= nullptr*/)
 {
   // Update matrices
-  double fov = !settings.mapMode[activeViewportIndex] ? settings.fieldOfView[activeViewportIndex] : UD_PIf * 10.0f / 18.f; // 10 degrees;
-  double aspect = windowSize.x / windowSize.y;
-  double zNear = settings.nearPlane;
-  double zFar = settings.farPlane;
+  //double fov = !settings.mapMode[activeViewportIndex] ? settings.fieldOfView[activeViewportIndex] : UD_PIf * 10.0f / 18.f; // 10 degrees;
+  //double aspect = windowSize.x / windowSize.y;
+  //double zNear = settings.nearPlane;
+  //double zFar = settings.farPlane;
+  //
+  //pCamera->matrices.camera = vcCamera_GetMatrix(zone, pCamera);
+  //
+  //pCamera->matrices.projectionNear = vcGLState_ProjectionMatrix<double>(fov, aspect, 0.5f, 10000.f);
+  //pCamera->matrices.projection = vcGLState_ProjectionMatrix<double>(fov, aspect, zNear, zFar);
+  //pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
 
+  // Update matrices
   pCamera->matrices.camera = vcCamera_GetMatrix(zone, pCamera);
 
+  double fov = settings.fieldOfView[activeViewportIndex];
+  double aspect = windowSize.x / windowSize.y;
   pCamera->matrices.projectionNear = vcGLState_ProjectionMatrix<double>(fov, aspect, 0.5f, 10000.f);
-  pCamera->matrices.projection = vcGLState_ProjectionMatrix<double>(fov, aspect, zNear, zFar);
-  pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+
+  if (!settings.mapMode[activeViewportIndex])// pCamera->projection == vcCameraProjection_Perspective)
+  {
+    double zNear = settings.nearPlane;
+    double zFar = settings.farPlane;
+
+    pCamera->matrices.projection = vcGLState_ProjectionMatrix<double>(fov, aspect, zNear, zFar);
+    pCamera->matrices.projectionUD = udDouble4x4::perspectiveZO(fov, aspect, zNear, zFar);
+  }
+  else //if (pCamera->projection == vcCameraProjection_Orthographic)
+  {
+    // duplicated code
+    udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(zone, pCamera->position);
+    cameraPositionInLongLat.z = 0.0;
+    udDouble3 cameraZeroAltitude = udGeoZone_LatLongToCartesian(zone, cameraPositionInLongLat);
+
+    double cameraHeightAboveEarthSurface = 0;// -pProgramState->settings.maptiles.layers[0].mapHeight;
+    udDouble3 earthSurfaceToCamera = pCamera->position - cameraZeroAltitude;
+    if (udMagSq3(earthSurfaceToCamera) > 0)
+      cameraHeightAboveEarthSurface += udMag3(earthSurfaceToCamera);
+
+    double size = cameraHeightAboveEarthSurface * 0.5;
+
+    //double size = pCamera->position.z;// pCamera->orthoSize;
+    double zNear = settings.nearPlane;
+    double zFar = 1000000.0;// settings.farPlane; //
+    pCamera->matrices.projection = udDouble4x4::orthoZO(-size, size, -size, size, zNear, zFar);
+    pCamera->matrices.projectionUD = udDouble4x4::orthoZO(-size, size, -size, size, zNear, zFar);
+  }
 
   pCamera->matrices.view = pCamera->matrices.camera;
   pCamera->matrices.view.inverse();

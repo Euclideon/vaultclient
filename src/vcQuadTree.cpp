@@ -254,6 +254,8 @@ void vcQuadTree_InitBlock(vcQuadTree *pQuadTree, uint32_t blockIndex, const udIn
 
 bool vcQuadTree_IsNodeVisible(const vcQuadTree *pQuadTree, const vcQuadTreeNode *pNode)
 {
+  return true;
+
   // camera inside bounds test
   if (pQuadTree->pCamera->position.x >= pNode->tileCenter.x - pNode->tileExtents.x &&
     pQuadTree->pCamera->position.x <= pNode->tileCenter.x + pNode->tileExtents.x &&

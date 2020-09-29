@@ -1424,7 +1424,7 @@ void vcTileRenderer_DrawRenderList(vcTileRenderer *pTileRenderer, vcTileShader *
   }
 }
 
-void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, const float encodedObjectId)
+void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &view, const udDouble4x4 &proj, const bool cameraInsideGround, bool mapRendering, const float encodedObjectId)
 {
   vcQuadTreeNode *pRootNode = &pTileRenderer->quadTree.nodes.pPool[pTileRenderer->quadTree.rootIndex];
   if (!pRootNode->touched) // can occur on failed re-roots
@@ -1496,7 +1496,8 @@ void vcTileRenderer_Render(vcTileRenderer *pTileRenderer, const udDouble4x4 &vie
     if (pTileRenderer->quadTree.geozone.projection == udGZPT_ECEF)
       globeMorphDelta = (float)udClamp((pTileRenderer->cameraDistanceToSurface - minMorphHeightMeters) / (maxMorphHeightMeters - minMorphHeightMeters), 0.0, 1.0);
 
-    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, globeMorphDelta, 0);
+    pShader->everyObject.objectInfo = udFloat4::create(encodedObjectId, (pTileRenderer->cameraIsUnderMapSurface ? -1.0f : 1.0f) * tileSkirtLength, globeMorphDelta,
+      mapRendering ? 0.0f : 1.0f);
     pShader->everyObject.colour = udFloat4::create(1.f, 1.f, 1.f, pTileRenderer->pSettings->maptiles.layers[layer].transparency);
 
     // render nodes

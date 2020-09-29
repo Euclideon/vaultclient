@@ -24,8 +24,16 @@ enum vcCameraScrollWheelMode
   vcCSWM_ChangeMoveSpeed
 };
 
+//enum vcCameraProjection
+//{
+//  vcCameraProjection_Perspective,
+//  vcCameraProjection_Orthographic,
+//}
+
 struct vcCamera
 {
+  //vcCameraProjection projection;
+
   udDouble3 position;
   //udDouble3 eulerRotation;
   udDouble2 headingPitch;
@@ -33,6 +41,8 @@ struct vcCamera
   udDouble3 cameraNorth;
 
   bool cameraIsUnderSurface; 
+
+  //double orthoSize;
 
   udRay<double> worldMouseRay;
 

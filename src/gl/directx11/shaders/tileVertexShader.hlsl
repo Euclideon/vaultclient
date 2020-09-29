@@ -32,7 +32,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_view;
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
-  float4 u_objectInfo; // objectId.x, tileSkirtLength.y, isGlobeRendering.z
+  float4 u_objectInfo; // objectId.x, tileSkirtLength.y, isGlobeRendering.z, orthographic rendering
   float4 u_uvOffsetScale;
   float4 u_demUVOffsetScale;
   float4 u_worldNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
@@ -102,7 +102,8 @@ PS_INPUT main(VS_INPUT input)
   float3 finalEyePos = lerp(eyePos.xyz, globeEyePos.xyz, u_objectInfo.z);
   float4 finalClipPos = mul(u_projection, (float4(finalEyePos, 1.0) + eyeNormal * tileHeight));
   
-  finalClipPos.z = CalcuteLogDepth(finalClipPos);
+  //if (u_objectInfo.w == 1.0)
+    finalClipPos.z = CalcuteLogDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
   output.colour = u_colour;

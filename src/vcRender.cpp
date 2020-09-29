@@ -753,17 +753,22 @@ udResult vcRender_AsyncReadFrameDepth(vcRenderContext *pRenderContext)
 
   pRenderContext->lastPickLocation = pRenderContext->picking.location;
 
+  printf("%f\n", pRenderContext->previousFrameDepth);
 epilogue:
   return result;
 }
 
 udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext *pRenderContext, double depthIn)
 {
-  // reconstruct clip depth from log z
-  float a = pProgramState->settings.camera.farPlane / (pProgramState->settings.camera.farPlane - pProgramState->settings.camera.nearPlane);
-  float b = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.nearPlane / (pProgramState->settings.camera.nearPlane - pProgramState->settings.camera.farPlane);
-  double worldDepth = udPow(2.0, depthIn * udLog2(pProgramState->settings.camera.farPlane + 1.0)) - 1.0;
-  double depth = a + b / worldDepth;
+  double depth = depthIn * 2 - 1;
+  //if (!pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
+  {
+    // reconstruct clip depth from log z
+    float a = pProgramState->settings.camera.farPlane / (pProgramState->settings.camera.farPlane - pProgramState->settings.camera.nearPlane);
+    float b = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.nearPlane / (pProgramState->settings.camera.nearPlane - pProgramState->settings.camera.farPlane);
+    double worldDepth = udPow(2.0, depthIn * udLog2(pProgramState->settings.camera.farPlane + 1.0)) - 1.0;
+    depth = a + b / worldDepth;
+  }
 
   // note: upside down (1.0 - uv.y)
   udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, depth, 1.0);
@@ -945,7 +950,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     vcTileRenderer_Update(pRenderContext->pTileRenderer, pProgramState->deltaTime, &pProgramState->geozone, udInt3::create(slippyCorners[0], currentZoom), &pProgramState->pActiveViewport->camera, pRenderContext->cameraZeroAltitude, viewProjection, &pProgramState->isStreaming);
 
     float terrainId = vcRender_EncodeModelId(vcObjectId_Terrain);
-    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->pActiveViewport->camera.matrices.view, pProgramState->pActiveViewport->camera.matrices.projection, pProgramState->pActiveViewport->camera.cameraIsUnderSurface, terrainId);
+    vcTileRenderer_Render(pRenderContext->pTileRenderer, pProgramState->pActiveViewport->camera.matrices.view, pProgramState->pActiveViewport->camera.matrices.projection, pProgramState->pActiveViewport->camera.cameraIsUnderSurface, pProgramState->activeViewportIndex == 1, terrainId);
   }
 }
 
