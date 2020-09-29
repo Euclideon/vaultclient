@@ -855,7 +855,9 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
 {
   vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization);
-  vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
+
+  if (pProgramState->settings.visualization.mode == vcVM_Classification)
+    vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
 
   const char *lensNameArray[] = {
     vcString::Get("settingsViewportCameraLensCustom"),
