@@ -32,7 +32,7 @@ cbuffer u_EveryObject : register(b0)
   float4x4 u_view;
   float4 u_eyePositions[CONTROL_POINT_RES * CONTROL_POINT_RES];
   float4 u_colour;
-  float4 u_objectInfo; // objectId.x, tileSkirtLength.y, isGlobeRendering.z
+  float4 u_objectInfo; // objectId.x, tileSkirtLength.y, isGlobeRendering.z, orthographic rendering
   float4 u_uvOffsetScale;
   float4 u_demUVOffsetScale;
   float4 u_worldNormals[CONTROL_POINT_RES * CONTROL_POINT_RES];
@@ -43,10 +43,16 @@ sampler demSampler;
 Texture2D demTexture;
 
 // this works for highly tesselated geometry
-float CalcuteLogDepth(float4 clipPos)
+float CalculateDepth(float4 clipPos)
 {
-  float Fcoef = (u_clipZFar - u_clipZNear) / log2(s_CameraFarPlane + 1.0);
-  return (log2(max(1e-6, 1.0 + clipPos.w)) * Fcoef + u_clipZNear) * clipPos.w;
+  if (u_projection[ 3 ][ 1 ] != 0.0) // perspective
+  {	
+    // Log-Z for perspective projecion
+    float Fcoef = (u_clipZFar - u_clipZNear) / log2(s_CameraFarPlane + 1.0);
+    return (log2(max(1e-6, 1.0 + clipPos.w)) * Fcoef + u_clipZNear) * clipPos.w;
+  }
+  
+  return clipPos.z;
 }
 
 float4 BilinearSample(float4 samples[CONTROL_POINT_RES * CONTROL_POINT_RES], float2 uv)
@@ -102,7 +108,7 @@ PS_INPUT main(VS_INPUT input)
   float3 finalEyePos = lerp(eyePos.xyz, globeEyePos.xyz, u_objectInfo.z);
   float4 finalClipPos = mul(u_projection, (float4(finalEyePos, 1.0) + eyeNormal * tileHeight));
   
-  finalClipPos.z = CalcuteLogDepth(finalClipPos);
+  finalClipPos.z = CalculateDepth(finalClipPos);
 	
   // note: could have precision issues on some devices
   output.colour = u_colour;

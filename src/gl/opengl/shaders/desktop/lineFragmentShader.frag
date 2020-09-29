@@ -16,9 +16,22 @@ layout(location = 1) out vec4 out_var_SV_Target1;
 
 void main()
 {
-    float _37 = log2(in_var_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+    float _49;
+    switch (0u)
+    {
+        default:
+        {
+            if (in_var_TEXCOORD0.y != 0.0)
+            {
+                _49 = in_var_TEXCOORD0.x / in_var_TEXCOORD0.y;
+                break;
+            }
+            _49 = log2(in_var_TEXCOORD0.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+            break;
+        }
+    }
     out_var_SV_Target0 = in_var_COLOR0;
-    out_var_SV_Target1 = vec4(0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _37, 0.0, 0.0);
-    gl_FragDepth = _37;
+    out_var_SV_Target1 = vec4(0.0, ((step(0.0, 0.0) * 2.0) - 1.0) * _49, 0.0, 0.0);
+    gl_FragDepth = _49;
 }
 

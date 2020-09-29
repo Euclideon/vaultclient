@@ -12,7 +12,7 @@ struct PS_INPUT
   float2 uv : TEXCOORD0;
   float3 normal : NORMAL;
   float4 colour : COLOR0;
-  float2 fLogDepth : TEXCOORD1;
+  float2 depthInfo : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
 };
 
@@ -32,19 +32,26 @@ float4 packNormal(float3 normal, float objectId, float depth)
   return float4(objectId, zSign * depth, normal.x, normal.y);
 }
 
+float CalculateDepth(float2 depthInfo)
+{
+  if (depthInfo.y != 0.0) // orthographic
+    return (depthInfo.x / depthInfo.y);
+	
+  // log-z (perspective)
+  float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+  return log2(depthInfo.x) * halfFcoef;
+}
+
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
   float4 col = albedoTexture.Sample(albedoSampler, input.uv);
   output.Color0 = col * input.colour;
-
-  float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
-  output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
-
+  
+  output.Depth0 = CalculateDepth(input.depthInfo);	
   output.Normal = packNormal(float3(0.0, 0.0, 0.0), input.objectInfo.x, output.Depth0);
   
   // conditionally disable selection (using alpha-blend)
   output.Normal.w = input.objectInfo.y;
-	
   return output;
 }

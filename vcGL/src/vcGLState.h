@@ -174,4 +174,15 @@ udMatrix4x4<T> vcGLState_ProjectionMatrix(T fovY, T aspectRatio, T znear, T zfar
 #endif
 }
 
+template <typename T>
+udMatrix4x4<T> vcGLState_OrthographicMatrix(T left, T right, T bottom, T top, T znear, T zfar)
+{
+#if GRAPHICS_API_OPENGL
+  static const udMatrix4x4<T> FlipVertically = udMatrix4x4<T>::scaleNonUniform(T(1), T(-1), T(1));
+  return FlipVertically * udMatrix4x4<T>::orthoNO(left, right, bottom, top, znear, zfar);
+#else
+  return udMatrix4x4<T>::orthoZO(left, right, bottom, top, znear, zfar);
+#endif
+}
+
 #endif // vcGLState_h__

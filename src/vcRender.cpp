@@ -756,14 +756,18 @@ epilogue:
 
 udDouble3 vcRender_DepthToWorldPosition(vcState *pProgramState, vcRenderContext *pRenderContext, double depthIn)
 {
-  // reconstruct clip depth from log z
-  float a = pProgramState->settings.camera.farPlane / (pProgramState->settings.camera.farPlane - pProgramState->settings.camera.nearPlane);
-  float b = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.nearPlane / (pProgramState->settings.camera.nearPlane - pProgramState->settings.camera.farPlane);
-  double worldDepth = udPow(2.0, depthIn * udLog2(pProgramState->settings.camera.farPlane + 1.0)) - 1.0;
-  double depth = a + b / worldDepth;
+  double clipDepth = depthIn;
+  if (!pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
+  {
+    // reconstruct clip depth from log z
+    float a = pProgramState->settings.camera.farPlane / (pProgramState->settings.camera.farPlane - pProgramState->settings.camera.nearPlane);
+    float b = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.nearPlane / (pProgramState->settings.camera.nearPlane - pProgramState->settings.camera.farPlane);
+    double worldDepth = udPow(2.0, depthIn * udLog2(pProgramState->settings.camera.farPlane + 1.0)) - 1.0;
+    clipDepth = a + b / worldDepth;
+  }
 
   // note: upside down (1.0 - uv.y)
-  udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, depth, 1.0);
+  udDouble4 clipPos = udDouble4::create(pRenderContext->currentMouseUV.x * 2.0 - 1.0, (1.0 - pRenderContext->currentMouseUV.y) * 2.0 - 1.0, clipDepth, 1.0);
 #if GRAPHICS_API_OPENGL
   clipPos.z = clipPos.z * 2.0 - 1.0;
   clipPos.y = -clipPos.y;
@@ -828,7 +832,7 @@ void vcRenderSkybox(vcState *pProgramState, vcRenderContext *pRenderContext)
 
 void vcRender_RenderAtmosphere(vcState *pProgramState, vcRenderContext *pRenderContext)
 {
-  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_None)
+  if (pProgramState->settings.presentation.skybox.type == vcSkyboxType_None || pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
     return;
 
   if (pProgramState->pActiveViewport->camera.cameraIsUnderSurface || pProgramState->settings.presentation.skybox.type == vcSkyboxType_Colour || pProgramState->settings.presentation.skybox.type == vcSkyboxType_Simple)
@@ -894,6 +898,7 @@ void vcRenderTerrain(vcState *pProgramState, vcRenderContext *pRenderContext)
     viewProjection = pProgramState->pActiveViewport->camera.matrices.projection * udInverse(cameraMatrix);
 #endif
     udDouble3 localCamPos = cameraMatrix.axis.t.toVector3();
+
     int currentZoom = 21;
 
     // These values were trial and errored.
@@ -1813,10 +1818,13 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
   renderOptions.pFilter = renderData.pQueryFilter;
   renderOptions.pointMode = (udRenderContextPointMode)pProgramState->settings.presentation.pointMode;
 
+  if (!pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex])
+    renderOptions.flags = udRCF_LogarithmicDepth;
+
   if (pProgramState->exportVideo || pProgramState->settings.screenshot.taking)
-    renderOptions.flags = (udRenderContextFlags)(udRCF_LogarithmicDepth | udRCF_BlockingStreaming);
+    renderOptions.flags = (udRenderContextFlags)(renderOptions.flags | udRCF_BlockingStreaming);
   else
-    renderOptions.flags = (udRenderContextFlags)(udRCF_LogarithmicDepth | udRCF_ManualStreamerUpdate);
+    renderOptions.flags = (udRenderContextFlags)(renderOptions.flags | udRCF_ManualStreamerUpdate);
 
   udError result = udRenderContext_Render(pRenderContext->udRenderContext.pRenderer, pRenderTarget, pModels, numVisibleModels, &renderOptions);
 

@@ -18,7 +18,7 @@ struct PS_INPUT
   float4 pos : SV_POSITION;
   float4 colour : COLOR0;
   float2 uv  : TEXCOORD0;
-  float2 fLogDepth : TEXCOORD1;
+  float2 depthInfo : TEXCOORD1;
 };
 
 cbuffer u_EveryFrame : register(b0)
@@ -47,6 +47,15 @@ cbuffer u_EveryObject : register(b1)
 {
   float4x4 u_worldViewProjectionMatrix;
 };
+
+float2 PackDepth(float4 clipPos)
+{
+  if (u_worldViewProjectionMatrix[3][1] == 0.0) // orthographic
+    return float2(clipPos.z, clipPos.w);
+
+  // perspective
+  return float2(1.0 + clipPos.w, 0);
+}
 
 PS_INPUT main(VS_INPUT input)
 {
@@ -82,7 +91,7 @@ PS_INPUT main(VS_INPUT input)
     worldPosition = input.pos + expandVector * u_width * (input.ribbonInfo.w - 0.5);
 
   output.pos = mul(u_worldViewProjectionMatrix, float4(worldPosition, 1.0));
-  output.fLogDepth.x = 1.0 + output.pos.w;
+  output.depthInfo = PackDepth(output.pos);
 
   return output;
 }

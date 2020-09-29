@@ -16,18 +16,28 @@ out vec3 varying_COLOR2;
 out vec4 varying_COLOR3;
 out vec2 varying_TEXCOORD0;
 
-vec2 _34;
-
 void main()
 {
-    vec4 _44 = vec4(in_var_POSITION, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
-    vec2 _53 = _34;
-    _53.x = 1.0 + _44.w;
-    gl_Position = _44;
+    vec4 _50 = vec4(in_var_POSITION, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    vec2 _70;
+    switch (0u)
+    {
+        case 0u:
+        {
+            if (u_EveryObject.u_worldViewProjectionMatrix[3u].y == 0.0)
+            {
+                _70 = vec2(_50.zw);
+                break;
+            }
+            _70 = vec2(1.0 + _50.w, 0.0);
+            break;
+        }
+    }
+    gl_Position = _50;
     varying_COLOR0 = (in_var_NORMAL * 0.5) + vec3(0.5);
     varying_COLOR1 = u_EveryObject.u_colour;
     varying_COLOR2 = u_EveryObject.u_sunDirection;
-    varying_COLOR3 = _44;
-    varying_TEXCOORD0 = _53;
+    varying_COLOR3 = _50;
+    varying_TEXCOORD0 = _70;
 }
 

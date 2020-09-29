@@ -27,53 +27,65 @@ out vec4 varying_COLOR0;
 out vec2 varying_TEXCOORD0;
 out vec2 varying_TEXCOORD1;
 
-vec2 _44;
+vec2 _49;
 
 void main()
 {
-    vec2 _60 = _44;
-    _60.y = in_var_COLOR0.w;
-    vec2 _92;
-    vec3 _93;
+    vec2 _65 = _49;
+    _65.y = in_var_COLOR0.w;
+    vec2 _97;
+    vec3 _98;
     if (((u_EveryFrame.u_options >> 2) & 1) == 0)
     {
-        vec2 _72 = _60;
-        _72.x = (in_var_TEXCOORD0.y * u_EveryFrame.u_textureRepeatScale) - u_EveryFrame.u_time;
-        _92 = _72;
-        _93 = vec3(u_EveryFrame.u_worldUp.x, u_EveryFrame.u_worldUp.y, u_EveryFrame.u_worldUp.z);
+        vec2 _77 = _65;
+        _77.x = (in_var_TEXCOORD0.y * u_EveryFrame.u_textureRepeatScale) - u_EveryFrame.u_time;
+        _97 = _77;
+        _98 = vec3(u_EveryFrame.u_worldUp.x, u_EveryFrame.u_worldUp.y, u_EveryFrame.u_worldUp.z);
     }
     else
     {
-        vec2 _87 = _60;
-        _87.x = (in_var_TEXCOORD0.x * u_EveryFrame.u_textureRepeatScale) - u_EveryFrame.u_time;
-        _92 = _87;
-        _93 = vec3(in_var_COLOR0.xyz);
+        vec2 _92 = _65;
+        _92.x = (in_var_TEXCOORD0.x * u_EveryFrame.u_textureRepeatScale) - u_EveryFrame.u_time;
+        _97 = _92;
+        _98 = vec3(in_var_COLOR0.xyz);
     }
-    int _94 = u_EveryFrame.u_options & 15;
-    vec3 _120;
-    if (_94 == 0)
+    int _99 = u_EveryFrame.u_options & 15;
+    vec3 _125;
+    if (_99 == 0)
     {
-        _120 = in_var_POSITION + ((_93 * u_EveryFrame.u_width) * in_var_COLOR0.w);
+        _125 = in_var_POSITION + ((_98 * u_EveryFrame.u_width) * in_var_COLOR0.w);
     }
     else
     {
-        vec3 _119;
-        if (_94 == 1)
+        vec3 _124;
+        if (_99 == 1)
         {
-            _119 = in_var_POSITION - ((_93 * u_EveryFrame.u_width) * in_var_COLOR0.w);
+            _124 = in_var_POSITION - ((_98 * u_EveryFrame.u_width) * in_var_COLOR0.w);
         }
         else
         {
-            _119 = in_var_POSITION + ((_93 * u_EveryFrame.u_width) * (in_var_COLOR0.w - 0.5));
+            _124 = in_var_POSITION + ((_98 * u_EveryFrame.u_width) * (in_var_COLOR0.w - 0.5));
         }
-        _120 = _119;
+        _125 = _124;
     }
-    vec4 _127 = vec4(_120, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
-    vec2 _130 = _44;
-    _130.x = 1.0 + _127.w;
-    gl_Position = _127;
+    vec4 _132 = vec4(_125, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    vec2 _146;
+    switch (0u)
+    {
+        case 0u:
+        {
+            if (u_EveryObject.u_worldViewProjectionMatrix[3u].y == 0.0)
+            {
+                _146 = vec2(_132.zw);
+                break;
+            }
+            _146 = vec2(1.0 + _132.w, 0.0);
+            break;
+        }
+    }
+    gl_Position = _132;
     varying_COLOR0 = mix(u_EveryFrame.u_bottomColour, u_EveryFrame.u_topColour, vec4(in_var_COLOR0.w));
-    varying_TEXCOORD0 = _92;
-    varying_TEXCOORD1 = _130;
+    varying_TEXCOORD0 = _97;
+    varying_TEXCOORD1 = _146;
 }
 
