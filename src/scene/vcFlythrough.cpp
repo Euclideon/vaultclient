@@ -432,8 +432,18 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
       {
         vcModals_OpenModal(pProgramState, vcMT_FlythroughExport);
-        if (vcModals_OverwriteExistingFile(pProgramState, udTempStr("%s/%05d.%s", m_exportPath, 0, vcFlythroughExportFormats[m_selectedExportFormatIndex]), vcString::Get("flythroughExportAlreadyExists")))
+        int frameIndex = 0;
+        const char *pFilepath = GenerateFrameExportPath(frameIndex);
+        if (vcModals_OverwriteExistingFile(pProgramState, pFilepath, vcString::Get("flythroughExportAlreadyExists")))
         {
+          // Delete Overwritten Flythrough Images
+          while (udFileExists(pFilepath) == udR_Success)
+          {
+            udFileDelete(pFilepath);
+            ++frameIndex;
+            pFilepath = GenerateFrameExportPath(frameIndex);
+          }
+
           m_state = vcFTS_Exporting;
           pProgramState->screenshot.pImage = nullptr;
           m_exportInfo.currentFrame = -2;
@@ -621,4 +631,9 @@ void vcFlythrough::LerpFlightPoints(double timePosition, const vcFlightPoint &fl
 
   if (pLerpedHeadingPitch != nullptr)
     *pLerpedHeadingPitch = udLerp(flightPoint1.m_CameraHeadingPitch, flightPoint2.m_CameraHeadingPitch, lerp);
+}
+
+const char* vcFlythrough::GenerateFrameExportPath(int frameIndex)
+{
+  return udTempStr("%s/%05d.%s", m_exportPath, frameIndex, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
 }

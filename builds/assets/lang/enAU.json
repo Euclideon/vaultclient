@@ -335,7 +335,7 @@
   "flythroughCopyPosition": "Copy current position to this frame",
   "flythroughAddAfter": "Add new frame after this frame",
   "flythroughRemoveAt": "Remove this frame",
-  "flythroughExportAlreadyExists": "A Flythrough already exists in this location.\nWould you like to overwrite existing Flythrough?\nIf so some older files may remain.",
+  "flythroughExportAlreadyExists": "A Flythrough already exists in this location.\nWould you like to overwrite existing Flythrough?",
   "menuSystem": "System",
   "menuExperimentalFeatures": "Experimental Features",
   "menuWindows": "Windows",
