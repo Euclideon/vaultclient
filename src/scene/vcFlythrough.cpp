@@ -354,7 +354,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s %.2fs / %.2fs", vcString::Get("flythroughPlayback"), m_timePosition, m_timeLength);
 
   double zero = 0.0;
-  if (ImGui::SliderScalar(vcString::Get("flythroughPlaybackTime"), ImGuiDataType_Double, &m_timePosition, &zero, &m_timeLength))
+  if (ImGui::SliderScalar(vcString::Get("flythroughPlaybackTime"), ImGuiDataType_Double, &m_timePosition, &zero, &m_timeLength, 0, ImGuiSliderFlags_ClampOnInput))
     UpdateCameraPosition(pProgramState);
 
   switch (m_state)
