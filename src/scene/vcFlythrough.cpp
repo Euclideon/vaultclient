@@ -423,20 +423,16 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
       {
         vcModals_OpenModal(pProgramState, vcMT_FlythroughExport);
-        const char *pFilepath = GenerateFrameExportPath(0);
+        int frameIndex = 0;
+        const char *pFilepath = GenerateFrameExportPath(frameIndex);
         if (vcModals_OverwriteExistingFile(pProgramState, pFilepath, vcString::Get("flythroughExportAlreadyExists")))
         {
-          if (udFileExists(pFilepath) == udR_Success)
+          // Delete Overwritten Flythrough Images
+          while (udFileExists(pFilepath) == udR_Success)
           {
-            // Delete Overwritten Flythrough Images
-            int frameIndex = 0;
-            const char *pFrameImagePath = GenerateFrameExportPath(frameIndex);
-            while (udFileExists(pFrameImagePath) == udR_Success)
-            {
-              udFileDelete(pFrameImagePath);
-              ++frameIndex;
-              pFrameImagePath = GenerateFrameExportPath(frameIndex);
-            }
+            udFileDelete(pFilepath);
+            ++frameIndex;
+            pFilepath = GenerateFrameExportPath(frameIndex);
           }
 
           m_state = vcFTS_Exporting;
