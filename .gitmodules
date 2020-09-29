@@ -9,4 +9,4 @@
 	url = ../../euclideon/imgui_markdown.git
 [submodule "3rdParty/libtiff"]
 	path = 3rdParty/libtiff
-	url = https://github.com/Euclideon/libtiff.git
+	url = ../../euclideon/libtiff.git
