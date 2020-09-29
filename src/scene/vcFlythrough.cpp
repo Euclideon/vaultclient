@@ -131,7 +131,7 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
         if (saveResult != udR_Success)
         {
-          vcState::ErrorItem flythroughSaveError;
+          vcState::ErrorItem flythroughSaveError = {};
           flythroughSaveError.source = vcES_File;
           flythroughSaveError.pData = udStrdup(pSavePath);
           flythroughSaveError.resultCode = saveResult;
