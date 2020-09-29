@@ -1403,7 +1403,7 @@ static bool vcPOI_LineLineIntersection2D(const udDouble3 &line1Point1, const udD
   return true;
 }
 
-static double vcPOI_DistancePointToLine(const udDouble2 &linePoint1, const udDouble2 &linePoint2, const udDouble2 &point)
+static double vcPOI_DistancePointToLineSq(const udDouble2 &linePoint1, const udDouble2 &linePoint2, const udDouble2 &point)
 {
   double gradient = (linePoint2.y - linePoint1.y) / (linePoint2.x - linePoint1.x);
   double intersectionDistance = linePoint1.y - (gradient * linePoint1.x);
@@ -1411,7 +1411,7 @@ static double vcPOI_DistancePointToLine(const udDouble2 &linePoint1, const udDou
   double x = (gradient * point.y + point.x - gradient * intersectionDistance) / (gradient * gradient + 1.0);
   double y = (gradient * gradient * point.y + gradient * point.x + intersectionDistance) / (gradient * gradient + 1.0);
 
-  return udMag2(udDouble2::create(x, y) - point);
+  return udMagSq2(udDouble2::create(x, y) - point);
 }
 
 void vcPOI_CalculatePerimeter_RemoveConnectionFromList(udChunkedArray<int> *pConnections, int pointConnection)
@@ -1470,16 +1470,14 @@ void vcPOI_CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, u
                 if (vcPOI_LineLineIntersection2D(pointPositions[line1.x], pointPositions[line1.y], pointPositions[line2.x], pointPositions[line2.y], &splitPoint))
                 {
                   // New point to connect the 4 other points
-                  udDouble3 newPointPosition;
                   udChunkedArray<int> newPointConnection;
                   newPointConnection.Init(pointConnectionsChunkSize);
-                  newPointPosition = splitPoint;
                   newPointConnection.PushBack(line1.x);
                   newPointConnection.PushBack(line1.y);
                   newPointConnection.PushBack(line2.x);
                   newPointConnection.PushBack(line2.y);
 
-                  pointPositions.PushBack(newPointPosition);
+                  pointPositions.PushBack(splitPoint);
                   pointConnections.PushBack(newPointConnection);
 
                   int newPointIndex = (int)pointPositions.length - 1;
@@ -1539,7 +1537,7 @@ void vcPOI_CalculatePerimeter(const udChunkedArray<udDouble3> &originalPoints, u
     const udDouble3 &pos = pointPositions[startPoint];
     const udDouble3 &target = pointPositions[pointIndex];
 
-    double angle = -atan2(pos.y - target.y, pos.x - target.x);
+    double angle = -udATan2(pos.y - target.y, pos.x - target.x);
 
     // Ensure the angle is positive
     if (angle < 0.0)
@@ -1631,10 +1629,10 @@ bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<
       udDouble2 nextPointPos2 = udDouble2::create(pointInfoPositions[nextIndex].x, pointInfoPositions[nextIndex].y);
       udDouble2 prevPointPos2 = udDouble2::create(pointInfoPositions[prevIndex].x, pointInfoPositions[prevIndex].y);
 
-      if (udMag2(curPointPos2 - prevPointPos2) < UD_EPSILON
-        || udMag2(curPointPos2 - nextPointPos2) < UD_EPSILON
-        || udMag2(prevPointPos2 - nextPointPos2) < UD_EPSILON
-        || vcPOI_DistancePointToLine(prevPointPos2, nextPointPos2, curPointPos2) < UD_EPSILON)
+      if (udMagSq2(curPointPos2 - prevPointPos2) < UD_EPSILON * UD_EPSILON
+        || udMagSq2(curPointPos2 - nextPointPos2) < UD_EPSILON * UD_EPSILON
+        || udMagSq2(prevPointPos2 - nextPointPos2) < UD_EPSILON * UD_EPSILON
+        || vcPOI_DistancePointToLineSq(prevPointPos2, nextPointPos2, curPointPos2) < UD_EPSILON * UD_EPSILON)
       {
         pointInfoPositions.RemoveAt(i);
         pointInfoLines[i].Deinit();
@@ -1746,17 +1744,17 @@ bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<
   // Un-flatten 2D Result
   for (size_t i = 0; i < pTrianglePoints->length; ++i)
   {
-    double closestDist = FLT_MAX;
+    double closestDistSq = FLT_MAX;
     double closestZ = 0;
     for (const udDouble3 &point : perimeterPoints)
     {
       udDouble2 triPoint2 = udDouble2::create(pTrianglePoints->GetElement(i)->x, pTrianglePoints->GetElement(i)->y);
       udDouble2 pos = (point - pivotPoint).toVector2();
 
-      double dist = udMag2<double>(pos - triPoint2);
-      if (dist < closestDist)
+      double distSq = udMagSq2(pos - triPoint2);
+      if (distSq < closestDistSq)
       {
-        closestDist = dist;
+        closestDistSq = distSq;
         closestZ = point.z - pivotPoint.z;
       }
     }
