@@ -1222,6 +1222,7 @@ void vcSettings_LoadBranding(vcState *pState)
   udStrcpy(pState->branding.supportEmail, branding.Get("supportEmail").AsString("support@euclideon.com"));
   pState->branding.convertEnabled = branding.Get("convertEnabled").AsBool(true);
   pState->branding.exportEnabled = branding.Get("exportEnabled").AsBool(true);
+  pState->branding.filtersEnabled = branding.Get("filtersEnabled").AsBool(true);
 
   const char* DefaultColours[] = { "45A2B5", "A8D9E3", "71BCCD", "238599" };
 
