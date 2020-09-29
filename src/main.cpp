@@ -1383,7 +1383,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
-  if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem != nullptr)
+  if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem != nullptr && !udStrEqual(pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem->m_pNode->itemtypeStr, "FlyPath"))
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.f, 0.f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
