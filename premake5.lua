@@ -257,5 +257,6 @@ solution "udStream"
 		dofile "vcConvertCMD/project.lua"
 		dofile "3rdParty/udcore/3rdParty/googletest/project.lua"
 		dofile "vcTesting/project.lua"
+		dofile "3rdParty/libtiff/project.lua"
 	end
 
