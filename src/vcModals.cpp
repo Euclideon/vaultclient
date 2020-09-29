@@ -28,8 +28,14 @@
 
 #include "stb_image.h"
 #include "vcFlythrough.h"
+#include "parsers/vcCSV.h"
+#include "udProject.h"
+#include <unordered_map>
 
 bool gShowInputControlsNextHack = false;
+
+// Temporarily disabled because I'm not sure of requirements yet
+#define TEMP_DISABLE_PARENT_ID 0
 
 void vcModals_DrawLoggedOut(vcState *pProgramState)
 {
@@ -1855,6 +1861,316 @@ void vcModals_DrawFlythroughExport(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawImportAnnotations(vcState *pProgramState)
+{
+  static vcCSVImportSettings importSettings = {};
+  static udGeoZone importZone = {};
+
+  if (pProgramState->openModals & (1 << vcMT_ImportAnnotations))
+  {
+    ImGui::OpenPopup("###modalImportAnnotations");
+    ImGui::SetNextWindowSize(ImVec2(800, 650), ImGuiCond_FirstUseEver);
+
+    // defaults
+    importSettings.delimeter = ',';
+    importSettings.fixedSizeDelimeterSpacing = 0;
+    importSettings.skipEntries = 0;
+    importSettings.zoneSRID = 0;
+
+    vcCSV_Destroy(&pProgramState->pImportAnnotationsContext);
+  }
+
+  if (ImGui::BeginPopupModal("###modalImportAnnotations", nullptr, ImGuiWindowFlags_NoTitleBar))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_ImportAnnotations))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    ImGui::SameLine();
+    if (ImGui::Button(vcString::Get("annotationsClose"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+    {
+      vcCSV_Destroy(&pProgramState->pImportAnnotationsContext);
+
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::Separator();
+
+    ImGui::NewLine();
+    if (ImGui::InputInt(udTempStr("%s##annotationsSkipLines", vcString::Get("annotationsSkipLines")), &importSettings.skipEntries))
+      importSettings.skipEntries = udMax(0, importSettings.skipEntries);
+
+    static int delimeterIndex = 0;
+    const char *delimeterStrings[] = { vcString::Get("annotationsSeparatorComma"), vcString::Get("annotationsSeparatorTab"),
+        vcString::Get("annotationsSeparatorSpace"), vcString::Get("annotationsSeparatorSemicolon"),
+        vcString::Get("annotationsSeparatorFixedSize"), vcString::Get("annotationsSeparatorCustom") };
+    UDCOMPILEASSERT(udLengthOf(delimeterStrings) == vcCSVD_Count, "Update delimeter names");
+    if (ImGui::Combo(udTempStr("%s##annotationsSeperator", vcString::Get("annotationsSeparator")), (int *)&delimeterIndex, delimeterStrings, (int)udLengthOf(delimeterStrings)))
+    {
+      switch (delimeterIndex)
+      {
+      case vcCSVD_Comma: importSettings.delimeter = ','; break;
+      case vcCSVD_Tab: importSettings.delimeter = '\t'; break;
+      case vcCSVD_Space: importSettings.delimeter = ' '; break;
+      case vcCSVD_Semicolon: importSettings.delimeter = ';'; break;
+
+      case vcCSVD_CustomCharacter:
+        importSettings.delimeter = ',';
+        break;
+
+      case vcCSVD_FixedSize:
+        importSettings.delimeter = '\0';
+        importSettings.fixedSizeDelimeterSpacing = 10;
+        break;
+      }
+    }
+
+    if (delimeterIndex == vcCSVD_CustomCharacter)
+    {
+      ImGui::Indent();
+      ImGui::InputText(udTempStr("%s##annotationsCustomSeperator", vcString::Get("annotationsSeparatorCustomSeparator")), &importSettings.delimeter, 2);
+      ImGui::Unindent();
+    }
+    else if (delimeterIndex == vcCSVD_FixedSize)
+    {
+      ImGui::Indent();
+      ImGui::InputInt(udTempStr("%s##annotationsFixedSizeSize", vcString::Get("annotationsSeparatorFixedSizeSize")), &importSettings.fixedSizeDelimeterSpacing);
+      ImGui::Unindent();
+    }
+
+    ImGui::InputInt(udTempStr("%s##annotationsZoneSRID", vcString::Get("annotationsZoneSRID")), &importSettings.zoneSRID);
+    udGeoZone zone = {};
+    if ((importSettings.zoneSRID == 0) || (udGeoZone_SetFromSRID(&zone, importSettings.zoneSRID) != udR_Success))
+    {
+      // use project base zone => no conversion
+      importZone = pProgramState->geozone;
+    }
+    else
+    {
+      // use specified zone
+      importZone = zone;
+    }
+    const char *strings[] = {
+        importZone.zoneName,
+        vcString::Get("annotationsSRID"),
+        udTempStr("%d", importZone.srid) };
+    const char *pBuffer = vcStringFormat(vcString::Get("annotationsZoneMessage"), strings, udLengthOf(strings));
+    ImGui::Text("%s", pBuffer);
+    udFree(pBuffer);
+
+    ImGui::NewLine();
+    if (pProgramState->pImportAnnotationsContext == nullptr || pProgramState->pImportAnnotationsContext->readResult != udR_Pending)
+    {
+      vcIGSW_FilePicker(pProgramState, vcString::Get("menuFileName"), pProgramState->modelPath, SupportedFileTypes_AnnotationsImport, vcFDT_OpenFile, nullptr);
+
+      if (ImGui::Button(vcString::Get("annotationsPreview"), ImVec2(100.f, 0)))
+      {
+        vcCSV_Destroy(&pProgramState->pImportAnnotationsContext);
+
+        vcCSV_Create(&pProgramState->pImportAnnotationsContext, pProgramState->modelPath, importSettings);
+        vcCSV_ReadHeader(pProgramState->pImportAnnotationsContext);
+      }
+
+      if (pProgramState->pImportAnnotationsContext != nullptr && pProgramState->pImportAnnotationsContext->headerRead)
+      {
+        ImGui::SameLine();
+        if (ImGui::Button(vcString::Get("annotationsAddToScene"), ImVec2(100.f, 0)))
+        {
+          // read remaining bytes
+          vcCSV_Read(pProgramState->pImportAnnotationsContext);
+
+          udProjectNode *pDefaultParent = nullptr;
+          if (udProjectNode_Create(pProgramState->activeProject.pProject, &pDefaultParent, pProgramState->activeProject.pRoot, "Folder", vcString::Get("exAnnotationsIOImportFolderName"), nullptr, nullptr) != udE_Success)
+          {
+            // error message
+          }
+
+          int numColumns = (int)pProgramState->pImportAnnotationsContext->columns.length;
+          int numRows = (int)pProgramState->pImportAnnotationsContext->entryCount;
+          size_t readOffset = 0;
+
+#if TEMP_DISABLE_PARENT_ID
+          struct NodeParentPair
+          {
+            udProjectNode *pNode;
+            int parentId;
+          };
+          std::unordered_map<int, NodeParentPair> map;
+#endif
+
+          // convert to project nodes
+          for (int r = 0; r < numRows; ++r)
+          {
+            udDouble3 position = udDouble3::zero();
+            const char *pNodeName = vcString::Get("annotationsDefaultNodeName");
+            int64_t id = r;
+            int64_t parentId = -1;
+
+            for (int c = 0; c < numColumns; ++c)
+            {
+              char *pText = &pProgramState->pImportAnnotationsContext->data.pData[readOffset];
+              readOffset += udStrlen(pText) + 1; // null terminator
+
+              switch (pProgramState->pImportAnnotationsContext->columns[c])
+              {
+              case vcCSVCT_X:
+                position.x = udStrAtof64(pText);
+                break;
+              case vcCSVCT_Y:
+                position.y = udStrAtof64(pText);
+                break;
+              case vcCSVCT_Z:
+                position.z = udStrAtof64(pText);
+                break;
+              case vcCSVCT_Name:
+                pNodeName = pText;
+                break;
+              case vcCSVCT_ID:
+                id = udStrAtoi64(pText);
+                break;
+              case vcCSVCT_ParentID:
+                parentId = udStrAtoi64(pText);
+                break;
+              case vcCSVCT_Skip:
+                break;
+              }
+            }
+
+            if (importZone.srid != 0 && pProgramState->activeProject.baseZone.srid != 0)
+              position = udGeoZone_TransformPoint(position, importZone, pProgramState->activeProject.baseZone);
+
+            // add node to project
+            udProjectNode *pNode = nullptr;
+            if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pDefaultParent, "POI", pNodeName, nullptr, nullptr) != udE_Success)
+            {
+              // error UI
+            }
+
+            if (udProjectNode_SetGeometry(pProgramState->activeProject.pProject, pNode, udPGT_Point, 1, (double *)&position) != udE_Success)
+            {
+              // error ui
+            }
+
+#if TEMP_DISABLE_PARENT_ID
+            if (parentId != -1)
+            {
+              NodeParentPair n = {};
+              n.parentId = parentId;
+              n.pNode = pNode;
+              map[id] = n;
+            }
+#endif
+          }
+
+#if TEMP_DISABLE_PARENT_ID
+          // this will be empty if no parentId column is specified
+          for (auto loc = map.begin(); loc != map.end(); ++loc)
+          {
+            if (loc->second.parentId == -1) // TODO: whats the sentinel for 'no parent' ??
+              continue;
+
+            udProjectNode *pNode = loc->second.pNode;
+            udProjectNode *pParentNode = map[loc->second.parentId].pNode;
+
+            // TODO: MoveChild doesnt work?
+            udProjectNode_MoveChild(pProgramState->activeProject.pProject, pDefaultParent, pParentNode, pNode, nullptr);
+          }
+#endif
+          vcCSV_Destroy(&pProgramState->pImportAnnotationsContext);
+
+          ImGui::CloseCurrentPopup();
+        }
+      }
+
+      ImGui::Separator();
+    }
+
+    if (pProgramState->pImportAnnotationsContext != nullptr)
+    {
+      ImGui::TextUnformatted(udTempStr("%s %s", udResultAsString(pProgramState->pImportAnnotationsContext->readResult), !pProgramState->pImportAnnotationsContext->completeRead ? vcString::Get("annotationsHeaderHint") : ""));
+
+      if (pProgramState->pImportAnnotationsContext->readResult == udR_Pending)
+      {
+        ImGui::SameLine();
+        if (ImGui::Button(vcString::Get("annotationsCancel"), ImVec2(100.f, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+        {
+          pProgramState->pImportAnnotationsContext->cancel = true;
+        }
+      }
+
+      if (pProgramState->pImportAnnotationsContext->headerRead)
+      {
+        ImGui::TextUnformatted(udTempStr("%s: %d", vcString::Get("annotationsLoadedEntries"), pProgramState->pImportAnnotationsContext->entryCount));
+
+        // show columns
+        const char *columns[] = {
+            vcString::Get("annotationsColumnName"),
+            vcString::Get("annotationsColumnX"),
+            vcString::Get("annotationsColumnY"),
+            vcString::Get("annotationsColumnZ"),
+            vcString::Get("annotationsColumnID"),
+            vcString::Get("annotationsColumnParentID"),
+            vcString::Get("annotationsColumnSkip"),
+        };
+
+        int numColumns = (int)pProgramState->pImportAnnotationsContext->columns.length;
+
+        ImGui::BeginChild("ChildHeader", ImVec2(0, 30), false, 0);
+        ImGui::Separator();
+        if (numColumns > 0)
+        {
+          ImGui::Columns(numColumns);
+          for (int i = 0; i < numColumns; i++)
+          {
+            ImGui::PushID(i);
+
+            ImGui::Combo("###ColumnContents", (int *)&pProgramState->pImportAnnotationsContext->columns[i],
+              columns, (int)udLengthOf(columns));
+
+            ImGui::PopID();
+            ImGui::NextColumn();
+          }
+
+          ImGui::Columns(1);
+        }
+        ImGui::EndChild();
+
+        if (numColumns > 0)
+        {
+          // show CSV header
+          ImGui::BeginChild("ChildTable", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+          ImGui::Separator();
+          ImGui::Columns(numColumns);
+
+          size_t curDataOffset = 0;
+          for (int i = 0; i < pProgramState->pImportAnnotationsContext->entryCount; ++i)
+          {
+            for (int j = 0; j < numColumns; j++)
+            {
+              ImGui::PushID((i + 1) * numColumns + j);
+
+              char *pText = &pProgramState->pImportAnnotationsContext->data.pData[curDataOffset];
+              size_t length = udStrlen(pText) + 1; // null terminator
+              curDataOffset += length;
+
+              ImGui::TextUnformatted(pText);
+
+              ImGui::PopID();
+              ImGui::NextColumn();
+            }
+          }
+
+          ImGui::Columns(1);
+          ImGui::EndChild();
+        }
+      }
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -1890,6 +2206,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawChangePassword(pProgramState);
   vcModals_DrawConvert(pProgramState);
   vcModals_DrawFlythroughExport(pProgramState);
+  vcModals_DrawImportAnnotations(pProgramState);
 
   if (gShowInputControlsNextHack && !pProgramState->modalOpen && pProgramState->hasUsedMouse)
   {

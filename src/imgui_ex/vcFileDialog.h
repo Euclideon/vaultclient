@@ -10,8 +10,9 @@ struct vcState;
 using vcFileDialogCallback = udCallback<void(void)>;
 
 static const char *SupportedFileTypes_Images[] = { ".jpg", ".png", ".tga", ".bmp", ".gif" };
-static const char *SupportedFileTypes_SceneItems[] = { ".uds", ".ssf", ".udg", ".jpg", ".png", ".slpk", ".obj", ".vsm" };
+static const char *SupportedFileTypes_SceneItems[] = { ".uds", ".ssf", ".udg", ".jpg", ".png", ".slpk", ".obj", ".vsm", ".csv" };
 static const char *SupportedFileTypes_PolygonModels[] = { ".obj", ".vsm" };
+static const char *SupportedFileTypes_AnnotationsImport[] = { ".csv" };
 
 static const char *SupportedFileTypes_ProjectsExport[] = { ".json" };
 static const char *SupportedFileTypes_ProjectsImport[] = { ".json", ".udp" };
