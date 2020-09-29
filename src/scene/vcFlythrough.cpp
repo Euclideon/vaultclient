@@ -126,8 +126,17 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       if (m_exportInfo.currentFrame >= 0)
       {
-        if (vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex])) != udR_Success)
+        const char *pSavePath = udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
+        udResult saveResult = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), pSavePath);
+
+        if (saveResult != udR_Success)
         {
+          vcState::ErrorItem flythroughSaveError = {};
+          flythroughSaveError.source = vcES_File;
+          flythroughSaveError.pData = udStrdup(pSavePath);
+          flythroughSaveError.resultCode = saveResult;
+          pProgramState->errorItems.PushBack(flythroughSaveError);
+
           m_state = vcFTS_None;
           pProgramState->exportVideo = false;
           vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
