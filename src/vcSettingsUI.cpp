@@ -926,10 +926,8 @@ void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
     if (!pProgramState->settings.presentation.skybox.useLiveTime)
     {
       ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxLockSunPosition"), &pProgramState->settings.presentation.skybox.keepSameTime);
-      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
-      pProgramState->settings.presentation.skybox.timeOfDay = udClamp(pProgramState->settings.presentation.skybox.timeOfDay, 1.0f, 24.0f);
-      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 0, 12);
-      pProgramState->settings.presentation.skybox.month = udClamp(pProgramState->settings.presentation.skybox.month, 1.0f, 12.0f);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 0, 24, "%.3f", ImGuiSliderFlags_ClampOnInput);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 1, 12, "%.3f", ImGuiSliderFlags_ClampOnInput);
     }
 
     ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);

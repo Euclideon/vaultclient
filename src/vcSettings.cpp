@@ -314,7 +314,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.66f, 1.f));
     pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
     pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(12.f);
-    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6.f);
+    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(3.f);
     pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSameTime").AsBool(true);
     pSettings->presentation.skybox.useLiveTime = data.Get("skybox.uselivetime").AsBool(false);
 
