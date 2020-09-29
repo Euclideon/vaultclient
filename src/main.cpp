@@ -2061,32 +2061,35 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
       */
 
-      // Add Filter box
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterBox"), vcB_AddBoxFilter, vcMBBI_AddBoxFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddBoxFilter)) || (vcHotkey::IsPressed(vcB_AddBoxFilter) && !ImGui::IsAnyItemActive()))
+      if (pProgramState->branding.filtersEnabled)
       {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddBoxFilter;
-      }
+        // Add Filter box
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterBox"), vcB_AddBoxFilter, vcMBBI_AddBoxFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddBoxFilter)) || (vcHotkey::IsPressed(vcB_AddBoxFilter) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddBoxFilter;
+        }
 
-      // Add Filter Sphere
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterSphere"), vcB_AddSphereFilter, vcMBBI_AddSphereFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSphereFilter)) || (vcHotkey::IsPressed(vcB_AddSphereFilter) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddSphereFilter;
-      }
+        // Add Filter Sphere
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterSphere"), vcB_AddSphereFilter, vcMBBI_AddSphereFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSphereFilter)) || (vcHotkey::IsPressed(vcB_AddSphereFilter) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddSphereFilter;
+        }
 
-      // Add Filter Cylinder
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterCylinder"), vcB_AddCylinderFilter, vcMBBI_AddCylinderFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddCylinderFilter)) || (vcHotkey::IsPressed(vcB_AddCylinderFilter) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
-      }
+        // Add Filter Cylinder
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterCylinder"), vcB_AddCylinderFilter, vcMBBI_AddCylinderFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddCylinderFilter)) || (vcHotkey::IsPressed(vcB_AddCylinderFilter) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
+        }
 
-      // Add Filter Cross Section
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddCrossSection"), vcB_AddSimpleCrossSection, vcMBBI_AddCrossSectionFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSimpleCrossSection)) || (vcHotkey::IsPressed(vcB_AddSimpleCrossSection) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddSimpleCrossSection;
+        // Add Filter Cross Section
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddCrossSection"), vcB_AddSimpleCrossSection, vcMBBI_AddCrossSectionFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSimpleCrossSection)) || (vcHotkey::IsPressed(vcB_AddSimpleCrossSection) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddSimpleCrossSection;
+        }
       }
     }
 

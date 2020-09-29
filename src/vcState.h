@@ -168,6 +168,7 @@ struct vcState
     uint32_t colours[4];
     bool convertEnabled;
     bool exportEnabled;
+    bool filtersEnabled;
   } branding;
 
   udChunkedArray<const char*> loadList;
