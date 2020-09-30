@@ -8,7 +8,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
-#include "../imgui_ex/vcImGuiSimpleWidgets.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 vcViewpoint::vcViewpoint(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)

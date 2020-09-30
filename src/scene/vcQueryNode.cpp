@@ -10,7 +10,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
-#include "../imgui_ex/vcImGuiSimpleWidgets.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 static const char *GetNodeShape(vcQueryNodeFilterShape shape)
 {

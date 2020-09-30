@@ -10,7 +10,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
-#include "../imgui_ex/vcImGuiSimpleWidgets.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 vcCrossSectionNode::vcCrossSectionNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
