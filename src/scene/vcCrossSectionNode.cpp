@@ -10,6 +10,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
+#include "../imgui_ex/vcImGuiSimpleWidgets.h"
 
 vcCrossSectionNode::vcCrossSectionNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
@@ -84,7 +85,8 @@ void vcCrossSectionNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *p
     vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
   }
 
-  if (ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_headingPitch.x, 2))
+  // if (ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_headingPitch.x, 2))
+  if (vcIGSW_DegreesScalar2D(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), &m_headingPitch))
   {
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.h", m_headingPitch.x);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_headingPitch.y);

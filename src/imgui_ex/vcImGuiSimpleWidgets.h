@@ -35,4 +35,7 @@ void vcIGSW_verticalSplitter(const char* label, const udFloat2& size, const int 
 
 void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText);
 
+bool vcIGSW_DegreesScalar2D(const char *pLabel, udDouble2 *pData);
+bool vcIGSW_DegreesScalar3D(const char *pLabel, udDouble3 *pData);
+
 #endif // vcImGuiSimpleWidgets_h__

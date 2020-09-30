@@ -367,3 +367,33 @@ void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText)
 
   ImGui::Markdown(pMarkdownText, udStrlen(pMarkdownText), config);
 }
+
+bool vcIGSW_DegreesScalar2D(const char *pLabel, udDouble2 *pData)
+{
+  udDouble2 tmp = *pData;
+  tmp.x = UD_RAD2DEG(tmp.x);
+  tmp.y = UD_RAD2DEG(tmp.y);
+  if (ImGui::InputScalarN(pLabel, ImGuiDataType_Double, &tmp, 2))
+  {
+    pData->x = UD_DEG2RAD(tmp.x);
+    pData->y = UD_DEG2RAD(tmp.y);
+    return true;
+  }
+  return false;
+}
+
+bool vcIGSW_DegreesScalar3D(const char *pLabel, udDouble3 *pData)
+{
+  udDouble3 tmp = *pData;
+  tmp.x = UD_RAD2DEG(tmp.x);
+  tmp.y = UD_RAD2DEG(tmp.y);
+  tmp.z = UD_RAD2DEG(tmp.z);
+  if (ImGui::InputScalarN(pLabel, ImGuiDataType_Double, &tmp, 3))
+  {
+    pData->x = UD_DEG2RAD(tmp.x);
+    pData->y = UD_DEG2RAD(tmp.y);
+    pData->z = UD_DEG2RAD(tmp.z);
+    return true;
+  }
+  return false;
+}
