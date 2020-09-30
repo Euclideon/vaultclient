@@ -22,6 +22,8 @@ struct vcProject
 
   bool slideshow;
   udProjectNode *pSlideshowViewpoint;
+
+  int32_t recommendedSRID;
 };
 
 enum vcProjectStandardZones

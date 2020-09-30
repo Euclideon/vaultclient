@@ -367,6 +367,7 @@
   "menuProjectNone": "No server projects",
   "menuProjectSettingsTitle": "Project Settings",
   "menuProjectName": "Project Name",
+  "menuProjectDefaultSRID": "Project Default SRID",
   "menuProjectInfo": "Project Info",
   "menuProjectSlideshow": "Show viewpoints as slideshow",
   "menuFileName": "File Name",
