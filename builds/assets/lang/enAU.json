@@ -425,6 +425,7 @@
   "menuBarNoRenderLicense": "No Render licenses are available for this user",
   "menuBarInactive": "Inactive",
   "orthographicCameraViewport": "Map Mode",
+  "mapModeShowFrustum": "Show Frustum",
   "selectedItemInfoPanelitemsSelected": "items selected",
   "popupMenuCopy": "Copy",
   "popupMenuPaste": "Paste",

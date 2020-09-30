@@ -116,6 +116,7 @@ struct vcCameraSettings
 
   bool keepAboveSurface;
   bool mapMode[vcMaxViewportCount];
+  bool displayFrustum;
 };
 
 // Lens Sizes

@@ -572,6 +572,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->camera.mapMode[v] = data.Get("camera.mapMode[%d]", v).AsBool(data.Get("viewports.viewport[%d].mapMode", v).AsBool(false));
     }
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
+    pSettings->camera.displayFrustum = (data.Get("camera.displayFrustum").AsBool(true));
   }
 
   if (group == vcSC_Languages || group == vcSC_All)
@@ -769,6 +770,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.invertControllerX = %s", pSettings->camera.invertControllerX ? "true" : "false");
   data.Set("camera.invertControllerY = %s", pSettings->camera.invertControllerY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.lockAltitude ? 1 : 0);
+  data.Set("camera.displayFrustum = %s", pSettings->camera.displayFrustum ? "true" : "false");
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
 

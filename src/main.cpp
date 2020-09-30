@@ -1653,6 +1653,21 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         ImGui::Checkbox(udTempStr("%s %d##firstViewportMapMode", vcString::Get("orthographicCameraViewport"), 1), &pProgramState->settings.camera.mapMode[0]);
         ImGui::SameLine();
         ImGui::Checkbox(udTempStr("%s %d##secondViewportMapMode", vcString::Get("orthographicCameraViewport"), 2), &pProgramState->settings.camera.mapMode[1]);
+
+        bool mapModeOn = false;
+        for (int i = 0; i < pProgramState->settings.activeViewportCount; ++i)
+        {
+          if (pProgramState->settings.camera.mapMode[i])
+          {
+            mapModeOn = true;
+            break;
+          }
+        }
+
+        if (mapModeOn)
+        {
+          ImGui::Checkbox(vcString::Get("mapModeShowFrustum"), &pProgramState->settings.camera.displayFrustum);
+        }
       }
     }
 
