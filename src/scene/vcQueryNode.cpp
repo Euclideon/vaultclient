@@ -163,7 +163,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (m_shape != vcQNFS_Sphere)
   {
-    vcIGSW_DegreesScalar3D(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), &m_ypr);
+    vcIGSW_DegreesScalar(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), &m_ypr);
     changed |= ImGui::IsItemDeactivatedAfterEdit();
     ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 3);
     changed |= ImGui::IsItemDeactivatedAfterEdit();

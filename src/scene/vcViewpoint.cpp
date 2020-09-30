@@ -62,7 +62,7 @@ void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3);
   changed |= ImGui::IsItemDeactivatedAfterEdit();
 
-  vcIGSW_DegreesScalar2D(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), &m_CameraHeadingPitch);
+  vcIGSW_DegreesScalar(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), &m_CameraHeadingPitch);
   changed |= ImGui::IsItemDeactivatedAfterEdit();
 
   if (ImGui::InputTextMultiline(udTempStr("%s##ViewpointDescription", vcString::Get("sceneViewpointDescription")), m_description, udLengthOf(m_description)))
