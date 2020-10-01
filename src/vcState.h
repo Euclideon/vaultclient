@@ -254,6 +254,7 @@ struct vcState
   {
     char selectUUIDWhenPossible[37];
     char movetoUUIDWhenPossible[37];
+    char movetoUUIDWithoutProjectionWhenPossible[37];
 
     vcSceneItemRef insertItem;
     vcSceneItemRef clickedItem;

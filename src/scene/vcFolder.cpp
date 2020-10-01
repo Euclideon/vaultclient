@@ -84,12 +84,23 @@ void vcFolder::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         continue;
       }
 
-      if (pSceneItem->m_loadStatus == vcSLS_Loaded && pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
+      if (pSceneItem->m_loadStatus == vcSLS_Loaded)
       {
-        udWorkerPool_AddTask(pProgramState->pWorkerPool, nullptr, nullptr, false, [pProgramState, pSceneItem](void*) {
-          vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
-          memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
-        });
+        if (pProgramState->sceneExplorer.movetoUUIDWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID))
+        {
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, nullptr, nullptr, false, [pProgramState, pSceneItem](void *) {
+            vcProject_UseProjectionFromItem(pProgramState, pSceneItem);
+            memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
+            });
+        }
+
+        if (pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible[0] != '\0' && udStrEqual(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible, pNode->UUID))
+        {
+          udWorkerPool_AddTask(pProgramState->pWorkerPool, nullptr, nullptr, false, [pProgramState, pSceneItem](void *) {
+            pSceneItem->SetCameraPosition(pProgramState);
+            memset(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible));
+            });
+        }
       }
     }
     else

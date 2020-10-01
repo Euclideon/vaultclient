@@ -1178,10 +1178,13 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
 
     ImGui::InputText(vcString::Get("menuProjectName"), pProgramState->modelPath, udLengthOf(pProgramState->modelPath));
 
+    if (ImGui::InputInt(vcString::Get("menuProjectDefaultSRID"), &pProgramState->activeProject.recommendedSRID))
+      udProjectNode_SetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", pProgramState->activeProject.recommendedSRID);
+
     ImGui::Columns(2);
 
     ImVec2 size = ImGui::GetWindowSize();
-    ImGui::InputTextMultiline(vcString::Get("menuProjectInfo"), information, udLengthOf(information), ImVec2(0, size.y - 117));
+    ImGui::InputTextMultiline(vcString::Get("menuProjectInfo"), information, udLengthOf(information), ImVec2(0, size.y - 142));
 
     ImGui::NextColumn();
 

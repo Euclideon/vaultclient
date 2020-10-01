@@ -208,12 +208,12 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, udProjectNode *pPa
       }
 
       // unset
-      memset(pProgramState->sceneExplorer.movetoUUIDWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWhenPossible));
+      memset(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible));
       return true;
     }
     else if (pNode->itemtype == udPNT_PointCloud)
     {
-      udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+      udStrcpy(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible, pNode->UUID);
     }
 
     if (vcProject_ExtractCameraRecursive(pProgramState, pNode))
@@ -300,8 +300,8 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
       udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, vcPSZ_StandardGeoJSON);
 
-    int32_t recommendedSRID = -1;
-    if (udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == udE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
+    pProgramState->activeProject.recommendedSRID = -1;
+    if (udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &pProgramState->activeProject.recommendedSRID, pProgramState->activeProject.baseZone.srid) == udE_Success && pProgramState->activeProject.recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, pProgramState->activeProject.recommendedSRID) == udR_Success) || pProgramState->activeProject.recommendedSRID == 0))
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
     const char *pInfo = nullptr;
@@ -362,8 +362,8 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
     if (projectZone > 0 && udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, projectZone) != udR_Success)
       udGeoZone_SetFromSRID(&pProgramState->activeProject.baseZone, vcPSZ_StandardGeoJSON);
 
-    int32_t recommendedSRID = -1;
-    if (udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &recommendedSRID, pProgramState->activeProject.baseZone.srid) == udE_Success && recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, recommendedSRID) == udR_Success) || recommendedSRID == 0))
+    pProgramState->activeProject.recommendedSRID = -1;
+    if (udProjectNode_GetMetadataInt(pProgramState->activeProject.pRoot, "defaultcrs", &pProgramState->activeProject.recommendedSRID, pProgramState->activeProject.baseZone.srid) == udE_Success && pProgramState->activeProject.recommendedSRID >= 0 && ((udGeoZone_SetFromSRID(&zone, pProgramState->activeProject.recommendedSRID) == udR_Success) || pProgramState->activeProject.recommendedSRID == 0))
       vcGIS_ChangeSpace(&pProgramState->geozone, zone);
 
     const char *pInfo = nullptr;
