@@ -190,6 +190,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(true);
+    pSettings->presentation.showCameraFrustumInMapMode = data.Get("showCameraFrustumInMapMode").AsBool(true);
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(false);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
@@ -572,7 +573,6 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
       pSettings->camera.mapMode[v] = data.Get("camera.mapMode[%d]", v).AsBool(data.Get("viewports.viewport[%d].mapMode", v).AsBool(false));
     }
     pSettings->camera.lockAltitude = (data.Get("camera.moveMode").AsInt(0) == 1);
-    pSettings->camera.displayFrustum = (data.Get("camera.displayFrustum").AsBool(true));
   }
 
   if (group == vcSC_Languages || group == vcSC_All)
@@ -685,6 +685,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Misc Settings
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
   data.Set("showEuclideonLogo = %s", pSettings->presentation.showEuclideonLogo ? "true" : "false");
+  data.Set("showCameraFrustumInMapMode = %s", pSettings->presentation.showCameraFrustumInMapMode ? "true" : "false");
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");
   data.Set("showGISInfo = %s", pSettings->presentation.showProjectionInfo ? "true" : "false");
   data.Set("saturation = %f", pSettings->presentation.saturation);
@@ -770,7 +771,6 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("camera.invertControllerX = %s", pSettings->camera.invertControllerX ? "true" : "false");
   data.Set("camera.invertControllerY = %s", pSettings->camera.invertControllerY ? "true" : "false");
   data.Set("camera.moveMode = %d", pSettings->camera.lockAltitude ? 1 : 0);
-  data.Set("camera.displayFrustum = %s", pSettings->camera.displayFrustum ? "true" : "false");
   data.Set("camera.cameraMouseBindings = [%d, %d, %d]", pSettings->camera.cameraMouseBindings[0], pSettings->camera.cameraMouseBindings[1], pSettings->camera.cameraMouseBindings[2]);
   data.Set("camera.scrollwheelBinding = %d", pSettings->camera.scrollWheelMode);
 

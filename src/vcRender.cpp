@@ -1557,7 +1557,7 @@ void vcRender_RenderScene(vcState *pProgramState, vcRenderContext *pRenderContex
   }
 
   // Camera frustum (map mode)
-  if (pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex] && pProgramState->settings.camera.displayFrustum)
+  if (pProgramState->settings.camera.mapMode[pProgramState->activeViewportIndex] && pProgramState->settings.presentation.showCameraFrustumInMapMode)
     vcRender_RenderMainCameraFrustum(pProgramState, pRenderContext, renderData);
 
   // Render and upload UD buffers
