@@ -207,7 +207,13 @@ bool vcProject_ExtractCameraRecursive(vcState *pProgramState, udProjectNode *pPa
         pProgramState->pViewports[viewportIndex].camera.headingPitch = headingPitch;
       }
 
+      // unset
+      memset(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible, 0, sizeof(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible));
       return true;
+    }
+    else if (pNode->itemtype == udPNT_PointCloud)
+    {
+      udStrcpy(pProgramState->sceneExplorer.movetoUUIDWithoutProjectionWhenPossible, pNode->UUID);
     }
 
     if (vcProject_ExtractCameraRecursive(pProgramState, pNode))
