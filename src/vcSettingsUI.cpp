@@ -1111,6 +1111,14 @@ void vcSettingsUI_AdvancedGISSettings(vcState* pProgramState)
       "HK1980",     //EPSG:4611
       "SVY21",      //EPSG:4757
       "MGI",        //EPSG:6312
+      "NZGD2000",   //EPSG:2193
+      "AMERSFOORT", //EPSG:28992
+      "TRI1903",    //EPSG:30200
+      "VANUA1915",  //EPSG:3139
+      "DEALUL1970", //EPSG:31700
+      "SINGGRID",   //EPSG:19920
+      "MARS",        //Planet
+      "MOON",
     };
     static udGeoZoneGeodeticDatum currentDatum = pProgramState->geozone.datum;
 
