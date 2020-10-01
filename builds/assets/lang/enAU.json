@@ -75,6 +75,7 @@
   "settingsAppearanceImageRescale": "Image Rescale Distance",
   "settingsAppearanceShowDiagnostics": "Show Diagnostic Information",
   "settingsAppearanceShowEuclideonLogo": "Show Euclideon Logo",
+  "settingsAppearanceShowCameraFrustumInMapMode": "Show camera position and direction in map mode",
   "settingsAppearanceAdvancedGIS": "Show Advanced GIS Settings",
   "settingsAppearanceLimitFPS": "Limit FPS In Background",
   "settingsAppearanceShowCompass": "Show Compass On Screen",

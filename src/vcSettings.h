@@ -239,6 +239,7 @@ struct vcSettings
     bool showProjectionInfo;
     bool showDiagnosticInfo;
     bool showEuclideonLogo;
+    bool showCameraFrustumInMapMode;
     bool showAdvancedGIS;
     bool sceneExplorerCollapsed; // True if scene explorer is collapsed.
 

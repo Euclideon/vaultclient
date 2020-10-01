@@ -190,6 +190,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(true);
+    pSettings->presentation.showCameraFrustumInMapMode = data.Get("showCameraFrustumInMapMode").AsBool(true);
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(false);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
@@ -684,6 +685,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Misc Settings
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
   data.Set("showEuclideonLogo = %s", pSettings->presentation.showEuclideonLogo ? "true" : "false");
+  data.Set("showCameraFrustumInMapMode = %s", pSettings->presentation.showCameraFrustumInMapMode ? "true" : "false");
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");
   data.Set("showGISInfo = %s", pSettings->presentation.showProjectionInfo ? "true" : "false");
   data.Set("saturation = %f", pSettings->presentation.saturation);
