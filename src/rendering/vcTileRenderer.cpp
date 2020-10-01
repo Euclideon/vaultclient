@@ -1199,7 +1199,7 @@ void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime
   vcQuadTree_UpdateView(&pTileRenderer->quadTree, pCamera, viewInfo.viewProjectionMatrix);
 
   pTileRenderer->generateTreeUpdateTimer += pTileRenderer->frameDeltaTime;
-  if (pTileRenderer->generateTreeUpdateTimer >= QuadTreeUpdateFrequencySec)
+  if (pTileRenderer->generateTreeUpdateTimer >= QuadTreeUpdateFrequencySec || pTileRenderer->quadTree.geozone.srid != pGeozone->srid)
   {
     pTileRenderer->generateTreeUpdateTimer = 0.0;
 
