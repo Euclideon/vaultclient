@@ -30,11 +30,12 @@ project "udStream"
 	includedirs { "3rdParty/udcore/3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
 	includedirs { "3rdParty/poly2tri" }
+	includedirs { "3rdParty/libtiff/libtiff" }
 	includedirs { "3rdParty/atmosphere", "3rdParty/atmosphere/external/dimensional_types" }
 	includedirs { "3rdParty/LercLib" }
 	includedirs { "vcGL/src" }	
 
-	links { "udCore" .. (projectSuffix or ""), "vcGL" }
+	links { "udCore" .. (projectSuffix or ""), "vcGL", "libtiff" }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "ImDrawIdx=int" }
 

@@ -7,7 +7,7 @@ project "vcTesting"
 	files { "src/**.cpp", "src/**.h" }
 	files { "project.lua" }
 
-	includedirs { "src", "../3rdParty/udcore/Include", "../3rdParty/udcore/3rdParty/googletest/include", "../src" }
+	includedirs { "src", "../3rdParty/udcore/Include", "../3rdParty/udcore/3rdParty/googletest/include", "../src", "../3rdParty/libtiff/libtiff" }
 
 	-- files to test
 	files { "../src/vcUnitConversion.*", "../src/vcMath.h", "../src/vcGIS.*", "../src/vcStringFormat.*" }
@@ -18,7 +18,7 @@ project "vcTesting"
 
 
 	-- Linking
-	links { "googletest", "udCore" }
+	links { "googletest", "udCore", "libtiff" }
 
 	filter { "system:windows" }
 		links { "iphlpapi.lib", "winmm.lib", "ws2_32", "dbghelp.lib", "wldap32.lib" }

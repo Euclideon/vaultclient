@@ -248,6 +248,7 @@ solution "udStream"
 
 	dofile "vcGL/project.lua"
 	dofile "project.lua"
+	dofile "3rdParty/libtiff/project.lua"
 
 	if os.target() == "android" then
 		dofile "buildscripts/android/packaging.lua"
