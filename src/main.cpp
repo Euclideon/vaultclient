@@ -63,6 +63,7 @@
 #include "udUUID.h"
 
 #include "udPlatformUtil.h"
+#include "vcFileError.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 # include "vHTTPRequest.h"
@@ -91,7 +92,6 @@ extern "C" {
 }
 #  endif
 # endif
-#include "vcFileError.h"
 
 # undef main
 # define main ClientMain
