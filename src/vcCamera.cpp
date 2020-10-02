@@ -508,7 +508,7 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
       }
     }
   }
-  pViewport->cameraInput.gizmoCapturedMouse = pViewport->cameraInput.gizmoCapturedMouse || (pViewport->gizmo.operation != 0 && !pProgramState->sceneExplorer.selectedItems.empty() && vcGizmo_IsHovered(pViewport->gizmo.pContext, pViewport->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
+  pViewport->cameraInput.gizmoCapturedMouse = pViewport->cameraInput.gizmoCapturedMouse || (pViewport->gizmo.inUse && pViewport->gizmo.operation != 0 && vcGizmo_IsHovered(pViewport->gizmo.pContext, pViewport->gizmo.direction) && (isBtnClicked[0] || isBtnClicked[1] || isBtnClicked[2]));
   if (pViewport->cameraInput.gizmoCapturedMouse)
   {
     // was the gizmo just released?
