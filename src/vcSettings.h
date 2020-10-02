@@ -62,6 +62,13 @@ enum vcWindowLayout
   vcWL_SceneRight
 };
 
+enum vcMapModeViewport
+{
+  vcMMV_None,
+  vcMMV_Left,
+  vcMMV_Right,
+};
+
 enum vcSettingsUIRegions
 {
   vcSR_Appearance,
@@ -361,6 +368,7 @@ struct vcSettings
     bool mapMode; // geoverse-style orthographic camera
   } viewports[vcMaxViewportCount];
   int activeViewportCount;
+  vcMapModeViewport mapModeViewport;
 
   struct vcMapServer
   {

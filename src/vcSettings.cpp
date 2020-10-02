@@ -204,6 +204,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.columnSizeCorrect = false;
     pSettings->presentation.alwaysDismissInputModal = data.Get("alwaysDismissInputModal").AsBool(false);
 
+    pSettings->mapModeViewport = (vcMapModeViewport)data.Get("mapModeViewport").AsInt(vcMMV_None);
+
     //Units of measurement
     vcUnitConversion_SetMetric(&pSettings->unitConversionData); //set some defaults.
     for (uint32_t i = 0; i < vcUnitConversionData::MaxPromotions; ++i)
@@ -696,6 +698,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("ImageRescaleDistance = %f", pSettings->presentation.imageRescaleDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
   data.Set("layout = %d", pSettings->presentation.layout);
+  data.Set("mapModeViewport = %d", pSettings->mapModeViewport);
   data.Set("layoutSceneExplorerSize = %d", pSettings->presentation.sceneExplorerSize);
   data.Set("convertLeftPanelPercentage = %f", pSettings->presentation.convertLeftPanelPercentage);
   data.Set("alwaysDismissInputModal = %s", pSettings->presentation.alwaysDismissInputModal ? "true" : "false");

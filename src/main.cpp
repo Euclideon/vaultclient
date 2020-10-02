@@ -1646,18 +1646,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           ImGui::TextUnformatted(udTempStr("%sMiB", udCommaInt(pProgramState->streamingMemory >> 20)));
         }
       }
-
-      // TODO: Putting this here for now
-      if (pProgramState->settings.activeViewportCount > 1)
-      {
-        ImGui::Checkbox(udTempStr("%s %d##firstViewportMapMode", vcString::Get("orthographicCameraViewport"), 1), &pProgramState->settings.camera.mapMode[0]);
-        ImGui::SameLine();
-        ImGui::Checkbox(udTempStr("%s %d##secondViewportMapMode", vcString::Get("orthographicCameraViewport"), 2), &pProgramState->settings.camera.mapMode[1]);
-      }
-      else
-      {
-        ImGui::Checkbox(vcString::Get("orthographicCameraViewport"), &pProgramState->settings.camera.mapMode[0]);
-      }
     }
 
     ImGui::End();
