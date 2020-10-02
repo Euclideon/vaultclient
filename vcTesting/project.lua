@@ -7,10 +7,10 @@ project "vcTesting"
 	files { "src/**.cpp", "src/**.h" }
 	files { "project.lua" }
 
-	includedirs { "src", "../3rdParty/udcore/Include", "../3rdParty/udcore/3rdParty/googletest/include", "../src", "../3rdParty/libtiff/libtiff" }
+	includedirs { "src", "../3rdParty/udcore/Include", "../3rdParty/udcore/3rdParty/googletest/include", "../src", "../vcGL/src", "../3rdParty/libtiff/libtiff" }
 
 	-- files to test
-	files { "../src/vcUnitConversion.*", "../src/vcMath.h", "../src/vcGIS.*", "../src/vcStringFormat.*" }
+	files { "../src/vcUnitConversion.*", "../src/vcMath.h", "../src/vcGIS.*", "../src/vcStringFormat.*", "../vcGL/src/vcTiff.*" }
 
 	vpaths {
 		["client/*"] = { "../src/**" },

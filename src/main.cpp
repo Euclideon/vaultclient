@@ -597,7 +597,7 @@ void vcMain_MainLoop(vcState *pProgramState)
               vcModals_CloseModal(pProgramState, vcMT_Welcome);
             }
           }
-          else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif"))
+          else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif") || udStrEquali(pExt, ".tif") || udStrEquali(pExt, ".tiff"))
           {
             const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
             if (clicked.pParent != nullptr && clicked.pItem->itemtype == udPNT_Media)
@@ -719,12 +719,15 @@ void vcMain_MainLoop(vcState *pProgramState)
 
       if (udFile_Load(pProgramState->pLoadImage, &pFileData, &fileLen) == udR_Success && fileLen != 0)
       {
-        int comp;
-        stbi_uc *pImg = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, &pProgramState->image.width, &pProgramState->image.height, &comp, 4);
+        vcImageData tempData = {};
+        uint8_t *pPixels = vcTexture_DecodePixels(pFileData, (size_t)fileLen, &tempData);
 
-        vcTexture_Create(&pProgramState->image.pImage, pProgramState->image.width, pProgramState->image.height, pImg);
+        pProgramState->image.width = tempData.width;
+        pProgramState->image.height = tempData.height;
 
-        stbi_image_free(pImg);
+        vcTexture_Create(&pProgramState->image.pImage, tempData.width, tempData.height, pPixels);
+
+        udFree(pPixels);
 
         pProgramState->image.width = pProgramState->settings.viewports[0].resolution.x;
         pProgramState->image.height = pProgramState->settings.viewports[0].resolution.y;

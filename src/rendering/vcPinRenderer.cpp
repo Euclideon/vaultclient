@@ -69,20 +69,15 @@ void vcPinRenderer_LoadIcon(void *pUserData)
   int64_t fileLen = -1;
   if (udFile_Load(pPinIcon->pIconURL, &pFileData, &fileLen) == udR_Success)
   {
-    int width = 0;
-    int height = 0;
-    int channelCount = 0;
-    uint8_t *pData = nullptr;
-    pData = stbi_load_from_memory((stbi_uc*)pFileData, (int)fileLen, (int*)&width, (int*)&height, (int*)&channelCount, 4);
-    if (pData != nullptr)
+    vcImageData tempData = {};
+    uint8_t *pPixels = vcTexture_DecodePixels((uint8_t *)pFileData, (size_t)fileLen, &tempData);
+    if (pPixels != nullptr)
     {
-      pPinIcon->size.x = width;
-      pPinIcon->size.y = height;
-      pPinIcon->pTextureData = udMemDup(pData, sizeof(uint32_t) * width * height, 0, udAF_None);
+      pPinIcon->size.x = (int32_t)tempData.width;
+      pPinIcon->size.y = (int32_t)tempData.height;
+      pPinIcon->pTextureData = pPixels;
 
       pPinIcon->loadState = vcPinIcon::vcLoadState_Downloaded;
-
-      stbi_image_free(pData);
     }
 
     udFree(pFileData);

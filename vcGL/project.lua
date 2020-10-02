@@ -16,6 +16,9 @@ project "vcGL"
 	includedirs { "src" }
 	includedirs { "../3rdParty/udcore/Include" }
 	includedirs { "../3rdParty/udcore/3rdParty/stb" }
+	includedirs { "../3rdParty/libtiff/libtiff" }
+
+	links { "libtiff" }
 
 	local excludedSourceFileNames = {}
 	if _OPTIONS["gfxapi"] ~= "opengl" then

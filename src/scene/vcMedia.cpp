@@ -148,9 +148,9 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     udInt2 imageSize = {};
     if (m_pImageData != nullptr)
     {
-      uint32_t width, height, channelCount;
+      vcImageData tempData = {};
+      uint8_t *pData = vcTexture_DecodePixels((uint8_t *)m_pImageData, m_imageDataSize, &tempData);
 
-      uint8_t *pData = stbi_load_from_memory((stbi_uc *)m_pImageData, (int)m_imageDataSize, (int *)& width, (int *)& height, (int *)& channelCount, 4);
       udFree(m_pImageData);
       m_imageDataSize = 0;
 
@@ -159,19 +159,19 @@ void vcMedia::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
         if (m_image.pTexture != nullptr)
           vcTexture_GetSize(m_image.pTexture, &imageSize.x, &imageSize.y);
 
-        if ((uint32_t)imageSize.x == width && (uint32_t)imageSize.y == height) // imageSize will not == for null pTexture
+        if ((uint32_t)imageSize.x == tempData.width && (uint32_t)imageSize.y == tempData.height) // imageSize will not == for null pTexture
         {
-          vcTexture_UploadPixels(m_image.pTexture, pData, width, height);
+          vcTexture_UploadPixels(m_image.pTexture, pData, tempData.width, tempData.height);
         }
         else
         {
           vcTexture_Destroy(&m_image.pTexture);
 
-          if (vcTexture_Create(&m_image.pTexture, width, height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_Dynamic) != udR_Success)
+          if (vcTexture_Create(&m_image.pTexture, tempData.width, tempData.height, pData, vcTextureFormat_RGBA8, vcTFM_Linear, vcTCF_Dynamic) != udR_Success)
             m_loadStatus = vcSLS_Failed;
         }
 
-        stbi_image_free(pData);
+        udFree(pData);
       }
       else
       {
