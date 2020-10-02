@@ -22,6 +22,7 @@
 
 #include "udStringUtil.h"
 #include "udMath.h"
+#include "vcFileError.h"
 
 struct vcModelLoadInfo
 {
@@ -806,7 +807,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
                 break;
               }
 
-              pProgramState->errorItems.PushBack(status);
+              vcFileError_AddError(pProgramState, status);
               udFileDelete(pProgramState->modelPath);
             }
             --pProgramState->backgroundWork.exportsRunning;

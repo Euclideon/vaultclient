@@ -18,6 +18,7 @@
 #include "udThread.h"
 #include "udDebug.h"
 #include "udStringUtil.h"
+#include "vcFileError.h"
 
 const char *statusNames[] =
 {
@@ -466,7 +467,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
           projectError.pData = udStrdup(pProgramState->pConvertContext->jobs[selectedJob]->pConvertInfo->pOutputName);
           projectError.resultCode = udR_Failure_;
 
-          pProgramState->errorItems.PushBack(projectError);
+          vcFileError_AddError(pProgramState, projectError);
 
           vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
         }
@@ -850,7 +851,7 @@ epilogue:
     fileError.source = vcES_File;
     fileError.pData = udStrdup(pFilename);
     fileError.resultCode = result;
-    pProgramState->errorItems.PushBack(fileError);
+    vcFileError_AddError(pProgramState, fileError);
     pFilename = nullptr;
   }
 

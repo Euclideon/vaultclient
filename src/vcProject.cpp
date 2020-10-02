@@ -8,6 +8,7 @@
 
 #include "udFile.h"
 #include "udStringUtil.h"
+#include "vcFileError.h"
 
 const char *vcProject_ErrorToString(udError error)
 {
@@ -324,7 +325,7 @@ bool vcProject_LoadFromServer(vcState *pProgramState, const char *pProjectID)
     else
       projectError.resultCode = udR_Failure_;
 
-    pProgramState->errorItems.PushBack(projectError);
+    vcFileError_AddError(pProgramState, projectError);
 
     vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   }
@@ -382,7 +383,7 @@ bool vcProject_LoadFromURI(vcState *pProgramState, const char *pFilename)
     projectError.pData = udStrdup(pFilename);
     projectError.resultCode = udR_ParseError;
 
-    pProgramState->errorItems.PushBack(projectError);
+    vcFileError_AddError(pProgramState, projectError);
 
     vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   }
@@ -457,7 +458,7 @@ bool vcProject_Save(vcState *pProgramState)
     else
       projectError.resultCode = udR_Failure_;
 
-    pProgramState->errorItems.PushBack(projectError);
+    vcFileError_AddError(pProgramState, projectError);
     vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   }
   else
@@ -502,7 +503,7 @@ bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverr
   else
     projectError.resultCode = udR_WriteFailure;
 
-  pProgramState->errorItems.PushBack(projectError);
+  vcFileError_AddError(pProgramState, projectError);
 
   vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   vcProject_UpdateProjectHistory(pProgramState, exportFilename.GetPath(), false);
@@ -528,7 +529,7 @@ udError vcProject_SaveAsServer(vcState *pProgramState, const char *pProjectID)
   else
     projectError.resultCode = udR_WriteFailure;
 
-  pProgramState->errorItems.PushBack(projectError);
+  vcFileError_AddError(pProgramState, projectError);
 
   vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   vcProject_UpdateProjectHistory(pProgramState, pProjectID, true);

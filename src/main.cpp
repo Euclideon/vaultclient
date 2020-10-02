@@ -91,6 +91,7 @@ extern "C" {
 }
 #  endif
 # endif
+#include "vcFileError.h"
 
 # undef main
 # define main ClientMain
@@ -219,7 +220,7 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
     status.pData = udStrdup(buffer);
     status.resultCode = result;
 
-    pProgramState->errorItems.PushBack(status);
+    vcFileError_AddError(pProgramState, status);
 
     udFileDelete(buffer);
     return false;
@@ -540,7 +541,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               pNextLoad = nullptr;
 
-              pProgramState->errorItems.PushBack(projectError);
+              vcFileError_AddError(pProgramState, projectError);
 
               vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
@@ -580,7 +581,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               pNextLoad = nullptr;
 
-              pProgramState->errorItems.PushBack(projectError);
+              vcFileError_AddError(pProgramState, projectError);
 
               vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
@@ -676,7 +677,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
               pNextLoad = nullptr;
 
-              pProgramState->errorItems.PushBack(projectError);
+              vcFileError_AddError(pProgramState, projectError);
 
               vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
@@ -697,7 +698,7 @@ void vcMain_MainLoop(vcState *pProgramState)
 
             pNextLoad = nullptr;
 
-            pProgramState->errorItems.PushBack(status);
+            vcFileError_AddError(pProgramState, status);
 
             continue;
           }
@@ -2256,7 +2257,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFolder"));
       projectError.resultCode = udR_Failure_;
 
-      pProgramState->errorItems.PushBack(projectError);
+      vcFileError_AddError(pProgramState, projectError);
 
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
@@ -2279,7 +2280,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
       projectError.resultCode = udR_Failure_;
 
-      pProgramState->errorItems.PushBack(projectError);
+      vcFileError_AddError(pProgramState, projectError);
 
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
@@ -2304,7 +2305,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpointWithVisSetting"));
       projectError.resultCode = udR_Failure_;
 
-      pProgramState->errorItems.PushBack(projectError);
+      vcFileError_AddError(pProgramState, projectError);
 
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
@@ -2335,7 +2336,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
         projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFeed"));
         projectError.resultCode = udR_Failure_;
 
-        pProgramState->errorItems.PushBack(projectError);
+        vcFileError_AddError(pProgramState, projectError);
 
         vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
       }
@@ -2351,7 +2352,7 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
         projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFlythrough"));
         projectError.resultCode = udR_Failure_;
 
-        pProgramState->errorItems.PushBack(projectError);
+        vcFileError_AddError(pProgramState, projectError);
 
         vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
       }
