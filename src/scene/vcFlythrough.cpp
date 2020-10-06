@@ -17,6 +17,7 @@
 #include "vcInternalModels.h"
 
 #include "vcFeatures.h"
+#include "vcError.h"
 
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
 const char *vcFlythroughExportFormats[] =
@@ -131,11 +132,11 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
         if (saveResult != udR_Success)
         {
-          vcState::ErrorItem flythroughSaveError = {};
+          ErrorItem flythroughSaveError = {};
           flythroughSaveError.source = vcES_File;
           flythroughSaveError.pData = udStrdup(pSavePath);
           flythroughSaveError.resultCode = saveResult;
-          pProgramState->errorItems.PushBack(flythroughSaveError);
+          vcError_AddError(pProgramState, flythroughSaveError);
 
           m_state = vcFTS_None;
           pProgramState->exportVideo = false;

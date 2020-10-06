@@ -63,6 +63,7 @@
 #include "udUUID.h"
 
 #include "udPlatformUtil.h"
+#include "vcError.h"
 
 #if UDPLATFORM_EMSCRIPTEN
 # include "vHTTPRequest.h"
@@ -214,12 +215,12 @@ bool vcMain_TakeScreenshot(vcState *pProgramState)
 
   if (result != udR_Success)
   {
-    vcState::ErrorItem status;
+    ErrorItem status;
     status.source = vcES_File;
     status.pData = udStrdup(buffer);
     status.resultCode = result;
 
-    pProgramState->errorItems.PushBack(status);
+    vcError_AddError(pProgramState, status);
 
     udFileDelete(buffer);
     return false;
@@ -533,14 +534,14 @@ void vcMain_MainLoop(vcState *pProgramState)
           {
             if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != udE_Success)
             {
-              vcState::ErrorItem projectError;
+              ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
               projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
               projectError.resultCode = udR_ReadFailure;
 
               pNextLoad = nullptr;
 
-              pProgramState->errorItems.PushBack(projectError);
+              vcError_AddError(pProgramState, projectError);
 
               vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
@@ -573,14 +574,14 @@ void vcMain_MainLoop(vcState *pProgramState)
           {
             if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Polygon", nullptr, pNextLoad, nullptr) != udE_Success)
             {
-              vcState::ErrorItem projectError;
+              ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
               projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
               projectError.resultCode = udR_ReadFailure;
 
               pNextLoad = nullptr;
 
-              pProgramState->errorItems.PushBack(projectError);
+              vcError_AddError(pProgramState, projectError);
 
               vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
@@ -669,14 +670,14 @@ void vcMain_MainLoop(vcState *pProgramState)
           {
             if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) != udE_Success)
             {
-              vcState::ErrorItem projectError;
+              ErrorItem projectError;
               projectError.source = vcES_ProjectChange;
               projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
               projectError.resultCode = udR_ReadFailure;
 
               pNextLoad = nullptr;
 
-              pProgramState->errorItems.PushBack(projectError);
+              vcError_AddError(pProgramState, projectError);
 
               vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
@@ -690,14 +691,14 @@ void vcMain_MainLoop(vcState *pProgramState)
           }
           else // This file isn't supported in the scene
           {
-            vcState::ErrorItem status;
+            ErrorItem status;
             status.source = vcES_File;
             status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
             status.resultCode = udR_Unsupported;
 
             pNextLoad = nullptr;
 
-            pProgramState->errorItems.PushBack(status);
+            vcError_AddError(pProgramState, status);
 
             continue;
           }
@@ -2256,12 +2257,12 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     udProjectNode *pNode = nullptr;
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Folder", vcString::Get("sceneExplorerFolderDefaultName"), nullptr, nullptr) != udE_Success)
     {
-      vcState::ErrorItem projectError = {};
+      ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFolder"));
       projectError.resultCode = udR_Failure_;
 
-      pProgramState->errorItems.PushBack(projectError);
+      vcError_AddError(pProgramState, projectError);
 
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
@@ -2279,12 +2280,12 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     }
     else
     {
-      vcState::ErrorItem projectError = {};
+      ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpoint"));
       projectError.resultCode = udR_Failure_;
 
-      pProgramState->errorItems.PushBack(projectError);
+      vcError_AddError(pProgramState, projectError);
 
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
@@ -2304,12 +2305,12 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
     }
     else
     {
-      vcState::ErrorItem projectError = {};
+      ErrorItem projectError = {};
       projectError.source = vcES_ProjectChange;
       projectError.pData = udStrdup(vcString::Get("sceneExplorerAddViewpointWithVisSetting"));
       projectError.resultCode = udR_Failure_;
 
-      pProgramState->errorItems.PushBack(projectError);
+      vcError_AddError(pProgramState, projectError);
 
       vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
     }
@@ -2335,12 +2336,12 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       udProjectNode *pNode = nullptr;
       if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "IOT", vcString::Get("liveFeedDefaultName"), nullptr, nullptr) != udE_Success)
       {
-        vcState::ErrorItem projectError;
+        ErrorItem projectError;
         projectError.source = vcES_ProjectChange;
         projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFeed"));
         projectError.resultCode = udR_Failure_;
 
-        pProgramState->errorItems.PushBack(projectError);
+        vcError_AddError(pProgramState, projectError);
 
         vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
       }
@@ -2351,12 +2352,12 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
       udProjectNode *pNode = nullptr;
       if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "FlyPath", vcString::Get("flythroughDefaultName"), nullptr, nullptr) != udE_Success)
       {
-        vcState::ErrorItem projectError;
+        ErrorItem projectError;
         projectError.source = vcES_ProjectChange;
         projectError.pData = udStrdup(vcString::Get("sceneExplorerAddFlythrough"));
         projectError.resultCode = udR_Failure_;
 
-        pProgramState->errorItems.PushBack(projectError);
+        vcError_AddError(pProgramState, projectError);
 
         vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
       }
