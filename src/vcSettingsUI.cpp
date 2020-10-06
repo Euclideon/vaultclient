@@ -262,6 +262,27 @@ void vcSettingsUI_Show(vcState *pProgramState)
           const char *layoutOptions[] = { vcString::Get("settingsAppearanceWindowLayoutScSx"), vcString::Get("settingsAppearanceWindowLayoutSxSc") };
           if (ImGui::Combo(vcString::Get("settingsAppearanceWindowLayout"), (int*)&pProgramState->settings.presentation.layout, layoutOptions, (int)udLengthOf(layoutOptions)))
             pProgramState->settings.presentation.columnSizeCorrect = false;
+
+          const char *mapModeViewportOptions[] = { vcString::Get("settingsAppearanceMapModeViewportNone"), vcString::Get("settingsAppearanceMapModeViewportLeft"), vcString::Get("settingsAppearanceMapModeViewportRight") };
+          if (ImGui::Combo(vcString::Get("settingsAppearanceMapModeViewport"), (int*)&pProgramState->settings.mapModeViewport, mapModeViewportOptions, (int)udLengthOf(mapModeViewportOptions)))
+          {
+            for (int i = 0; i < vcMaxViewportCount; ++i)
+              pProgramState->settings.camera.mapMode[i] = false;
+
+            switch (pProgramState->settings.mapModeViewport)
+            {
+            case vcMMV_None:
+              break;
+
+            case vcMMV_Left:
+              pProgramState->settings.camera.mapMode[0] = true;
+              break;
+
+            case vcMMV_Right:
+              pProgramState->settings.camera.mapMode[1] = true;
+              break;
+            }
+          }
         }
 
         if (pProgramState->activeSetting == vcSR_Inputs)
