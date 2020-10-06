@@ -642,7 +642,7 @@ epilogue:
   return result;
 }
 
-void vcSHP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Record *pRecord, vcDBF_Record *pDBFRecord, uint16_t stringIndex)
+void vcSHP_AddModel(vcState *pProgramState, const udGeoZone& sourceZone, udProjectNode *pParentNode, vcSHP_Record *pRecord, vcDBF_Record *pDBFRecord, uint16_t stringIndex)
 {
   char buffer[256] = {};
   if (pDBFRecord != nullptr && !pDBFRecord->deleted && stringIndex != (uint16_t)(-1))
@@ -661,41 +661,41 @@ void vcSHP_AddModel(vcState *pProgramState, udProjectNode *pParentNode, vcSHP_Re
   switch (pRecord->shapeType)
   {
   case vcSHPType_Point:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pRecord->data.point, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.point, 1);
   break;
   case vcSHPType_Polyline:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
   break;
   case vcSHPType_Polygon:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
   break;
   case vcSHPType_MultiPoint:
-  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
+  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
   break;
   case vcSHPType_PointZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pRecord->data.pointZ.point, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointZ.point, 1);
   break;
   case vcSHPType_PolylineZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
   break;
   case vcSHPType_PolygonZ:
   case vcSHPType_MultiPatch:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
   break;
   case vcSHPType_MultiPointZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
   break;
   case vcSHPType_PointM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pRecord->data.pointM.point, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointM.point, 1);
   break;
   case vcSHPType_PolylineM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
   break;
   case vcSHPType_PolygonM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
   break;
   case vcSHPType_MultiPointM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, pRecord->data.multiPointM.points, pRecord->data.multiPointM.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointM.points, pRecord->data.multiPointM.pointsCount);
   break;
   case vcSHPType_Empty:
   break;
@@ -709,20 +709,27 @@ udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
   udProjectNode *pParentNode = nullptr;
   uint16_t stringIndex = 0;
   vcDBF_Record *pDBFRecord = nullptr;
+  udGeoZone sourceZone = {};  
 
   udResult result = udR_Failure_;
   UD_ERROR_CHECK(vcSHP_LoadFileGroup(&shp, pFilename));
 
-  vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
-  // keep for future requirements. if the zone is set to no geolocated, all coordinates inside shapre files need to transfer from local position.
-  //if (shp.projectionLoad == udR_Success)
-  //{
-  //  udGeoZone zone = {};
-  //  udGeoZone_SetFromWKT(&zone, shp.WKTString); // srid missing
-  //  vcGIS_ChangeSpace(&pProgramState->geozone, zone);
-  //}
-  // ====
-  
+  if (shp.projectionLoad == udR_Success)
+  {
+    udGeoZone_SetFromWKT(&sourceZone, shp.WKTString);
+    if (sourceZone.srid == 0 && udStrEqual(sourceZone.datumName, "D_WGS_1984") && sourceZone.datum == udGZGD_WGS84)
+      udGeoZone_SetFromSRID(&sourceZone, vcPSZ_StandardGeoJSON);
+  }
+  else
+  {
+    udGeoZone_SetFromSRID(&sourceZone, vcPSZ_NotGeolocated);
+  }
+
+  if(sourceZone.srid != 0)
+    vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_WGS84ECEF);
+  else
+    vcProject_CreateBlankScene(pProgramState, "SHP Import", vcPSZ_NotGeolocated);
+
   pParentNode = pProgramState->activeProject.pRoot;
   stringIndex = vcSHP_GetFirstDBFStringFieldIndex(shp.pDBF);
   for (size_t i = 0; i < shp.shpRecords.length; ++i)
@@ -730,7 +737,7 @@ udResult vcSHP_Load(vcState *pProgramState, const char *pFilename)
     if (stringIndex != (uint16_t)(-1))
       vcDBF_GetRecord(shp.pDBF, &pDBFRecord, (uint32_t)i);
 
-    vcSHP_AddModel(pProgramState, pParentNode, &shp.shpRecords[i], pDBFRecord, stringIndex);
+    vcSHP_AddModel(pProgramState, sourceZone, pParentNode, &shp.shpRecords[i], pDBFRecord, stringIndex);
   }
 
 epilogue:
