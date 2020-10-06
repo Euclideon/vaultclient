@@ -1,7 +1,8 @@
-#include "vcFileError.h"
+#include "vcError.h"
+#include "vcState.h"
 #include "vcModals.h"
 
-void vcFileError_AddError(vcState *pProgramState, const vcState::ErrorItem &error)
+void vcError_AddError(vcState *pProgramState, const ErrorItem &error)
 {
   pProgramState->errorItems.PushBack(error);
   vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);

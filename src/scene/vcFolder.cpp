@@ -28,7 +28,7 @@
 #include "vcVerticalMeasureTool.h"
 #include "vcFlythrough.h"
 #include "vcCrossSectionNode.h"
-#include "vcFileError.h"
+#include "vcError.h"
 
 void HandleNodeSelection(vcState* pProgramState, udProjectNode *pParent, udProjectNode* pNode)
 {
@@ -259,12 +259,12 @@ void vcFolder::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
         {
           if (udProjectNode_SetName(pProgramState->activeProject.pProject, pNode, pSceneItem->m_pName) != udE_Success)
           {
-            vcState::ErrorItem projectError;
+            ErrorItem projectError;
             projectError.source = vcES_ProjectChange;
             projectError.pData = udStrdup(pSceneItem->m_pName);
             projectError.resultCode = udR_Failure_;
 
-            vcFileError_AddError(pProgramState, projectError);
+            vcError_AddError(pProgramState, projectError);
 
             vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
           }

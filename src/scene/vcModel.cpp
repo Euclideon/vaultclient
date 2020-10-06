@@ -22,7 +22,7 @@
 
 #include "udStringUtil.h"
 #include "udMath.h"
-#include "vcFileError.h"
+#include "vcError.h"
 
 struct vcModelLoadInfo
 {
@@ -779,7 +779,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
             udError result = udPointCloud_Export(pCloud, pProgramState->modelPath, pFilter);
             if (result != udE_Success)
             {
-              vcState::ErrorItem status;
+              ErrorItem status;
               status.source = vcES_File;
               status.pData = udStrdup(pProgramState->modelPath);
               switch (result)
@@ -807,7 +807,7 @@ void vcModel::HandleContextMenu(vcState *pProgramState)
                 break;
               }
 
-              vcFileError_AddError(pProgramState, status);
+              vcError_AddError(pProgramState, status);
               udFileDelete(pProgramState->modelPath);
             }
             --pProgramState->backgroundWork.exportsRunning;

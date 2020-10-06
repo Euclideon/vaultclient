@@ -17,6 +17,7 @@
 #include "vcStrings.h"
 #include "vcProject.h"
 #include "vcSession.h"
+#include "vcError.h"
 
 #include "udError.h"
 #include "udContext.h"
@@ -69,12 +70,6 @@ enum vcLoginStatus
   vcLS_RegisterTryPortal,
 
   vcLS_Count
-};
-
-enum vcErrorSource
-{
-  vcES_File,
-  vcES_ProjectChange
 };
 
 enum vcActiveTool
@@ -152,13 +147,7 @@ struct vcState
   ImFont *pBoldFont;
   ImFont *pBoldItalicFont;
 
-  int settingsErrors;
-  struct ErrorItem
-  {
-    vcErrorSource source;
-    const char *pData;
-    udResult resultCode;
-  };
+  int settingsErrors;  
 
   struct vcBranding
   {
