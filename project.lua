@@ -34,7 +34,7 @@ project "udStream"
 	includedirs { "3rdParty/LercLib" }
 	includedirs { "vcGL/src" }	
 
-	links { "udCore" .. (projectSuffix or ""), "vcGL" }
+	links { "udCore" .. (projectSuffix or ""), "vcGL", "libtiff" }
 
 	defines { "IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "ImDrawIdx=int" }
 
