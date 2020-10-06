@@ -33,7 +33,7 @@ void vcIGSW_ShowLoadStatusIndicator(vcSceneLoadStatus loadStatus, const char *pT
 
 void vcIGSW_verticalSplitter(const char* label, const udFloat2& size, const int currentColumnIndex, float currentColumnWidth, float leftColumnWidth);
 
-void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText);
+void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText, const char *pPath = nullptr);
 
 bool vcIGSW_DegreesScalar(const char *pLabel, udDouble2 *pData);
 bool vcIGSW_DegreesScalar(const char *pLabel, udDouble3 *pData);

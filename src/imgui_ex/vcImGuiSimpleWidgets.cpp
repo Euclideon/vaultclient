@@ -23,6 +23,7 @@ struct vcIGSWResizeContainer
 struct vcIGSWMarkdownContext
 {
   ImVec2 areaSize;
+  const char *pPath;
 };
 
 int vcIGSW_ResizeString(ImGuiInputTextCallbackData *pData)
@@ -296,12 +297,14 @@ void vcIGSW_MarkDownLinkCallback(ImGui::MarkdownLinkCallbackData data)
 
 inline ImGui::MarkdownImageData vcIGSW_MarkDownImageCallback(ImGui::MarkdownLinkCallbackData data)
 {
-  char buffer[256] = "\0";
-  udStrncpy(buffer, data.link, data.linkLength);
-
-  ImGui::MarkdownImageData imageData = {};
-
   vcIGSWMarkdownContext *pContext = (vcIGSWMarkdownContext *)data.userData;
+  ImGui::MarkdownImageData imageData = {};
+  char buffer[256] = "\0";
+
+  if (pContext->pPath == nullptr)
+    udStrncpy(buffer, data.link, data.linkLength);
+  else
+    udSprintf(buffer, "%s/%.*s", pContext->pPath, data.linkLength, data.link);
 
   vcTexture *pImage = vcTextureCache_Get(buffer, vcTFM_Linear);
 
@@ -345,10 +348,11 @@ void vcIGSW_MarkDownToolTip(ImGui::MarkdownTooltipCallbackData data)
   }
 }
 
-void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText)
+void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText, const char *pPath /*= nullptr*/)
 {
   vcIGSWMarkdownContext context = {};
   context.areaSize = ImGui::GetContentRegionAvail();
+  context.pPath = pPath;
 
   ImGui::MarkdownConfig config = {};
 
