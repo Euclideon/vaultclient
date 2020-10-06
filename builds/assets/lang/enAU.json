@@ -6,7 +6,7 @@
     "englishname": "Australian English",
     "translationby": "Euclideon Pty Ltd",
     "contactemail": "support@euclideon.com",
-    "targetVersion": "1.2"
+    "targetVersion": "1.3"
   },
   "errorServerCommunication": "Server communication error",
   "popupClose": "Close",

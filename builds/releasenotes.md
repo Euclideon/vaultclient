@@ -1,5 +1,8 @@
 # udStream Version History
 
+## Version 1.3
+_Coming Soon_
+
 ## Version 1.2
   - Added preliminary support for 12DXML and Vector Shape Files
   - Added basic fly-through playback, recording and exporting to image sequence
