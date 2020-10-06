@@ -2128,7 +2128,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         udDouble3 up = vcGIS_GetWorldLocalUp(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
         udDouble3 northDir = vcGIS_GetWorldLocalNorth(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
 
-        udDouble3 camRight = udCross(cameraDirection, up);
+        // if cameraDirection is directly opposite of worldUp (mapmode) we just set camRight Vector to 0 so compass doesn't spin around randomly
+        udDouble3 camRight = udDot(cameraDirection, up) < (-1.0 + UD_EPSILON) ? udDouble3::zero() : udCross(cameraDirection, up);
         udDouble3 camFlat = udCross(up, camRight);
 
         double angle = udATan2(camFlat.x * northDir.y - camFlat.y * northDir.x, camFlat.x * northDir.x + camFlat.y * northDir.y);
