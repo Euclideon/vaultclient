@@ -96,13 +96,13 @@ static void vcTiff_MemoryInStream_Unmap(thandle_t /*fd*/, tdata_t /*base*/, toff
 
 }
 
-
 udResult vcTiff_CreateMemoryStream(const uint8_t *pData, size_t bufSize, vcMemoryInStream **ppStream)
 {
   udResult result;
 
-  UD_ERROR_IF(pData == nullptr, udR_InvalidParameter_);
-  UD_ERROR_IF(ppStream == nullptr, udR_InvalidParameter_);
+  if (pData == nullptr || ppStream == nullptr)
+    UD_ERROR_SET(udR_InvalidParameter_);
+
   *ppStream = udAllocType(vcMemoryInStream, 1, udAF_Zero);
   UD_ERROR_NULL(*ppStream, udR_MemoryAllocationFailure);
 
@@ -126,8 +126,8 @@ udResult vcTiff_CreateTiff(TIFF **ppTiff, vcMemoryInStream *pStream)
   udResult result;
   TIFF *pTiff = nullptr;
 
-  UD_ERROR_NULL(ppTiff, udR_InvalidParameter_);
-  UD_ERROR_NULL(pStream, udR_InvalidParameter_);
+  if (ppTiff == nullptr || pStream == nullptr)
+    UD_ERROR_SET(udR_InvalidParameter_);
 
   pTiff = TIFFClientOpen("MEMTIFF", "r", (thandle_t)pStream,
                           vcTiff_MemoryInStream_Read,
@@ -155,10 +155,8 @@ udResult vcTiff_LoadFromMemory(const uint8_t *pBuffer, size_t bufSize, uint32_t 
   uint32 w, h;
   uint32 *pRaster = nullptr;
 
-  UD_ERROR_NULL(pBuffer, udR_InvalidParameter_);
-  UD_ERROR_NULL(pW, udR_InvalidParameter_);
-  UD_ERROR_NULL(pH, udR_InvalidParameter_);
-  UD_ERROR_NULL(ppPixelData, udR_InvalidParameter_);
+  if (pBuffer == nullptr || pW == nullptr || pH == nullptr || ppPixelData == nullptr)
+    UD_ERROR_SET(udR_InvalidParameter_);
 
   UD_ERROR_CHECK(vcTiff_CreateMemoryStream(pBuffer, size_t(bufSize), &pStream));
   UD_ERROR_CHECK(vcTiff_CreateTiff(&pTif, pStream));
