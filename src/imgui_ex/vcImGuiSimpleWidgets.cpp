@@ -292,7 +292,16 @@ void vcIGSW_MarkDownLinkCallback(ImGui::MarkdownLinkCallbackData data)
   udStrncpy(buffer, data.link, data.linkLength);
 
   if (!data.isImage)
-    vcWebFile_OpenBrowser(buffer);
+  {
+    if (data.link[0] == '#')
+    {
+      // Needs to navigate to
+    }
+    else
+    {
+      vcWebFile_OpenBrowser(buffer);
+    }
+  }
 }
 
 inline ImGui::MarkdownImageData vcIGSW_MarkDownImageCallback(ImGui::MarkdownLinkCallbackData data)

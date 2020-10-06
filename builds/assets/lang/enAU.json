@@ -384,6 +384,8 @@
   "menuLogoutTitle": "Logged Out",
   "menuLogoutMessage": "You were logged out.",
   "menuToggleViewport": "Toggle Viewport",
+  "menuOpenGuide": "Show User Guide",
+  "menuOpenSupport": "Open Support centre in browser",
   "endSessionExitTitle": "Quit?",
   "endSessionExitMessage": "Are you sure you want to quit?",
   "endSessionLogoutTitle": "Logout?",

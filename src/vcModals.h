@@ -24,6 +24,7 @@ enum vcModalTypes
   vcMT_ImportShapeFile,
   vcMT_FlythroughExport,
   vcMT_ImportAnnotations,
+  vcMT_UserGuide,
 
   vcMT_Count
 };
