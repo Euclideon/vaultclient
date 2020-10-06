@@ -64,6 +64,8 @@
   "loginErrorProxyAuthPending": "Waiting for valid proxy credentials...",
   "loginErrorProxyAuthFailed": "No valid proxy credentials were supplied, please try another proxy or supply valid proxy credentials",
   "loginErrorTimeout": "Connection to server took too long to connect, please try again.",
+  "loginErrorInvalidLicense": "The requested license was not available for this configuration.",
+  "loginErrorNotSupported": "The requested login method is not supported in this configuration.",
   "loginErrorOther": "Unknown error occurred, please try again later.",
   "gettingStarted": "Community Hub",
   "gettingStartedDesc": "Click here for videos, tutorials and other information to help you hit the ground running.",

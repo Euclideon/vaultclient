@@ -1521,7 +1521,7 @@ void vcModals_DrawProfile(vcState* pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    if (pProgramState->sessionInfo.isOffline)
+    if (pProgramState->sessionInfo.isOffline || pProgramState->sessionInfo.isDomain)
     {
       ImGui::TextUnformatted(vcString::Get("modalProfileOffline"));
 
@@ -1566,7 +1566,7 @@ void vcModals_DrawChangePassword(vcState *pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    if (pProgramState->sessionInfo.isOffline)
+    if (pProgramState->sessionInfo.isOffline || pProgramState->sessionInfo.isDomain)
     {
       ImGui::TextUnformatted(vcString::Get("modalProfileOffline"));
     }

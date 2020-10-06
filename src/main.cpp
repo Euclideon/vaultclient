@@ -1046,8 +1046,19 @@ int main(int argc, char **args)
   programState.activeViewportIndex = 0;
   programState.pActiveViewport = &programState.pViewports[programState.activeViewportIndex];
 
+  bool tryDomain = false;
+
   for (int i = 1; i < argc; ++i)
   {
+    if (udStrBeginsWith(args[i], "--"))
+    {
+      if (udStrEquali(args[i], "--domain"))
+      {
+        tryDomain = true;
+        continue;
+      }
+    }
+
 #if UDPLATFORM_OSX
     // macOS assigns a unique process serial number (PSN) to all apps,
     // we should not attempt to load this as a file.
@@ -1146,7 +1157,10 @@ int main(int argc, char **args)
 
   vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
-  udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
+  if (!tryDomain)
+    udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
+  else
+    udWorkerPool_AddTask(programState.pWorkerPool, vcSession_Domain, &programState, false);
 
 #if UDPLATFORM_EMSCRIPTEN
   // Toggle fullscreen if it changed, most likely via pressing escape key
@@ -1233,11 +1247,14 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 {
   if (ImGui::BeginPopupContextItem("profileMenu", 0))
   {
-    if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
-      vcModals_OpenModal(pProgramState, vcMT_Profile);
+    if (!pProgramState->sessionInfo.isDomain && !pProgramState->sessionInfo.isOffline)
+    {
+      if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
+        vcModals_OpenModal(pProgramState, vcMT_Profile);
 
-    if (ImGui::MenuItem(vcString::Get("modalChangePasswordTitle")))
-      vcModals_OpenModal(pProgramState, vcMT_ChangePassword);
+      if (ImGui::MenuItem(vcString::Get("modalChangePasswordTitle")))
+        vcModals_OpenModal(pProgramState, vcMT_ChangePassword);
+    }
     
     if (ImGui::MenuItem(vcString::Get("menuLogout")) && vcModals_ConfirmEndSession(pProgramState, false))
       pProgramState->forceLogout = true;
@@ -2897,7 +2914,34 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(-1, -1));
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginMessageChecking", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorTimeout", "loginErrorOther", "loginForgot", "loginForgotPending", "loginForgotCheckEmail", "loginForgotTryPortal", "loginRegister", "loginRegisterPending", "loginRegisterCheckEmail", "loginRegisterTryPortal" };
+  const char *loginStatusKeys[] = {
+    "loginMessageCredentials",
+    "loginMessageCredentials",
+    "loginEnterURL",
+    "loginMessageChecking",
+    "loginErrorConnection",
+    "loginErrorAuth",
+    "loginErrorTimeSync",
+    "loginErrorSecurity",
+    "loginErrorNegotiate",
+    "loginErrorProxy",
+    "loginErrorProxyAuthPending",
+    "loginErrorProxyAuthFailed",
+    "loginErrorTimeout",
+    "loginErrorInvalidLicense",
+    "loginErrorNotSupported",
+    "loginErrorOther",
+
+    "loginForgot",
+    "loginForgotPending",
+    "loginForgotCheckEmail",
+    "loginForgotTryPortal",
+
+    "loginRegister",
+    "loginRegisterPending",
+    "loginRegisterCheckEmail",
+    "loginRegisterTryPortal"
+  };
   UDCOMPILEASSERT(vcLS_Count == udLengthOf(loginStatusKeys), "Status Keys Updated, Update string table");
 
   if (pProgramState->loginStatus == vcLS_Pending || pProgramState->loginStatus == vcLS_RegisterPending || pProgramState->loginStatus == vcLS_ForgotPasswordPending)
