@@ -70,3 +70,17 @@ void vcAddSimpleCrossSection::PreviewPicking(vcState *pProgramState, vcRenderDat
     pTool->EndQuery(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian, true);
   }
 }
+
+void vcAddSimpleCrossSection::OnCancel(vcState *pProgramState)
+{
+  udProjectNode *pItem = pProgramState->sceneExplorer.clickedItem.pItem;
+  if (pItem != nullptr && udStrEqual(pItem->itemtypeStr, "XSlice"))
+  {
+    vcSceneItem *pSceneItem = (vcSceneItem *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+    if (!pSceneItem->m_visible)
+      pProgramState->activeTool = vcActiveTool_Select;
+
+    vcCrossSectionNode *pTool = (vcCrossSectionNode *)pProgramState->sceneExplorer.clickedItem.pItem->pUserData;
+    pTool->EndQuery(pProgramState, pProgramState->pActiveViewport->worldMousePosCartesian, false);
+  }
+}

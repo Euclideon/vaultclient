@@ -14,6 +14,7 @@
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "imgui_internal.h"
 #include "vcModals.h"
+#include "vcInternalModels.h"
 
 #include "vcFeatures.h"
 
@@ -39,8 +40,9 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_selectedExportFPSIndex = 3;
   m_selectedExportFormatIndex = 0;
   m_pLine = nullptr;
+  m_selectedFlightPoint = -1;
+  m_centerPoint = udDouble3::zero();
   memset(&m_exportInfo, 0, sizeof(m_exportInfo));
-
   m_pProgramState = pProgramState;
 
   m_exportInfo.currentFrame = 0;
@@ -67,6 +69,50 @@ void vcFlythrough::OnNodeUpdate(vcState *pProgramState)
   ChangeProjection(pProgramState->geozone);
 }
 
+void vcFlythrough::SelectSubitem(uint64_t internalId)
+{
+  m_selectedFlightPoint = ((int)internalId) - 1;
+}
+
+bool vcFlythrough::IsSubitemSelected(uint64_t internalId)
+{
+  return (m_selected && (m_selectedFlightPoint == ((int)internalId - 1) || m_selectedFlightPoint == -1));
+}
+
+void vcFlythrough_ApplyDeltaToFlightPoint(vcFlightPoint *pFlightPoint, const udDouble4x4 &delta, const udGeoZone &geozone)
+{
+  udDoubleQuat orientation = delta.extractQuaternion() * vcGIS_HeadingPitchToQuaternion(geozone, pFlightPoint->m_CameraPosition, pFlightPoint->m_CameraHeadingPitch);
+  pFlightPoint->m_CameraHeadingPitch = vcGIS_QuaternionToHeadingPitch(geozone, pFlightPoint->m_CameraPosition, orientation);
+  pFlightPoint->m_CameraPosition = (delta * udDouble4x4::translation(pFlightPoint->m_CameraPosition)).axis.t.toVector3();
+};
+
+void vcFlythrough::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
+{
+  if (m_selectedFlightPoint == -1)
+  {
+    for (vcFlightPoint &flightPoint : m_flightPoints)
+      vcFlythrough_ApplyDeltaToFlightPoint(&flightPoint, delta, pProgramState->geozone);
+  }
+  else
+  {
+    vcFlythrough_ApplyDeltaToFlightPoint(&m_flightPoints[m_selectedFlightPoint], delta, pProgramState->geozone);
+  }
+
+  UpdateLinePoints();
+  UpdateCenterPoint();
+  SaveFlightPoints(pProgramState);
+}
+
+udDouble4x4 vcFlythrough::GetWorldSpaceMatrix()
+{
+  if (m_flightPoints.length == 0)
+    return udDouble4x4::identity();
+  else if (m_selectedFlightPoint == -1)
+    return udDouble4x4::translation(m_centerPoint);
+  else
+    return udDouble4x4::translation(m_flightPoints[m_selectedFlightPoint].m_CameraPosition);
+}
+
 void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
   int offset = -1; // The index of the _next_ node
@@ -80,8 +126,17 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       if (m_exportInfo.currentFrame >= 0)
       {
-        if (vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex])) != udR_Success)
+        const char *pSavePath = udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
+        udResult saveResult = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), pSavePath);
+
+        if (saveResult != udR_Success)
         {
+          vcState::ErrorItem flythroughSaveError = {};
+          flythroughSaveError.source = vcES_File;
+          flythroughSaveError.pData = udStrdup(pSavePath);
+          flythroughSaveError.resultCode = saveResult;
+          pProgramState->errorItems.PushBack(flythroughSaveError);
+
           m_state = vcFTS_None;
           pProgramState->exportVideo = false;
           vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
@@ -165,12 +220,28 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
   }
 
   if (m_selected && m_state == vcFTS_None && m_pLine != nullptr && m_flightPoints.length > 1)
+  {
     pRenderData->depthLines.PushBack(m_pLine);
-}
 
-void vcFlythrough::ApplyDelta(vcState * /*pProgramState*/, const udDouble4x4 & /*delta*/)
-{
-  // Do something
+    for (size_t i = 0; i < m_flightPoints.length; ++i)
+    {
+      if (m_selectedFlightPoint != -1 && (int)i != m_selectedFlightPoint)
+        continue;
+
+      vcRenderPolyInstance *pInstance = pRenderData->polyModels.PushBack();
+
+      pInstance->pModel = gInternalModels[vcInternalModelType_Sphere];
+      udDouble3 linearDistance = (pProgramState->pActiveViewport->camera.position - m_flightPoints[i].m_CameraPosition);
+      pInstance->worldMat = udDouble4x4::translation(m_flightPoints[i].m_CameraPosition) * udDouble4x4::scaleUniform(udMag3(linearDistance) / 100.0); //This makes it ~1/100th of the screen size
+      pInstance->pSceneItem = this;
+      pInstance->pDiffuseOverride = pProgramState->pWhiteTexture;
+      pInstance->sceneItemInternalId = (uint64_t)i + 1;
+      pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.65f);
+      pInstance->renderFlags = vcRenderPolyInstance::RenderFlags_Transparent;
+      pInstance->selectable = true;
+      pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.85f);
+    }
+  }
 }
 
 void vcFlythrough::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -292,7 +363,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
   ImGui::Text("%s %.2fs / %.2fs", vcString::Get("flythroughPlayback"), m_timePosition, m_timeLength);
 
   double zero = 0.0;
-  if (ImGui::SliderScalar(vcString::Get("flythroughPlaybackTime"), ImGuiDataType_Double, &m_timePosition, &zero, &m_timeLength))
+  if (ImGui::SliderScalar(vcString::Get("flythroughPlaybackTime"), ImGuiDataType_Double, &m_timePosition, &zero, &m_timeLength, 0, ImGuiSliderFlags_ClampOnInput))
     UpdateCameraPosition(pProgramState);
 
   switch (m_state)
@@ -361,8 +432,18 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
       {
         vcModals_OpenModal(pProgramState, vcMT_FlythroughExport);
-        if (vcModals_OverwriteExistingFile(pProgramState, udTempStr("%s/%05d.%s", m_exportPath, 0, vcFlythroughExportFormats[m_selectedExportFormatIndex]), vcString::Get("flythroughExportAlreadyExists")))
+        int frameIndex = 0;
+        const char *pFilepath = GenerateFrameExportPath(frameIndex);
+        if (vcModals_OverwriteExistingFile(pProgramState, pFilepath, vcString::Get("flythroughExportAlreadyExists")))
         {
+          // Delete Overwritten Flythrough Images
+          while (udFileExists(pFilepath) == udR_Success)
+          {
+            udFileDelete(pFilepath);
+            ++frameIndex;
+            pFilepath = GenerateFrameExportPath(frameIndex);
+          }
+
           m_state = vcFTS_Exporting;
           pProgramState->screenshot.pImage = nullptr;
           m_exportInfo.currentFrame = -2;
@@ -452,9 +533,33 @@ void vcFlythrough::UpdateLinePoints()
     udDouble3 *pPositions = udAllocType(udDouble3, m_flightPoints.length, udAF_Zero);
     for (size_t i = 0; i < m_flightPoints.length; ++i)
       pPositions[i] = m_flightPoints[i].m_CameraPosition;
-    vcLineRenderer_UpdatePoints(m_pLine, pPositions, m_flightPoints.length, vcIGSW_BGRAToImGui(0xFFFFFF00), 2.0, false);
+    vcLineRenderer_UpdatePoints(m_pLine, pPositions, m_flightPoints.length, vcIGSW_BGRAToImGui(0xFFFFFF00), 8.0, false);
     udFree(pPositions);
   }
+}
+
+void vcFlythrough::UpdateCenterPoint()
+{
+  if (m_flightPoints.length == 0)
+  {
+    m_centerPoint = udDouble3::zero();
+    return;
+  }
+
+  udDouble3 min = udDouble3::create(DBL_MAX);
+  udDouble3 max = udDouble3::create(-DBL_MAX);
+
+  for (const vcFlightPoint &flightPoint : m_flightPoints)
+  {
+    min.x = udMin(min.x, flightPoint.m_CameraPosition.x);
+    min.y = udMin(min.y, flightPoint.m_CameraPosition.y);
+    min.z = udMin(min.z, flightPoint.m_CameraPosition.z);
+    max.x = udMax(max.x, flightPoint.m_CameraPosition.x);
+    max.y = udMax(max.y, flightPoint.m_CameraPosition.y);
+    max.z = udMax(max.z, flightPoint.m_CameraPosition.z);
+  }
+
+  m_centerPoint = (min + max) / 2.0;
 }
 
 void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zone)
@@ -476,6 +581,8 @@ void vcFlythrough::LoadFlightPoints(vcState *pProgramState, const udGeoZone &zon
     m_flightPoints.PushBack(flightPoint);
   }
 
+  UpdateCenterPoint();
+  
   udFree(pFPPositions);
   m_timeLength = m_flightPoints.length > 0 ? m_flightPoints[m_flightPoints.length - 1].time : 0.0;
 }
@@ -524,4 +631,9 @@ void vcFlythrough::LerpFlightPoints(double timePosition, const vcFlightPoint &fl
 
   if (pLerpedHeadingPitch != nullptr)
     *pLerpedHeadingPitch = udLerp(flightPoint1.m_CameraHeadingPitch, flightPoint2.m_CameraHeadingPitch, lerp);
+}
+
+const char* vcFlythrough::GenerateFrameExportPath(int frameIndex)
+{
+  return udTempStr("%s/%05d.%s", m_exportPath, frameIndex, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
 }

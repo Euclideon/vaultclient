@@ -359,6 +359,38 @@ void vcSession_Login(void *pProgramStatePtr)
   vcSession_ChangeSession(pProgramState);
 }
 
+void vcSession_Domain(void *pProgramStatePtr)
+{
+  vcState *pProgramState = (vcState*)pProgramStatePtr;
+
+  udError result = udContext_ConnectFromDomain(&pProgramState->pUDSDKContext, "https://udstream.euclideon.com", VCAPPNAME);
+
+  if (result == udE_ConnectionFailure)
+    pProgramState->loginStatus = vcLS_ConnectionError;
+  else if (result == udE_AuthFailure)
+    pProgramState->loginStatus = vcLS_AuthError;
+  else if (result == udE_OutOfSync)
+    pProgramState->loginStatus = vcLS_TimeSync;
+  else if (result == udE_SecurityFailure)
+    pProgramState->loginStatus = vcLS_SecurityError;
+  else if (result == udE_ServerFailure || result == udE_ParseError)
+    pProgramState->loginStatus = vcLS_NegotiationError;
+  else if (result == udE_ProxyError)
+    pProgramState->loginStatus = vcLS_ProxyError;
+  else if (result == udE_ProxyAuthRequired)
+    pProgramState->loginStatus = vcLS_ProxyAuthRequired;
+  else if (result == udE_Timeout)
+    pProgramState->loginStatus = vcLS_Timeout;
+  else if (result == udE_InvalidLicense)
+    pProgramState->loginStatus = vcLS_InvalidLicense;
+  else if (result == udE_NotSupported)
+    pProgramState->loginStatus = vcLS_NotSupported;
+  else if (result != udE_Success)
+    pProgramState->loginStatus = vcLS_OtherError;
+  else // Success
+    vcSession_ChangeSession(pProgramState);
+}
+
 void vcSession_Logout(vcState *pProgramState)
 {
   if (pProgramState->pUDSDKContext != nullptr)

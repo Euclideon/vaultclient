@@ -8,6 +8,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 vcViewpoint::vcViewpoint(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState)
@@ -61,7 +62,7 @@ void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   ImGui::InputScalarN(udTempStr("%s##ViewpointPosition%zu", vcString::Get("sceneViewpointPosition"), *pItemID), ImGuiDataType_Double, &m_CameraPosition.x, 3);
   changed |= ImGui::IsItemDeactivatedAfterEdit();
 
-  ImGui::InputScalarN(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), ImGuiDataType_Double, &m_CameraHeadingPitch.x, 2);
+  vcIGSW_DegreesScalar(udTempStr("%s##ViewpointRotation%zu", vcString::Get("sceneViewpointRotation"), *pItemID), &m_CameraHeadingPitch);
   changed |= ImGui::IsItemDeactivatedAfterEdit();
 
   if (ImGui::InputTextMultiline(udTempStr("%s##ViewpointDescription", vcString::Get("sceneViewpointDescription")), m_description, udLengthOf(m_description)))

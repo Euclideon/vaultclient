@@ -10,6 +10,7 @@
 #include "udStringUtil.h"
 
 #include "imgui.h"
+#include "imgui_ex/vcImGuiSimpleWidgets.h"
 
 static const char *GetNodeShape(vcQueryNodeFilterShape shape)
 {
@@ -162,7 +163,7 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (m_shape != vcQNFS_Sphere)
   {
-    ImGui::InputScalarN(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), ImGuiDataType_Double, &m_ypr.x, 3);
+    vcIGSW_DegreesScalar(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), &m_ypr);
     changed |= ImGui::IsItemDeactivatedAfterEdit();
     ImGui::InputScalarN(udTempStr("%s##FilterExtents%zu", vcString::Get("sceneFilterExtents"), *pItemID), ImGuiDataType_Double, &m_extents.x, 3);
     changed |= ImGui::IsItemDeactivatedAfterEdit();

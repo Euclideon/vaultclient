@@ -247,6 +247,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
           ImGui::Checkbox(vcString::Get("settingsAppearanceAdvancedGIS"), &pProgramState->settings.presentation.showAdvancedGIS);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowDiagnostics"), &pProgramState->settings.presentation.showDiagnosticInfo);
           ImGui::Checkbox(vcString::Get("settingsAppearanceShowEuclideonLogo"), &pProgramState->settings.presentation.showEuclideonLogo);
+          ImGui::Checkbox(vcString::Get("settingsAppearanceShowCameraFrustumInMapMode"), &pProgramState->settings.presentation.showCameraFrustumInMapMode);
+
           if (ImGui::SliderFloat(vcString::Get("settingsAppearancePOIDistance"), &pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_POIFaderMax, "%.3fm", ImGuiSliderFlags_Logarithmic))
             pProgramState->settings.presentation.POIFadeDistance = udClamp(pProgramState->settings.presentation.POIFadeDistance, vcSL_POIFaderMin, vcSL_GlobalLimitf);
           if(ImGui::SliderFloat(vcString::Get("settingsAppearanceImageRescale"), &pProgramState->settings.presentation.imageRescaleDistance, vcSL_ImageRescaleMin, vcSL_ImageRescaleMax, "%.3fm", ImGuiSliderFlags_Logarithmic))
@@ -260,6 +262,27 @@ void vcSettingsUI_Show(vcState *pProgramState)
           const char *layoutOptions[] = { vcString::Get("settingsAppearanceWindowLayoutScSx"), vcString::Get("settingsAppearanceWindowLayoutSxSc") };
           if (ImGui::Combo(vcString::Get("settingsAppearanceWindowLayout"), (int*)&pProgramState->settings.presentation.layout, layoutOptions, (int)udLengthOf(layoutOptions)))
             pProgramState->settings.presentation.columnSizeCorrect = false;
+
+          const char *mapModeViewportOptions[] = { vcString::Get("settingsAppearanceMapModeViewportNone"), vcString::Get("settingsAppearanceMapModeViewportLeft"), vcString::Get("settingsAppearanceMapModeViewportRight") };
+          if (ImGui::Combo(vcString::Get("settingsAppearanceMapModeViewport"), (int*)&pProgramState->settings.mapModeViewport, mapModeViewportOptions, (int)udLengthOf(mapModeViewportOptions)))
+          {
+            for (int i = 0; i < vcMaxViewportCount; ++i)
+              pProgramState->settings.camera.mapMode[i] = false;
+
+            switch (pProgramState->settings.mapModeViewport)
+            {
+            case vcMMV_None:
+              break;
+
+            case vcMMV_Left:
+              pProgramState->settings.camera.mapMode[0] = true;
+              break;
+
+            case vcMMV_Right:
+              pProgramState->settings.camera.mapMode[1] = true;
+              break;
+            }
+          }
         }
 
         if (pProgramState->activeSetting == vcSR_Inputs)
@@ -855,7 +878,9 @@ void vcSettingsUI_BasicMapSettings(vcState *pProgramState, bool alwaysShowOption
 void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
 {
   vcSettingsUI_VisualizationSettings(&pProgramState->settings.visualization);
-  vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
+
+  if (pProgramState->settings.visualization.mode == vcVM_Classification)
+    vcSettingsUI_CustomClassificationColours(pProgramState, &pProgramState->settings.visualization);
 
   const char *lensNameArray[] = {
     vcString::Get("settingsViewportCameraLensCustom"),
@@ -869,41 +894,44 @@ void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
   UDCOMPILEASSERT(udLengthOf(lensNameArray) == vcLS_TotalLenses, "Lens name array length mismatch");
   for (int v = 0; v < vcMaxViewportCount; v++)
   {
-    if (ImGui::Combo(udTempStr("%s %d", vcString::Get("settingsViewportCameraLens"),v), &pProgramState->settings.camera.lensIndex[v], lensNameArray, (int)udLengthOf(lensNameArray)))
+    if (v < pProgramState->settings.activeViewportCount)
     {
-      switch (pProgramState->settings.camera.lensIndex[v])
+      if (ImGui::Combo(udTempStr("%s %d", vcString::Get("settingsViewportCameraLens"), v), &pProgramState->settings.camera.lensIndex[v], lensNameArray, (int)udLengthOf(lensNameArray)))
       {
-      case vcLS_Custom:
-        /*Custom FoV*/
-        break;
-      case vcLS_15mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens15mm;
-        break;
-      case vcLS_24mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens24mm;
-        break;
-      case vcLS_30mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens30mm;
-        break;
-      case vcLS_50mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens50mm;
-        break;
-      case vcLS_70mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens70mm;
-        break;
-      case vcLS_100mm:
-        pProgramState->settings.camera.fieldOfView[v] = vcLens100mm;
-        break;
+        switch (pProgramState->settings.camera.lensIndex[v])
+        {
+        case vcLS_Custom:
+          /*Custom FoV*/
+          break;
+        case vcLS_15mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens15mm;
+          break;
+        case vcLS_24mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens24mm;
+          break;
+        case vcLS_30mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens30mm;
+          break;
+        case vcLS_50mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens50mm;
+          break;
+        case vcLS_70mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens70mm;
+          break;
+        case vcLS_100mm:
+          pProgramState->settings.camera.fieldOfView[v] = vcLens100mm;
+          break;
+        }
       }
-    }
 
-    if (pProgramState->settings.camera.lensIndex[v] == vcLS_Custom)
-    {
-      float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView[v]);
-      ImGui::Indent();
-      if (ImGui::SliderFloat(udTempStr("%s %d", vcString::Get("settingsViewportFOV"), v), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
-        pProgramState->settings.camera.fieldOfView[v] = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
-      ImGui::Unindent();
+      if (pProgramState->settings.camera.lensIndex[v] == vcLS_Custom)
+      {
+        float fovDeg = UD_RAD2DEGf(pProgramState->settings.camera.fieldOfView[v]);
+        ImGui::Indent();
+        if (ImGui::SliderFloat(udTempStr("%s %d", vcString::Get("settingsViewportFOV"), v), &fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax, "%.0f°"))
+          pProgramState->settings.camera.fieldOfView[v] = UD_DEG2RADf(udClamp(fovDeg, vcSL_CameraFieldOfViewMin, vcSL_CameraFieldOfViewMax));
+        ImGui::Unindent();
+      }
     }
   }
 
@@ -923,10 +951,8 @@ void vcSettingsUI_SceneVisualizationSettings(vcState *pProgramState)
     if (!pProgramState->settings.presentation.skybox.useLiveTime)
     {
       ImGui::Checkbox(vcString::Get("settingsAppearanceSkyboxLockSunPosition"), &pProgramState->settings.presentation.skybox.keepSameTime);
-      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 1, 24);
-      pProgramState->settings.presentation.skybox.timeOfDay = udClamp(pProgramState->settings.presentation.skybox.timeOfDay, 1.0f, 24.0f);
-      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 0, 12);
-      pProgramState->settings.presentation.skybox.month = udClamp(pProgramState->settings.presentation.skybox.month, 1.0f, 12.0f);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfDay"), &pProgramState->settings.presentation.skybox.timeOfDay, 0, 24, "%.3f", ImGuiSliderFlags_ClampOnInput);
+      ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxTimeOfYear"), &pProgramState->settings.presentation.skybox.month, 1, 12, "%.3f", ImGuiSliderFlags_ClampOnInput);
     }
 
     ImGui::SliderFloat(vcString::Get("settingsAppearanceSkyboxExposure"), &pProgramState->settings.presentation.skybox.exposure, 0.0f, 100.0f);

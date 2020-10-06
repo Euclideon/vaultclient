@@ -190,6 +190,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
 
     pSettings->presentation.showDiagnosticInfo = data.Get("showDiagnosticInfo").AsBool(false);
     pSettings->presentation.showEuclideonLogo = data.Get("showEuclideonLogo").AsBool(true);
+    pSettings->presentation.showCameraFrustumInMapMode = data.Get("showCameraFrustumInMapMode").AsBool(true);
     pSettings->presentation.showCameraInfo = data.Get("showCameraInfo").AsBool(false);
     pSettings->presentation.showProjectionInfo = data.Get("showGISInfo").AsBool(false);
     pSettings->presentation.showAdvancedGIS = data.Get("showAdvancedGISOptions").AsBool(false);
@@ -202,6 +203,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.convertLeftPanelPercentage = data.Get("convertLeftPanelPercentage").AsFloat(0.33f);
     pSettings->presentation.columnSizeCorrect = false;
     pSettings->presentation.alwaysDismissInputModal = data.Get("alwaysDismissInputModal").AsBool(false);
+
+    pSettings->mapModeViewport = (vcMapModeViewport)data.Get("mapModeViewport").AsInt(vcMMV_None);
 
     //Units of measurement
     vcUnitConversion_SetMetric(&pSettings->unitConversionData); //set some defaults.
@@ -314,7 +317,7 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     pSettings->presentation.skybox.colour = data.Get("skybox.colour").AsFloat4(udFloat4::create(0.39f, 0.58f, 0.66f, 1.f));
     pSettings->presentation.skybox.exposure = data.Get("skybox.exposure").AsFloat(7.5f);
     pSettings->presentation.skybox.timeOfDay = data.Get("skybox.timeOfDay").AsFloat(12.f);
-    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(6.f);
+    pSettings->presentation.skybox.month = data.Get("skybox.month").AsFloat(3.f);
     pSettings->presentation.skybox.keepSameTime = data.Get("skybox.keepSameTime").AsBool(true);
     pSettings->presentation.skybox.useLiveTime = data.Get("skybox.uselivetime").AsBool(false);
 
@@ -684,6 +687,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   // Misc Settings
   data.Set("showDiagnosticInfo = %s", pSettings->presentation.showDiagnosticInfo ? "true" : "false");
   data.Set("showEuclideonLogo = %s", pSettings->presentation.showEuclideonLogo ? "true" : "false");
+  data.Set("showCameraFrustumInMapMode = %s", pSettings->presentation.showCameraFrustumInMapMode ? "true" : "false");
   data.Set("showCameraInfo = %s", pSettings->presentation.showCameraInfo ? "true" : "false");
   data.Set("showGISInfo = %s", pSettings->presentation.showProjectionInfo ? "true" : "false");
   data.Set("saturation = %f", pSettings->presentation.saturation);
@@ -694,6 +698,7 @@ bool vcSettings_Save(vcSettings *pSettings)
   data.Set("ImageRescaleDistance = %f", pSettings->presentation.imageRescaleDistance);
   data.Set("pointMode = %d", pSettings->presentation.pointMode);
   data.Set("layout = %d", pSettings->presentation.layout);
+  data.Set("mapModeViewport = %d", pSettings->mapModeViewport);
   data.Set("layoutSceneExplorerSize = %d", pSettings->presentation.sceneExplorerSize);
   data.Set("convertLeftPanelPercentage = %f", pSettings->presentation.convertLeftPanelPercentage);
   data.Set("alwaysDismissInputModal = %s", pSettings->presentation.alwaysDismissInputModal ? "true" : "false");
@@ -1222,6 +1227,7 @@ void vcSettings_LoadBranding(vcState *pState)
   udStrcpy(pState->branding.supportEmail, branding.Get("supportEmail").AsString("support@euclideon.com"));
   pState->branding.convertEnabled = branding.Get("convertEnabled").AsBool(true);
   pState->branding.exportEnabled = branding.Get("exportEnabled").AsBool(true);
+  pState->branding.filtersEnabled = branding.Get("filtersEnabled").AsBool(true);
 
   const char* DefaultColours[] = { "45A2B5", "A8D9E3", "71BCCD", "238599" };
 

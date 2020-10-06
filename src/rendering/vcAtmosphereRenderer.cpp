@@ -291,8 +291,8 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
 
   double terrestrialDateJ2000 = 0.0;
 
-  double hourAngleRadians = UD_DEG2RAD((pProgramState->settings.presentation.skybox.timeOfDay) * 15.0);
-  double yearNormalized = (pProgramState->settings.presentation.skybox.month / 12.0);
+  double normalizedHour = (pProgramState->settings.presentation.skybox.timeOfDay / 24.0);
+  double dayOfYear = int(((pProgramState->settings.presentation.skybox.month - 1.0) / 12.0) * DaysPerYear);
 
   if (pProgramState->settings.presentation.skybox.useLiveTime)
   {
@@ -301,19 +301,20 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   else if (pProgramState->settings.presentation.skybox.keepSameTime && pProgramState->geozone.projection != udGZPT_Unknown)
   {
     udDouble3 latLong = udGeoZone_CartesianToLatLong(pProgramState->geozone, pProgramState->pActiveViewport->camera.position);
-    hourAngleRadians -= UD_DEG2RAD(latLong.y);
+    normalizedHour -= (UD_DEG2RAD(latLong.y) / UD_2PI);
 
-    terrestrialDateJ2000 = BaseTime + hourAngleRadians / UD_2PI + yearNormalized * DaysPerYear;
+    terrestrialDateJ2000 = BaseTime + normalizedHour + dayOfYear;
   }
   else // Only use setting
   {
-    terrestrialDateJ2000 = BaseTime + hourAngleRadians / UD_2PI + yearNormalized * DaysPerYear;
+    terrestrialDateJ2000 = BaseTime + normalizedHour + dayOfYear;
   }
 
-  double terrestrialYearJ2000 = terrestrialDateJ2000 / DaysPerYear;
+  normalizedHour = (terrestrialDateJ2000 - int(terrestrialDateJ2000));
+  dayOfYear = int(fmod(terrestrialDateJ2000, DaysPerYear));
 
-  yearNormalized = terrestrialYearJ2000 - int(terrestrialYearJ2000);
-  hourAngleRadians = (terrestrialDateJ2000 - int(terrestrialDateJ2000) + yearNormalized) * UD_2PI;
+  terrestrialDateJ2000 = int(terrestrialDateJ2000);
+  double terrestrialYearJ2000 = terrestrialDateJ2000 / DaysPerYear;
 
   double meanSunLongitudeDegrees = 280.460 + 0.9856474 * terrestrialDateJ2000; // Already corrected for aberration
   double meanSunAnomalyRadians = UD_DEG2RAD(357.528 + 0.9856003 * terrestrialDateJ2000);
@@ -321,14 +322,11 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   while (meanSunLongitudeDegrees < 0.0)
     meanSunLongitudeDegrees += 360.0;
 
-  while (meanSunLongitudeDegrees > 360.0)
-    meanSunLongitudeDegrees -= 360.0;
-
   while (meanSunAnomalyRadians < 0.0)
     meanSunAnomalyRadians += UD_2PI;
 
-  while (meanSunAnomalyRadians > UD_2PI)
-    meanSunAnomalyRadians -= UD_2PI;
+  meanSunLongitudeDegrees = fmod(meanSunLongitudeDegrees, 360.f);
+  meanSunAnomalyRadians = fmod(meanSunAnomalyRadians, UD_2PI);
 
   // The Ecliptic Latitude is always ~0.0;
   double eclipticLongitudeRadians = UD_DEG2RAD(meanSunLongitudeDegrees + 1.915 * udSin(meanSunAnomalyRadians) + 0.02 * udSin(2 * meanSunAnomalyRadians));
@@ -340,7 +338,7 @@ void vcAtmosphereRenderer_SetVisualParams(vcState *pProgramState, vcAtmosphereRe
   pAtmosphereRenderer->sunDirection.y = sunDistAU * udCos(eclipticObliquityRadians) * udSin(eclipticLongitudeRadians);
   pAtmosphereRenderer->sunDirection.z = sunDistAU * udSin(eclipticObliquityRadians) * udSin(eclipticLongitudeRadians);
 
-  pAtmosphereRenderer->sunDirection = udDoubleQuat::create({ 0, 0, 1 }, -yearNormalized * UD_2PI - hourAngleRadians).apply(pAtmosphereRenderer->sunDirection);
+  pAtmosphereRenderer->sunDirection = udDoubleQuat::create({ 0, 0, 1 }, (dayOfYear/DaysPerYear + normalizedHour) * -UD_2PI - UD_HALF_PI).apply(pAtmosphereRenderer->sunDirection);
 
   if (pProgramState->geozone.projection == udGZPT_Unknown)
   {

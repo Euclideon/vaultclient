@@ -48,9 +48,10 @@ vcVerticalMeasureTool::~vcVerticalMeasureTool()
 {
 }
 
-void vcVerticalMeasureTool::Preview(const udDouble3 &position)
+void vcVerticalMeasureTool::Preview(vcState *pProgramState, const udDouble3 &position)
 {
   m_points[2] = position;
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
 }
 
 void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &position)
@@ -59,6 +60,7 @@ void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &
   m_done = true;
   pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
   udProjectNode_SetMetadataBool(m_pNode, "measureEnd", m_done);
+  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
 }
 
 void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
@@ -155,7 +157,6 @@ void vcVerticalMeasureTool::AddToScene(vcState *pProgramState, vcRenderData *pRe
     m_labelList[1].pSceneItem = this;
     pRenderData->labels.PushBack(&m_labelList[1]);
 
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
     vcLineRenderer_UpdatePoints(m_pLineInstance, m_points, 3, vcIGSW_BGRAToImGui(m_lineColour), m_lineWidth, false);
     pRenderData->depthLines.PushBack(m_pLineInstance);
   }

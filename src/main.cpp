@@ -1046,8 +1046,19 @@ int main(int argc, char **args)
   programState.activeViewportIndex = 0;
   programState.pActiveViewport = &programState.pViewports[programState.activeViewportIndex];
 
+  bool tryDomain = false;
+
   for (int i = 1; i < argc; ++i)
   {
+    if (udStrBeginsWith(args[i], "--"))
+    {
+      if (udStrEquali(args[i], "--domain"))
+      {
+        tryDomain = true;
+        continue;
+      }
+    }
+
 #if UDPLATFORM_OSX
     // macOS assigns a unique process serial number (PSN) to all apps,
     // we should not attempt to load this as a file.
@@ -1146,7 +1157,10 @@ int main(int argc, char **args)
 
   vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
 
-  udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
+  if (!tryDomain)
+    udWorkerPool_AddTask(programState.pWorkerPool, vcMain_AsyncResumeSession, &programState, false);
+  else
+    udWorkerPool_AddTask(programState.pWorkerPool, vcSession_Domain, &programState, false);
 
 #if UDPLATFORM_EMSCRIPTEN
   // Toggle fullscreen if it changed, most likely via pressing escape key
@@ -1233,11 +1247,14 @@ void vcMain_ProfileMenu(vcState *pProgramState)
 {
   if (ImGui::BeginPopupContextItem("profileMenu", 0))
   {
-    if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
-      vcModals_OpenModal(pProgramState, vcMT_Profile);
+    if (!pProgramState->sessionInfo.isDomain && !pProgramState->sessionInfo.isOffline)
+    {
+      if (ImGui::MenuItem(vcString::Get("modalProfileTitle")))
+        vcModals_OpenModal(pProgramState, vcMT_Profile);
 
-    if (ImGui::MenuItem(vcString::Get("modalChangePasswordTitle")))
-      vcModals_OpenModal(pProgramState, vcMT_ChangePassword);
+      if (ImGui::MenuItem(vcString::Get("modalChangePasswordTitle")))
+        vcModals_OpenModal(pProgramState, vcMT_ChangePassword);
+    }
     
     if (ImGui::MenuItem(vcString::Get("menuLogout")) && vcModals_ConfirmEndSession(pProgramState, false))
       pProgramState->forceLogout = true;
@@ -1383,7 +1400,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
     ImGui::End();
   }
 
-  if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem != nullptr)
+  if (pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem != nullptr && !udStrEqual(pProgramState->pActiveViewport->cameraInput.pAttachedToSceneItem->m_pNode->itemtypeStr, "FlyPath"))
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + windowSize.x, windowPos.y), ImGuiCond_Always, ImVec2(1.f, 0.f));
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX)); // Set minimum width to include the header
@@ -1484,7 +1501,10 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
 
       {
         if (pProgramState->activeTool != vcActiveTool_Select && !pProgramState->modalOpen && vcHotkey::IsPressed(vcB_Cancel))
+        {
+          vcSceneTool::tools[pProgramState->activeTool]->OnCancel(pProgramState);
           pProgramState->activeTool = vcActiveTool_Select;
+        }
 
         vcSceneTool::tools[pProgramState->activeTool]->SceneUI(pProgramState);
       }
@@ -1531,8 +1551,14 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
         if (ImGui::InputScalarN(vcString::Get("sceneCameraRotation"), ImGuiDataType_Double, &headingPitch.x, 2, nullptr, nullptr, "%.2f"))
           pProgramState->pActiveViewport->camera.headingPitch = UD_DEG2RAD(headingPitch);
 
-        if (ImGui::SliderFloat(vcString::Get("sceneCameraMoveSpeed"), &(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex]), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
-          pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex] = udClamp(pProgramState->settings.camera.moveSpeed[pProgramState->activeViewportIndex], vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+        for (int v = 0; v < vcMaxViewportCount; v++)
+        {
+          if (v < pProgramState->settings.activeViewportCount)
+          {
+            if (ImGui::SliderFloat(udTempStr("%s %d", vcString::Get("sceneCameraMoveSpeed"), v), &(pProgramState->settings.camera.moveSpeed[v]), vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed, "%.3f m/s", ImGuiSliderFlags_Logarithmic))
+              pProgramState->settings.camera.moveSpeed[v] = udClamp(pProgramState->settings.camera.moveSpeed[v], vcSL_CameraMinMoveSpeed, vcSL_CameraMaxMoveSpeed);
+          }
+        }
 
         if (pProgramState->geozone.latLongBoundMin != pProgramState->geozone.latLongBoundMax)
         {
@@ -1637,10 +1663,6 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           ImGui::TextUnformatted(udTempStr("%sMiB", udCommaInt(pProgramState->streamingMemory >> 20)));
         }
       }
-
-      // TODO: Putting this here for now
-      if (pProgramState->settings.activeViewportCount > 1)
-        ImGui::Checkbox(udTempStr("%s##secondViewportMapMode", vcString::Get("orthographicCameraViewport")), &pProgramState->settings.camera.mapMode[1]);
     }
 
     ImGui::End();
@@ -2048,32 +2070,35 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       }
       */
 
-      // Add Filter box
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterBox"), vcB_AddBoxFilter, vcMBBI_AddBoxFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddBoxFilter)) || (vcHotkey::IsPressed(vcB_AddBoxFilter) && !ImGui::IsAnyItemActive()))
+      if (pProgramState->branding.filtersEnabled)
       {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddBoxFilter;
-      }
+        // Add Filter box
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterBox"), vcB_AddBoxFilter, vcMBBI_AddBoxFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddBoxFilter)) || (vcHotkey::IsPressed(vcB_AddBoxFilter) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddBoxFilter;
+        }
 
-      // Add Filter Sphere
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterSphere"), vcB_AddSphereFilter, vcMBBI_AddSphereFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSphereFilter)) || (vcHotkey::IsPressed(vcB_AddSphereFilter) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddSphereFilter;
-      }
+        // Add Filter Sphere
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterSphere"), vcB_AddSphereFilter, vcMBBI_AddSphereFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSphereFilter)) || (vcHotkey::IsPressed(vcB_AddSphereFilter) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddSphereFilter;
+        }
 
-      // Add Filter Cylinder
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterCylinder"), vcB_AddCylinderFilter, vcMBBI_AddCylinderFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddCylinderFilter)) || (vcHotkey::IsPressed(vcB_AddCylinderFilter) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
-      }
+        // Add Filter Cylinder
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddFilterCylinder"), vcB_AddCylinderFilter, vcMBBI_AddCylinderFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddCylinderFilter)) || (vcHotkey::IsPressed(vcB_AddCylinderFilter) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddCylinderFilter;
+        }
 
-      // Add Filter Cross Section
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddCrossSection"), vcB_AddSimpleCrossSection, vcMBBI_AddCrossSectionFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSimpleCrossSection)) || (vcHotkey::IsPressed(vcB_AddSimpleCrossSection) && !ImGui::IsAnyItemActive()))
-      {
-        vcProject_ClearSelection(pProgramState);
-        pProgramState->activeTool = vcActiveTool_AddSimpleCrossSection;
+        // Add Filter Cross Section
+        if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneAddCrossSection"), vcB_AddSimpleCrossSection, vcMBBI_AddCrossSectionFilter, vcMBBG_FirstItem, (pProgramState->activeTool == vcActiveTool_AddSimpleCrossSection)) || (vcHotkey::IsPressed(vcB_AddSimpleCrossSection) && !ImGui::IsAnyItemActive()))
+        {
+          vcProject_ClearSelection(pProgramState);
+          pProgramState->activeTool = vcActiveTool_AddSimpleCrossSection;
+        }
       }
     }
 
@@ -2877,7 +2902,34 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(-1, -1));
   ImGui::SetNextWindowPos(ImVec2(size.x / 2, size.y - vcLBS_LoginBoxY), ImGuiCond_Always, ImVec2(0.5, 1.0));
 
-  const char *loginStatusKeys[] = { "loginMessageCredentials", "loginMessageCredentials", "loginEnterURL", "loginMessageChecking", "loginErrorConnection", "loginErrorAuth", "loginErrorTimeSync", "loginErrorSecurity", "loginErrorNegotiate", "loginErrorProxy", "loginErrorProxyAuthPending", "loginErrorProxyAuthFailed", "loginErrorTimeout", "loginErrorOther", "loginForgot", "loginForgotPending", "loginForgotCheckEmail", "loginForgotTryPortal", "loginRegister", "loginRegisterPending", "loginRegisterCheckEmail", "loginRegisterTryPortal" };
+  const char *loginStatusKeys[] = {
+    "loginMessageCredentials",
+    "loginMessageCredentials",
+    "loginEnterURL",
+    "loginMessageChecking",
+    "loginErrorConnection",
+    "loginErrorAuth",
+    "loginErrorTimeSync",
+    "loginErrorSecurity",
+    "loginErrorNegotiate",
+    "loginErrorProxy",
+    "loginErrorProxyAuthPending",
+    "loginErrorProxyAuthFailed",
+    "loginErrorTimeout",
+    "loginErrorInvalidLicense",
+    "loginErrorNotSupported",
+    "loginErrorOther",
+
+    "loginForgot",
+    "loginForgotPending",
+    "loginForgotCheckEmail",
+    "loginForgotTryPortal",
+
+    "loginRegister",
+    "loginRegisterPending",
+    "loginRegisterCheckEmail",
+    "loginRegisterTryPortal"
+  };
   UDCOMPILEASSERT(vcLS_Count == udLengthOf(loginStatusKeys), "Status Keys Updated, Update string table");
 
   if (pProgramState->loginStatus == vcLS_Pending || pProgramState->loginStatus == vcLS_RegisterPending || pProgramState->loginStatus == vcLS_ForgotPasswordPending)

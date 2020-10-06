@@ -56,6 +56,8 @@ enum vcLoginStatus
   vcLS_ProxyAuthRequired,
   vcLS_ProxyAuthFailed,
   vcLS_Timeout,
+  vcLS_InvalidLicense,
+  vcLS_NotSupported,
   vcLS_OtherError,
 
   vcLS_ForgotPassword,
@@ -168,6 +170,7 @@ struct vcState
     uint32_t colours[4];
     bool convertEnabled;
     bool exportEnabled;
+    bool filtersEnabled;
   } branding;
 
   udChunkedArray<const char*> loadList;
@@ -253,6 +256,7 @@ struct vcState
   {
     char selectUUIDWhenPossible[37];
     char movetoUUIDWhenPossible[37];
+    char movetoUUIDWithoutProjectionWhenPossible[37];
 
     vcSceneItemRef insertItem;
     vcSceneItemRef clickedItem;
