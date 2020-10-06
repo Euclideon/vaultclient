@@ -460,17 +460,13 @@ uint8_t *vcTexture_DecodePixels(void *pFileContents, size_t fileLength, vcImageD
 {
   uint8_t *pPixelData = nullptr;
 
-  do
-  {
+  // try stbi
+  if (pPixelData == nullptr)
     pPixelData = vcTexture_DecodePixels_stbi(pFileContents, fileLength, pImageData);
-    if (pPixelData != nullptr)
-      break;
 
+  // if nothing loaded, try libtiff
+  if (pPixelData == nullptr)
     pPixelData = vcTexture_DecodePixels_tiff(pFileContents, fileLength, pImageData);
-    if (pPixelData != nullptr)
-      break;
-
-  } while (false);
-
+    
   return pPixelData;
 }
