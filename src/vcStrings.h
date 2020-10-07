@@ -23,6 +23,8 @@ namespace vcString
 
   void ShowMissingStringUI();
   void ShowTranslationHelperUI(vcState *pProgramState);
+
+  bool GetTableLoaded();
 }
 
 #endif //vcStrings_h__

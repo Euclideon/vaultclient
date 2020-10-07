@@ -326,7 +326,7 @@ void vcModals_DrawWelcome(vcState *pProgramState)
           ImGui::SameLine();
         first = false;
 
-        if (ImGui::ImageButton(item.pTexture, ImVec2(128, 128)))
+        if (ImGui::ImageButton(item.pTexture == nullptr ? pProgramState->pWhiteTexture : item.pTexture, ImVec2(128, 128)))
         {
           vcProject_LoadFromServer(pProgramState, udUUID_GetAsString(item.projectID));
           ImGui::CloseCurrentPopup();

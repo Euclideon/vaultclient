@@ -446,6 +446,7 @@
   "sceneMousePointInfo": "Mouse Point (Projected)",
   "sceneMousePointWGS": "Mouse Point (WGS84)",
   "sceneStreaming": "Refining scene...",
+  "sceneStartingProgram": "Starting program...",
   "sceneSRID": "SRID",
   "sceneOverrideSRID": "Override SRID",
   "sceneAddPOI": "Add POI Here",

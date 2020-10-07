@@ -388,10 +388,7 @@ void vcMain_MainLoop(vcState *pProgramState)
   vcGLState_SetViewport(0, 0, pProgramState->settings.window.width, pProgramState->settings.window.height);
   vcFramebuffer_Bind(pProgramState->pDefaultFramebuffer, vcFramebufferClearOperation_All, 0xFF000000);
 
-  if (pProgramState->finishedStartup)
-    vcMain_RenderWindow(pProgramState);
-  else
-    vcMain_ShowStartupScreen(pProgramState);
+  vcMain_RenderWindow(pProgramState);
 
   ImGui::Render();
 
@@ -462,290 +459,287 @@ void vcMain_MainLoop(vcState *pProgramState)
     pProgramState->openSettings = true;
   }
 
-  if (pProgramState->finishedStartup && pProgramState->hasContext)
+  bool firstLoad = true;
+
+  // Load next file in the load list (if there is one and the user has a context)
+  while (pProgramState->loadList.length > 0)
   {
-    bool firstLoad = true;
+    const char *pNextLoad = nullptr;
+    pProgramState->loadList.PopFront(&pNextLoad);
 
-    // Load next file in the load list (if there is one and the user has a context)
-    while (pProgramState->loadList.length > 0)
+    if (pNextLoad != nullptr)
     {
-      const char *pNextLoad = nullptr;
-      pProgramState->loadList.PopFront(&pNextLoad);
-
-      if (pNextLoad != nullptr)
-      {
 #if VC_HASCONVERT
-        bool convertDrop = false;
-        //TODO: Use ImGui drag and drop on the docks rather than globally here
-        ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
-        if (pConvert != nullptr && pConvert->Active && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
-        {
-          if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
-            convertDrop = true;
-        }
+      bool convertDrop = false;
+      //TODO: Use ImGui drag and drop on the docks rather than globally here
+      ImGuiWindow *pConvert = ImGui::FindWindowByName("###convertDock");
+      if (pConvert != nullptr && pConvert->Active && ((pConvert->DockNode != nullptr && pConvert->DockTabIsVisible) || (pConvert->DockNode == nullptr && !pConvert->Collapsed)))
+      {
+        if (io.MousePos.x < pConvert->Pos.x + pConvert->Size.x && io.MousePos.x > pConvert->Pos.x && io.MousePos.y > pConvert->Pos.y && io.MousePos.y < pConvert->Pos.y + pConvert->Size.y)
+          convertDrop = true;
+      }
 #endif //VC_HASCONVERT
 
 
-        udFilename loadFile(pNextLoad);
-        const char *pExt = loadFile.GetExt();
+      udFilename loadFile(pNextLoad);
+      const char *pExt = loadFile.GetExt();
 
-        // Project Files
-        if (udStrBeginsWith(pNextLoad, "euclideon:project/"))
-        {
-          vcProject_LoadFromServer(pProgramState, &pNextLoad[18]);
-          vcModals_CloseModal(pProgramState, vcMT_Welcome);
-        }
-        else if (udStrEquali(pExt, ".json"))
-        {
-          vcProject_LoadFromURI(pProgramState, pNextLoad);
-          vcModals_CloseModal(pProgramState, vcMT_Welcome);
-        }
-        else if (udStrEquali(pExt, ".udp"))
-        {
-          vcProject_CreateBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
-          vcModals_CloseModal(pProgramState, vcMT_Welcome);
+      // Project Files
+      if (udStrBeginsWith(pNextLoad, "euclideon:project/"))
+      {
+        vcProject_LoadFromServer(pProgramState, &pNextLoad[18]);
+        vcModals_CloseModal(pProgramState, vcMT_Welcome);
+      }
+      else if (udStrEquali(pExt, ".json"))
+      {
+        vcProject_LoadFromURI(pProgramState, pNextLoad);
+        vcModals_CloseModal(pProgramState, vcMT_Welcome);
+      }
+      else if (udStrEquali(pExt, ".udp"))
+      {
+        vcProject_CreateBlankScene(pProgramState, "UDP Import", vcPSZ_StandardGeoJSON);
+        vcModals_CloseModal(pProgramState, vcMT_Welcome);
 
-          vcUDP_Load(pProgramState, pNextLoad);
-        }
-        else if (udStrEquali(pExt, ".12dxml"))
-        {
-          vcProject_CreateBlankScene(pProgramState, "12DXML Import", vcPSZ_StandardGeoJSON);
-          vcModals_CloseModal(pProgramState, vcMT_Welcome);
+        vcUDP_Load(pProgramState, pNextLoad);
+      }
+      else if (udStrEquali(pExt, ".12dxml"))
+      {
+        vcProject_CreateBlankScene(pProgramState, "12DXML Import", vcPSZ_StandardGeoJSON);
+        vcModals_CloseModal(pProgramState, vcMT_Welcome);
 
-          if (vc12DXML_Load(pProgramState, pNextLoad) == udR_Unsupported)
-            vcModals_OpenModal(pProgramState, vcMT_UnsupportedEncoding);
-        }
-        else if (udStrEquali(pExt, ".shp"))
-        {
-          vcModals_CloseModal(pProgramState, vcMT_Welcome);
-          vcSHP_Load(pProgramState, pNextLoad);
-        }
+        if (vc12DXML_Load(pProgramState, pNextLoad) == udR_Unsupported)
+          vcModals_OpenModal(pProgramState, vcMT_UnsupportedEncoding);
+      }
+      else if (udStrEquali(pExt, ".shp"))
+      {
+        vcModals_CloseModal(pProgramState, vcMT_Welcome);
+        vcSHP_Load(pProgramState, pNextLoad);
+      }
 #if VC_HASCONVERT
-        else if (convertDrop) // Everything else depends on where it was dropped
-        {
-          vcConvert_QueueFile(pProgramState, pNextLoad);
-        }
+      else if (convertDrop) // Everything else depends on where it was dropped
+      {
+        vcConvert_QueueFile(pProgramState, pNextLoad);
+      }
 #endif // VC_HASCONVERT
-        else // We need to add it to the scene (hopefully)
+      else // We need to add it to the scene (hopefully)
+      {
+        udProjectNode *pNode = nullptr;
+
+        if (udStrEquali(pExt, ".uds") || udStrBeginsWithi(pExt, ".uds?")) // Handle URLs with query params
         {
-          udProjectNode *pNode = nullptr;
-
-          if (udStrEquali(pExt, ".uds") || udStrBeginsWithi(pExt, ".uds?")) // Handle URLs with query params
+          if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != udE_Success)
           {
-            if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "UDS", nullptr, pNextLoad, nullptr) != udE_Success)
-            {
-              ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
-              projectError.resultCode = udR_ReadFailure;
-
-              pNextLoad = nullptr;
-
-              vcError_AddError(pProgramState, projectError);
-
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-
-              continue;
-            }
-            else
-            {
-              if (firstLoad) // Was successful
-                udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-
-              vcModals_CloseModal(pProgramState, vcMT_Welcome);
-
-              // Let is know about the mouse position- using bounding box currently
-              //TODO: Don't use the boundingBox
-              if (pProgramState->pActiveViewport->pickingSuccess)
-              {
-                pNode->boundingBox[0] = pProgramState->pActiveViewport->worldMousePosCartesian.x;
-                pNode->boundingBox[1] = pProgramState->pActiveViewport->worldMousePosCartesian.y;
-                pNode->boundingBox[2] = pProgramState->pActiveViewport->worldMousePosCartesian.z;
-              }
-              else
-              {
-                pNode->boundingBox[0] = pProgramState->pActiveViewport->camera.position.x;
-                pNode->boundingBox[1] = pProgramState->pActiveViewport->camera.position.y;
-                pNode->boundingBox[2] = pProgramState->pActiveViewport->camera.position.z;
-              }
-            }
-          }
-          else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
-          {
-            if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Polygon", nullptr, pNextLoad, nullptr) != udE_Success)
-            {
-              ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
-              projectError.resultCode = udR_ReadFailure;
-
-              pNextLoad = nullptr;
-
-              vcError_AddError(pProgramState, projectError);
-
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-
-              continue;
-            }
-            else // Was successful
-            {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
-
-              if (firstLoad)
-                udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-
-              vcModals_CloseModal(pProgramState, vcMT_Welcome);
-            }
-          }
-          else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif") || udStrEquali(pExt, ".tif") || udStrEquali(pExt, ".tiff"))
-          {
-            const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
-            if (clicked.pParent != nullptr && clicked.pItem->itemtype == udPNT_Media)
-            {
-              udProjectNode_SetURI(pProgramState->activeProject.pProject, clicked.pItem, pNextLoad);
-            }
-            else
-            {
-              udDouble3 geolocationLatLong = udDouble3::zero();
-              bool hasLocation = false;
-              vcImageType imageType = vcIT_StandardPhoto;
-
-              const unsigned char *pFileData = nullptr;
-              int64_t numBytes = 0;
-
-              if (udFile_Load(pNextLoad, (void**)&pFileData, &numBytes) == udR_Success)
-              {
-                // Many jpg's have exif, let's process that first
-                if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
-                {
-                  easyexif::EXIFInfo exifResult;
-
-                  if (exifResult.parseFrom(pFileData, (int)numBytes) == PARSE_EXIF_SUCCESS)
-                  {
-                    if (exifResult.GeoLocation.Latitude != 0.0 || exifResult.GeoLocation.Longitude != 0.0)
-                    {
-                      hasLocation = true;
-                      geolocationLatLong.x = exifResult.GeoLocation.Latitude;
-                      geolocationLatLong.y = exifResult.GeoLocation.Longitude;
-                      geolocationLatLong.z = exifResult.GeoLocation.Altitude;
-                    }
-
-                    if (exifResult.XMPMetadata != "")
-                    {
-                      udJSON xmp;
-                      if (xmp.Parse(exifResult.XMPMetadata.c_str()) == udR_Success)
-                      {
-                        bool isPanorama = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.xmlns:GPano").IsString();
-                        bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
-
-                        if (isPanorama && isPhotosphere)
-                          imageType = vcIT_PhotoSphere;
-                        else if (isPanorama)
-                          imageType = vcIT_Panorama;
-                      }
-                    }
-                  }
-                }
-
-                udFree(pFileData);
-              }
-
-              if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == udE_Success)
-              {
-                if (hasLocation && pProgramState->geozone.projection != udGZPT_Unknown)
-                  vcProject_UpdateNodeGeometryFromLatLong(&pProgramState->activeProject, pNode, udPGT_Point, &geolocationLatLong, 1);
-                else
-                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
-
-                if (imageType == vcIT_PhotoSphere)
-                  udProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
-                else if (imageType == vcIT_Panorama)
-                  udProjectNode_SetMetadataString(pNode, "imagetype", "panorama");
-                else
-                  udProjectNode_SetMetadataString(pNode, "imagetype", "standard");
-              }
-            }
-          }
-          else if (udStrEquali(pExt, ".slpk"))
-          {
-            if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) != udE_Success)
-            {
-              ErrorItem projectError;
-              projectError.source = vcES_ProjectChange;
-              projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
-              projectError.resultCode = udR_ReadFailure;
-
-              pNextLoad = nullptr;
-
-              vcError_AddError(pProgramState, projectError);
-
-              vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
-
-              continue;
-            }
-            else if (firstLoad) // Was successful
-            {
-              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
-              vcModals_CloseModal(pProgramState, vcMT_Welcome);
-            }
-          }
-          else // This file isn't supported in the scene
-          {
-            ErrorItem status;
-            status.source = vcES_File;
-            status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
-            status.resultCode = udR_Unsupported;
+            ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+            projectError.resultCode = udR_ReadFailure;
 
             pNextLoad = nullptr;
 
-            vcError_AddError(pProgramState, status);
+            vcError_AddError(pProgramState, projectError);
+
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
 
             continue;
           }
+          else
+          {
+            if (firstLoad) // Was successful
+              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+
+            vcModals_CloseModal(pProgramState, vcMT_Welcome);
+
+            // Let is know about the mouse position- using bounding box currently
+            //TODO: Don't use the boundingBox
+            if (pProgramState->pActiveViewport->pickingSuccess)
+            {
+              pNode->boundingBox[0] = pProgramState->pActiveViewport->worldMousePosCartesian.x;
+              pNode->boundingBox[1] = pProgramState->pActiveViewport->worldMousePosCartesian.y;
+              pNode->boundingBox[2] = pProgramState->pActiveViewport->worldMousePosCartesian.z;
+            }
+            else
+            {
+              pNode->boundingBox[0] = pProgramState->pActiveViewport->camera.position.x;
+              pNode->boundingBox[1] = pProgramState->pActiveViewport->camera.position.y;
+              pNode->boundingBox[2] = pProgramState->pActiveViewport->camera.position.z;
+            }
+          }
         }
+        else if (udStrEquali(pExt, ".vsm") || udStrEquali(pExt, ".obj"))
+        {
+          if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Polygon", nullptr, pNextLoad, nullptr) != udE_Success)
+          {
+            ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+            projectError.resultCode = udR_ReadFailure;
 
-        udFree(pNextLoad);
+            pNextLoad = nullptr;
+
+            vcError_AddError(pProgramState, projectError);
+
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+            continue;
+          }
+          else // Was successful
+          {
+            vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
+
+            if (firstLoad)
+              udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+
+            vcModals_CloseModal(pProgramState, vcMT_Welcome);
+          }
+        }
+        else if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg") || udStrEquali(pExt, ".png") || udStrEquali(pExt, ".tga") || udStrEquali(pExt, ".bmp") || udStrEquali(pExt, ".gif") || udStrEquali(pExt, ".tif") || udStrEquali(pExt, ".tiff"))
+        {
+          const vcSceneItemRef &clicked = pProgramState->sceneExplorer.clickedItem;
+          if (clicked.pParent != nullptr && clicked.pItem->itemtype == udPNT_Media)
+          {
+            udProjectNode_SetURI(pProgramState->activeProject.pProject, clicked.pItem, pNextLoad);
+          }
+          else
+          {
+            udDouble3 geolocationLatLong = udDouble3::zero();
+            bool hasLocation = false;
+            vcImageType imageType = vcIT_StandardPhoto;
+
+            const unsigned char *pFileData = nullptr;
+            int64_t numBytes = 0;
+
+            if (udFile_Load(pNextLoad, (void**)&pFileData, &numBytes) == udR_Success)
+            {
+              // Many jpg's have exif, let's process that first
+              if (udStrEquali(pExt, ".jpg") || udStrEquali(pExt, ".jpeg"))
+              {
+                easyexif::EXIFInfo exifResult;
+
+                if (exifResult.parseFrom(pFileData, (int)numBytes) == PARSE_EXIF_SUCCESS)
+                {
+                  if (exifResult.GeoLocation.Latitude != 0.0 || exifResult.GeoLocation.Longitude != 0.0)
+                  {
+                    hasLocation = true;
+                    geolocationLatLong.x = exifResult.GeoLocation.Latitude;
+                    geolocationLatLong.y = exifResult.GeoLocation.Longitude;
+                    geolocationLatLong.z = exifResult.GeoLocation.Altitude;
+                  }
+
+                  if (exifResult.XMPMetadata != "")
+                  {
+                    udJSON xmp;
+                    if (xmp.Parse(exifResult.XMPMetadata.c_str()) == udR_Success)
+                    {
+                      bool isPanorama = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.xmlns:GPano").IsString();
+                      bool isPhotosphere = xmp.Get("x:xmpmeta.rdf:RDF.rdf:Description.GPano:IsPhotosphere").AsBool();
+
+                      if (isPanorama && isPhotosphere)
+                        imageType = vcIT_PhotoSphere;
+                      else if (isPanorama)
+                        imageType = vcIT_Panorama;
+                    }
+                  }
+                }
+              }
+
+              udFree(pFileData);
+            }
+
+            if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "Media", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) == udE_Success)
+            {
+              if (hasLocation && pProgramState->geozone.projection != udGZPT_Unknown)
+                vcProject_UpdateNodeGeometryFromLatLong(&pProgramState->activeProject, pNode, udPGT_Point, &geolocationLatLong, 1);
+              else
+                vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
+
+              if (imageType == vcIT_PhotoSphere)
+                udProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");
+              else if (imageType == vcIT_Panorama)
+                udProjectNode_SetMetadataString(pNode, "imagetype", "panorama");
+              else
+                udProjectNode_SetMetadataString(pNode, "imagetype", "standard");
+            }
+          }
+        }
+        else if (udStrEquali(pExt, ".slpk"))
+        {
+          if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "I3S", loadFile.GetFilenameWithExt(), pNextLoad, nullptr) != udE_Success)
+          {
+            ErrorItem projectError;
+            projectError.source = vcES_ProjectChange;
+            projectError.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+            projectError.resultCode = udR_ReadFailure;
+
+            pNextLoad = nullptr;
+
+            vcError_AddError(pProgramState, projectError);
+
+            vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+
+            continue;
+          }
+          else if (firstLoad) // Was successful
+          {
+            udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
+            vcModals_CloseModal(pProgramState, vcMT_Welcome);
+          }
+        }
+        else // This file isn't supported in the scene
+        {
+          ErrorItem status;
+          status.source = vcES_File;
+          status.pData = pNextLoad; // this takes ownership so we don't need to dup or free
+          status.resultCode = udR_Unsupported;
+
+          pNextLoad = nullptr;
+
+          vcError_AddError(pProgramState, status);
+
+          continue;
+        }
       }
 
-      firstLoad = false;
+      udFree(pNextLoad);
     }
 
-    if (pProgramState->pLoadImage != nullptr)
-    {
-      vcTexture_Destroy(&pProgramState->image.pImage);
-
-      void *pFileData = nullptr;
-      int64_t fileLen = -1;
-
-      if (udFile_Load(pProgramState->pLoadImage, &pFileData, &fileLen) == udR_Success && fileLen != 0)
-      {
-        vcImageData tempData = {};
-        uint8_t *pPixels = vcTexture_DecodePixels(pFileData, (size_t)fileLen, &tempData);
-
-        pProgramState->image.width = tempData.width;
-        pProgramState->image.height = tempData.height;
-
-        vcTexture_Create(&pProgramState->image.pImage, tempData.width, tempData.height, pPixels);
-
-        udFree(pPixels);
-
-        pProgramState->image.width = pProgramState->settings.viewports[0].resolution.x;
-        pProgramState->image.height = pProgramState->settings.viewports[0].resolution.y;
-      }
-
-      udFree(pFileData);
-
-      vcModals_OpenModal(pProgramState, vcMT_ImageViewer);
-
-      udFree(pProgramState->pLoadImage);
-    }
-
-    // Check this first because vcSession_UpdateInfo doesn't update session info if the session has expired
-    if (pProgramState->forceLogout)
-      vcSession_Logout(pProgramState);
-    else if (pProgramState->hasContext && (pProgramState->lastSync != 0.0 && udGetEpochSecsUTCf() > pProgramState->lastSync + 30)) // Ping the server every 30 seconds
-      udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
+    firstLoad = false;
   }
+
+  if (pProgramState->pLoadImage != nullptr)
+  {
+    vcTexture_Destroy(&pProgramState->image.pImage);
+
+    void *pFileData = nullptr;
+    int64_t fileLen = -1;
+
+    if (udFile_Load(pProgramState->pLoadImage, &pFileData, &fileLen) == udR_Success && fileLen != 0)
+    {
+      vcImageData tempData = {};
+      uint8_t *pPixels = vcTexture_DecodePixels(pFileData, (size_t)fileLen, &tempData);
+
+      pProgramState->image.width = tempData.width;
+      pProgramState->image.height = tempData.height;
+
+      vcTexture_Create(&pProgramState->image.pImage, tempData.width, tempData.height, pPixels);
+
+      udFree(pPixels);
+
+      pProgramState->image.width = pProgramState->settings.viewports[0].resolution.x;
+      pProgramState->image.height = pProgramState->settings.viewports[0].resolution.y;
+    }
+
+    udFree(pFileData);
+
+    vcModals_OpenModal(pProgramState, vcMT_ImageViewer);
+
+    udFree(pProgramState->pLoadImage);
+  }
+
+  // Check this first because vcSession_UpdateInfo doesn't update session info if the session has expired
+  if (pProgramState->forceLogout)
+    vcSession_Logout(pProgramState);
+  else if (pProgramState->hasContext && (pProgramState->lastSync != 0.0 && udGetEpochSecsUTCf() > pProgramState->lastSync + 30)) // Ping the server every 30 seconds
+    udWorkerPool_AddTask(pProgramState->pWorkerPool, vcSession_UpdateInfo, pProgramState, false);
 }
 
 #if UDPLATFORM_EMSCRIPTEN
@@ -1155,8 +1149,7 @@ int main(int argc, char **args)
   vcMain_AsyncLoad(&programState, "asset://assets/branding/icon.png", vcMain_LoadIconMT);
   vcMain_AsyncLoad(&programState, "asset://assets/data/NotoSansCJK-Regular.ttc", vcMain_LoadFontMT);
 
-  vcTexture_AsyncCreateFromFilename(&programState.pUITexture, programState.pWorkerPool, "asset://assets/textures/uiDark24.png", vcTFM_Linear);
-
+  vcTexture_CreateFromFilename(&programState.pUITexture, "asset://assets/textures/uiDark24.png", nullptr, nullptr, vcTFM_Linear);
   vcTexture_Create(&programState.pWhiteTexture, 1, 1, &WhitePixel);
 
   vcProject_CreateBlankScene(&programState, "Empty Project", vcPSZ_StandardGeoJSON);
@@ -1530,7 +1523,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   {
     ImGui::SetNextWindowPos(ImVec2(windowPos.x + 32.f, windowPos.y + 32.f), ImGuiCond_Always, ImVec2(0.f, 0.f));
     ImGui::SetNextWindowBgAlpha(0.5f);
-    if (ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
+    if (vcString::GetTableLoaded() && ImGui::Begin(vcString::Get("sceneCameraSettings"), nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking))
     {
       udDouble3 cameraLatLong = udDouble3::zero();
 
@@ -2207,6 +2200,48 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
   }
 }
 
+void vcRenderStartupUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVec2 &windowSize)
+{
+  static float rotAmount = 0;
+  rotAmount += (float)pProgramState->deltaTime;
+
+  float a = udSin(rotAmount * UD_PIf) * 30.f;
+  float b = udCos(rotAmount * UD_PIf) * 30.f;
+
+  float x = windowPos.x + windowSize.x - 40.f - 15.f - (pProgramState->settings.onScreenControls ? 165 : 0);
+  float y = windowPos.y + 40.f;
+
+  ImVec2 p[] = {
+    { x - b + a, y - a - b },
+    { x + b + a, y + a - b },
+    { x + b - a, y + a + b },
+    { x - b - a, y - a + b }
+  };
+
+  ImVec2 uv[] = {
+    { 0.75f, 0.75f },
+    { 1.00f, 0.75f },
+    { 1.00f, 1.00f },
+    { 0.75f, 1.00f }
+  };
+
+  ImGui::SetNextWindowPos(ImVec2(x + 30.f, y + 30.f), ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+  ImGui::SetNextWindowBgAlpha(0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+  ImGui::SetNextWindowSize(ImVec2(60, 60));
+
+  if (ImGui::Begin("StartupLoadingIcon", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+  {
+    ImGui::GetWindowDrawList()->AddImageQuad(pProgramState->pUITexture, p[0], p[1], p[2], p[3], uv[0], uv[1], uv[2], uv[3], 0xFFFFFFFF);
+
+    if (ImGui::IsWindowHovered())
+      ImGui::SetTooltip("%s", vcString::Get("sceneStartingProgram"));
+  }
+  ImGui::End();
+
+  ImGui::PopStyleVar();
+}
+
 void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderData, bool useTool)
 {
   const double farPlaneDist = pProgramState->settings.camera.farPlane * pProgramState->settings.camera.farPlane;
@@ -2253,6 +2288,9 @@ void vcRenderScene_HandlePicking(vcState *pProgramState, vcRenderData &renderDat
 
 void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
 {
+  if (!vcString::GetTableLoaded())
+    return;
+
   if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddModel"), vcB_AddUDS, vcMBBI_AddPointCloud, vcMBBG_FirstItem) || vcHotkey::IsPressed(vcB_AddUDS))
     vcModals_OpenModal(pProgramState, vcMT_AddSceneItem);
 
@@ -2538,7 +2576,10 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
   }
 
   udDouble3 cameraMoveOffset = udDouble3::zero();
-  vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
+  if (vcString::GetTableLoaded())
+    vcRenderSceneUI(pProgramState, windowPos, windowSize, &cameraMoveOffset);
+  else
+    vcRenderStartupUI(pProgramState, windowPos, windowSize);
 
   {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -2835,6 +2876,13 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   ImVec2 size = io.DisplaySize;
 
   vcMain_ShowStartupScreen(pProgramState);
+
+  if (!vcString::GetTableLoaded())
+  {
+    ImGui::PopStyleColor(); // Border Colour
+    ImGui::PopStyleVar(); // ImGuiStyleVar_WindowRounding
+    return;
+  }
 
   ImGui::SetNextWindowBgAlpha(0.f);
   ImGui::SetNextWindowPos(ImVec2(0, size.y), ImGuiCond_Always, ImVec2(0, 1));
@@ -3221,6 +3269,9 @@ void vcMain_RenderWindow(vcState *pProgramState)
     ImGui::End();
   }
 
-  vcSettingsUI_Show(pProgramState);
-  vcModals_DrawModals(pProgramState);
+  if (vcString::GetTableLoaded())
+  {
+    vcSettingsUI_Show(pProgramState);
+    vcModals_DrawModals(pProgramState);
+  }
 }

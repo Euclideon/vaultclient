@@ -36,6 +36,9 @@ namespace vcString
 
   const char* Get(const char *pKey)
   {
+    if (g_pStringTable == nullptr)
+      return pKey;
+
     const char *pValue = (*g_pStringTable)[pKey];
 
     if (pValue == nullptr)
@@ -368,5 +371,10 @@ namespace vcString
     }
 
     ImGui::EndChild();
+  }
+
+  bool GetTableLoaded()
+  {
+    return g_pStringTable != nullptr;
   }
 }
