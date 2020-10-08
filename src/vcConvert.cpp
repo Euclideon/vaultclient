@@ -12,6 +12,7 @@
 #include "vcStringFormat.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 #include "vcFBX.h"
+#include "vcTiffConvert.h"
 
 #include "udMath.h"
 #include "udChunkedArray.h"
@@ -820,6 +821,12 @@ void vcConvert_ProcessFile(vcState *pProgramState, vcConvertItem *pJob)
     if (udStrEquali(pExt, ".slpk"))
     {
       if (vcSceneLayerConvert_AddItem(pJob->pConvertContext, pFilename) == udE_Success)
+        UD_ERROR_SET(udR_Success);
+      UD_ERROR_SET(udR_CorruptData);
+    }
+    else if (udStrEquali(pExt, ".tif") || udStrEquali(pExt, ".tiff"))
+    {
+      if (vcTiff_AddItem(pJob->pConvertContext, pFilename) == udE_Success)
         UD_ERROR_SET(udR_Success);
       UD_ERROR_SET(udR_CorruptData);
     }
