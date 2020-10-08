@@ -296,25 +296,29 @@ bool vcTexture_CreateFromMemory(vcTexture **ppTexture, void *pFileData, size_t f
   if (ppTexture == nullptr || pFileData == nullptr || fileLength == 0)
     return false;
 
-  uint32_t width, height, channelCount;
+  vcImageData imageData = {};
   vcTexture *pTexture = nullptr;
+  uint8_t *pData = nullptr;
+  bool success = false;
 
-  uint8_t *pData = stbi_load_from_memory((stbi_uc *)pFileData, (int)fileLength, (int *)&width, (int *)&height, (int *)&channelCount, 4);
-
+  pData = vcTexture_DecodePixels(pFileData, fileLength, &imageData);
   if (pData)
-    vcTexture_CreateAdv(&pTexture, vcTextureType_Texture2D, width, height, 1, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter);
+    success = vcTexture_CreateAdv(&pTexture, vcTextureType_Texture2D, imageData.width, imageData.height, 1, pData, vcTextureFormat_RGBA8, filterMode, hasMipmaps, wrapMode, flags, aniFilter) == udR_Success;
 
-  stbi_image_free(pData);
+  udFree(pData);
 
-  if (pWidth != nullptr)
-    *pWidth = width;
+  if (success)
+  {
+    if (pWidth != nullptr)
+      *pWidth = imageData.width;
 
-  if (pHeight != nullptr)
-    *pHeight = height;
+    if (pHeight != nullptr)
+      *pHeight = imageData.height;
 
-  *ppTexture = pTexture;
+    *ppTexture = pTexture;
+  }
 
-  return (pTexture != nullptr);
+  return (success);
 }
 
 bool vcTexture_CreateFromFilename(vcTexture **ppTexture, const char *pFilename, uint32_t *pWidth /*= nullptr*/, uint32_t *pHeight /*= nullptr*/, vcTextureFilterMode filterMode /*= vcTFM_Nearest*/, bool hasMipmaps /*= false*/, vcTextureWrapMode wrapMode /*= vcTWM_Repeat*/, vcTextureCreationFlags flags /*= vcTCF_None*/, int32_t aniFilter /*= 0*/)

@@ -1,4 +1,5 @@
 #include "vcTexture.h"
+#include "vcTiff.h"
 
 #include "udWorkerPool.h"
 #include "udStringUtil.h"
@@ -45,17 +46,17 @@ void vcTexture_AsyncLoadWorkerThreadWork(void *pTextureLoadInfo)
 
   if (pLoadInfo->pMemory)
   {
-    uint32_t width, height, channelCount;
-    uint8_t *pPixels = stbi_load_from_memory((stbi_uc *)pLoadInfo->pMemory, (int)pLoadInfo->memoryLen, (int *)&width, (int *)&height, (int *)&channelCount, 4);
+    UD_ERROR_IF(pLoadInfo->memoryLen < 0, udR_InvalidParameter_);
+
+    vcImageData tempData = {};
+    uint8_t *pPixels = vcTexture_DecodePixels(pLoadInfo->pMemory, (size_t)pLoadInfo->memoryLen, &tempData);
     UD_ERROR_NULL(pPixels, udR_InternalError);
 
-    pLoadInfo->pPixels = udMemDup(pPixels, width * height * 4, 0, udAF_Zero);
+    pLoadInfo->pPixels = pPixels;
     pLoadInfo->format = vcTextureFormat_RGBA8;
-    pLoadInfo->width = width;
-    pLoadInfo->height = height;
+    pLoadInfo->width = tempData.width;
+    pLoadInfo->height = tempData.height;
     pLoadInfo->depth = 1;
-
-    stbi_image_free(pPixels);
   }
 
   if (pLoadInfo->width > pLoadInfo->limitTextureSize || pLoadInfo->height > pLoadInfo->limitTextureSize)
@@ -413,4 +414,59 @@ epilogue:
   udFree(pPixelsOut);
 
   return result;
+}
+
+
+uint8_t *vcTexture_DecodePixels_stbi(void *pFileContents, size_t fileLength, vcImageData *pImageData = nullptr)
+{
+  if (pFileContents == nullptr)
+    return nullptr;
+
+  vcImageData tempData = {};
+  uint8_t *pData_stbi = nullptr;
+  uint8_t *pPixelData = nullptr;
+
+  pData_stbi = stbi_load_from_memory((stbi_uc *)pFileContents, (int)fileLength, (int *)&tempData.width, (int *)&tempData.height, (int *)&tempData.channelCount, 4);
+  if (pData_stbi != nullptr)
+  {
+    pPixelData = (uint8_t *)udMemDup(pData_stbi, (size_t)tempData.width * tempData.height * 4, 0, udAF_None);
+    stbi_image_free(pData_stbi);
+    if (pImageData != nullptr)
+      *pImageData = tempData;
+  }
+
+  return pPixelData;
+}
+
+uint8_t *vcTexture_DecodePixels_tiff(void *pFileContents, size_t fileLength, vcImageData *pImageData = nullptr)
+{
+  if (pFileContents == nullptr)
+    return nullptr;
+
+  vcImageData tempData = {};
+  uint8_t *pPixelData = nullptr;
+
+  if (vcTiff_LoadFromMemory((uint8_t *)pFileContents, fileLength, &tempData.width, &tempData.height, &pPixelData) == udR_Success)
+  {
+    tempData.channelCount = 4;
+    if (pImageData != nullptr)
+      *pImageData = tempData;
+  }
+
+  return pPixelData;
+}
+
+uint8_t *vcTexture_DecodePixels(void *pFileContents, size_t fileLength, vcImageData *pImageData)
+{
+  uint8_t *pPixelData = nullptr;
+
+  // try stbi
+  if (pPixelData == nullptr)
+    pPixelData = vcTexture_DecodePixels_stbi(pFileContents, fileLength, pImageData);
+
+  // if nothing loaded, try libtiff
+  if (pPixelData == nullptr)
+    pPixelData = vcTexture_DecodePixels_tiff(pFileContents, fileLength, pImageData);
+    
+  return pPixelData;
 }
