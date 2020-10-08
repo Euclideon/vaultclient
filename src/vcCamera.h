@@ -32,7 +32,9 @@ struct vcCamera
   udDouble3 cameraUp;
   udDouble3 cameraNorth;
 
-  bool cameraIsUnderSurface; 
+  bool cameraIsUnderSurface;
+  udDouble3 positionZeroAltitude;
+  double heightAboveEarthSurface;
 
   udRay<double> worldMouseRay;
 

@@ -1177,22 +1177,20 @@ void vcTileRenderer_UpdateTextureQueues(vcTileRenderer *pTileRenderer, bool *pIs
   }
 }
 
-void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const vcCamera *pCamera, const udDouble3& cameraZeroAltitude, const udDouble4x4 &viewProjectionMatrix, bool *pIsLoading)
+void vcTileRenderer_Update(vcTileRenderer *pTileRenderer, const double deltaTime, udGeoZone *pGeozone, const udInt3 &slippyCoords, const vcCamera *pCamera, const udDouble4x4 &viewProjectionMatrix, bool *pIsLoading)
 {
   pTileRenderer->frameDeltaTime = (float)deltaTime;
   pTileRenderer->totalTime += pTileRenderer->frameDeltaTime;
   pTileRenderer->cameraPosition = pCamera->position;
   pTileRenderer->cameraIsUnderMapSurface = pCamera->cameraIsUnderSurface;
-  pTileRenderer->cameraDistanceToSurface = 0.0;
-  if (udMagSq3(pCamera->position - cameraZeroAltitude) > 0)
-    pTileRenderer->cameraDistanceToSurface = udMag3(pCamera->position - cameraZeroAltitude);
+  pTileRenderer->cameraDistanceToSurface = pCamera->heightAboveEarthSurface;
 
   vcQuadTreeViewInfo viewInfo =
   {
     pGeozone,
     slippyCoords,
     pCamera->position,
-    cameraZeroAltitude,
+    pCamera->positionZeroAltitude,
     viewProjectionMatrix
   };
 

@@ -739,6 +739,17 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
     // TODO: re-orient camera during orbit control to correctly focus on worldAnchorPoint
   }
 
+  // project camera to earth surface
+  udDouble3 cameraPositionInLongLat = udGeoZone_CartesianToLatLong(pProgramState->geozone, pViewport->camera.position);
+  cameraPositionInLongLat.z = 0.0;
+  pViewport->camera.positionZeroAltitude = udGeoZone_LatLongToCartesian(pProgramState->geozone, cameraPositionInLongLat);
+
+  // cache camera height above earth surface
+  pViewport->camera.heightAboveEarthSurface = -pProgramState->settings.maptiles.layers[0].mapHeight;
+  udDouble3 earthSurfaceToCamera = pViewport->camera.position - pViewport->camera.positionZeroAltitude;
+  if (udMagSq3(earthSurfaceToCamera) > 0)
+    pViewport->camera.heightAboveEarthSurface += udMag3(earthSurfaceToCamera);
+
   if (isFocused && pViewport->cameraInput.inputState == vcCIS_None)
     pViewport->isUsingAnchorPoint = false;
 
