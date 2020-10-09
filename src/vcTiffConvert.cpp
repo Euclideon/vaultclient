@@ -303,7 +303,7 @@ udError TiffConvert_ReadFloat(struct udConvertCustomItem *pConvertInput, struct 
       bool newDirFound = false;
       while (pData->currentDirectory < pData->directoryCount)
       {
-        if (vcTiff_LoadNextDirectory(pData) == udR_Success)
+        if (vcTiff_LoadNextDirectory(pData) == udE_Success)
         {
           newDirFound = true;
           break;
