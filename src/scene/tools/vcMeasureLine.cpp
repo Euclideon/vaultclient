@@ -53,7 +53,7 @@ void vcMeasureLine::HandlePicking(vcState *pProgramState, vcRenderData & /*rende
 
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "POI", vcString::Get("scenePOILineDefaultName"), nullptr, nullptr) == udE_Success)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_LineString, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
       udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
       udProjectNode_SetMetadataBool(pNode, "showLength", true);
     }

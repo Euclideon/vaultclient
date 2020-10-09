@@ -600,7 +600,7 @@ void vcFlythrough::SaveFlightPoints(vcState *pProgramState)
   udDouble3 *pFPPositions = udAllocType(udDouble3, m_flightPoints.length, udAF_Zero);
   for (size_t i = 0; i < m_flightPoints.length; ++i)
     pFPPositions[i] = m_flightPoints[i].m_CameraPosition;
-  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_LineString, pFPPositions, (int)m_flightPoints.length);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_LineString, pFPPositions, (int)m_flightPoints.length);
   udFree(pFPPositions);
 }
 

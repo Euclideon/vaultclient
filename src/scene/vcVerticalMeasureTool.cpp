@@ -51,7 +51,7 @@ vcVerticalMeasureTool::~vcVerticalMeasureTool()
 void vcVerticalMeasureTool::Preview(vcState *pProgramState, const udDouble3 &position)
 {
   m_points[2] = position;
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
 }
 
 void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &position)
@@ -60,7 +60,7 @@ void vcVerticalMeasureTool::EndMeasure(vcState *pProgramState, const udDouble3 &
   m_done = true;
   pProgramState->activeTool = vcActiveTool::vcActiveTool_Select;
   udProjectNode_SetMetadataBool(m_pNode, "measureEnd", m_done);
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
 }
 
 void vcVerticalMeasureTool::OnNodeUpdate(vcState *pProgramState)
@@ -171,7 +171,7 @@ void vcVerticalMeasureTool::ApplyDelta(vcState *pProgramState, const udDouble4x4
   if (m_selectedPoint == -1 || m_selectedPoint == 1)
     m_points[2] = (delta * udDouble4x4::translation(m_points[2])).axis.t.toVector3();
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
 }
 
 void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -193,13 +193,13 @@ void vcVerticalMeasureTool::HandleSceneExplorerUI(vcState *pProgramState, size_t
     {
       ImGui::InputScalarN(udTempStr("%s##Start%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[0].x, 3);
       if (ImGui::IsItemDeactivatedAfterEdit())
-        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
+        vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
     }
     else if (m_selectedPoint == 1)
     {
       ImGui::InputScalarN(udTempStr("%s##End%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_points[2].x, 3);
       if (ImGui::IsItemDeactivatedAfterEdit())
-        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
+        vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_LineString, m_points, 3);
     }
 
     if (vcIGSW_ColorPickerU32(udTempStr("%s##VerticalLabelColour%zu", vcString::Get("scenePOILabelColour"), *pItemID), &m_textColourBGRA, ImGuiColorEditFlags_None))

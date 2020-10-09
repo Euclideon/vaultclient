@@ -813,7 +813,7 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vcState *pProgramState, vcProject
   {
     ErrorItem errorItem;
     errorItem.source = vcES_WorldPosition;
-    errorItem.pData = vcString::Get("errorPositionExceedsGeozone");
+    errorItem.pData = udStrdup(vcString::Get("errorPositionExceedsGeozone"));
     switch (result)
     {
     case udE_InvalidParameter:
@@ -831,13 +831,13 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vcState *pProgramState, vcProject
   return (result == udE_Success);
 }
 
-bool vcProject_UpdateNodeGeometryFromLatLong(vcProject *pProject, udProjectNode *pNode, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
+bool vcProject_UpdateNodeGeometryFromLatLong(vcState *pProgramState, vcProject *pProject, udProjectNode *pNode, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
 {
   //TODO: Optimise this
   udGeoZone zone;
   udGeoZone_SetFromSRID(&zone, 4326);
 
-  return vcProject_UpdateNodeGeometryFromCartesian(pProject, pNode, zone, newType, pPoints, numPoints);
+  return vcProject_UpdateNodeGeometryFromCartesian(pProgramState, pProject, pNode, zone, newType, pPoints, numPoints);
 }
 
 bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints)

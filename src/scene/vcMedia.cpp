@@ -267,7 +267,7 @@ void vcMedia::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   m_image.ypr = rotation.eulerAngles();
   m_image.scale = scale.x;
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_image.position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_image.position, 1);
 
   udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", m_image.ypr.x);
   udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_image.ypr.y);

@@ -64,7 +64,7 @@ void vcViewShed::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 void vcViewShed::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 {
   m_position = (delta * udDouble4::create(m_position, 1.0)).toVector3();
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
 }
 
 void vcViewShed::HandleSceneExplorerUI(vcState * /*pProgramState*/, size_t *pItemID)

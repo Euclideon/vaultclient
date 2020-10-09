@@ -76,7 +76,7 @@ public:
         udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showArea", m_pParent->m_showArea);
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOILineClosed"), itemID), &m_pParent->m_line.closed))
-        vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, GetGeometryType(), m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+        vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, GetGeometryType(), m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
 
       if (GetGeometryType() == udPGT_Polygon)
       {
@@ -123,7 +123,7 @@ public:
 
     m_pParent->UpdatePoints(pProgramState);
 
-    vcProject_UpdateNodeGeometryFromCartesian( m_pParent->m_pProject,  m_pParent->m_pNode, pProgramState->geozone,  m_pParent->m_line.closed ? udPGT_Polygon : udPGT_LineString,  m_pParent->m_line.pPoints,  m_pParent->m_line.numPoints);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState,  m_pParent->m_pProject,  m_pParent->m_pNode, pProgramState->geozone,  m_pParent->m_line.closed ? udPGT_Polygon : udPGT_LineString,  m_pParent->m_line.pPoints,  m_pParent->m_line.numPoints);
     m_pParent->m_line.selectedPoint =  m_pParent->m_line.numPoints - 1;
   }
 
@@ -132,15 +132,15 @@ public:
     if (!m_pParent->IsVisible(pProgramState))
       return;
 
-    // if (m_pParent->m_selected)
-    // {
-    //   for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
-    //   {
-    //     vcRenderPolyInstance *pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
-    //     pInstance->selectable = true;
-    //     pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.85f);
-    //   }
-    // }
+    if (m_pParent->m_selected)
+    {
+      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+      {
+        vcRenderPolyInstance *pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+        pInstance->selectable = true;
+        pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.85f);
+      }
+    }
 
     if (GetGeometryType() == udPGT_Polygon && m_pParent->m_pPolyModel == nullptr)
       m_pParent->GenerateLineFillPolygon(pProgramState);
@@ -259,7 +259,7 @@ public:
 
       if (ImGui::Checkbox(udTempStr("%s##POILineClosed%zu", vcString::Get("scenePOICloseAndExit"), itemID), &m_pParent->m_line.closed))
       {
-        vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+        vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
         pProgramState->activeTool = vcActiveTool_Select;
       }
     }
@@ -282,7 +282,7 @@ public:
 
     if (!isPreview)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_LineString, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
       m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
     }
   }
@@ -366,7 +366,7 @@ public:
 
     if (!isPreview)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_Polygon, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pParent->m_pProject, m_pParent->m_pNode, pProgramState->geozone, udPGT_Polygon, m_pParent->m_line.pPoints, m_pParent->m_line.numPoints);
       m_pParent->m_line.selectedPoint = m_pParent->m_line.numPoints - 1;
     }
   }
@@ -697,7 +697,7 @@ void vcPOI::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 
   UpdatePoints(pProgramState);
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
 }
 
 void vcPOI::RebuildSceneLabel(const vcUnitConversionData *pConversionData)
@@ -806,7 +806,7 @@ void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
     {
       ImGui::InputScalarN(udTempStr("%s##POIPointPos%zu", vcString::Get("scenePOIPointPosition"), *pItemID), ImGuiDataType_Double, &m_line.pPoints[m_line.selectedPoint].x, 3);
       if (ImGui::IsItemDeactivatedAfterEdit())
-        vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
+        vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
 
       if (ImGui::Button(vcString::Get("scenePOIRemovePoint")))
         RemovePoint(pProgramState, m_line.selectedPoint);
@@ -1013,7 +1013,7 @@ void vcPOI::RemovePoint(vcState *pProgramState, int index)
     --m_line.selectedPoint;
 
   UpdatePoints(pProgramState);
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, m_pState->GetGeometryType(), m_line.pPoints, m_line.numPoints);
 
   if (m_line.numPoints <= 1)
   {

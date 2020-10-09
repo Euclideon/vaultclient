@@ -1342,7 +1342,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
 
     for (size_t i = 0; i < pProgramState->errorItems.length; ++i)
     {
-      if (pProgramState->errorItems[i].source != vcES_File)
+      if (pProgramState->errorItems[i].source != vcES_File && pProgramState->errorItems[i].source != vcES_WorldPosition)
         continue;
 
       bool removeItem = ImGui::Button(udTempStr("X##errorFileRemove%zu", i));

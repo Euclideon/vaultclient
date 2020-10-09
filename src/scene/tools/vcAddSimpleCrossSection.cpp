@@ -48,7 +48,7 @@ void vcAddSimpleCrossSection::HandlePicking(vcState *pProgramState, vcRenderData
     udProjectNode *pNode = nullptr;
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "XSlice", vcString::Get("sceneExplorerFilterCrossSectionDefaultName"), nullptr, nullptr) == udE_Success)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
       udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
     }
   }

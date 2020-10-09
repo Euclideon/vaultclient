@@ -63,7 +63,7 @@ void vcCrossSectionNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &d
 
   UpdateFilters();
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
   udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.h", m_headingPitch.x);
   udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_headingPitch.y);
 }
@@ -82,7 +82,7 @@ void vcCrossSectionNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *p
         m_position[i] = positionTemp[i];
     }
 
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
   }
 
   if (vcIGSW_DegreesScalar(udTempStr("%s##FilterRotation%zu", vcString::Get("sceneFilterRotation"), *pItemID), &m_headingPitch))
@@ -203,7 +203,7 @@ void vcCrossSectionNode::EndQuery(vcState *pProgramState, const udDouble3 & /*po
 
   if (!isPreview)
   {
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_position, 1);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.h", m_headingPitch.x);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", m_headingPitch.y);
     udProjectNode_SetMetadataDouble(m_pNode, "width", m_distance);

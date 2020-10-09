@@ -52,7 +52,7 @@ void vcViewpoint::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   // Clamped this to the same limitations as the camera
   m_CameraHeadingPitch = udDouble2::create(udMod(sumRotation.x, UD_2PI), udClampWrap(sumRotation.y, -UD_HALF_PI, UD_HALF_PI));
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
 }
 
 void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
@@ -85,7 +85,7 @@ void vcViewpoint::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (changed)
   {
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
 
     udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);
@@ -101,7 +101,7 @@ void vcViewpoint::HandleSceneEmbeddedUI(vcState *pProgramState)
     m_CameraHeadingPitch = pProgramState->pActiveViewport->camera.headingPitch;
     m_CameraPosition = pProgramState->pActiveViewport->camera.position;
 
-    vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_CameraPosition, 1);
 
     udProjectNode_SetMetadataDouble(m_pNode, "transform.heading", m_CameraHeadingPitch.x);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.pitch", m_CameraHeadingPitch.y);

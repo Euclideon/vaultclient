@@ -10,15 +10,15 @@ void vc12DXML_SuperString::AddToProject(vcState *pProgramState, udProjectNode *p
   if (m_points.size() == 1)
   {
     udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParent, "POI", m_pName, nullptr, nullptr);
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &m_points[0], 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &m_points[0], 1);
   }
   else
   {
     udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pParent, "POI", m_pName, nullptr, nullptr);
     if (m_isClosed)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &m_points[0], (int)m_points.size());
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &m_points[0], (int)m_points.size());
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, &m_points[0], (int)m_points.size());
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_MultiPoint, &m_points[0], (int)m_points.size());
   }
 
   udProjectNode_SetMetadataDouble(pNode, "lineWidth", m_weight);

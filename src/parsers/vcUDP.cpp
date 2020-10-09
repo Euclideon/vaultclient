@@ -109,7 +109,7 @@ udProjectNode *vcUDP_AddModel(vcState *pProgramState, const char *pUDPFilename, 
   {
     udGeoZone tempZone = {};
     if (udGeoZone_SetFromSRID(&tempZone, epsgCode) == udR_Success)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, tempZone, udPGT_Point, pPosition, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, tempZone, udPGT_Point, pPosition, 1);
   }
 
   if (pPosition != nullptr)
@@ -390,7 +390,7 @@ void vcUPD_AddBookmarkData(vcState *pProgramState, std::vector<vcUDPItemData> *p
     if (vcUDP_ReadGeolocation(item.bookmark.pGeoLocation, temp, epsgCode))
     {
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_Point, &temp, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, zone, udPGT_Point, &temp, 1);
     }
 
     temp = udDouble3::zero();
@@ -435,7 +435,7 @@ void vcUPD_AddMeasureData(vcState *pProgramState, std::vector<vcUDPItemData> *pI
       udGeoZone_SetFromSRID(&zone, (int32_t)epsgCode);
     }
 
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_LineString, temp, 2);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, zone, udPGT_LineString, temp, 2);
 
     pItemData->at(index).sceneFolder = { pParentNode, pNode };
   }
@@ -472,7 +472,7 @@ void vcUDP_AddLabelData(vcState *pProgramState, std::vector<vcUDPItemData> *pLab
     {
       udGeoZone zone;
       udGeoZone_SetFromSRID(&zone, epsgCode);
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, zone, udPGT_Point, &position, 1);
     }
 
     pLabelData->at(index).sceneFolder = { pParentNode, pNode };
@@ -495,9 +495,9 @@ void vcUDP_AddPolygonData(vcState *pProgramState, std::vector<vcUDPItemData> *pL
       pProgramState->geozone = zone;
 
     if (item.polygon.isClosed)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_Polygon, item.polygon.pPoints, item.polygon.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, zone, udPGT_Polygon, item.polygon.pPoints, item.polygon.numPoints);
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, zone, udPGT_MultiPoint, item.polygon.pPoints, item.polygon.numPoints);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, zone, udPGT_MultiPoint, item.polygon.pPoints, item.polygon.numPoints);
 
     udDouble3 *pTemp = item.polygon.pPoints;
     udFree(pTemp);

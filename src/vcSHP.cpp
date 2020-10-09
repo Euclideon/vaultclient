@@ -661,41 +661,41 @@ void vcSHP_AddModel(vcState *pProgramState, const udGeoZone& sourceZone, udProje
   switch (pRecord->shapeType)
   {
   case vcSHPType_Point:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.point, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.point, 1);
   break;
   case vcSHPType_Polyline:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
   break;
   case vcSHPType_Polygon:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
   break;
   case vcSHPType_MultiPoint:
-  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
   break;
   case vcSHPType_PointZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointZ.point, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointZ.point, 1);
   break;
   case vcSHPType_PolylineZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
   break;
   case vcSHPType_PolygonZ:
   case vcSHPType_MultiPatch:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
   break;
   case vcSHPType_MultiPointZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
   break;
   case vcSHPType_PointM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointM.point, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointM.point, 1);
   break;
   case vcSHPType_PolylineM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
   break;
   case vcSHPType_PolygonM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
   break;
   case vcSHPType_MultiPointM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointM.points, pRecord->data.multiPointM.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointM.points, pRecord->data.multiPointM.pointsCount);
   break;
   case vcSHPType_Empty:
   break;

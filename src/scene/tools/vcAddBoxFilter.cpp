@@ -48,7 +48,7 @@ void vcAddBoxFilter::HandlePicking(vcState *pProgramState, vcRenderData & /*rend
     udProjectNode *pNode = nullptr;
     if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "QFilter", vcString::Get("sceneExplorerFilterBoxDefaultName"), nullptr, nullptr) == udE_Success)
     {
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, &pProgramState->pActiveViewport->worldMousePosCartesian, 1);
       udProjectNode_SetMetadataString(pNode, "shape", "box");
       udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
     }

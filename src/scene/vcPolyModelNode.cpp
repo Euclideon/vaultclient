@@ -106,7 +106,7 @@ void vcPolyModelNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delt
 
   udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
 
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
   udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
   udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
   udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);
@@ -171,7 +171,7 @@ void vcPolyModelNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pIte
     if (repackMatrix)
     {
       m_matrix = udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleNonUniform(scale);
-      vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
       udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
       udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
       udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", eulerRotation.z);

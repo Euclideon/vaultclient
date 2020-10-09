@@ -73,7 +73,7 @@ void vcModel_LoadMetadata(vcState *pProgramState, vcModel *pModel, udDouble3 pos
   pModel->m_baseMatrix = pModel->m_defaultMatrix;
 
   if (pModel->m_pPreferredProjection == nullptr && possibleLocation != udDouble3::zero())
-    vcProject_UpdateNodeGeometryFromCartesian(pModel->m_pProject, pModel->m_pNode, pProgramState->geozone, udPGT_Point, &possibleLocation, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, pModel->m_pProject, pModel->m_pNode, pProgramState->geozone, udPGT_Point, &possibleLocation, 1);
 
   pModel->OnNodeUpdate(pProgramState);
 
@@ -410,11 +410,11 @@ void vcModel::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
     udDouble3 eulerRotation = UD_RAD2DEG(orientation.eulerAngles());
 
     if (m_pCurrentZone != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, *m_pCurrentZone, udPGT_Point, &position, 1);
     else if (m_pPreferredProjection != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, *m_pPreferredProjection, udPGT_Point, &position, 1);
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
 
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);
@@ -468,11 +468,11 @@ void vcModel::HandleSceneExplorerUI(vcState *pProgramState, size_t * /*pItemID*/
     m_sceneMatrix = udDouble4x4::translation(m_pivot) * udDouble4x4::rotationQuat(orientation, position) * udDouble4x4::scaleUniform(scale.x) * udDouble4x4::translation(-m_pivot);
 
     if (m_pCurrentZone != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pCurrentZone, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, *m_pCurrentZone, udPGT_Point, &position, 1);
     else if (m_pPreferredProjection != nullptr)
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, *m_pPreferredProjection, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, *m_pPreferredProjection, udPGT_Point, &position, 1);
     else
-      vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
+      vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &position, 1);
 
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.y", eulerRotation.x);
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.p", eulerRotation.y);

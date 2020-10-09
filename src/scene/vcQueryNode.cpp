@@ -134,7 +134,7 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
   else if (m_shape == vcQNFS_Cylinder)// avoid jump in scale when swapping between the X & Y axis
     m_extents.y = m_extents.x;
   
-  vcProject_UpdateNodeGeometryFromCartesian(m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
+  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, m_pProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
 
   udProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
   udProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
@@ -315,7 +315,7 @@ void vcQueryNode::EndQuery(vcState *pProgramState, const udDouble3 & /*position*
       size.z = udMag3(horizDist);
     }
 
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
+    vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, m_pNode, pProgramState->geozone, udPGT_Point, &m_center, 1);
     udProjectNode_SetMetadataDouble(m_pNode, "size.x", size.x);
     udProjectNode_SetMetadataDouble(m_pNode, "size.y", size.y);
     udProjectNode_SetMetadataDouble(m_pNode, "size.z", size.z);
