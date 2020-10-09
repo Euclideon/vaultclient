@@ -132,15 +132,15 @@ public:
     if (!m_pParent->IsVisible(pProgramState))
       return;
 
-    if (m_pParent->m_selected)
-    {
-      for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
-      {
-        vcRenderPolyInstance *pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
-        pInstance->selectable = true;
-        pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.85f);
-      }
-    }
+    // if (m_pParent->m_selected)
+    // {
+    //   for (int i = 0; i < m_pParent->m_line.numPoints; ++i)
+    //   {
+    //     vcRenderPolyInstance *pInstance = m_pParent->AddNodeToRenderData(pProgramState, pRenderData, i);
+    //     pInstance->selectable = true;
+    //     pInstance->tint = udFloat4::create(1.0f, 1.0f, 1.0f, 0.85f);
+    //   }
+    // }
 
     if (GetGeometryType() == udPGT_Polygon && m_pParent->m_pPolyModel == nullptr)
       m_pParent->GenerateLineFillPolygon(pProgramState);
@@ -149,7 +149,7 @@ public:
     {
       if (GetGeometryType() == udPGT_LineString)
         m_pParent->m_showFill = false;
-
+    
       m_pParent->AddFillPolygonToScene(pProgramState, pRenderData);
     }
 

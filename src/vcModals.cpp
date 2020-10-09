@@ -1379,6 +1379,9 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       case udR_CloseFailure:
         pErrorString = vcString::Get("errorCloseFailure");
         break;
+      case udR_InvalidParameter_:
+        pErrorString = vcString::Get("errorInvalidParameter");
+        break;
       default:
         pErrorString = vcString::Get("errorUnknown");
         break;

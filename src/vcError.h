@@ -6,7 +6,8 @@
 enum vcErrorSource
 {
   vcES_File,
-  vcES_ProjectChange
+  vcES_ProjectChange,
+  vcES_WorldPosition,
 };
 
 struct ErrorItem

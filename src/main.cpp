@@ -589,7 +589,7 @@ void vcMain_MainLoop(vcState *pProgramState)
             }
             else // Was successful
             {
-              vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
+              vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
 
               if (firstLoad)
                 udStrcpy(pProgramState->sceneExplorer.movetoUUIDWhenPossible, pNode->UUID);
@@ -655,7 +655,7 @@ void vcMain_MainLoop(vcState *pProgramState)
                 if (hasLocation && pProgramState->geozone.projection != udGZPT_Unknown)
                   vcProject_UpdateNodeGeometryFromLatLong(&pProgramState->activeProject, pNode, udPGT_Point, &geolocationLatLong, 1);
                 else
-                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
+                  vcProject_UpdateNodeGeometryFromCartesian(pProgramState, &pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Point, pProgramState->pActiveViewport->pickingSuccess ? &pProgramState->pActiveViewport->worldMousePosCartesian : &pProgramState->pActiveViewport->camera.position, 1);
 
                 if (imageType == vcIT_PhotoSphere)
                   udProjectNode_SetMetadataString(pNode, "imagetype", "photosphere");

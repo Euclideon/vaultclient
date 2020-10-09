@@ -755,6 +755,7 @@
   "errorInvalidParameter": "Wrong input.",
   "errorFileExists": "Failed to create file, file already exists.",
   "errorExceedsProjectLimit": "This group already has the maximum number of projects. Please delete one or upgrade to a premium plan.",
+  "errorPositionExceedsGeozone":  "Position distance exceeds Geozone area."
   "settingsScreenshot": "Screenshot",
   "settingsScreenshotResLabel": "Resolution",
   "settingsScreenshotRes720p": "720p",

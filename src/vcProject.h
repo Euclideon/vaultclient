@@ -61,7 +61,7 @@ void vcProject_ClearSelection(vcState *pProgramState, bool clearToolState = true
 bool vcProject_ContainsItem(udProjectNode *pParentNode, udProjectNode *pItem);
 bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem);
 
-bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints);
+bool vcProject_UpdateNodeGeometryFromCartesian(vcState *pProgramState, vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints);
 bool vcProject_UpdateNodeGeometryFromLatLong(vcProject *pProject, udProjectNode *pNode, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints);
 
 bool vcProject_FetchNodeGeometryAsCartesian(vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udDouble3 **ppPoints, int *pNumPoints);

@@ -10,6 +10,8 @@
 #include "udStringUtil.h"
 #include "vcError.h"
 
+#include <cmath>
+
 const char *vcProject_ErrorToString(udError error)
 {
   switch (error)
@@ -771,7 +773,7 @@ bool vcProject_UseProjectionFromItem(vcState *pProgramState, vcSceneItem *pItem)
   return true;
 }
 
-bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
+bool vcProject_UpdateNodeGeometryFromCartesian(vcState *pProgramState, vcProject *pProject, udProjectNode *pNode, const udGeoZone &zone, udProjectGeometryType newType, udDouble3 *pPoints, int numPoints)
 {
   if (pProject == nullptr || pNode == nullptr)
     return false;
@@ -788,12 +790,42 @@ bool vcProject_UpdateNodeGeometryFromCartesian(vcProject *pProject, udProjectNod
     for (int i = 0; i < numPoints; ++i)
       pGeom[i] = udGeoZone_TransformPoint(pPoints[i], zone, pProject->baseZone);
 
-    result = udProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pGeom);
+    for (int i = 0; i < numPoints * 3; ++i)
+    {
+      if (!std::isfinite(((double*)pGeom)[i]))
+      {
+        result = udE_InvalidParameter;
+        break;
+      }
+    }
+
+    if (result != udE_InvalidParameter)
+      result = udProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pGeom);
+
     udFree(pGeom);
   }
   else
   {
     result = udProjectNode_SetGeometry(pProject->pProject, pNode, newType, numPoints, (double*)pPoints);
+  }
+
+  if (result != udE_Success)
+  {
+    ErrorItem errorItem;
+    errorItem.source = vcES_WorldPosition;
+    errorItem.pData = vcString::Get("errorPositionExceedsGeozone");
+    switch (result)
+    {
+    case udE_InvalidParameter:
+      errorItem.resultCode = udR_InvalidParameter_;
+      break;
+
+    default:
+      errorItem.resultCode = udR_Failure_;
+      break;
+    }
+    
+    vcError_AddError(pProgramState, errorItem);
   }
 
   return (result == udE_Success);
