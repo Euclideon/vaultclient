@@ -1300,20 +1300,20 @@ void vcModals_DrawProjectReadOnly(vcState *pProgramState)
   }
 }
 
-void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
+void vcModals_DrawErrorInformation(vcState *pProgramState)
 {
-  if (pProgramState->openModals & (1 << vcMT_UnsupportedFile))
-    ImGui::OpenPopup(vcString::Get("sceneExplorerUnsupportedFilesTitle"));
+  if (pProgramState->openModals & (1 << vcMT_ErrorInformation))
+    ImGui::OpenPopup(vcString::Get("sceneExplorerErrorInformationTitle"));
 
   ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Appearing);
-  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerUnsupportedFilesTitle"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize))
+  if (ImGui::BeginPopupModal(vcString::Get("sceneExplorerErrorInformationTitle"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize))
   {
-    if (pProgramState->closeModals & (1 << vcMT_UnsupportedFile))
+    if (pProgramState->closeModals & (1 << vcMT_ErrorInformation))
       ImGui::CloseCurrentPopup();
     else
       pProgramState->modalOpen = true;
 
-    ImGui::TextUnformatted(vcString::Get("sceneExplorerUnsupportedFilesMessage"));
+    ImGui::TextUnformatted(vcString::Get("sceneExplorerErrorEncounteredMessage"));
 
     // Clear and close buttons
     if (ImGui::Button(vcString::Get("sceneExplorerClearAllButton")))
@@ -1337,7 +1337,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
     ImGui::Separator();
 
     // Actual Content
-    ImGui::BeginChild("unsupportedFilesChild");
+    ImGui::BeginChild("errorChild");
     ImGui::Columns(2);
 
     for (size_t i = 0; i < pProgramState->errorItems.length; ++i)
@@ -1345,7 +1345,7 @@ void vcModals_DrawUnsupportedFiles(vcState *pProgramState)
       if (pProgramState->errorItems[i].source != vcES_File)
         continue;
 
-      bool removeItem = ImGui::Button(udTempStr("X##errorFileRemove%zu", i));
+      bool removeItem = ImGui::Button(udTempStr("X##errorRemove%zu", i));
       ImGui::SameLine();
       // Get the offset so the next column is offset by the same value to keep alignment
       float offset = ImGui::GetCurrentWindow()->DC.CurrLineTextBaseOffset;
@@ -1877,7 +1877,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawProjectReadOnly(pProgramState);
   vcModals_DrawProjectInfo(pProgramState);
   vcModals_DrawImageViewer(pProgramState);
-  vcModals_DrawUnsupportedFiles(pProgramState);
+  vcModals_DrawErrorInformation(pProgramState);
   vcModals_DrawUnsupportedEncoding(pProgramState);
   vcModals_DrawProfile(pProgramState);
   vcModals_DrawChangePassword(pProgramState);
