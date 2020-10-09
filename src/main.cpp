@@ -1655,7 +1655,7 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
           }
 
           if (isClicked)
-            vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
+            vcModals_OpenModal(pProgramState, vcMT_ErrorInformation);
         }
 
         // Diagnostic Information

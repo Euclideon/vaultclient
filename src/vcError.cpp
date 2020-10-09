@@ -5,5 +5,5 @@
 void vcError_AddError(vcState *pProgramState, const ErrorItem &error)
 {
   pProgramState->errorItems.PushBack(error);
-  vcModals_OpenModal(pProgramState, vcMT_UnsupportedFile);
+  vcModals_OpenModal(pProgramState, vcMT_ErrorInformation);
 }
