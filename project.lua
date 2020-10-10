@@ -26,6 +26,7 @@ project "udStream"
 	includedirs { "src", "src/scene", "src/rendering" }
 	includedirs { "3rdParty/udcore/Include" }
 	includedirs { "3rdParty/imgui" }
+	includedirs { "3rdParty/libtiff/libtiff" }
 	includedirs { "3rdParty/imgui_markdown" }
 	includedirs { "3rdParty/udcore/3rdParty/stb" }
 	includedirs { "3rdParty/easyexif" }
