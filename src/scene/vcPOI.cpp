@@ -84,7 +84,7 @@ public:
           udProjectNode_SetMetadataBool(m_pParent->m_pNode, "showFill", m_pParent->m_showFill);
       }      
 
-      if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), itemID), &m_pParent->m_line.lineWidth, 0.01f, 1000.f, "%.2f", ImGuiSliderFlags_Logarithmic))
+      if (ImGui::SliderFloat(udTempStr("%s##POILineWidth%zu", vcString::Get("scenePOILineWidth"), itemID), &m_pParent->m_line.lineWidth, 0.01f, 15.f, "%.2f", ImGuiSliderFlags_Logarithmic))
         udProjectNode_SetMetadataDouble(m_pParent->m_pNode, "lineWidth", (double)m_pParent->m_line.lineWidth);
 
       const char *fenceOptions[] = { vcString::Get("scenePOILineOrientationScreenLine"), vcString::Get("scenePOILineOrientationVert"), vcString::Get("scenePOILineOrientationHorz") };
@@ -156,7 +156,7 @@ public:
     m_pParent->AddFenceToScene(pRenderData);
     m_pParent->RebuildSceneLabel(&pProgramState->settings.unitConversionData);
     m_pParent->AddLabelsToScene(pRenderData, &pProgramState->settings.unitConversionData);
-    
+
     m_pParent->AddAttachedModelsToScene(pProgramState, pRenderData);
     m_pParent->DoFlythrough(pProgramState);
   }
