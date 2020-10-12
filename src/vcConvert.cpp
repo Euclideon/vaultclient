@@ -414,7 +414,7 @@ void vcConvert_ShowUI(vcState *pProgramState)
 
   // Options pane --------------------------------
   ImGui::NextColumn();
-  
+
   if (pSelectedJob == nullptr)
   {
     ImGui::TextUnformatted(vcString::Get("convertNoJobSelected"));

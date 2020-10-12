@@ -2,8 +2,8 @@
   "appName": "udStream {0} ({1})",
   "copyright": "Euclideon Pty Ltd",
   "supportEmail": "support@euclideon.com",
-  "supportURLLogin": "https://www.euclideon.com/app/trouble-logging-in"
-  "supportURLConverting": "https://www.euclideon.com/app/trouble-converting"
+  "supportURLLogin": "https://www.euclideon.com/app/trouble-logging-in",
+  "supportURLConverting": "https://www.euclideon.com/app/trouble-converting",
   "logincolours": [ "087387", "087387", "04313b", "055668" ],
 
   "_lastItem": "End of branding file"

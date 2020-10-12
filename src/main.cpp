@@ -2991,6 +2991,8 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     {
       ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
+      const bool isErrorStatus = udStrBeginsWith(loginStatusKeys[pProgramState->loginStatus], "loginError");
+
       if (isErrorStatus)
         ImGui::PopStyleColor();
 

@@ -702,6 +702,8 @@
   "toolFilterCylinderContinue": "Select a second point to complete the filter",
   "toolCrossSectionStart": "Select a point on one edge of the cross section to begin...",
   "toolCrossSectionContinue": "Select a second point to set the orientation and width of the cross section",
+  "supportLoginPrefix": "Having trouble logging in? Visit ",
+  "supportConvertingPrefix": "Having trouble with converting? Visit ",
   "bindingsTitle": "Key Bindings",
   "bindingsSettingsSave": "Save",
   "bindingsColumnName": "Name",
