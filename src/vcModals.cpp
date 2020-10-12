@@ -1717,7 +1717,7 @@ void vcModals_DrawConvert(vcState* pProgramState)
     ImGui::EndChild();
 
     static bool convertSupportURLHovered = false;
-    vcIGSW_URLText(vcString::Get("supportConvertingPrefix"), pProgramState->branding.supportURLConverting, &convertSupportURLHovered);
+    vcIGSW_URLText(vcString::Get("supportConvertingMessage"), pProgramState->branding.supportURLConverting, &convertSupportURLHovered);
 
     ImGui::EndPopup();
   }

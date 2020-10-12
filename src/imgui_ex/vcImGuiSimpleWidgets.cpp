@@ -372,18 +372,23 @@ void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText, const ch
   ImGui::Markdown(pMarkdownText, udStrlen(pMarkdownText), config);
 }
 
-void vcIGSW_URLText(const char *pPrefixText, const char *pURL, bool *pHoveredStatus)
+void vcIGSW_URLText(const char *pMessage, const char *pURL, bool *pHoveredStatus)
 {
-  ImGui::TextUnformatted(pPrefixText);
-  ImGui::SameLine(0.0f, 0.0f);
-
-  ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[(pHoveredStatus != nullptr && *pHoveredStatus)? ImGuiCol_ButtonHovered : ImGuiCol_ButtonActive]);
-  ImGui::TextUnformatted(pURL);
+  ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[(pHoveredStatus != nullptr && *pHoveredStatus) ? ImGuiCol_ButtonHovered : ImGuiCol_ButtonActive]);
+  ImGui::TextUnformatted(pMessage);
   ImGui::PopStyleColor();
+
+  bool hovered = ImGui::IsItemHovered();
+  if (hovered)
+  {
+    ImGui::BeginTooltip();
+    ImGui::TextUnformatted(pURL);
+    ImGui::EndTooltip();
+  }
 
   if (pHoveredStatus != nullptr)
   {
-    *pHoveredStatus = ImGui::IsItemHovered();
+    *pHoveredStatus = hovered;
     if (*pHoveredStatus && ImGui::IsMouseClicked(0))
       vcWebFile_OpenBrowser(pURL);
   }
