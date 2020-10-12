@@ -372,6 +372,28 @@ void vcIGSW_Markdown(vcState *pProgramState, const char *pMarkdownText, const ch
   ImGui::Markdown(pMarkdownText, udStrlen(pMarkdownText), config);
 }
 
+void vcIGSW_URLText(const char *pMessage, const char *pURL, bool *pHoveredStatus)
+{
+  ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[(pHoveredStatus != nullptr && *pHoveredStatus) ? ImGuiCol_ButtonHovered : ImGuiCol_ButtonActive]);
+  ImGui::TextUnformatted(pMessage);
+  ImGui::PopStyleColor();
+
+  bool hovered = ImGui::IsItemHovered();
+  if (hovered)
+  {
+    ImGui::BeginTooltip();
+    ImGui::TextUnformatted(pURL);
+    ImGui::EndTooltip();
+  }
+
+  if (pHoveredStatus != nullptr)
+  {
+    *pHoveredStatus = hovered;
+    if (*pHoveredStatus && ImGui::IsMouseClicked(0))
+      vcWebFile_OpenBrowser(pURL);
+  }
+}
+
 bool vcIGSW_DegreesScalar(const char *pLabel, udDouble2 *pData)
 {
   udDouble2 tmp = UD_RAD2DEG(*pData);

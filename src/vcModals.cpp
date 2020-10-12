@@ -1683,7 +1683,7 @@ void vcModals_DrawConvert(vcState* pProgramState)
   if (pProgramState->openModals & (1 << vcMT_Convert))
   {
     ImGui::OpenPopup(pModalName);
-    ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(900, 660), ImGuiCond_FirstUseEver);
   }
 
   if (ImGui::BeginPopupModal(pModalName))
@@ -1693,24 +1693,31 @@ void vcModals_DrawConvert(vcState* pProgramState)
     else
       pProgramState->modalOpen = true;
 
-    ImGui::Columns(2, NULL, false);
-    ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
+    if (ImGui::BeginChild("__convertPaneColumns", ImVec2(ImGui::GetWindowSize().x, ImGui::GetWindowSize().y - 60.0f)))
+    {
+      ImGui::Columns(2, NULL, false);
+      ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
 
-    ImGui::TextUnformatted(vcString::Get("convertTitle"));
+      ImGui::TextUnformatted(vcString::Get("convertTitle"));
 
-    ImGui::NextColumn();
-    if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
-      ImGui::CloseCurrentPopup();
+      ImGui::NextColumn();
+      if (ImGui::Button(vcString::Get("popupClose"), ImVec2(-1, 0)) || vcHotkey::IsPressed(vcB_Cancel))
+        ImGui::CloseCurrentPopup();
 
-    if (ImGui::IsItemHovered())
-      ImGui::SetTooltip("%s", vcString::Get("convertSafeToCloseTooltip"));
+      if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", vcString::Get("convertSafeToCloseTooltip"));
 
-    ImGui::Columns(1);
-    ImGui::Separator();
+      ImGui::Columns(1);
+      ImGui::Separator();
 
-    if (ImGui::BeginChild("__convertPane"))
-      vcConvert_ShowUI(pProgramState);
+      if (ImGui::BeginChild("__convertPane"))
+        vcConvert_ShowUI(pProgramState);
+      ImGui::EndChild();
+    }
     ImGui::EndChild();
+
+    static bool convertSupportURLHovered = false;
+    vcIGSW_URLText(vcString::Get("supportConvertingMessage"), pProgramState->branding.supportURLConverting, &convertSupportURLHovered);
 
     ImGui::EndPopup();
   }

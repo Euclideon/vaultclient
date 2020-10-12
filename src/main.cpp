@@ -2989,12 +2989,9 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   {
     if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
     {
-      const bool isErrorStatus = udStrBeginsWith(loginStatusKeys[pProgramState->loginStatus], "loginError");
-
-      if (isErrorStatus)
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0, 0.0, 0.0, 1.0));
-
       ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
+
+      const bool isErrorStatus = udStrBeginsWith(loginStatusKeys[pProgramState->loginStatus], "loginError");
 
       if (isErrorStatus)
         ImGui::PopStyleColor();
@@ -3091,6 +3088,9 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
         ImGui::SameLine();
         ImGui::TextColored(ImVec4(1.f, 0.5f, 0.5f, 1.f), "%s", vcString::Get("loginCapsWarning"));
       }
+
+      static bool loginSupportURLHovered = false;
+      vcIGSW_URLText(vcString::Get("supportLoginMessage"), pProgramState->branding.supportURLLogin, &loginSupportURLHovered);
     }
     ImGui::End();
   }

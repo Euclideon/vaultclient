@@ -156,6 +156,8 @@ struct vcState
     char appName[64];
     char copyrightName[64];
     char supportEmail[256];
+    char supportURLLogin[256];
+    char supportURLConverting[256];
     uint32_t colours[4];
     bool convertEnabled;
     bool exportEnabled;

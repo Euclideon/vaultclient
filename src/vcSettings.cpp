@@ -1225,6 +1225,8 @@ void vcSettings_LoadBranding(vcState *pState)
   udStrcpy(pState->branding.appName, branding.Get("appName").AsString("udStream {0}"));
   udStrcpy(pState->branding.copyrightName, branding.Get("copyright").AsString("Euclideon Pty Ltd"));
   udStrcpy(pState->branding.supportEmail, branding.Get("supportEmail").AsString("support@euclideon.com"));
+  udStrcpy(pState->branding.supportURLLogin, branding.Get("supportURLLogin").AsString("https://www.euclideon.com/app/trouble-logging-in"));
+  udStrcpy(pState->branding.supportURLConverting, branding.Get("supportURLConverting").AsString("https://www.euclideon.com/app/trouble-converting"));
   pState->branding.convertEnabled = branding.Get("convertEnabled").AsBool(true);
   pState->branding.exportEnabled = branding.Get("exportEnabled").AsBool(true);
   pState->branding.filtersEnabled = branding.Get("filtersEnabled").AsBool(true);
