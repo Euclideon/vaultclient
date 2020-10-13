@@ -2991,10 +2991,7 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     {
       ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
-      const bool isErrorStatus = udStrBeginsWith(loginStatusKeys[pProgramState->loginStatus], "loginError");
-
-      if (isErrorStatus)
-        ImGui::PopStyleColor();
+      udStrBeginsWith(loginStatusKeys[pProgramState->loginStatus], "loginError");
 
       // Tool for support to get reasons for failures, requires Alt & Ctrl
       if (pProgramState->logoutReason != udE_Success && io.KeyAlt && io.KeyCtrl)
