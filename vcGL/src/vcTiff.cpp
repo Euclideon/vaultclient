@@ -181,7 +181,10 @@ udResult vcTiff_LoadFromMemory(const uint8_t *pBuffer, size_t bufSize, uint32_t 
   result = udR_Success;
 epilogue:
   _TIFFfree(pRaster);
-  TIFFClose(pTif);
+
+  if (pTif != nullptr)
+    TIFFClose(pTif);
+
   vcTiff_DestroyMemoryStream(&pStream);
   return result;
 }
