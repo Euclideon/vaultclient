@@ -8,6 +8,7 @@
 #include "udConvert.h"
 #include "udContext.h"
 #include "udConfig.h"
+#include "udMath.h"
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -66,6 +67,8 @@ struct vcConvertCMDSettings
   bool quicktest;
 
   const char *pCopyright;
+  udDouble3 regionMin;
+  udDouble3 regionMax;
 
   udChunkedArray<const char*> files;
 };
@@ -154,6 +157,13 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
     {
       pSettings->pCopyright = ppArgv[i + 1];
       i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-region"))
+    {
+      pSettings->regionMin = udDouble3::create(udStrAtof64(ppArgv[i++]), udStrAtof64(ppArgv[i++]), udStrAtof64(ppArgv[i++]));
+      pSettings->regionMax = udDouble3::create(udStrAtof64(ppArgv[i++]), udStrAtof64(ppArgv[i++]), udStrAtof64(ppArgv[i++]));
+
+      ++i;
     }
     else
     {
