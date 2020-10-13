@@ -2991,8 +2991,6 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
     {
       ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
-      udStrBeginsWith(loginStatusKeys[pProgramState->loginStatus], "loginError");
-
       // Tool for support to get reasons for failures, requires Alt & Ctrl
       if (pProgramState->logoutReason != udE_Success && io.KeyAlt && io.KeyCtrl)
       {
