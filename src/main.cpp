@@ -2989,9 +2989,12 @@ void vcMain_ShowLoginWindow(vcState *pProgramState)
   {
     if (ImGui::Begin("loginTitle", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings))
     {
-      ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
-
       const bool isErrorStatus = udStrBeginsWith(loginStatusKeys[pProgramState->loginStatus], "loginError");
+
+      if (isErrorStatus)
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0, 0.0, 0.0, 1.0));
+
+      ImGui::TextUnformatted(vcString::Get(loginStatusKeys[pProgramState->loginStatus]));
 
       if (isErrorStatus)
         ImGui::PopStyleColor();
