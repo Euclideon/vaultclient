@@ -1148,6 +1148,9 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     if ((isGlobal || (pAttributes->content & udSAC_NumberOfReturns) != 0) && ImGui::Selectable(visualizationModes[vcVM_NumberOfReturns], pVisualizationSettings->mode == vcVM_NumberOfReturns))
       pVisualizationSettings->mode = vcVM_NumberOfReturns;
 
+    if (ImGui::Selectable(visualizationModes[vcVM_NamedAttribute], pVisualizationSettings->mode == vcVM_NamedAttribute))
+      pVisualizationSettings->mode = vcVM_NamedAttribute;
+
     ImGui::EndCombo();
   }
 
