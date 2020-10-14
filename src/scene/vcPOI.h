@@ -61,6 +61,7 @@ private:
   double m_area;
   double m_meshArea;
   udDouble3 m_centroid;
+  udDouble3 m_gizmoPivot;
 
   udChunkedArray<vcLabelInfo> m_labels;
 
