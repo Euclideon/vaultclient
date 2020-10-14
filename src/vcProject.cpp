@@ -503,9 +503,12 @@ bool vcProject_SaveAs(vcState *pProgramState, const char *pPath, bool allowOverr
   else
     projectError.resultCode = udR_WriteFailure;
 
-  vcError_AddError(pProgramState, projectError);
+  if (projectError.resultCode != udR_Success)
+  {
+    pProgramState->errorItems.PushBack(projectError);
+    vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
+  }
 
-  vcModals_OpenModal(pProgramState, vcMT_ProjectChange);
   vcProject_UpdateProjectHistory(pProgramState, exportFilename.GetPath(), false);
 
   return (projectError.resultCode == udR_Success);
