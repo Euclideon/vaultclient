@@ -493,6 +493,7 @@ vcPOI::vcPOI(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) 
   m_showArea = false;
   m_showLength = false;
   m_showAngles = false;
+  m_gizmoPivot = udDouble3::zero();
   m_labels.Init(32);
 
   memset(&m_line, 0, sizeof(m_line));
@@ -679,6 +680,9 @@ bool vcPOI::GetPointAtDistanceAlongLine(double distance, udDouble3 *pPoint, int 
 
 void vcPOI::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 {
+  if (pProgramState->pActiveViewport->gizmo.operation != vcGO_Rotate)
+    m_gizmoPivot = m_centroid;
+
   UpdateState(pProgramState);
   m_pState->AddToScene(pProgramState, pRenderData);
 }
@@ -1062,7 +1066,7 @@ void vcPOI::SetCameraPosition(vcState *pProgramState)
 udDouble4x4 vcPOI::GetWorldSpaceMatrix()
 {
   if (m_line.selectedPoint == -1)
-    return udDouble4x4::translation(m_pLabelInfo->worldPosition);
+    return udDouble4x4::translation(m_pProgramState->pActiveViewport->gizmo.inUse ?  m_gizmoPivot : m_pLabelInfo->worldPosition);
   else
     return udDouble4x4::translation(m_line.pPoints[m_line.selectedPoint]);
 }
