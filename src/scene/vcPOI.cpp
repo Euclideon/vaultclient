@@ -1403,17 +1403,6 @@ static bool vcPOI_LineLineIntersection2D(const udDouble3 &line1Point1, const udD
   return true;
 }
 
-static double vcPOI_DistancePointToLineSq(const udDouble2 &linePoint1, const udDouble2 &linePoint2, const udDouble2 &point)
-{
-  double gradient = (linePoint2.y - linePoint1.y) / (linePoint2.x - linePoint1.x);
-  double intersectionDistance = linePoint1.y - (gradient * linePoint1.x);
-
-  double x = (gradient * point.y + point.x - gradient * intersectionDistance) / (gradient * gradient + 1.0);
-  double y = (gradient * gradient * point.y + gradient * point.x + intersectionDistance) / (gradient * gradient + 1.0);
-
-  return udMagSq2(udDouble2::create(x, y) - point);
-}
-
 void vcPOI_CalculatePerimeter_RemoveConnectionFromList(udChunkedArray<int> *pConnections, int pointConnection)
 {
   for (size_t i = 0; i < pConnections->length; ++i)
@@ -1615,36 +1604,6 @@ bool vcPOI_CalculateTriangles(udDouble3 *pPoints, int numPoints, udChunkedArray<
     pointInfoLines.PushBack();
     pointInfoLines[pointInfoLines.length - 1].Init(pointInfoLinePointsChunkSize);
   }
-    
-  // Remove duplicate Points
-  while (true)
-  {
-    bool unnecessaryPointRemoved = false;
-    for (size_t i = 0; i < pointInfoPositions.length; ++i)
-    {
-      int prevIndex = (int)(i == 0 ? (pointInfoPositions.length - 1) : i - 1);
-      int nextIndex = (int)(i == (pointInfoPositions.length - 1) ? 0 : i + 1);
-
-      udDouble2 curPointPos2 = udDouble2::create(pointInfoPositions[i].x, pointInfoPositions[i].y);
-      udDouble2 nextPointPos2 = udDouble2::create(pointInfoPositions[nextIndex].x, pointInfoPositions[nextIndex].y);
-      udDouble2 prevPointPos2 = udDouble2::create(pointInfoPositions[prevIndex].x, pointInfoPositions[prevIndex].y);
-
-      if (udMagSq2(curPointPos2 - prevPointPos2) < UD_EPSILON * UD_EPSILON
-        || udMagSq2(curPointPos2 - nextPointPos2) < UD_EPSILON * UD_EPSILON
-        || udMagSq2(prevPointPos2 - nextPointPos2) < UD_EPSILON * UD_EPSILON
-        || vcPOI_DistancePointToLineSq(prevPointPos2, nextPointPos2, curPointPos2) < UD_EPSILON * UD_EPSILON)
-      {
-        pointInfoPositions.RemoveAt(i);
-        pointInfoLines[i].Deinit();
-        pointInfoLines.RemoveAt(i);
-        unnecessaryPointRemoved = true;
-        break;
-      }
-    }
-
-    if (!unnecessaryPointRemoved)
-      break;
-  }
 
   if (pointInfoPositions.length < 3)
     return false;
@@ -1783,28 +1742,44 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
 {
   if (m_line.numPoints >= 3)
   {
+    vcPolygonModel_Destroy(&m_pPolyModel);
+    
+    udChunkedArray<udDouble3> pointPositions;
+    pointPositions.Init(64);
+    for (int i = 0; i < m_line.numPoints; ++i)
+    {
+      // Avoid Adding duplicate points
+      if (udMagSq(m_line.pPoints[i] - m_line.pPoints[i == m_line.numPoints - 1 ? 0 : i + 1]) > UD_EPSILON * UD_EPSILON)
+        pointPositions.PushBack(m_line.pPoints[i]);
+    }
+
+    if (pointPositions.length < 3)
+    {
+      pointPositions.Deinit();
+      return;
+    }
+
     udFloat3 defaultNormal = udFloat3::create(0.0f, 0.0f, 1.0f);
     udFloat2 defaultUV = udFloat2::create(0.0f, 0.0f);
 
     udDouble3 centerPoint = udDouble3::zero();
-    double invNumPoints = 1.0 / (double)m_line.numPoints;
-    for (int i = 0; i < m_line.numPoints; ++i)
-      centerPoint += m_line.pPoints[i] * invNumPoints;
+    double invNumPoints = 1.0 / (double)pointPositions.length;
+    for (const udDouble3 &pointPosition : pointPositions)
+      centerPoint += pointPosition * invNumPoints;
 
     // Rotate
-    udDoubleQuat rotate = vcGIS_GetQuaternion(pProgramState->geozone, centerPoint);
+    udDoubleQuat rotate = udDouble4x4::lookAt(udDouble3::zero(), udCross3(pointPositions[1] - pointPositions[0], pointPositions[2] - pointPositions[0]), vcGIS_GetWorldLocalUp(pProgramState->geozone, centerPoint)).extractQuaternion() * udDoubleQuat::create(0.0, UD_HALF_PI, 0.0);
     udDoubleQuat rotateInverse = udInverse(rotate);
 
-    udDouble3 *pModifiedVerts = udAllocType(udDouble3, m_line.numPoints, udAF_Zero);
-    for (int i = 0; i < m_line.numPoints; ++i)
-      pModifiedVerts[i] = m_line.pPoints[0] + rotateInverse.apply(m_line.pPoints[i] - m_line.pPoints[0]);
-
-    vcPolygonModel_Destroy(&m_pPolyModel);
+    udDouble3 *pModifiedVerts = udAllocType(udDouble3, pointPositions.length, udAF_Zero);
+    for (size_t i = 0; i < pointPositions.length; ++i)
+      pModifiedVerts[i] = pointPositions[0] + rotateInverse.apply(pointPositions[i] - pointPositions[0]);
 
     udChunkedArray<udDouble3> triPoints;
     triPoints.Init(512);
-    if (!vcPOI_CalculateTriangles(pModifiedVerts, m_line.numPoints, &triPoints))
+    if (!vcPOI_CalculateTriangles(pModifiedVerts, (int)pointPositions.length, &triPoints))
     {
+      pointPositions.Deinit();
       triPoints.Deinit();
       return;
     }
@@ -1833,6 +1808,7 @@ void vcPOI::GenerateLineFillPolygon(vcState *pProgramState)
       m_meshArea += udMag3(e3) / 2.0;
     }
 
+    pointPositions.Deinit();
     triPoints.Deinit();
     udFree(pModifiedVerts);
     udFree(pVerts);
