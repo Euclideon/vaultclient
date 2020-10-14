@@ -2501,6 +2501,7 @@ void vcRenderGizmo(vcState *pProgramState, const ImVec2 &viewportPosition, const
 void vcMain_RenderSceneWindow(vcState *pProgramState)
 {
   static int wasViewportContextMenuOpenLastFrame = -1;
+  static bool wasViewportContextMenuOnPickable = false;
 
   //Rendering
   ImGuiIO &io = ImGui::GetIO();
@@ -2668,62 +2669,66 @@ void vcMain_RenderSceneWindow(vcState *pProgramState)
       {
         if ((io.MouseDragMaxDistanceSqr[1] < (io.MouseDragThreshold * io.MouseDragThreshold) && ImGui::BeginPopupContextItem("SceneContext")))
         {
-          if (pProgramState->focusedViewportIndex == viewportIndex && pProgramState->pActiveViewport->pickingSuccess && wasViewportContextMenuOpenLastFrame != viewportIndex)
+          if (pProgramState->focusedViewportIndex == viewportIndex && wasViewportContextMenuOpenLastFrame != viewportIndex)
           {
             wasViewportContextMenuOpenLastFrame = viewportIndex;
+            wasViewportContextMenuOnPickable = pProgramState->pActiveViewport->pickingSuccess;
             pProgramState->pActiveViewport->worldMousePickPosCartesian = pProgramState->pActiveViewport->worldMousePosCartesian;
           }
 
           if (wasViewportContextMenuOpenLastFrame == viewportIndex)
           {
-            if (pProgramState->sceneExplorer.selectedItems.size() == 1)
+            if (wasViewportContextMenuOnPickable)
             {
-              const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-              if (item.pItem->itemtype == udPNT_PointOfInterest && item.pItem->pUserData != nullptr && item.pItem->geomtype != udPGT_Point)
+              if (pProgramState->sceneExplorer.selectedItems.size() == 1)
               {
-                vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
-
-                if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-                  pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldMousePickPosCartesian);
-              }
-            }
-
-            if (ImGui::BeginMenu(vcString::Get("sceneAddMenu")))
-            {
-              udProjectNode *pNode = nullptr;
-
-              if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
-              {
-                vcProject_ClearSelection(pProgramState);
-
-                if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == udE_Success)
+                const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
+                if (item.pItem->itemtype == udPNT_PointOfInterest && item.pItem->pUserData != nullptr && item.pItem->geomtype != udPGT_Point)
                 {
-                  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &pProgramState->pActiveViewport->worldMousePickPosCartesian, 1);
-                  udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+                  vcPOI *pPOI = (vcPOI *)item.pItem->pUserData;
+
+                  if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
+                    pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldMousePickPosCartesian);
+                }
+              }
+
+              if (ImGui::BeginMenu(vcString::Get("sceneAddMenu")))
+              {
+                udProjectNode *pNode = nullptr;
+
+                if (ImGui::MenuItem(vcString::Get("sceneAddViewShed")))
+                {
+                  vcProject_ClearSelection(pProgramState);
+
+                  if (udProjectNode_Create(pProgramState->activeProject.pProject, &pNode, pProgramState->activeProject.pRoot, "ViewMap", vcString::Get("sceneExplorerViewShedDefaultName"), nullptr, nullptr) == udE_Success)
+                  {
+                    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, pProgramState->geozone, udPGT_Polygon, &pProgramState->pActiveViewport->worldMousePickPosCartesian, 1);
+                    udStrcpy(pProgramState->sceneExplorer.selectUUIDWhenPossible, pNode->UUID);
+                  }
+
+                  ImGui::CloseCurrentPopup();
                 }
 
-                ImGui::CloseCurrentPopup();
+                ImGui::EndMenu();
               }
 
-              ImGui::EndMenu();
+              if (ImGui::MenuItem(vcString::Get("sceneMoveTo")))
+              {
+                pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_MovingToPoint;
+                pProgramState->pActiveViewport->cameraInput.startPosition = pProgramState->pActiveViewport->camera.position;
+                pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
+                pProgramState->pActiveViewport->cameraInput.progress = 0.0;
+
+                pProgramState->pActiveViewport->isUsingAnchorPoint = true;
+                pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePickPosCartesian;
+              }
             }
 
-            if (ImGui::MenuItem(vcString::Get("sceneMoveTo")))
+            if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
             {
-              pProgramState->pActiveViewport->cameraInput.inputState = vcCIS_MovingToPoint;
-              pProgramState->pActiveViewport->cameraInput.startPosition = pProgramState->pActiveViewport->camera.position;
-              pProgramState->pActiveViewport->cameraInput.startAngle = vcGIS_HeadingPitchToQuaternion(pProgramState->geozone, pProgramState->pActiveViewport->camera.position, pProgramState->pActiveViewport->camera.headingPitch);
-              pProgramState->pActiveViewport->cameraInput.progress = 0.0;
-
-              pProgramState->pActiveViewport->isUsingAnchorPoint = true;
-              pProgramState->pActiveViewport->worldAnchorPoint = pProgramState->pActiveViewport->worldMousePickPosCartesian;
+              //TODO: Smooth this over time after fixing inputs
+              pProgramState->pActiveViewport->camera.headingPitch = udDouble2::zero();
             }
-          }
-
-          if (ImGui::MenuItem(vcString::Get("sceneResetRotation")))
-          {
-            //TODO: Smooth this over time after fixing inputs
-            pProgramState->pActiveViewport->camera.headingPitch = udDouble2::zero();
           }
 
           ImGui::EndPopup();
