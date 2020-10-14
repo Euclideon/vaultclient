@@ -21,7 +21,7 @@
 
 void vcConvertCMD_ShowOptions()
 {
-  printf("Usage: udStreamConvertCMD [udStream server] [username] [password] [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
+  printf("Usage: udStreamConvertCMD [udStream server] [username] [password] [options] -i inputfile [-i anotherInputFile] -region [min x] [min y] [min z] [max x] [max y] [max z] -o outputfile.uds\n");
   printf("   -resolution <res>           - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
   printf("   -srid <sridCode>            - override the srid code for geolocation\n");
   printf("   -globalOffset <x,y,z>       - add an offset to all points, no spaces allowed in the x,y,z value\n");
@@ -32,6 +32,7 @@ void vcConvertCMD_ShowOptions()
   printf("   -proxyPassword <password>   - Set the password to use with the proxy\n");
   printf("   -copyright <details>        - Adds the copyright information to the \"Copyright\" metadata field\n");
   printf("   -quicktest                  - Does a small test to test if positioning/geolocation is correct\n");
+  printf("   -region                     - Parameters to export the region. Exp: -region 0.0 0.0 0.0 1.0 1.0 1.0\n");
 }
 
 struct vcConvertData
