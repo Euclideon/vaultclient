@@ -1,0 +1,97 @@
+<html>
+<head>
+	<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'>
+	
+	<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+
+	<style type="text/css">
+		body {
+			background-color: #101416;
+			color: #FFFFFF;
+			overflow: hidden;
+		}
+	</style>
+
+	<title>udStream Showcase</title>
+</head>
+
+<body style="padding: 0px; margin: 0px;">
+    <div class="container-fluid">
+        <div class="row" style="height: 80px; padding-top: 5px;">
+            <div class="col-3">
+				<a href="https://www.euclideon.com/" target="_blank">
+					<img src="https://www.euclideon.com/wp-content/uploads/2020/09/EuclideonLogo_Rev.svg" style="height: 70px;">
+				</a>
+            </div>
+            <div class="col-9 col-md-6 align-self-center" style="text-align: center;">
+                <h5 class="d-block d-sm-none">udStream Showcase</h5>
+                <h2 class="d-none d-sm-block d-lg-none">udStream Showcase</h2>
+                <h1 class="d-none d-lg-block">udStream Showcase</h1>
+            </div>
+            <div class="col-md-3 d-none d-md-block" style="text-align: right;">
+				<a href="https://udstream.euclideon.com/login.html">
+					<img src="https://www.euclideon.com/wp-content/uploads/2020/09/0040920_Buttons_UDSIcon.svg" style="height: 70px;">
+				</a>
+            </div>
+        </div>
+    </div>
+
+    <iframe src="https://www.euclideon.com/udcontent/udStream.html?f=euclideon:project/b8bda426-a3b1-4359-8eed-d8d692928c2e" name="framebox" style="border: 0; padding:0px; margin:0px; width:100%; height: calc(100% - 225px);">
+        iFrame not supported!
+    </iframe>
+    
+    <div class="container-fluid" id="gallery">
+		<div class="row" style="height: 100px;">
+			<!-- Japan -->
+			<div class="col-4 p-1" v-for="project in projects">
+				<div class="card">
+					<a v-bind:href="project.project" target="framebox">
+						<div class="row no-gutters">
+							<div class="col-sm-12 col-md-6 col-xl-4" style="margin: auto; text-align:center;">
+								<img v-bind:src="project.image" class="card-img" v-bind:alt="project.name" style="width: 128px; height: 128px;">
+							</div>
+							<div class="col-md-6 col-xl-8 d-none d-md-block">
+								<div class="card-body p-1 m-1">
+									<p class="card-title p-0 m-0 font-weight-bold">{{ project.name }}</p>
+									<p class="card-text d-none d-xl-block">{{ project.description }}</p>
+								</div>
+							</div>
+						</div>
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<script>
+	var app = new Vue({
+	  el: '#gallery',
+	  data: {
+		//Only supports 3 projects currently; after that need to support multi-card carousels
+		//Perhaps this should come from the featured projects API if empty?
+		projects: [
+			{
+				name: "Japan",
+				image: "https://models.euclideon.com/demos/thumbs/japan.png",
+				project: "udStream.html?f=euclideon:project/f4cddc9c-6922-4762-8682-94a536dac451",
+				description: "This has some high quality models from Japan."
+			},
+			{
+				name: "Underground Mine",
+				image: "https://models.euclideon.com/demos/thumbs/UndergroundMine128.jpg",
+				project: "udStream.html?f=euclideon:project/0b983e39-f3a2-439c-a094-6caadd983cee",
+				description: "This shows how you can display underground data."
+			},
+			{
+				name: "South-East Queensland",
+				image: "https://models.euclideon.com/demos/thumbs/seq.png",
+				project: "udStream.html?f=euclideon:project/b8bda426-a3b1-4359-8eed-d8d692928c2e",
+				description: "Fly over Brisbane and the Gold Coast in South-East Queensland."
+			}
+		]
+	  }
+	})
+	</script>
+</body>
+</html>
