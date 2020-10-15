@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS // disabled for strtok()
+
 #include "vcCSV.h"
 #include "udPlatformUtil.h"
 #include "udStringUtil.h"
@@ -8,9 +10,6 @@
 
 // 16kb
 #define CAPACITY_CHUNK_SIZE (1024 << 4)
-
-// disabled for strtok()
-#define _CRT_SECURE_NO_WARNINGS
 
 bool vcCSV_ShouldSkipLine(char *pToken)
 {
@@ -95,15 +94,22 @@ void vcCSV_InferColumnTypes(vcCSV *pCSV)
   }
 }
 
-void vcCSV_AppendData(vcCSV *pCSV, const char *pData, int64_t dataLength)
+udResult vcCSV_AppendData(vcCSV *pCSV, const char *pData, int64_t dataLength)
 {
+  udResult result;
+
   if (pCSV->data.usageBytes + dataLength >= pCSV->data.capacityBytes)
   {
     pCSV->data.capacityBytes += CAPACITY_CHUNK_SIZE;
     pCSV->data.pData = udReallocType(pCSV->data.pData, char, pCSV->data.capacityBytes);
+    UD_ERROR_NULL(pCSV->data.pData, udR_MemoryAllocationFailure);
   }
   memcpy(pCSV->data.pData + pCSV->data.usageBytes, pData, dataLength);
   pCSV->data.usageBytes += dataLength;
+
+  result = udR_Success;
+epilogue:
+  return result;
 }
 
 udResult vcCSV_Read(vcCSV *pCSV, uint64_t readAmountBytes /* = -1*/)
@@ -161,34 +167,34 @@ udResult vcCSV_Read(vcCSV *pCSV, uint64_t readAmountBytes /* = -1*/)
         continue;
       } 
 
-      if (*pLine)
+      if (*pLine == 0)
+        continue;
+
+      pCSV->entryCount++;
+      
+      if (pDelimeter != nullptr)
       {
-        pCSV->entryCount++;
-
-        if (pDelimeter != nullptr)
+        char *pTokenArray[MAX_COLUMN_COUNT] = {};
+        int count = udStrTokenSplit(pLine, pDelimeter, pTokenArray, MAX_COLUMN_COUNT);
+      
+        pCSV->elementCount += count;
+        for (int c = 0; c < count; ++c)
         {
-          char *pTokenArray[MAX_COLUMN_COUNT] = {};
-          int count = udStrTokenSplit(pLine, pDelimeter, pTokenArray, MAX_COLUMN_COUNT);
-
-          pCSV->elementCount += count;
-          for (int c = 0; c < count; ++c)
-          {
-            int64_t dataLen = (int64_t)udStrlen(pTokenArray[c]) + 1; // include null terminator
-            vcCSV_AppendData(pCSV, pTokenArray[c], dataLen);
-          }
+          int64_t dataLen = (int64_t)udStrlen(pTokenArray[c]) + 1; // include null terminator
+          UD_ERROR_CHECK(vcCSV_AppendData(pCSV, pTokenArray[c], dataLen));
         }
-        else
+      }
+      else
+      {
+        // assumed its fixed spacing
+        int count = (int)udStrlen(pLine) / pCSV->importSettings.fixedSizeDelimeterSpacing;
+        pCSV->elementCount += count;
+        for (int c = 0; c < count; ++c)
         {
-          // assumed its fixed spacing
-          int count = (int)udStrlen(pLine) / pCSV->importSettings.fixedSizeDelimeterSpacing;
-          pCSV->elementCount += count;
-          for (int c = 0; c < count; ++c)
-          {
-            int dataLen = pCSV->importSettings.fixedSizeDelimeterSpacing;
-            int offset = (c * pCSV->importSettings.fixedSizeDelimeterSpacing);
-            vcCSV_AppendData(pCSV, pLine + offset, dataLen);
-            vcCSV_AppendData(pCSV, "\0", 1); // append null terminator between data
-          }
+          int dataLen = pCSV->importSettings.fixedSizeDelimeterSpacing;
+          int offset = (c * pCSV->importSettings.fixedSizeDelimeterSpacing);
+          UD_ERROR_CHECK(vcCSV_AppendData(pCSV, pLine + offset, dataLen));
+          UD_ERROR_CHECK(vcCSV_AppendData(pCSV, "\0", 1)); // append null terminator between data
         }
       }
     }
@@ -208,18 +214,11 @@ udResult vcCSV_Read(vcCSV *pCSV, uint64_t readAmountBytes /* = -1*/)
 
   pCSV->totalBytesRead += totalBytesRead;
 
-  if (!pCSV->cancel)
-    result = udR_Success;
-  else
-    result = udR_Cancelled;
-
-  if (result == udR_Success && (int64_t)pCSV->totalBytesRead == fileLength)
-    pCSV->completeRead = true;
-
+  result = pCSV->cancel ? udR_Cancelled : udR_Success;
 epilogue:
 
-  if (pCSV)
-    pCSV->readResult = result;
+  pCSV->readResult = result;
+  pCSV->completeRead = (result == udR_Success && (int64_t)pCSV->totalBytesRead == fileLength);
 
   udFile_Close(&pFile);
 
@@ -273,9 +272,7 @@ udResult vcCSV_Create(vcCSV **ppCSV, const char *pFilename, const vcCSVImportSet
   pCSV = nullptr;
 epilogue:
 
-  if (pCSV != nullptr)
-    vcCSV_Destroy(&pCSV);
-
+  vcCSV_Destroy(&pCSV);
   return result;
 }
 

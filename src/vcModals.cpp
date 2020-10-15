@@ -2060,6 +2060,9 @@ void vcModals_DrawImportAnnotations(vcState *pProgramState)
               n.pNode = pNode;
               map[id] = n;
             }
+#else
+            udUnused(id);
+            udUnused(parentId);
 #endif
           }
 
