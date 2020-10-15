@@ -28,10 +28,25 @@ struct main0_in
 fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], texture2d<float> albedoTexture [[texture(0)]], sampler albedoSampler [[sampler(0)]])
 {
     main0_out out = {};
-    float4 _58 = float4(in.in_var_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * (log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0))), 0.0, 0.0);
-    _58.w = 1.0;
-    out.out_var_SV_Target0 = albedoTexture.sample(albedoSampler, in.in_var_TEXCOORD0) * in.in_var_COLOR0;
-    out.out_var_SV_Target1 = _58;
+    float4 _45 = albedoTexture.sample(albedoSampler, in.in_var_TEXCOORD0);
+    float _63;
+    switch (0u)
+    {
+        default:
+        {
+            if (in.in_var_TEXCOORD1.y != 0.0)
+            {
+                _63 = in.in_var_TEXCOORD1.x / in.in_var_TEXCOORD1.y;
+                break;
+            }
+            _63 = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+            break;
+        }
+    }
+    float4 _70 = float4(in.in_var_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * _63, 0.0, 0.0);
+    _70.w = 1.0;
+    out.out_var_SV_Target0 = _45 * in.in_var_COLOR0;
+    out.out_var_SV_Target1 = _70;
     return out;
 }
 

@@ -15,8 +15,6 @@ struct type_u_EveryObject
     float4x4 u_worldViewProjectionMatrix;
 };
 
-constant float2 _42 = {};
-
 struct main0_out
 {
     float2 out_var_TEXCOORD0 [[user(locn0)]];
@@ -36,17 +34,29 @@ struct main0_in
 vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryFrameVert& u_EveryFrameVert [[buffer(0)]], constant type_u_EveryObject& u_EveryObject [[buffer(1)]])
 {
     main0_out out = {};
-    float _52 = u_EveryFrameVert.u_time.x * 0.0625;
-    float4 _68 = float4(in.in_var_POSITION, 1.0);
-    float4 _74 = u_EveryObject.u_worldViewProjectionMatrix * _68;
-    float2 _77 = _42;
-    _77.x = 1.0 + _74.w;
-    out.gl_Position = _74;
-    out.out_var_TEXCOORD0 = ((in.in_var_TEXCOORD0 * u_EveryObject.u_colourAndSize.w) * float2(0.25)) - float2(_52);
-    out.out_var_TEXCOORD1 = ((in.in_var_TEXCOORD0.yx * u_EveryObject.u_colourAndSize.w) * float2(0.5)) - float2(_52, u_EveryFrameVert.u_time.x * 0.046875);
-    out.out_var_COLOR0 = u_EveryObject.u_worldViewMatrix * _68;
+    float _57 = u_EveryFrameVert.u_time.x * 0.0625;
+    float4 _73 = float4(in.in_var_POSITION, 1.0);
+    float4 _79 = u_EveryObject.u_worldViewProjectionMatrix * _73;
+    float2 _93;
+    switch (0u)
+    {
+        default:
+        {
+            if (u_EveryObject.u_worldViewProjectionMatrix[1u][3u] == 0.0)
+            {
+                _93 = float2(_79.zw);
+                break;
+            }
+            _93 = float2(1.0 + _79.w, 0.0);
+            break;
+        }
+    }
+    out.gl_Position = _79;
+    out.out_var_TEXCOORD0 = ((in.in_var_TEXCOORD0 * u_EveryObject.u_colourAndSize.w) * float2(0.25)) - float2(_57);
+    out.out_var_TEXCOORD1 = ((in.in_var_TEXCOORD0.yx * u_EveryObject.u_colourAndSize.w) * float2(0.5)) - float2(_57, u_EveryFrameVert.u_time.x * 0.046875);
+    out.out_var_COLOR0 = u_EveryObject.u_worldViewMatrix * _73;
     out.out_var_COLOR1 = u_EveryObject.u_colourAndSize.xyz;
-    out.out_var_TEXCOORD2 = _77;
+    out.out_var_TEXCOORD2 = _93;
     return out;
 }
 

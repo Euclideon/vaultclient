@@ -21,9 +21,24 @@ layout(location = 1) out highp vec4 out_var_SV_Target1;
 
 void main()
 {
-    highp vec4 _58 = vec4(varying_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * (log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0))), 0.0, 0.0);
-    _58.w = 1.0;
-    out_var_SV_Target0 = texture(SPIRV_Cross_CombinedalbedoTexturealbedoSampler, varying_TEXCOORD0) * varying_COLOR0;
-    out_var_SV_Target1 = _58;
+    highp vec4 _45 = texture(SPIRV_Cross_CombinedalbedoTexturealbedoSampler, varying_TEXCOORD0);
+    highp float _63;
+    switch (0u)
+    {
+        case 0u:
+        {
+            if (varying_TEXCOORD1.y != 0.0)
+            {
+                _63 = varying_TEXCOORD1.x / varying_TEXCOORD1.y;
+                break;
+            }
+            _63 = log2(varying_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+            break;
+        }
+    }
+    highp vec4 _70 = vec4(varying_TEXCOORD2.x, ((step(0.0, 0.0) * 2.0) - 1.0) * _63, 0.0, 0.0);
+    _70.w = 1.0;
+    out_var_SV_Target0 = _45 * varying_COLOR0;
+    out_var_SV_Target1 = _70;
 }
 

@@ -1388,6 +1388,7 @@ PS_OUTPUT main(PS_INPUT input)
   float sceneLogDepth = sceneDepthTexture.Sample(sceneDepthSampler, input.uv).x;
   
   float sceneDepth = logToLinearDepth(sceneLogDepth);
+	
   float3 sceneNormal = unpackNormal(sceneNormalPacked);
   sceneColour.xyz = pow(abs(sceneColour.xyz), float3(2.2, 2.2, 2.2));
 

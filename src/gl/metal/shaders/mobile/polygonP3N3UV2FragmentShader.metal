@@ -30,10 +30,24 @@ struct main0_in
 fragment main0_out main0(main0_in in [[stage_in]], constant type_u_cameraPlaneParams& u_cameraPlaneParams [[buffer(0)]], texture2d<float> albedoTexture [[texture(0)]], sampler albedoSampler [[sampler(0)]])
 {
     main0_out out = {};
-    float _57 = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
-    out.out_var_SV_Target0 = albedoTexture.sample(albedoSampler, in.in_var_TEXCOORD0) * in.in_var_COLOR0;
-    out.out_var_SV_Target1 = float4(in.in_var_TEXCOORD2.x, ((step(0.0, in.in_var_NORMAL.z) * 2.0) - 1.0) * _57, in.in_var_NORMAL.xy);
-    out.gl_FragDepth = _57;
+    float4 _51 = albedoTexture.sample(albedoSampler, in.in_var_TEXCOORD0);
+    float _69;
+    switch (0u)
+    {
+        default:
+        {
+            if (in.in_var_TEXCOORD1.y != 0.0)
+            {
+                _69 = in.in_var_TEXCOORD1.x / in.in_var_TEXCOORD1.y;
+                break;
+            }
+            _69 = log2(in.in_var_TEXCOORD1.x) * (1.0 / log2(u_cameraPlaneParams.s_CameraFarPlane + 1.0));
+            break;
+        }
+    }
+    out.out_var_SV_Target0 = _51 * in.in_var_COLOR0;
+    out.out_var_SV_Target1 = float4(in.in_var_TEXCOORD2.x, ((step(0.0, in.in_var_NORMAL.z) * 2.0) - 1.0) * _69, in.in_var_NORMAL.xy);
+    out.gl_FragDepth = _69;
     return out;
 }
 

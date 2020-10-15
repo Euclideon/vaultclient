@@ -19,7 +19,7 @@ struct PS_INPUT
   float2 uv1  : TEXCOORD1;
   float4 fragEyePos : COLOR0;
   float3 colour : COLOR1;
-  float2 fLogDepth : TEXCOORD2;
+  float2 depthInfo : TEXCOORD2;
 };
 
 cbuffer u_EveryFrameVert : register(b0)
@@ -33,6 +33,15 @@ cbuffer u_EveryObject : register(b1)
   float4x4 u_worldViewMatrix;
   float4x4 u_worldViewProjectionMatrix;
 };
+
+float2 PackDepth(float4 clipPos)
+{
+  if (u_worldViewProjectionMatrix[3][1] == 0.0) // orthographic
+    return float2(clipPos.z, clipPos.w);
+
+  // perspective
+  return float2(1.0 + clipPos.w, 0);
+}
 
 PS_INPUT main(VS_INPUT input)
 {
@@ -49,7 +58,7 @@ PS_INPUT main(VS_INPUT input)
   output.colour = u_colourAndSize.xyz;
   output.pos = mul(u_worldViewProjectionMatrix, float4(input.pos, 1.0));
 
-  output.fLogDepth.x = 1.0 + output.pos.w;
+  output.depthInfo = PackDepth(output.pos);
   
   return output;
 }

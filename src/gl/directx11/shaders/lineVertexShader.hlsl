@@ -17,7 +17,7 @@ struct PS_INPUT
 {
   float4 pos : SV_POSITION;
   float4 colour : COLOR0;
-  float2 fLogDepth : TEXCOORD0;
+  float2 depthInfo : TEXCOORD0;
 };
 
 cbuffer u_EveryObject : register(b0)
@@ -86,6 +86,15 @@ float2 FindDirectionVector(in float2 to, in float2 from)
   return v / vLen;
 }
 
+float2 PackDepth(float4 clipPos)
+{
+  if (u_worldViewProjectionMatrix[3][1] == 0.0) // orthographic
+    return float2(clipPos.z, clipPos.w);
+
+  // perspective
+  return float2(1.0 + clipPos.w, 0);
+}
+
 PS_INPUT main(VS_INPUT input)
 {
   PS_INPUT output;
@@ -98,7 +107,7 @@ PS_INPUT main(VS_INPUT input)
   if (result == g_clipBoth)
   {
     output.pos = float4(0.0, 0.0, 0.0, 0.0);
-    output.fLogDepth.x = 0.0;
+    output.depthInfo = float2(0.0, 0.0);
     return output;
   }
 
@@ -155,7 +164,7 @@ PS_INPUT main(VS_INPUT input)
 
   output.pos = float4(outputPos.x * current4.w, outputPos.y * current4.w, current4.z, current4.w);
   output.colour = u_colour;
-  output.fLogDepth.x = 1.0 + current4.w;
+  output.depthInfo = PackDepth(current4);
 
   return output;
 }

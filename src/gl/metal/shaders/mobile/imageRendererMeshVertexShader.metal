@@ -10,7 +10,7 @@ struct type_u_EveryObject
     float4 u_screenSize;
 };
 
-constant float2 _33 = {};
+constant float2 _39 = {};
 
 struct main0_out
 {
@@ -30,16 +30,28 @@ struct main0_in
 vertex main0_out main0(main0_in in [[stage_in]], constant type_u_EveryObject& u_EveryObject [[buffer(0)]])
 {
     main0_out out = {};
-    float4 _43 = u_EveryObject.u_worldViewProjectionMatrix * float4(in.in_var_POSITION, 1.0);
-    float2 _48 = _33;
-    _48.x = 1.0 + _43.w;
-    float2 _51 = _33;
-    _51.x = u_EveryObject.u_screenSize.w;
-    out.gl_Position = _43;
+    float4 _49 = u_EveryObject.u_worldViewProjectionMatrix * float4(in.in_var_POSITION, 1.0);
+    float2 _65;
+    switch (0u)
+    {
+        default:
+        {
+            if (u_EveryObject.u_worldViewProjectionMatrix[1u][3u] == 0.0)
+            {
+                _65 = float2(_49.zw);
+                break;
+            }
+            _65 = float2(1.0 + _49.w, 0.0);
+            break;
+        }
+    }
+    float2 _68 = _39;
+    _68.x = u_EveryObject.u_screenSize.w;
+    out.gl_Position = _49;
     out.out_var_TEXCOORD0 = in.in_var_TEXCOORD0;
     out.out_var_COLOR0 = u_EveryObject.u_colour;
-    out.out_var_TEXCOORD1 = _48;
-    out.out_var_TEXCOORD2 = _51;
+    out.out_var_TEXCOORD1 = _65;
+    out.out_var_TEXCOORD2 = _68;
     return out;
 }
 

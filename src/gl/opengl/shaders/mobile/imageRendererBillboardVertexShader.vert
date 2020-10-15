@@ -14,21 +14,33 @@ out vec4 varying_COLOR0;
 out vec2 varying_TEXCOORD1;
 out vec2 varying_TEXCOORD2;
 
-vec2 _34;
+vec2 _39;
 
 void main()
 {
-    vec4 _40 = vec4(0.0, 0.0, 0.0, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
-    float _46 = _40.w;
-    vec2 _52 = _40.xy + ((u_EveryObject.u_screenSize.xy * (u_EveryObject.u_screenSize.z * _46)) * in_var_POSITION.xy);
-    vec2 _57 = _34;
-    _57.x = 1.0 + _46;
-    vec2 _60 = _34;
-    _60.x = u_EveryObject.u_screenSize.w;
-    gl_Position = vec4(_52.x, _52.y, _40.z, _40.w);
+    vec4 _45 = vec4(0.0, 0.0, 0.0, 1.0) * u_EveryObject.u_worldViewProjectionMatrix;
+    float _51 = _45.w;
+    vec2 _57 = _45.xy + ((u_EveryObject.u_screenSize.xy * (u_EveryObject.u_screenSize.z * _51)) * in_var_POSITION.xy);
+    vec2 _72;
+    switch (0u)
+    {
+        case 0u:
+        {
+            if (u_EveryObject.u_worldViewProjectionMatrix[3u].y == 0.0)
+            {
+                _72 = vec2(_45.z, _51);
+                break;
+            }
+            _72 = vec2(1.0 + _51, 0.0);
+            break;
+        }
+    }
+    vec2 _75 = _39;
+    _75.x = u_EveryObject.u_screenSize.w;
+    gl_Position = vec4(_57.x, _57.y, _45.z, _45.w);
     varying_TEXCOORD0 = in_var_TEXCOORD0;
     varying_COLOR0 = u_EveryObject.u_colour;
-    varying_TEXCOORD1 = _57;
-    varying_TEXCOORD2 = _60;
+    varying_TEXCOORD1 = _72;
+    varying_TEXCOORD2 = _75;
 }
 

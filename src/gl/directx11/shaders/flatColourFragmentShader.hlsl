@@ -12,7 +12,7 @@ struct PS_INPUT
   float2 uv  : TEXCOORD0;
   float3 normal : NORMAL;
   float4 colour : COLOR0;
-  float2 fLogDepth : TEXCOORD1;
+  float2 depthInfo : TEXCOORD1;
   float2 objectInfo : TEXCOORD2;
 };
 

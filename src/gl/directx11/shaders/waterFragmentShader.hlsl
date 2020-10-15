@@ -13,7 +13,7 @@ struct PS_INPUT
   float2 uv1 : TEXCOORD1;
   float4 fragEyePos : COLOR0;
   float4 colour : COLOR1;
-  float2 fLogDepth : TEXCOORD2;
+  float2 depthInfo : TEXCOORD2;
 };
 
 cbuffer u_EveryFrameFrag : register(b0)
@@ -51,6 +51,16 @@ float4 packNormal(float3 normal, float objectId, float depth)
   return float4(objectId, zSign * depth, normal.x, normal.y);
 }
 
+float CalculateDepth(float2 depthInfo)
+{
+  if (depthInfo.y != 0.0) // orthographic
+    return (depthInfo.x / depthInfo.y);
+	
+  // log-z (perspective)
+  float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
+  return log2(depthInfo.x) * halfFcoef;
+}
+
 PS_OUTPUT main(PS_INPUT input)
 {
   PS_OUTPUT output;
@@ -86,8 +96,7 @@ PS_OUTPUT main(PS_INPUT input)
   float3 finalColour = lerp(reflectionColour, refractionColour, fresnel * 0.75) + float3(specular, specular, specular);
   output.Color0 = float4(finalColour, 1.0);
   
-  float halfFcoef = 1.0 / log2(s_CameraFarPlane + 1.0);
-  output.Depth0 = log2(input.fLogDepth.x) * halfFcoef;
+  output.Depth0 = CalculateDepth(input.depthInfo);
   
   // dull colour until sort out ECEF water
   output.Color0 = output.Color0 * 0.3 + float4(0.2, 0.4, 0.7, 1.0);
