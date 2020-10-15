@@ -470,6 +470,8 @@ bool vcSettings_Load(vcSettings *pSettings, bool forceReset /*= false*/, vcSetti
     for (int i = 0; i < 4; i++)
       pSettings->tools.label.backgroundColour[i] = data.Get("tools.label.backgroundColour[%d]", i).AsFloat(defaultBackgroundColour[i]);
     pSettings->tools.label.textSize = data.Get("tools.label.textSize").AsInt(1);
+
+    pSettings->tools.gizmoDegreeSnapping = data.Get("tools.gizmoDegreeSnapping").AsBool(true);
   }
 
   if (group == vcSC_Convert || group == vcSC_All)
@@ -906,6 +908,8 @@ bool vcSettings_Save(vcSettings *pSettings)
   for (int i = 0; i < 4; i++)
     data.Set("tools.label.backgroundColour[] = %f", pSettings->tools.label.backgroundColour[i]);
   data.Set("tools.label.textSize = %i", pSettings->tools.label.textSize);
+
+  data.Set("tools.gizmoDegreeSnapping = %s", pSettings->tools.gizmoDegreeSnapping ? "true" : "false");
 
   // Convert Settings
   tempNode.SetString(pSettings->convertdefaults.tempDirectory);

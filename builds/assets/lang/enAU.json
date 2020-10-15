@@ -471,6 +471,7 @@
   "sceneGizmoRotate": "Gizmo Rotate",
   "sceneGizmoScale": "Gizmo Scale",
   "sceneGizmoLocalSpace": "Gizmo Local Space",
+  "sceneGizmoDegreeSnapping": "Snap to degrees",
   "sceneFullscreen": "Fullscreen",
   "sceneMapMode": "Map Mode",
   "toggleSceneExplorer": "Show/Hide Scene Explorer",

@@ -1463,6 +1463,9 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
             pProgramState->pViewports[viewportIndex].gizmo.coordinateSystem = (pProgramState->pViewports[viewportIndex].gizmo.coordinateSystem == vcGCS_Scene) ? vcGCS_Local : vcGCS_Scene;
         }
 
+        if (pProgramState->pActiveViewport->gizmo.operation == vcGO_Rotate)
+          ImGui::Checkbox(vcString::Get("sceneGizmoDegreeSnapping"), &pProgramState->settings.tools.gizmoDegreeSnapping);
+        
         ImGui::Separator();
       }
 
@@ -2471,7 +2474,7 @@ void vcRenderGizmo(vcState *pProgramState, const ImVec2 &viewportPosition, const
         vcGIS_GetOrthonormalBasis(pProgramState->geozone, pItem->GetWorldSpacePivot(), &pProgramState->pActiveViewport->gizmo.direction[2], &pProgramState->pActiveViewport->gizmo.direction[1], &pProgramState->pActiveViewport->gizmo.direction[0]);
       }
 
-      vcGizmo_Manipulate(pProgramState->pActiveViewport->gizmo.pContext, &pProgramState->pActiveViewport->camera, pProgramState->pActiveViewport->gizmo.direction, pProgramState->pActiveViewport->gizmo.operation, pProgramState->pActiveViewport->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : 0.0);
+      vcGizmo_Manipulate(pProgramState->pActiveViewport->gizmo.pContext, &pProgramState->pActiveViewport->camera, pProgramState->pActiveViewport->gizmo.direction, pProgramState->pActiveViewport->gizmo.operation, pProgramState->pActiveViewport->gizmo.coordinateSystem, temp, &delta, allowedControls, io.KeyShift ? snapAmt : (pProgramState->settings.tools.gizmoDegreeSnapping ? 1.0 : 0.0));
 
       if (!(delta == udDouble4x4::identity()))
       {

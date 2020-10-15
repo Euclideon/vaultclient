@@ -220,6 +220,8 @@ struct vcToolSettings
     udFloat4 backgroundColour;
     int textSize;
   } label;
+
+  bool gizmoDegreeSnapping;
 };
 
 struct vcProjectHistoryInfo
