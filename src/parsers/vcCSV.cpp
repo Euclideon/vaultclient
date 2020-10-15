@@ -5,7 +5,12 @@
 #include "udFile.h"
 
 #define MAX_COLUMN_COUNT 16
-#define CAPACITY_CHUNK_SIZE (1024 << 4) 
+
+// 16kb
+#define CAPACITY_CHUNK_SIZE (1024 << 4)
+
+// disabled for strtok()
+#define _CRT_SECURE_NO_WARNINGS
 
 bool vcCSV_ShouldSkipLine(char *pToken)
 {
@@ -228,7 +233,7 @@ udResult vcCSV_ReadHeader(vcCSV *pCSV)
 
   while (!pCSV->completeRead)
   {
-    const int64_t minimumHeaderReadSize = CAPACITY_CHUNK_SIZE; // 8kb
+    const int64_t minimumHeaderReadSize = CAPACITY_CHUNK_SIZE;
     UD_ERROR_CHECK(vcCSV_Read(pCSV, (size_t)minimumHeaderReadSize));
 
     // keep going until read enough

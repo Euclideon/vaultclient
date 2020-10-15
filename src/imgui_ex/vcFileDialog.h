@@ -65,6 +65,7 @@ template <size_t N, size_t M> inline void vcFileDialog_Open(vcState *pProgramSta
   udUnused(SupportedTileTypes_QueryExport);
   udUnused(SupportedFileTypes_ConvertImport);
   udUnused(SupportedFileTypes_ShapeFile);
+  udUnused(SupportedFileTypes_AnnotationsImport);
 }
 
 void vcFileDialog_ShowModal(vcState *pProgramState);
