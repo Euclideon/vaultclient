@@ -473,7 +473,7 @@ static udError vcTiffImageReaderReadPixel_Tile(vcTiffConvertData *pConvertData, 
   pixelCoords.x = double(pConvertData->tile.currentPixel % pConvertData->tile.tileDimensions.x) * pConvertData->pointResolution;
   pixelCoords.y = double(pConvertData->tile.currentPixel / pConvertData->tile.tileDimensions.x) * pConvertData->pointResolution;
   pixelCoords.z = 0.0;
-  tileOrigin = {(double)pConvertData->tile.currentTileCoords.x * pConvertData->tile.tileDimensions.x, (double)pConvertData->tile.currentTileCoords.y * pConvertData->tile.tileDimensions.y};
+  tileOrigin = {(double)pConvertData->tile.currentTileCoords.x * pConvertData->tile.tileDimensions.x, (double)pConvertData->tile.currentTileCoords.y * pConvertData->tile.tileDimensions.y, 0.0};
   tileOrigin *= pConvertData->pointResolution;
 
   pPixelData->point = pConvertData->origin + tileOrigin + pixelCoords;
@@ -719,7 +719,7 @@ udError TiffConvert_ReadFloat(struct udConvertCustomItem *pConvertInput, struct 
   udError result;
   udError pixReadRes;
   vcTiffPixelData pixelData = {};
-  uint32_t colour;
+  uint32_t colour = 0xFFFF00FF;
   vcTiffConvertData *pData = nullptr;
 
   if (pConvertInput == nullptr || pBuffer == nullptr)
