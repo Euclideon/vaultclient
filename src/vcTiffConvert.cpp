@@ -53,6 +53,22 @@ struct vcTiffConvertData;
 typedef void(*vcTiffImageReaderDestroyFn)(vcTiffConvertData *pData);
 typedef udError(*vcTiffImageReaderReadPixelFn)(vcTiffConvertData *pData, vcTiffPixelData *pPixelData);
 
+struct TileData
+{
+  uint8_t *pRaster;
+  uint64_t currentPixel;
+  udVector2<uint32> tileDimensions;
+  udVector2<uint32_t> currentTileCoords;
+  uint64_t nTilePixels; // Can be less then the size of a tile
+};
+
+struct ScanLineData
+{
+  uint8_t *pRaster;
+  uint64_t currentPixel;
+  uint32 row;
+};
+
 struct vcTiffConvertData
 {
   TIFF *pTif;
@@ -64,21 +80,8 @@ struct vcTiffConvertData
 
   union
   {
-    struct TileData
-    {
-      uint8_t *pRaster;
-      uint64_t currentPixel;
-      udVector2<uint32> tileDimensions;
-      udVector2<uint32_t> currentTileCoords;
-      uint64_t nTilePixels; // Can be less then the size of a tile
-    } tile;
-    struct StripData {} strip; // TODO
-    struct ScanLineData
-    {
-      uint8_t *pRaster;
-      uint64_t currentPixel;
-      uint32 row;
-    } scanLine;
+    TileData tile;
+    ScanLineData scanLine;
   };
 
   uint32_t pointsWritten;
