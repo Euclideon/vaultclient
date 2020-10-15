@@ -271,7 +271,7 @@ int main(int argc, const char **ppArgv)
       udQueryFilter_SetAsBox(pFilter, &centre.x, &halfSize.x, &ypr.x);
     }
 
-    if (udPointCloud_Export(pPCModel, settings.pOutputFilename, pFilter, nullptr) == udE_Success)
+    if (udPointCloud_Export(pPCModel, settings.pOutputFilename, pFilter) == udE_Success)
       exit(vcCCEC_Success);
 
     printf("Export Failed?");

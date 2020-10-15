@@ -1160,7 +1160,7 @@ void vcModals_DrawProjectSettings(vcState *pProgramState)
   ImGui::SetNextWindowSize(ImVec2(1200, 600), ImGuiCond_Appearing);
   if (ImGui::BeginPopupModal(vcString::Get("menuProjectSettingsTitle")))
   {
-    static char information[1024] = {};
+    static char information[2048] = {};
 
     if (pProgramState->closeModals & (1 << vcMT_ProjectSettings))
       ImGui::CloseCurrentPopup();
