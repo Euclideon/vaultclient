@@ -2323,18 +2323,6 @@ void vcMain_ShowSceneExplorerWindow(vcState *pProgramState)
   vcMenuBarButton(pProgramState->pUITexture, vcString::Get("sceneExplorerAddOther"), vcB_Invalid, vcMBBI_AddOther, vcMBBG_SameGroup);
   if (ImGui::BeginPopupContextItem(vcString::Get("sceneExplorerAddOther"), 0))
   {
-    if (pProgramState->sceneExplorer.selectedItems.size() == 1)
-    {
-      const vcSceneItemRef &item = pProgramState->sceneExplorer.selectedItems[0];
-      if (item.pItem->itemtype == udPNT_PointOfInterest)
-      {
-        vcPOI* pPOI = (vcPOI*)item.pItem->pUserData;
-
-        if (ImGui::MenuItem(vcString::Get("scenePOIAddPoint")))
-          pPOI->AddPoint(pProgramState, pProgramState->pActiveViewport->worldAnchorPoint);
-      }
-    }
-
     if (ImGui::MenuItem(vcString::Get("sceneExplorerAddFeed"), nullptr, nullptr))
     {
       udProjectNode *pNode = nullptr;
