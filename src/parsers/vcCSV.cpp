@@ -228,8 +228,8 @@ udResult vcCSV_ReadHeader(vcCSV *pCSV)
 
   while (!pCSV->completeRead)
   {
-    const size_t minimumHeaderReadSize = CAPACITY_CHUNK_SIZE; // 8kb
-    UD_ERROR_CHECK(vcCSV_Read(pCSV, minimumHeaderReadSize));
+    const int64_t minimumHeaderReadSize = CAPACITY_CHUNK_SIZE; // 8kb
+    UD_ERROR_CHECK(vcCSV_Read(pCSV, (size_t)minimumHeaderReadSize));
 
     // keep going until read enough
     if (pCSV->data.usageBytes >= minimumHeaderReadSize)
