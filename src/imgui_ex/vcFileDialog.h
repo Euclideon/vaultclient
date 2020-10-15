@@ -10,8 +10,9 @@ struct vcState;
 using vcFileDialogCallback = udCallback<void(void)>;
 
 static const char *SupportedFileTypes_Images[] = { ".jpg", ".png", ".tga", ".bmp", ".gif" };
-static const char *SupportedFileTypes_SceneItems[] = { ".uds", ".ssf", ".udg", ".jpg", ".png", ".slpk", ".obj", ".vsm" };
+static const char *SupportedFileTypes_SceneItems[] = { ".uds", ".ssf", ".udg", ".jpg", ".png", ".slpk", ".obj", ".vsm", ".csv" };
 static const char *SupportedFileTypes_PolygonModels[] = { ".obj", ".vsm" };
+static const char *SupportedFileTypes_AnnotationsImport[] = { ".csv" };
 
 static const char *SupportedFileTypes_ProjectsExport[] = { ".json" };
 static const char *SupportedFileTypes_ProjectsImport[] = { ".json", ".udp" };
@@ -64,6 +65,7 @@ template <size_t N, size_t M> inline void vcFileDialog_Open(vcState *pProgramSta
   udUnused(SupportedTileTypes_QueryExport);
   udUnused(SupportedFileTypes_ConvertImport);
   udUnused(SupportedFileTypes_ShapeFile);
+  udUnused(SupportedFileTypes_AnnotationsImport);
 }
 
 void vcFileDialog_ShowModal(vcState *pProgramState);

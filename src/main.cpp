@@ -57,6 +57,7 @@
 
 #include "parsers/vcUDP.h"
 #include "parsers/vc12DXML.h"
+#include "parsers/vcCSV.h"
 
 #include "udFile.h"
 #include "udStringUtil.h"
@@ -689,6 +690,14 @@ void vcMain_MainLoop(vcState *pProgramState)
               vcModals_CloseModal(pProgramState, vcMT_Welcome);
             }
           }
+          else if (udStrEquali(pExt, ".csv"))
+          {
+            vcModals_CloseModal(pProgramState, vcMT_Welcome);
+
+            udStrcpy(pProgramState->modelPath, loadFile);
+
+            vcModals_OpenModal(pProgramState, vcMT_ImportAnnotations);
+          }
           else // This file isn't supported in the scene
           {
             ErrorItem status;
@@ -1200,6 +1209,7 @@ epilogue:
   vcConvert_Deinit(&programState);
   vcTexture_Destroy(&programState.pUITexture);
   vcTexture_Destroy(&programState.pWhiteTexture);
+  vcCSV_Destroy(&programState.pImportAnnotationsContext);
 
   for (size_t i = 0; i < programState.loadList.length; i++)
     udFree(programState.loadList[i]);

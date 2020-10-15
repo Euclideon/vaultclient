@@ -35,6 +35,7 @@ struct vcCamera;
 struct vcTexture;
 struct vcConvertContext;
 struct vcGizmoContext;
+struct vcCSV;
 
 struct vcSceneItemRef
 {
@@ -204,6 +205,8 @@ struct vcState
   udContext *pUDSDKContext;
 
   vcConvertContext *pConvertContext;
+
+  vcCSV *pImportAnnotationsContext;
 
   char password[vcMaxPathLength];
 
