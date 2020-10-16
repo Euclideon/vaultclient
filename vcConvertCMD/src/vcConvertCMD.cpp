@@ -1,13 +1,16 @@
 #define _CRT_SECURE_NO_WARNINGS
+
 #include "udPlatformUtil.h"
 #include "udThread.h"
 #include "udStringUtil.h"
 #include "udFile.h"
 #include "udChunkedArray.h"
-
 #include "udConvert.h"
 #include "udContext.h"
 #include "udConfig.h"
+#include "udMath.h"
+#include "udPointCloud.h"
+#include "udQueryContext.h"
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -20,7 +23,7 @@
 
 void vcConvertCMD_ShowOptions()
 {
-  printf("Usage: udStreamConvertCMD [udStream server] [username] [password] [options] -i inputfile [-i anotherInputFile] -o outputfile.uds\n");
+  printf("Usage: udStreamConvertCMD [udStream server] [username] [password] [options] -i inputfile [-i anotherInputFile] [-region minX minY minZ maxX maxY maxZ] -o outputfile.uds\n");
   printf("   -resolution <res>           - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
   printf("   -srid <sridCode>            - override the srid code for geolocation\n");
   printf("   -globalOffset <x,y,z>       - add an offset to all points, no spaces allowed in the x,y,z value\n");
@@ -31,6 +34,7 @@ void vcConvertCMD_ShowOptions()
   printf("   -proxyPassword <password>   - Set the password to use with the proxy\n");
   printf("   -copyright <details>        - Adds the copyright information to the \"Copyright\" metadata field\n");
   printf("   -quicktest                  - Does a small test to test if positioning/geolocation is correct\n");
+  printf("   -region                     - Parameters to export the region. Exp: -region 0.0 0.0 0.0 1.0 1.0 1.0\n");
 }
 
 struct vcConvertData
@@ -67,7 +71,21 @@ struct vcConvertCMDSettings
 
   const char *pCopyright;
 
+  bool useRegion;
+  udDouble3 regionMin;
+  udDouble3 regionMax;
+
   udChunkedArray<const char*> files;
+};
+
+enum vcCCExitCodes
+{
+  vcCCEC_Success,
+  vcCCEC_MissingOptions,
+  vcCCEC_NoInputs,
+  vcCCEC_SessionFailed,
+  vcCCEC_ContextFailed,
+  vcCCEC_InvalidRegion,
 };
 
 bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMDSettings *pSettings)
@@ -76,17 +94,17 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
 
   for (int i = 4; i < argc; )
   {
-    if (udStrEquali(ppArgv[i], "-resolution"))
+    if (udStrEquali(ppArgv[i], "-resolution") && i + 1 < argc)
     {
       pSettings->resolution = udStrAtof64(ppArgv[i + 1]);
       i += 2;
     }
-    else if (udStrEquali(ppArgv[i], "-srid"))
+    else if (udStrEquali(ppArgv[i], "-srid") && i + 1 < argc)
     {
       pSettings->srid = udStrAtoi(ppArgv[i + 1]);
       i += 2;
     }
-    else if (udStrEquali(ppArgv[i], "-globalOffset"))
+    else if (udStrEquali(ppArgv[i], "-globalOffset") && i + 1 < argc)
     {
       const char *pStr = ppArgv[i + 1];
       for (int j = 0; j < 3; ++j)
@@ -103,7 +121,7 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
       }
       i += 2;
     }
-    else if (udStrEquali(ppArgv[i], "-i"))
+    else if (udStrEquali(ppArgv[i], "-i") && i + 1 < argc) // This can read many inputs until another `-` is found
     {
       ++i; // Skip "-i"
       do
@@ -127,7 +145,7 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
       pSettings->quicktest = true;
       ++i;
     }
-    else if (udStrEquali(ppArgv[i], "-o"))
+    else if (udStrEquali(ppArgv[i], "-o") && i + 1 < argc)
     {
       // -O implies automatic overwrite, -o does a check
       pSettings->autoOverwrite = udStrEqual(ppArgv[i], "-O");
@@ -135,25 +153,33 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
 
       i += 2;
     }
-    else if (udStrEquali(ppArgv[i], "-proxyURL"))
+    else if (udStrEquali(ppArgv[i], "-proxyURL") && i + 1 < argc)
     {
       pSettings->pProxyURL = ppArgv[i + 1];
       i += 2;
     }
-    else if (udStrEquali(ppArgv[i], "-proxyUsername"))
+    else if (udStrEquali(ppArgv[i], "-proxyUsername") && i + 1 < argc)
     {
       pSettings->pProxyUsername = ppArgv[i + 1];
       i += 2;
     }
-    else if (udStrEquali(ppArgv[i], "-proxyPassword"))
+    else if (udStrEquali(ppArgv[i], "-proxyPassword") && i + 1 < argc)
     {
       pSettings->pProxyPassword = ppArgv[i + 1];
       i += 2;
     }
-    else if (udStrEquali(ppArgv[i], "-copyright"))
+    else if (udStrEquali(ppArgv[i], "-copyright") && i + 1 < argc)
     {
       pSettings->pCopyright = ppArgv[i + 1];
       i += 2;
+    }
+    else if (udStrEquali(ppArgv[i], "-region") && i + 6 < argc)
+    {
+      pSettings->useRegion = true;
+      pSettings->regionMin = udDouble3::create(udStrAtof64(ppArgv[i+1]), udStrAtof64(ppArgv[i+2]), udStrAtof64(ppArgv[i+3]));
+      pSettings->regionMax = udDouble3::create(udStrAtof64(ppArgv[i+4]), udStrAtof64(ppArgv[i+5]), udStrAtof64(ppArgv[i+6]));
+
+      i += 7;
     }
     else
     {
@@ -182,10 +208,22 @@ int main(int argc, const char **ppArgv)
   if (argc < 4)
   {
     vcConvertCMD_ShowOptions();
-    exit(1);
+    exit(vcCCEC_MissingOptions);
   }
 
   bool cmdlineError = vcConvertCMD_ProcessCommandLine(argc, ppArgv, &settings);
+
+  if (settings.files.length == 0)
+  {
+    printf("No inputs were entered!\n");
+    exit(vcCCEC_NoInputs);
+  }
+
+  if (settings.useRegion && (settings.files.length > 2 || !udStrEndsWithi(settings.files[0], ".uds") || settings.pOutputFilename == nullptr))
+  {
+    printf("Region export only works on a single UDS file and requires an output filename!\n");
+    exit(vcCCEC_InvalidRegion);
+  }
 
   if (settings.pProxyURL)
     udConfig_ForceProxy(settings.pProxyURL);
@@ -193,11 +231,11 @@ int main(int argc, const char **ppArgv)
   if (settings.pProxyUsername)
     udConfig_SetProxyAuth(settings.pProxyUsername, settings.pProxyPassword);
 
-  result = udContext_TryResume(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], true);
+  result = udContext_TryResume(&pContext, ppArgv[1], "udStreamCMD", ppArgv[2], true);
 
   if (result != udE_Success)
   {
-    result = udContext_Connect(&pContext, ppArgv[1], "vcConvertCMD", ppArgv[2], ppArgv[3]);
+    result = udContext_Connect(&pContext, ppArgv[1], "udStreamCMD", ppArgv[2], ppArgv[3]);
     if (result == udE_ConnectionFailure)
       printf("Could not connect to server.");
     else if (result == udE_NotAllowed)
@@ -210,16 +248,42 @@ int main(int argc, const char **ppArgv)
       printf("Unable to negotiate with server, please confirm the server address");
     else if (result != udE_Success)
       printf("Unknown error occurred (Error=%d), please try again later.", result);
+
+    if (result != udE_Success)
+      exit(vcCCEC_SessionFailed);
   }
 
-  if (result != udE_Success)
-    exit(2);
+  // Region is just an export
+  if (settings.useRegion)
+  {
+    udPointCloud *pPCModel = nullptr;
+    udQueryFilter *pFilter = nullptr;
+
+    udPointCloud_Load(pContext, &pPCModel, settings.files[0], nullptr);
+
+    if (settings.regionMin != settings.regionMax)
+    {
+      udDouble3 centre = (settings.regionMin + settings.regionMax) / 2;
+      udDouble3 halfSize = (settings.regionMax - settings.regionMin) / 2;
+      udDouble3 ypr = udDouble3::zero();
+
+      udQueryFilter_Create(&pFilter);
+      udQueryFilter_SetAsBox(pFilter, &centre.x, &halfSize.x, &ypr.x);
+    }
+
+    if (udPointCloud_Export(pPCModel, settings.pOutputFilename, pFilter) == udE_Success)
+      exit(vcCCEC_Success);
+
+    printf("Export Failed?");
+
+    exit(vcCCEC_InvalidRegion);
+  }
 
   result = udConvert_CreateContext(pContext, &pModel);
   if (result != udE_Success)
   {
-    printf("Could not created render context");
-    exit(3);
+    printf("Could not created convert context");
+    exit(vcCCEC_ContextFailed);
   }
 
   udConvert_GetInfo(pModel, &pInfo);
