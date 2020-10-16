@@ -151,7 +151,7 @@ udResult vcSHP_LoadShpRecord(vcSHP *pSHP, uint8_t **ppReadPosition, vcSHPType de
 
   record.Init();
   
-  UD_ERROR_IF(*pLeftLength < sizeof(int32_t) * 2, udR_ReadFailure);
+  UD_ERROR_IF(*pLeftLength < int32_t(sizeof(int32_t) * 2), udR_ReadFailure);
   memcpy(id, *ppReadPosition, sizeof(int32_t));
   memcpy(length, *ppReadPosition + sizeof(int32_t), sizeof(int32_t));
 
