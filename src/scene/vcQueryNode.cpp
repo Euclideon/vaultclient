@@ -12,18 +12,6 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-static const char *GetNodeShape(vcQueryNodeFilterShape shape)
-{
-  if (shape == vcQNFS_Box)
-    return "box";
-  else if (shape == vcQNFS_Sphere)
-    return "sphere";
-  else if (shape == vcQNFS_Cylinder)
-    return "cylinder";
-  else
-    return "";
-}
-
 vcQueryNode::vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_shape(vcQNFS_Box),
