@@ -6,6 +6,11 @@
 #include "vcDBF.h"
 #include "udStringUtil.h"
 
+enum vcSHPConstant
+{
+  vcSHP_MemoryCache = 1024 * 1000 * 100, // 100M
+};
+
 enum vcSHPType
 {
   vcSHPType_Empty = 0,
@@ -39,118 +44,37 @@ struct vcSHP_Header
   udDouble2 MRange;
 };
 
-struct vcSHP_RecordPoly
+struct vcSHP_Record
 {
-  udDouble2 MBRmin;
-  udDouble2 MBRmax;
+  int32_t id;
+  uint32_t length;
+  vcSHPType shapeType;
 
-  int32_t partsCount;
-  int32_t pointsCount;
-
-  int32_t *parts;
-  udDouble3 *points; // x, y
-};
-
-struct vcSHP_RecordMultiPoint
-{
-  udDouble2 MBRmin;
-  udDouble2 MBRmax;
-
-  int32_t pointsCount;
-  udDouble3 *points;
-};
-
-struct vcSHP_RecordPointZ
-{
-  udDouble3 point;
-  double MValue;
-};
-
-struct vcSHP_RecordPolyZ
-{
-  udDouble2 MBRmin;
-  udDouble2 MBRmax;
-  udDouble2 ZRange;
+  udDouble4 MBRMin;
+  udDouble4 MBRMax;
 
   int32_t partsCount;
   int32_t pointsCount;
 
   int32_t *parts;
   udDouble3 *points; // x, y, z
+  double *MValues;
 
-  // optional: loaded but didn't use
-  bool MProvided;
-  udDouble2 MRange;
-  double *MValue;
-};
+  void Init()
+  {
+    id = 0;
+    length = 0;
 
-struct vcSHP_RecordMultiPointZ
-{
-  udDouble2 MBRmin;
-  udDouble2 MBRmax;
-  udDouble2 ZRange;
+    MBRMin = udDouble4::zero();
+    MBRMax = udDouble4::zero();
 
-  int32_t pointsCount;
-  udDouble3 *points;
+    partsCount = 0;
+    pointsCount = 0;
 
-  // optional:
-  bool MProvided;
-  udDouble2 MRange;
-  double *MValue;
-};
-
-struct vcSHP_RecordPolyM
-{
-  udDouble2 MBRmin;
-  udDouble2 MBRmax;
-  int32_t partsCount;
-  int32_t pointsCount;
-
-  int32_t *parts;
-  udDouble3 *points;
-
-  // optional:
-  bool MProvided;
-  udDouble2 MRange;
-  double *MValue;
-};
-
-struct vcSHP_RecordMultiPointM
-{
-  udDouble2 MBRmin;
-  udDouble2 MBRmax;
-
-  int32_t pointsCount;
-  udDouble3 *points;
-
-  // optional:
-  bool MProvided;
-  udDouble2 MRange;
-  double *MValue;
-};
-
-
-union vcSHP_RecordData
-{
-  udDouble3 point; // (x, y, 0)
-  vcSHP_RecordPoly poly;// polyline and polygon (x, y, 0)
-  vcSHP_RecordMultiPoint multiPoint; // (x, y, 0)
-
-  vcSHP_RecordPointZ pointZ; // (x, y, Z), M
-  vcSHP_RecordPolyZ polyZ; // polylineZ, polygonZ and multipatch (x, y, Z), M
-  vcSHP_RecordMultiPointZ multiPointZ; // (x, y, Z), M
-
-  vcSHP_RecordPointZ pointM; // (x, y, 0), M
-  vcSHP_RecordPolyM polyM; // polylineM and polygonM (x, y, 0), M
-  vcSHP_RecordMultiPointM multiPointM;// (x, y, 0), M
-};
-
-struct vcSHP_Record
-{
-  int32_t id;
-  uint32_t length;
-  vcSHPType shapeType;
-  vcSHP_RecordData data;
+    parts = nullptr;
+    points = nullptr;
+    MValues = nullptr;
+  }
 };
 
 struct vcDBF;
@@ -184,63 +108,10 @@ uint16_t vcSHP_GetFirstDBFStringFieldIndex(vcDBF *pDBF)
 
 void vcSHP_ReleaseRecord(vcSHP_Record *pRecord)
 {
-  switch (pRecord->shapeType)
-  {
-  case vcSHPType_Polyline:
-  case vcSHPType_Polygon:
-  {
-    udFree(pRecord->data.poly.parts);
-    udFree(pRecord->data.poly.points);
-  }
-  break;
-  case vcSHPType_MultiPoint:
-  {
-    udFree(pRecord->data.multiPoint.points);
-  }
-  break;
-  case vcSHPType_PolylineZ:
-  case vcSHPType_PolygonZ:
-  case vcSHPType_MultiPatch:
-  {
-    udFree(pRecord->data.polyZ.parts);
-    udFree(pRecord->data.polyZ.points);
-
-    if (pRecord->data.polyZ.MValue != nullptr)
-      udFree(pRecord->data.polyZ.MValue);
-  }
-  break;
-  case vcSHPType_MultiPointZ:
-  {
-    udFree(pRecord->data.multiPointZ.points);
-    if (pRecord->data.multiPointZ.MValue != nullptr)
-      udFree(pRecord->data.multiPointZ.MValue);
-  }
-  break;
-  case vcSHPType_PolylineM:
-  case vcSHPType_PolygonM:
-  {
-    udFree(pRecord->data.polyM.parts);
-    udFree(pRecord->data.polyM.points);
-
-    if (pRecord->data.polyM.MValue != nullptr)
-      udFree(pRecord->data.polyM.MValue);
-  }
-  break;
-  case vcSHPType_MultiPointM:
-  {
-    udFree(pRecord->data.multiPointM.points);
-    if (pRecord->data.multiPointM.MValue != nullptr)
-      udFree(pRecord->data.multiPointM.MValue);
-  }
-  break;
-  case vcSHPType_Empty:
-  case vcSHPType_Point:
-  case vcSHPType_PointZ:
-  case vcSHPType_PointM:
-  break;
-  }
+  udFree(pRecord->parts);
+  udFree(pRecord->points);
+  udFree(pRecord->MValues);
 }
-
 
 void vcSHP_Release(vcSHP *pSHP)
 {
@@ -258,306 +129,165 @@ void vcSHP_Release(vcSHP *pSHP)
     udFree(pSHP->WKTString);
 }
 
-static uint32_t UnpackDouble(uint32_t readPos, double *dest, uint8_t *src)
+void ReadRange(udDouble2 *min, udDouble2 *max, uint8_t **ppSrc)
 {
-  memcpy(dest, src + readPos, 8);
-  return readPos + 8;
+  memcpy(&min->x, ppSrc, sizeof(double));
+  *ppSrc += sizeof(double);
+  memcpy(&min->y, ppSrc, sizeof(double));
+  *ppSrc += sizeof(double);
+  memcpy(&max->x, ppSrc, sizeof(double));
+  *ppSrc += sizeof(double);
+  memcpy(&max->y, ppSrc, sizeof(double));
+  *ppSrc += sizeof(double);
 }
 
-static uint32_t UnpackInt32(uint32_t readPos, int32_t *dest, uint8_t *src)
+udResult vcSHP_LoadShpRecord(vcSHP *pSHP, uint8_t **ppReadPosition, vcSHPType defaultShape, int32_t *pLeftLength, int32_t *pRecordLength)
 {
-  memcpy(dest, src + readPos, 4);
-  return readPos + 4;
-}
-
-udResult vcSHP_LoadShpRecord(vcSHP *pSHP, udFile *pFile, uint32_t &offset, vcSHPType defaultShape)
-{
-  udResult result;
+  udResult result = udR_Success;
   uint8_t id[4] = {};
   uint8_t length[4] = {};
-  uint8_t *buffer = nullptr;
-  uint32_t readPosition = 0;
-  int32_t type = 0;
-  int32_t leftBytes = 0;
-
   vcSHP_Record record = {};
-  UD_ERROR_CHECK(udFile_Read(pFile, id, 4 * sizeof(uint8_t)));
+  uint8_t *pRecordEnd = nullptr;
+
+  record.Init();
+  
+  UD_ERROR_IF(*pLeftLength < sizeof(int32_t) * 2, udR_ReadFailure);
+  memcpy(id, *ppReadPosition, sizeof(int32_t));
+  memcpy(length, *ppReadPosition + sizeof(int32_t), sizeof(int32_t));
+
   record.id = (id[0] << 24) | (id[1] << 16) | (id[2] << 8) | id[3];
-  offset += 4;
 
-  //the file stores the length in shorts.
-  UD_ERROR_CHECK(udFile_Read(pFile, length, 4 * sizeof(uint8_t)));
+  // check if there is a full record
   record.length = (length[0] << 24) | (length[1] << 16) | (length[2] << 8) | length[3];
-  record.length *= 2;
-  offset += 4;
+  record.length *= 2; //the file stores the length in shorts.
 
-  buffer = udAllocType(uint8_t, record.length, udAF_Zero);
-  UD_ERROR_NULL(buffer, udR_MemoryAllocationFailure);
-  UD_ERROR_CHECK(udFile_Read(pFile, buffer, record.length * sizeof(uint8_t)));
+  *pRecordLength = sizeof(int32_t) * 2 + record.length;
+  UD_ERROR_IF(*pLeftLength < *pRecordLength, udR_ReadFailure);
+  pRecordEnd = *ppReadPosition + *pRecordLength;
+  *ppReadPosition += sizeof(int32_t) * 2; // skip id and length
 
   // shape type check
-  readPosition = UnpackInt32(readPosition, &type, buffer);
-  record.shapeType = (vcSHPType)type;
+  memcpy(&record.shapeType, *ppReadPosition, sizeof(int32_t));
+  *ppReadPosition += sizeof(int32_t);
   UD_ERROR_IF(record.shapeType != defaultShape, udR_ParseError);
 
-  switch (record.shapeType)
+  if (record.shapeType == vcSHPType_Point || record.shapeType == vcSHPType_PointZ || record.shapeType == vcSHPType_PointM)
   {
-  case vcSHPType_Point:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.point.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.point.y, buffer);
-  }
-  break;
-  case vcSHPType_Polyline:
-  case vcSHPType_Polygon:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.poly.MBRmin.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.poly.MBRmin.y, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.poly.MBRmax.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.poly.MBRmax.y, buffer);
+    record.pointsCount = 1;
+    record.points = udAllocType(udDouble3, 1, udAF_Zero);
+    record.MValues = nullptr;
 
-    readPosition = UnpackInt32(readPosition, &record.data.poly.partsCount, buffer);
-    readPosition = UnpackInt32(readPosition, &record.data.poly.pointsCount, buffer);
+    record.points[0] = udDouble3::zero();
+    memcpy(&record.points[0].x, *ppReadPosition, sizeof(double));
+    *ppReadPosition += sizeof(double);
+    memcpy(&record.points[0].y, *ppReadPosition, sizeof(double));
+    *ppReadPosition += sizeof(double);
 
-    record.data.poly.parts = udAllocType(int32_t, record.data.poly.partsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.poly.parts, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.poly.partsCount; i++)
-      readPosition = UnpackInt32(readPosition, &record.data.poly.parts[i], buffer);
-
-    record.data.poly.points = udAllocType(udDouble3, record.data.poly.pointsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.poly.points, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.poly.pointsCount; i++)
+    if (record.shapeType == vcSHPType_PointZ)
     {
-      udDouble3 *p = &record.data.poly.points[i];
-      readPosition = UnpackDouble(readPosition, &p->x, buffer);
-      readPosition = UnpackDouble(readPosition, &p->y, buffer);
-      p->z = 0;
+      memcpy(&record.points[0].z, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
     }
-
-  }
-  break;
-  case vcSHPType_MultiPoint:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.multiPoint.MBRmin.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPoint.MBRmin.y, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPoint.MBRmax.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPoint.MBRmax.y, buffer);
-
-    readPosition = UnpackInt32(readPosition, &record.data.multiPoint.pointsCount, buffer);
-    record.data.multiPoint.points = udAllocType(udDouble3, record.data.multiPoint.pointsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.multiPoint.points, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.multiPoint.pointsCount; i++)
+    
+    if (record.shapeType == vcSHPType_PointZ || record.shapeType == vcSHPType_PointM)
     {
-      udDouble3 *p = &record.data.multiPoint.points[i];
-      readPosition = UnpackDouble(readPosition, &p->x, buffer);
-      readPosition = UnpackDouble(readPosition, &p->y, buffer);
-      p->z = 0;
+      record.MValues = udAllocType(double, 1, udAF_Zero);
+      memcpy(&record.MValues[0], *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
     }
   }
-  break;
-  case vcSHPType_PointZ:
+  else
   {
-    readPosition = UnpackDouble(readPosition, &record.data.pointZ.point.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.pointZ.point.y, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.pointZ.point.z, buffer); // Z
-    readPosition = UnpackDouble(readPosition, &record.data.pointZ.MValue, buffer); // M
-  }
-  break;
-  case vcSHPType_PolylineZ:
-  case vcSHPType_PolygonZ:
-  case vcSHPType_MultiPatch:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.polyZ.MBRmin.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.polyZ.MBRmin.y, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.polyZ.MBRmax.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.polyZ.MBRmax.y, buffer);
-
-    readPosition = UnpackInt32(readPosition, &record.data.polyZ.partsCount, buffer);
-    readPosition = UnpackInt32(readPosition, &record.data.polyZ.pointsCount, buffer);
-
-    record.data.polyZ.parts = udAllocType(int32_t, record.data.polyZ.partsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.polyZ.parts, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.polyZ.partsCount; i++)
-      readPosition = UnpackInt32(readPosition, &record.data.polyZ.parts[i], buffer);
-
-    record.data.polyZ.points = udAllocType(udDouble3, record.data.polyZ.pointsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.polyZ.points, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.polyZ.pointsCount; i++)
+    //read MBR
+    if (record.shapeType == vcSHPType_Polyline || record.shapeType == vcSHPType_Polygon || record.shapeType == vcSHPType_MultiPoint || record.shapeType == vcSHPType_PolylineZ || record.shapeType == vcSHPType_PolygonZ || record.shapeType == vcSHPType_MultiPointZ || record.shapeType == vcSHPType_PolylineM || record.shapeType == vcSHPType_PolygonM || record.shapeType == vcSHPType_MultiPointM || record.shapeType == vcSHPType_MultiPatch)
     {
-      udDouble3 *p = &record.data.polyZ.points[i];
-      readPosition = UnpackDouble(readPosition, &p->x, buffer);
-      readPosition = UnpackDouble(readPosition, &p->y, buffer);
-      p->z = 0;
+      memcpy(&record.MBRMin.x, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
+      memcpy(&record.MBRMin.y, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
+      memcpy(&record.MBRMax.x, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
+      memcpy(&record.MBRMax.y, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
     }
 
-    // z
-    readPosition = UnpackDouble(readPosition, &record.data.polyZ.ZRange.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.polyZ.ZRange.y, buffer);
-    for (int i = 0; i < record.data.polyZ.pointsCount; i++)
+    // read parts count
+    if (record.shapeType == vcSHPType_Polyline || record.shapeType == vcSHPType_Polygon || record.shapeType == vcSHPType_PolylineZ || record.shapeType == vcSHPType_PolygonZ || record.shapeType == vcSHPType_PolylineM || record.shapeType == vcSHPType_PolygonM || record.shapeType == vcSHPType_MultiPatch)
     {
-      udDouble3 *p = &record.data.polyZ.points[i];
-      readPosition = UnpackDouble(readPosition, &p->z, buffer);
+      memcpy(&record.partsCount, *ppReadPosition, sizeof(int32_t));
+      *ppReadPosition += sizeof(int32_t);
     }
 
-    // optional:
-    record.data.polyZ.MProvided = false;
-    record.data.polyZ.MValue = nullptr;
-    leftBytes = record.length - readPosition;
-    if (leftBytes == 8 * (2 + record.data.polyZ.pointsCount))
-    {
-      record.data.polyZ.MProvided = true;
-      readPosition = UnpackDouble(readPosition, &record.data.polyZ.MRange.x, buffer);
-      readPosition = UnpackDouble(readPosition, &record.data.polyZ.MRange.y, buffer);
+    // read points count
+    memcpy(&record.pointsCount, *ppReadPosition, sizeof(int32_t));
+    *ppReadPosition += sizeof(int32_t);
 
-      record.data.polyZ.MValue = udAllocType(double, record.data.polyZ.pointsCount, udAF_Zero);
-      UD_ERROR_NULL(record.data.polyZ.MValue, udR_MemoryAllocationFailure);
-      for (int i = 0; i < record.data.polyZ.pointsCount; i++)
-        readPosition = UnpackDouble(readPosition, &record.data.polyZ.MValue[i], buffer);
+    // read parts
+    if (record.shapeType == vcSHPType_Polyline || record.shapeType == vcSHPType_Polygon || record.shapeType == vcSHPType_PolylineZ || record.shapeType == vcSHPType_PolygonZ || record.shapeType == vcSHPType_PolylineM || record.shapeType == vcSHPType_PolygonM || record.shapeType == vcSHPType_MultiPatch)
+    {
+      record.parts = udAllocType(int32_t, record.partsCount, udAF_Zero);
+      UD_ERROR_NULL(record.parts, udR_MemoryAllocationFailure);
+      memcpy(record.parts, *ppReadPosition, sizeof(int32_t) * record.partsCount);
+      *ppReadPosition += sizeof(int32_t) * record.partsCount;
     }
 
-  }
-  break;
-  case vcSHPType_MultiPointZ:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.MBRmin.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.MBRmin.y, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.MBRmax.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.MBRmax.y, buffer);
-
-    readPosition = UnpackInt32(readPosition, &record.data.multiPointZ.pointsCount, buffer);
-    record.data.multiPointZ.points = udAllocType(udDouble3, record.data.multiPointZ.pointsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.multiPointZ.points, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.multiPointZ.pointsCount; i++)
+    // read points x, y
+    record.points = udAllocType(udDouble3, record.pointsCount, udAF_Zero);
+    UD_ERROR_NULL(record.points, udR_MemoryAllocationFailure);
+    for (int i = 0; i < record.pointsCount; i++)
     {
-      udDouble3 *p = &record.data.multiPointZ.points[i];
-      readPosition = UnpackDouble(readPosition, &p->x, buffer);
-      readPosition = UnpackDouble(readPosition, &p->y, buffer);
-      p->z = 0;
+      record.points[i] = udDouble3::zero();
+      memcpy(&record.points[i].x, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
+      memcpy(&record.points[i].y, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
     }
 
-    // z
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.ZRange.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.ZRange.y, buffer);
-    for (int i = 0; i < record.data.multiPointZ.pointsCount; i++)
+    // read z value
+    if (record.shapeType == vcSHPType_PolylineZ || record.shapeType == vcSHPType_PolygonZ || record.shapeType == vcSHPType_MultiPointZ || record.shapeType == vcSHPType_MultiPatch)
     {
-      udDouble3 *p = &record.data.multiPointZ.points[i];
-      readPosition = UnpackDouble(readPosition, &p->z, buffer);
+      memcpy(&record.MBRMin.z, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
+      memcpy(&record.MBRMax.z, *ppReadPosition, sizeof(double));
+      *ppReadPosition += sizeof(double);
+      for (int i = 0; i < record.pointsCount; i++)
+      {
+        memcpy(&record.points[i].z, *ppReadPosition, sizeof(double));
+        *ppReadPosition += sizeof(double);
+      }
+
     }
 
-    // optional:
-    record.data.multiPointZ.MProvided = false;
-    record.data.multiPointZ.MValue = nullptr;
-    leftBytes = record.length - readPosition;
-    if (leftBytes == 8 * (2 + record.data.multiPointZ.pointsCount))
+    // read m value
+    if (record.shapeType == vcSHPType_PolylineZ || record.shapeType == vcSHPType_PolygonZ || record.shapeType == vcSHPType_MultiPointZ || record.shapeType == vcSHPType_PolylineM || record.shapeType == vcSHPType_PolygonM || record.shapeType == vcSHPType_MultiPointM || record.shapeType == vcSHPType_MultiPatch)
     {
-      record.data.multiPointZ.MProvided = true;
-      readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.MRange.x, buffer);
-      readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.MRange.y, buffer);
+      size_t leftBytes = pRecordEnd - *ppReadPosition;
+      if (leftBytes == sizeof(double) * 2 + sizeof(double)*record.pointsCount)
+      {
+        memcpy(&record.MBRMin.w, *ppReadPosition, sizeof(double));
+        *ppReadPosition += sizeof(double);
+        memcpy(&record.MBRMax.w, *ppReadPosition, sizeof(double));
+        *ppReadPosition += sizeof(double);
 
-      record.data.multiPointZ.MValue = udAllocType(double, record.data.multiPointZ.pointsCount, udAF_Zero);
-      UD_ERROR_NULL(record.data.multiPointZ.MValue, udR_MemoryAllocationFailure);
-      for (int i = 0; i < record.data.multiPointZ.pointsCount; i++)
-        readPosition = UnpackDouble(readPosition, &record.data.multiPointZ.MValue[i], buffer);
+        record.MValues = udAllocType(double, record.pointsCount, udAF_Zero);
+        UD_ERROR_NULL(record.MValues, udR_MemoryAllocationFailure);
+        for (int i = 0; i < record.pointsCount; i++)
+        {
+          memcpy(&record.MValues[i], *ppReadPosition, sizeof(double));
+          *ppReadPosition += sizeof(double);
+        }
+      }
     }
-
-  }
-  break;
-  case vcSHPType_PointM:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.pointM.point.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.pointM.point.y, buffer);
-    record.data.pointM.point.z = 0;
-    readPosition = UnpackDouble(readPosition, &record.data.pointM.MValue, buffer); // M
-  }
-  break;
-  case vcSHPType_PolylineM:
-  case vcSHPType_PolygonM:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.polyM.MBRmin.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.polyM.MBRmin.y, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.polyM.MBRmax.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.polyM.MBRmax.y, buffer);
-
-    readPosition = UnpackInt32(readPosition, &record.data.polyM.partsCount, buffer);
-    readPosition = UnpackInt32(readPosition, &record.data.polyM.pointsCount, buffer);
-
-    record.data.polyM.parts = udAllocType(int32_t, record.data.polyM.partsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.polyM.parts, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.polyM.partsCount; i++)
-      readPosition = UnpackInt32(readPosition, &record.data.polyM.parts[i], buffer);
-
-    record.data.polyM.points = udAllocType(udDouble3, record.data.polyM.pointsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.polyM.points, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.polyM.pointsCount; i++)
-    {
-      udDouble3 *p = &record.data.polyM.points[i];
-      readPosition = UnpackDouble(readPosition, &p->x, buffer);
-      readPosition = UnpackDouble(readPosition, &p->y, buffer);
-      p->z = 0;
-    }
-
-    // optional:
-    record.data.polyM.MProvided = false;
-    record.data.polyM.MValue = nullptr;
-    leftBytes = record.length - readPosition;
-    if (leftBytes == 8 * (2 + record.data.polyM.pointsCount))
-    {
-      record.data.polyM.MProvided = true;
-      readPosition = UnpackDouble(readPosition, &record.data.polyM.MRange.x, buffer);
-      readPosition = UnpackDouble(readPosition, &record.data.polyM.MRange.y, buffer);
-
-      record.data.polyM.MValue = udAllocType(double, record.data.polyM.pointsCount, udAF_Zero);
-      UD_ERROR_NULL(record.data.polyM.MValue, udR_MemoryAllocationFailure);
-      for (int i = 0; i < record.data.polyM.pointsCount; i++)
-        readPosition = UnpackDouble(readPosition, &record.data.polyM.MValue[i], buffer);
-    }
-  }
-  break;
-  case vcSHPType_MultiPointM:
-  {
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointM.MBRmin.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointM.MBRmin.y, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointM.MBRmax.x, buffer);
-    readPosition = UnpackDouble(readPosition, &record.data.multiPointM.MBRmax.y, buffer);
-
-    readPosition = UnpackInt32(readPosition, &record.data.multiPointM.pointsCount, buffer);
-    record.data.multiPointM.points = udAllocType(udDouble3, record.data.multiPointM.pointsCount, udAF_Zero);
-    UD_ERROR_NULL(record.data.multiPointM.points, udR_MemoryAllocationFailure);
-    for (int i = 0; i < record.data.multiPointM.pointsCount; i++)
-    {
-      udDouble3 *p = &record.data.multiPointM.points[i];
-      readPosition = UnpackDouble(readPosition, &p->x, buffer);
-      readPosition = UnpackDouble(readPosition, &p->y, buffer);
-      p->z = 0;
-    }
-    // optional:
-    record.data.multiPointM.MProvided = false;
-    record.data.multiPointM.MValue = nullptr;
-    leftBytes = record.length - readPosition;
-    if (leftBytes == 8 * (2 + record.data.multiPointM.pointsCount))
-    {
-      record.data.multiPointM.MProvided = true;
-      readPosition = UnpackDouble(readPosition, &record.data.multiPointM.MRange.x, buffer);
-      readPosition = UnpackDouble(readPosition, &record.data.multiPointM.MRange.y, buffer);
-
-      record.data.multiPointM.MValue = udAllocType(double, record.data.multiPointM.pointsCount, udAF_Zero);
-      UD_ERROR_NULL(record.data.multiPointM.MValue, udR_MemoryAllocationFailure);
-      for (int i = 0; i < record.data.multiPointM.pointsCount; i++)
-        readPosition = UnpackDouble(readPosition, &record.data.multiPointM.MValue[i], buffer);
-    }
-  }
-  break;
-  default:
-  break;
   }
 
   pSHP->shpRecords.PushBack(record);
-  offset += readPosition;
 
 epilogue:
-  udFree(buffer);
 
-  if (result != udR_Success)
+  // set the pLeftLength to next record
+  if (result == udR_Success)
+    *pLeftLength -= *pRecordLength;
+  else
     vcSHP_ReleaseRecord(&record);
 
   return result;
@@ -565,11 +295,15 @@ epilogue:
 
 udResult vcSHP_LoadShpFile(vcSHP *pSHP, const char *pFilename)
 {
-  udResult result;
+  udResult result = udR_Success;
 
   udFile *pFile = nullptr;
   uint8_t *headerBuffer = nullptr;
-  uint32_t offset = 0;
+  uint8_t *tempPosition = nullptr;
+  uint8_t *cache0 = nullptr;
+  uint8_t *cache1 = nullptr;
+  int32_t totalRecordLength = 0;
+  uint8_t *pReadPosition = nullptr;
 
   vcSHP_Header &header = pSHP->shpHeader;
   UD_ERROR_CHECK(udFile_Open(&pFile, pFilename, udFOF_Read));
@@ -587,31 +321,118 @@ udResult vcSHP_LoadShpFile(vcSHP *pSHP, const char *pFilename)
   header.version = (headerBuffer[31] << 24) | (headerBuffer[30] << 16) | (headerBuffer[29] << 8) | headerBuffer[28];
   header.shapeType = (vcSHPType)((int32_t)((headerBuffer[35] << 24) | (headerBuffer[34] << 16) | (headerBuffer[33] << 8) | headerBuffer[32]));
 
-  offset = 36;
-  offset = UnpackDouble(offset, &header.MBRmin.x, headerBuffer);
-  offset = UnpackDouble(offset, &header.MBRmin.y, headerBuffer);
-  offset = UnpackDouble(offset, &header.MBRmax.x, headerBuffer);
-  offset = UnpackDouble(offset, &header.MBRmax.y, headerBuffer);
-  offset = UnpackDouble(offset, &header.ZRange.x, headerBuffer);
-  offset = UnpackDouble(offset, &header.ZRange.y, headerBuffer);
-  offset = UnpackDouble(offset, &header.MRange.x, headerBuffer);
-  offset = UnpackDouble(offset, &header.MRange.y, headerBuffer);
-
-  UD_ERROR_IF(offset != 100, udR_ParseError);
-  udFree(headerBuffer);
+  tempPosition = headerBuffer + 36;
+  memcpy(&header.MBRmin.x, tempPosition, sizeof(double));
+  tempPosition += sizeof(double);
+  memcpy(&header.MBRmin.y, tempPosition, sizeof(double));
+  tempPosition += sizeof(double);
+  memcpy(&header.MBRmax.x, tempPosition, sizeof(double));
+  tempPosition += sizeof(double);
+  memcpy(&header.MBRmax.y, tempPosition, sizeof(double));
+  tempPosition += sizeof(double);
+  memcpy(&header.ZRange.x, tempPosition, sizeof(double));
+  tempPosition += sizeof(double);
+  memcpy(&header.ZRange.y, tempPosition, sizeof(double));
+  tempPosition += sizeof(double);
+  memcpy(&header.MRange.x, tempPosition, sizeof(double));
+  tempPosition += sizeof(double);
+  memcpy(&header.MRange.y, tempPosition, sizeof(double));
 
   UD_ERROR_CHECK(pSHP->shpRecords.Init(32));
-  while (offset < header.fileLength)
+
+  totalRecordLength = header.fileLength - 100;
+  if (totalRecordLength < vcSHP_MemoryCache)
   {
-    result = vcSHP_LoadShpRecord(pSHP, pFile, offset, header.shapeType);
-    UD_ERROR_CHECK(result);
+    int32_t recordLength = 0;
+    int32_t leftLength = totalRecordLength;
+    cache0 = udAllocType(uint8_t, totalRecordLength, udAF_Zero);
+    UD_ERROR_CHECK(udFile_Read(pFile, cache0, totalRecordLength));
+
+    pReadPosition = cache0;
+    printf("total %d bytes has been read \n", totalRecordLength);
+
+    while (leftLength > 0)
+    {
+      result = vcSHP_LoadShpRecord(pSHP, &pReadPosition, header.shapeType, &leftLength, &recordLength);
+      UD_ERROR_CHECK(result);
+    }
+
   }
+  else
+  {
+    int32_t bytesToRead = totalRecordLength;
+    uint8_t **ppCurrentCache = nullptr;
+    int32_t recordLength = 0;
+    int32_t leftLength = 0;
+    uint8_t *lastCache = nullptr;
+    int32_t lastCacheSize = 0;
+
+    printf("total %d bytes to read \n", totalRecordLength);
+
+    while (bytesToRead > 0)
+    {
+      if (ppCurrentCache != &cache0)
+        ppCurrentCache = &cache0;
+      else
+        ppCurrentCache = &cache1;
+
+      //Check if the cache size needs to be expanded
+      int32_t cacheSize = vcSHP_MemoryCache;
+      if (result == udR_ReadFailure && recordLength > vcSHP_MemoryCache) // record larger than vcSHP_MemoryCache
+        cacheSize = recordLength;
+      if (leftLength + bytesToRead < vcSHP_MemoryCache)
+        cacheSize = leftLength + bytesToRead;
+
+      //allocate cache
+      *ppCurrentCache = udAllocType(uint8_t, cacheSize, udAF_Zero);
+      UD_ERROR_NULL(*ppCurrentCache, udR_MemoryAllocationFailure);
+
+      //copy left record(part of)
+      if (leftLength > 0)
+        memcpy(*ppCurrentCache, lastCache + lastCacheSize - leftLength, leftLength);
+
+      // release last cache
+      if (lastCache == cache0)
+        udFree(cache0);
+      else
+        udFree(cache1);
+      lastCache = nullptr;
+      lastCacheSize = 0;
+
+      //read some bytes
+      UD_ERROR_CHECK(udFile_Read(pFile, *ppCurrentCache + leftLength, cacheSize-leftLength));
+      bytesToRead -= (cacheSize - leftLength);
+      printf("%d bytes has been read, left %d\n", (cacheSize - leftLength), bytesToRead);
+
+      //read cache to records
+      pReadPosition = *ppCurrentCache;
+      leftLength = cacheSize;
+      while (leftLength > 0)
+      {
+        result = vcSHP_LoadShpRecord(pSHP, &pReadPosition, header.shapeType, &leftLength, &recordLength);
+        if (result != udR_Success)
+          break;
+
+        recordLength = 0;
+      }
+
+      // read error
+      if (result != udR_Success && result != udR_ReadFailure)
+        goto epilogue;
+
+      // to continue read
+      lastCache = *ppCurrentCache;
+      lastCacheSize = cacheSize;
+    }
+
+  }
+
 
 epilogue:
   udFile_Close(&pFile);
-
-  if (headerBuffer)
-    udFree(headerBuffer);
+  udFree(headerBuffer);
+  udFree(cache0);
+  udFree(cache1);
 
   return result;
 }
@@ -661,41 +482,25 @@ void vcSHP_AddModel(vcState *pProgramState, const udGeoZone& sourceZone, udProje
   switch (pRecord->shapeType)
   {
   case vcSHPType_Point:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.point, 1);
+  case vcSHPType_PointZ:
+  case vcSHPType_PointM:
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->points[0], 1);
   break;
   case vcSHPType_Polyline:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
+  case vcSHPType_PolylineZ:
+  case vcSHPType_PolylineM:
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->points, pRecord->pointsCount);
   break;
   case vcSHPType_Polygon:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.poly.points, pRecord->data.poly.pointsCount);
+  case vcSHPType_PolygonZ:
+  case vcSHPType_PolygonM:
+  case vcSHPType_MultiPatch:
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->points, pRecord->pointsCount);
   break;
   case vcSHPType_MultiPoint:
-  vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
-  break;
-  case vcSHPType_PointZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointZ.point, 1);
-  break;
-  case vcSHPType_PolylineZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
-  break;
-  case vcSHPType_PolygonZ:
-  case vcSHPType_MultiPatch:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyZ.points, pRecord->data.polyZ.pointsCount);
-  break;
   case vcSHPType_MultiPointZ:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointZ.points, pRecord->data.multiPointZ.pointsCount);
-  break;
-  case vcSHPType_PointM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Point, &pRecord->data.pointM.point, 1);
-  break;
-  case vcSHPType_PolylineM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_LineString, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
-  break;
-  case vcSHPType_PolygonM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_Polygon, pRecord->data.polyM.points, pRecord->data.polyM.pointsCount);
-  break;
   case vcSHPType_MultiPointM:
-    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->data.multiPointM.points, pRecord->data.multiPointM.pointsCount);
+    vcProject_UpdateNodeGeometryFromCartesian(&pProgramState->activeProject, pNode, sourceZone, udPGT_MultiPoint, pRecord->points, pRecord->pointsCount);
   break;
   case vcSHPType_Empty:
   break;
