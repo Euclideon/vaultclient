@@ -45,7 +45,7 @@ struct vcTiffImageFormat
   uint16 samplesPerPixel;
   uint16 photometric;
   uint16 planarconfig;
-  uint16 **ppColourPalette; // Stored RRR...GGG...BBB..., number of colours == 2 ^ bitsPerSample, also samplesPerPixel MUST = 1
+  uint16 *pColourPalette[3]; // number of colours == 2 ^ bitsPerSample, also samplesPerPixel MUST = 1
 };
 
 struct vcTiffConvertData;
@@ -61,6 +61,9 @@ struct TileData
   udVector2<uint32_t> currentTileCoords;
   uint64_t nTilePixels; // Can be less then the size of a tile
 };
+
+// TODO Strips should be supported...
+// struct Strip {};
 
 struct ScanLineData
 {
@@ -146,7 +149,7 @@ static udError vcTiff_SampleDataToColour(vcTiffImageFormat const & format, vcTif
     UD_ERROR_SET(udE_InvalidParameter);
 
   // We photometric is defined as colour map, we must have a colourmap loaded!
-  UD_ERROR_IF((format.ppColourPalette != nullptr) == (format.photometric == 2), udE_InvalidConfiguration);
+  UD_ERROR_IF((format.pColourPalette != nullptr) == (format.photometric == 2), udE_InvalidConfiguration);
 
   switch (format.sampleFormat)
   {
@@ -171,11 +174,11 @@ static udError vcTiff_SampleDataToColour(vcTiffImageFormat const & format, vcTif
       }
       else if (format.photometric == vcTP_ColourPalatte) // Assume data.samplesPerPixel == 1
       {
-        uint32_t nColours = (1ul << format.bitsPerSample);
+        //uint32_t nColours = (1ul << format.bitsPerSample);
         uint32_t index = uint32_t(data.t_int64[0]);
-        uint32_t red = (*format.ppColourPalette[index] >> 8);
-        uint32_t green = (*format.ppColourPalette[index] >> 8) + sizeof(uint16) * nColours;
-        uint32_t blue = (*format.ppColourPalette[index] >> 8) + sizeof(uint16) * nColours * 2;
+        uint32_t red = (format.pColourPalette[0][index] >> 8);
+        uint32_t green = (format.pColourPalette[1][index] >> 8);
+        uint32_t blue = (format.pColourPalette[2][index] >> 8);
         *pColour = 0xFF000000 | (red) | (green << 8) | (blue << 16);
       }
       else if (format.samplesPerPixel == 4) // rgba
@@ -213,11 +216,11 @@ static udError vcTiff_SampleDataToColour(vcTiffImageFormat const & format, vcTif
       }
       else if (format.photometric == vcTP_ColourPalatte) // Assume format.samplesPerPixel == 1
       {
-        uint32_t nColours = (1ul << format.bitsPerSample);
+        //uint32_t nColours = (1ul << format.bitsPerSample);
         uint32_t index = uint32_t(data.t_uint64[0]);
-        uint32_t red = (*format.ppColourPalette[index] >> 8);
-        uint32_t green = (*format.ppColourPalette[index] >> 8) + sizeof(uint16) * nColours;
-        uint32_t blue = (*format.ppColourPalette[index] >> 8) + sizeof(uint16) * nColours * 2;
+        uint32_t red = (format.pColourPalette[0][index] >> 8);
+        uint32_t green = (format.pColourPalette[1][index] >> 8);
+        uint32_t blue = (format.pColourPalette[2][index] >> 8);
         *pColour = 0xFF000000 | (red) | (green << 8) | (blue << 16);
       }
       else if (format.samplesPerPixel == 4) // rgba
@@ -703,7 +706,7 @@ udError TiffConvert_Open(struct udConvertCustomItem *pConvertInput, uint32_t eve
   UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_PHOTOMETRIC, &pData->format.photometric) != 1, udE_ReadFailure);    // Will a tif always have this tag?
 
   if (pData->format.photometric == PHOTOMETRIC_PALETTE)
-    UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_COLORMAP, &pData->format.ppColourPalette) != 1, udE_InvalidConfiguration);
+    UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_COLORMAP, &(pData->format.pColourPalette[0]), &(pData->format.pColourPalette[1]), &(pData->format.pColourPalette[2])) != 1, udE_InvalidConfiguration);
 
   UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_PLANARCONFIG, &pData->format.planarconfig) != 1, udE_ReadFailure);  // Will a tif always have this tag?
 
