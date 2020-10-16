@@ -153,6 +153,11 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
   int shape = m_shape;
   if (ImGui::Combo(udTempStr("%s##FilterShape%zu", vcString::Get("sceneFilterShape"), *pItemID), &shape, filterShapeNames, (int)udLengthOf(filterShapeNames)))
   {
+    // Change name if is still default
+    const char *defaultShapeNames[] = { vcString::Get("sceneExplorerFilterBoxDefaultName"), vcString::Get("sceneExplorerFilterCylinderDefaultName"), vcString::Get("sceneExplorerFilterSphereDefaultName") };
+    if (udStrEqual(m_pNode->pName, defaultShapeNames[m_shape]))
+      udProjectNode_SetName(pProgramState->activeProject.pProject, m_pNode, defaultShapeNames[shape]);
+    
     changed = true;
     m_shape = (vcQueryNodeFilterShape)shape;
     udProjectNode_SetMetadataString(m_pNode, "shape", GetNodeShape(m_shape));
