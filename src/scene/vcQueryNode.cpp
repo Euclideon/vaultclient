@@ -183,6 +183,10 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 
   if (changed)
   {
+    static udDouble3 minDouble = udDouble3::create(1e-7, 1e-7, 1e-7);
+    static udDouble3 maxDouble = udDouble3::create(1e7, 1e7, 1e7);
+    m_extents = udClamp(m_extents, minDouble, maxDouble);
+
     udProjectNode_SetMetadataDouble(m_pNode, "size.x", m_extents.x);
     udProjectNode_SetMetadataDouble(m_pNode, "size.y", m_extents.y);
     udProjectNode_SetMetadataDouble(m_pNode, "size.z", m_extents.z);
@@ -192,8 +196,6 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
     udProjectNode_SetMetadataDouble(m_pNode, "transform.rotation.r", m_ypr.z);
 
     this->ApplyDelta(pProgramState, udDouble4x4::identity());
-
-    //TODO: Save extents and rotation
   }
 }
 
