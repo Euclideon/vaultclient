@@ -22,10 +22,19 @@
 
 	.statusBox {
 		padding-top: 50px;
+		padding-bottom: 50px;
 		margin: auto;
+		margin-top: 25px;
+		max-width: 90%;
 		width: 500px;
 		font-size: x-large;
 		text-align: center;
+		color: black;
+		font-family: Arial, Helvetica, sans-serif;
+
+		border-radius: 25px;
+		border: 2px solid #3498db;
+		background-color: white;
 	}
 
 	/* From: https://www.w3schools.com/howto/howto_css_loader.asp */
@@ -67,11 +76,11 @@
 	</div>
 	<div id="statusFailure" class="statusBox" hidden>
 		<div class="failure">X</div><br />
-		<span>Sorry, it looks like your browser isn't supported in this version of udStream!<br /><br />Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
+		<span>Sorry, it looks like your browser isn't supported in this version of udStream!<br /><br /><small>Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</small></span>
 	</div>
 	<div id="statusFailureWebGL" class="statusBox" hidden>
 		<div class="failure">X</div><br />
-		<span>Sorry, it looks like your browser doesn't support WebGL 2.0!<br /><br />Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</span>
+		<span>Sorry, it looks like your browser doesn't support WebGL 2.0!<br /><br /><small>Please ensure you're using the latest version of Google Chrome, Microsoft Edge or Opera on a Desktop device or contact <a href="mailto:support@euclideon.com">Euclideon Support</a> for further assistance.</small></span>
 	</div>
 	<canvas id="canvas"></canvas>
 	<script>
