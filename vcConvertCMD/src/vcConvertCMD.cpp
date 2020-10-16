@@ -23,7 +23,9 @@
 
 void vcConvertCMD_ShowOptions()
 {
-  printf("Usage: udStreamConvertCMD [udStream server] [username] [password] [options] -i inputfile [-i anotherInputFile] [-region minX minY minZ maxX maxY maxZ] -o outputfile.uds\n");
+  printf("Usage: udStreamConvertCMD [udStream server] [username] [password] [options] -i inputfile [additionInputFiles...] [-ilist file] [-region minX minY minZ maxX maxY maxZ] -o outputfile.uds\n");
+  printf("   -i <inputFile>              - Add an input to the convert job. More files can be specified immediately after, folders will be searched for supported files recursively\n");
+  printf("   -ilist <file>               - File should be a text file with 1 input file per line\n");
   printf("   -resolution <res>           - override the resolution (0.01 = 1cm, 0.001 = 1mm)\n");
   printf("   -srid <sridCode>            - override the srid code for geolocation\n");
   printf("   -globalOffset <x,y,z>       - add an offset to all points, no spaces allowed in the x,y,z value\n");
@@ -128,6 +130,35 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
       {
         pSettings->files.PushBack(udStrdup(ppArgv[i++]));
       } while (i < argc && ppArgv[i][0] != '-'); // Continue until another option is seen
+    }
+    else if (udStrEquali(ppArgv[i], "-ilist") && i + 1 < argc) // This can read many inputs until another `-` is found
+    {
+      char *pFileList = nullptr;
+      size_t currentFileCount = pSettings->files.length;
+
+      if (udFile_Load(ppArgv[i + 1], &pFileList) == udR_Success && udStrlen(pFileList) > 3)
+      {
+        char *pCarat = pFileList;
+        const char *pFound = nullptr;
+        size_t len = 0;
+
+        do
+        {
+          pFound = udStrchr(pCarat, "\r\n", &len);
+          if (len > 1)
+          {
+            pCarat[len] = '\0';
+            pSettings->files.PushBack(udStrdup(pCarat));
+          }
+
+          pCarat += len + 1;
+        } while (pCarat[0] != '\0');
+
+        udFree(pFileList);
+      }
+
+      printf("Found %zu files listed in %s\n", pSettings->files.length - currentFileCount, ppArgv[i + 1]);
+      i += 2;
     }
     else if (udStrEquali(ppArgv[i], "-pause"))
     {
