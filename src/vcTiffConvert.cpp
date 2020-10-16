@@ -74,7 +74,7 @@ struct ScanLineData
 
 struct vcTiffConvertData
 {
-  TIFF *pTif;
+  TIFF *pTiff;
   vcTiffImageReaderDestroyFn pDestroy;
   vcTiffImageReaderReadPixelFn pRead;
 
@@ -141,7 +141,7 @@ static uint32_t vcTiff_To8BitSamplei(int64_t value, int32_t nBits)
   return (uint32_t)value;
 }
 
-static udError vcTiff_SampleDataToColour(vcTiffImageFormat const & format, vcTiffSampleData const & data, uint32_t *pColour)
+static udError vcTiff_SampleDataToColour(vcTiffImageFormat const &format, vcTiffSampleData const & data, uint32_t *pColour)
 {
   udError result;
 
@@ -149,7 +149,7 @@ static udError vcTiff_SampleDataToColour(vcTiffImageFormat const & format, vcTif
     UD_ERROR_SET(udE_InvalidParameter);
 
   // We photometric is defined as colour map, we must have a colourmap loaded!
-  UD_ERROR_IF((format.pColourPalette != nullptr) == (format.photometric == 2), udE_InvalidConfiguration);
+  UD_ERROR_IF((format.pColourPalette[0] != nullptr) == (format.photometric == 2), udE_InvalidConfiguration);
 
   switch (format.sampleFormat)
   {
@@ -282,7 +282,7 @@ epilogue:
   return result;
 }
 
-static udError vcTiff_DecodeSample(void * pBuf, uint64_t pixelIndex, vcTiffImageFormat const & format, uint32_t sampleIndex, vcTiffSampleData *pSample)
+static udError vcTiff_DecodeSample(void * pBuf, uint64_t pixelIndex, vcTiffImageFormat const &format, uint32_t sampleIndex, vcTiffSampleData *pSample)
 {
   udError result;
 
@@ -388,33 +388,33 @@ static udError vcTiff_LoadTile(vcTiffConvertData *pData, uint32_t x, uint32_t y)
   {
     if (pData->tile.pRaster == nullptr)
     {
-      pData->tile.pRaster = (uint8_t *)_TIFFmalloc(TIFFTileSize(pData->pTif));
+      pData->tile.pRaster = udAllocType(uint8_t, TIFFTileSize(pData->pTiff), udAF_Zero);
       UD_ERROR_NULL(pData->tile.pRaster, udE_MemoryAllocationFailure);
     }
-    UD_ERROR_IF(TIFFReadTile(pData->pTif, pData->tile.pRaster, px, py, 0, 0) == 0, udE_ReadFailure);
+    UD_ERROR_IF(TIFFReadTile(pData->pTiff, pData->tile.pRaster, px, py, 0, 0) == 0, udE_ReadFailure);
   }
   else
   {
     if (pData->tile.pRaster == nullptr)
     {
-      pData->tile.pRaster = (uint8_t *)_TIFFmalloc(TIFFTileSize(pData->pTif) * udMin(pData->format.samplesPerPixel, MAX_SAMPLES));
+      pData->tile.pRaster = udAllocType(uint8_t, TIFFTileSize(pData->pTiff) * udMin(pData->format.samplesPerPixel, MAX_SAMPLES), udAF_Zero);
       UD_ERROR_NULL(pData->tile.pRaster, udE_MemoryAllocationFailure);
     }
 
     size_t pixelCount = (size_t)pData->tile.tileDimensions.x * pData->tile.tileDimensions.y;
-    pBuf = (uint8 *)_TIFFmalloc(TIFFTileSize(pData->pTif)); // TODO could allocated this once per image
+    pBuf = udAllocType(uint8, TIFFTileSize(pData->pTiff), udAF_None); // TODO could allocated this once per image
     UD_ERROR_NULL(pBuf, udE_MemoryAllocationFailure);
 
     for (uint16 i = 0; i < udMin(pData->format.samplesPerPixel, MAX_SAMPLES); ++i)
     {
-      UD_ERROR_IF(TIFFReadTile(pData->pTif, pBuf, px, py, 0, i) == 0, udE_ReadFailure);
+      UD_ERROR_IF(TIFFReadTile(pData->pTiff, pBuf, px, py, 0, i) == 0, udE_ReadFailure);
       vcTiff_PackSamples(pData->tile.pRaster, pBuf, (uint32_t)pixelCount, pData->format.bitsPerSample, pData->format.samplesPerPixel, i);
     }
   }
 
   result = udE_Success;
 epilogue:
-  _TIFFfree(pBuf);
+  udFree(pBuf);
   return result;
 }
 
@@ -427,10 +427,10 @@ static udError vcTiffImageReaderInit_Tile(vcTiffConvertData *pData)
 
   pData->tile = {};
 
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_IMAGEWIDTH, &pData->imageDimensions.x) != 1, udE_ReadFailure);
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_IMAGELENGTH, &pData->imageDimensions.y) != 1, udE_ReadFailure);
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_TILEWIDTH, &pData->tile.tileDimensions.x) != 1, udE_ReadFailure);
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_TILELENGTH, &pData->tile.tileDimensions.y) != 1, udE_ReadFailure);
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_IMAGEWIDTH, &pData->imageDimensions.x) != 1, udE_ReadFailure);
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_IMAGELENGTH, &pData->imageDimensions.y) != 1, udE_ReadFailure);
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_TILEWIDTH, &pData->tile.tileDimensions.x) != 1, udE_ReadFailure);
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_TILELENGTH, &pData->tile.tileDimensions.y) != 1, udE_ReadFailure);
 
   UD_ERROR_CHECK(vcTiff_LoadTile(pData, 0, 0));
 
@@ -444,7 +444,7 @@ static void vcTiffImageReaderDestroy_Tile(vcTiffConvertData *pData)
   if (pData == nullptr)
     return;
 
-  _TIFFfree(pData->tile.pRaster);
+  udFree(pData->tile.pRaster);
   pData->tile.pRaster = nullptr;
 }
 
@@ -507,33 +507,33 @@ static udError vcTiff_LoadScanLine(vcTiffConvertData *pData, uint32_t row)
   {
     if (pData->scanLine.pRaster == nullptr)
     {
-      pData->scanLine.pRaster = (uint8 *)_TIFFmalloc(TIFFScanlineSize(pData->pTif));
+      pData->scanLine.pRaster = udAllocType(uint8_t, TIFFScanlineSize(pData->pTiff), udAF_None);
       UD_ERROR_NULL(pData->scanLine.pRaster, udE_MemoryAllocationFailure);
     }
 
-    UD_ERROR_IF(TIFFReadScanline(pData->pTif, pData->scanLine.pRaster, pData->scanLine.row) == 0, udE_ReadFailure);
+    UD_ERROR_IF(TIFFReadScanline(pData->pTiff, pData->scanLine.pRaster, pData->scanLine.row) == 0, udE_ReadFailure);
   }
   else
   {
     if (pData->scanLine.pRaster == nullptr)
     {
-      pData->scanLine.pRaster = (uint8 *)_TIFFmalloc(TIFFScanlineSize(pData->pTif) * udMin(pData->format.samplesPerPixel, MAX_SAMPLES));
+      pData->scanLine.pRaster = udAllocType(uint8_t, TIFFScanlineSize(pData->pTiff) * udMin(pData->format.samplesPerPixel, MAX_SAMPLES), udAF_None);
       UD_ERROR_NULL(pData->scanLine.pRaster, udE_MemoryAllocationFailure);
     }
 
-    pBuf = (uint8 *)_TIFFmalloc(TIFFScanlineSize(pData->pTif));
+    pBuf = udAllocType(uint8_t, TIFFScanlineSize(pData->pTiff), udAF_None);
     UD_ERROR_NULL(pBuf, udE_MemoryAllocationFailure);
 
     for (uint16 i = 0; i < pData->format.samplesPerPixel; ++i)
     {
-      UD_ERROR_IF(TIFFReadScanline(pData->pTif, pBuf, pData->scanLine.row, i) == 0, udE_ReadFailure);
+      UD_ERROR_IF(TIFFReadScanline(pData->pTiff, pBuf, pData->scanLine.row, i) == 0, udE_ReadFailure);
       vcTiff_PackSamples(pData->scanLine.pRaster, pBuf, pData->imageDimensions.x, pData->format.bitsPerSample, pData->format.samplesPerPixel, i);
     }
   }
 
   result = udE_Success;
 epilogue:
-  _TIFFfree(pBuf);
+  udFree(pBuf);
   return result;
 }
 
@@ -545,19 +545,13 @@ static udError vcTiffImageReaderInit_ScanLine(vcTiffConvertData *pData)
 
   pData->scanLine.currentPixel = 0;
 
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_IMAGEWIDTH, &pData->imageDimensions.x) != 1, udE_ReadFailure);
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_IMAGELENGTH, &pData->imageDimensions.y) != 1, udE_ReadFailure);
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_IMAGEWIDTH, &pData->imageDimensions.x) != 1, udE_ReadFailure);
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_IMAGELENGTH, &pData->imageDimensions.y) != 1, udE_ReadFailure);
 
   UD_ERROR_CHECK(vcTiff_LoadScanLine(pData, 0));
 
   result = udE_Success;
 epilogue:
-  /*if (result != udE_Success && pData != nullptr)
-  {
-    _TIFFfree(pData->scanLine.pRaster);
-    pData->scanLine.pRaster = nullptr;
-  }*/
-
   return result;
 }
 
@@ -566,7 +560,7 @@ static void vcTiffImageReaderDestroy_ScanLine(vcTiffConvertData *pData)
   if (pData == nullptr)
     return;
 
-  _TIFFfree(pData->scanLine.pRaster);
+  udFree(pData->scanLine.pRaster);
   pData->scanLine.pRaster = nullptr;
 }
 
@@ -666,7 +660,7 @@ static udError vcTiff_LoadNextDirectory(vcTiffConvertData *pData)
   pData->pRead = nullptr;
   ++pData->currentDirectory;
 
-  UD_ERROR_IF(TIFFReadDirectory(pData->pTif) == 0, udE_NotFound);
+  UD_ERROR_IF(TIFFReadDirectory(pData->pTiff) == 0, udE_NotFound);
   UD_ERROR_CHECK(vcTiff_InitReader(pData));
 
   result = udE_Success;
@@ -683,8 +677,8 @@ udError TiffConvert_Open(struct udConvertCustomItem *pConvertInput, uint32_t eve
 
   UD_ERROR_CHECK(vcTiff_GetDirctoryCount(pConvertInput->pName, &pData->directoryCount));
 
-  pData->pTif = TIFFOpen(pConvertInput->pName, "r");
-  UD_ERROR_NULL(pData->pTif, udE_OpenFailure);
+  pData->pTiff = TIFFOpen(pConvertInput->pName, "r");
+  UD_ERROR_NULL(pData->pTiff, udE_OpenFailure);
 
   pData->pointResolution = pointResolution;
   pData->origin = {origin[0], origin[1], origin[2]};
@@ -693,22 +687,22 @@ udError TiffConvert_Open(struct udConvertCustomItem *pConvertInput, uint32_t eve
 
   // TODO check for and deal with image depth; saved as (format.imageDepth)
   // TODO retrieve colour map
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_BITSPERSAMPLE, &pData->format.bitsPerSample) != 1, udE_ReadFailure);
-  if (TIFFGetField(pData->pTif, TIFFTAG_SAMPLEFORMAT, &pData->format.sampleFormat) != 1)
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_BITSPERSAMPLE, &pData->format.bitsPerSample) != 1, udE_ReadFailure);
+  if (TIFFGetField(pData->pTiff, TIFFTAG_SAMPLEFORMAT, &pData->format.sampleFormat) != 1)
     pData->format.sampleFormat = SAMPLEFORMAT_UINT; // Just assume unsigned int
 
-  if (TIFFGetField(pData->pTif, TIFFTAG_IMAGEDEPTH, &imageDepth) != 1)
+  if (TIFFGetField(pData->pTiff, TIFFTAG_IMAGEDEPTH, &imageDepth) != 1)
     pData->format.imageDepth = uint32(imageDepth);
   else
     pData->format.imageDepth = -1;
 
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_SAMPLESPERPIXEL, &pData->format.samplesPerPixel) != 1, udE_ReadFailure);
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_PHOTOMETRIC, &pData->format.photometric) != 1, udE_ReadFailure);    // Will a tif always have this tag?
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_SAMPLESPERPIXEL, &pData->format.samplesPerPixel) != 1, udE_ReadFailure);
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_PHOTOMETRIC, &pData->format.photometric) != 1, udE_ReadFailure);    // Will a tif always have this tag?
 
   if (pData->format.photometric == PHOTOMETRIC_PALETTE)
-    UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_COLORMAP, &(pData->format.pColourPalette[0]), &(pData->format.pColourPalette[1]), &(pData->format.pColourPalette[2])) != 1, udE_InvalidConfiguration);
+    UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_COLORMAP, &(pData->format.pColourPalette[0]), &(pData->format.pColourPalette[1]), &(pData->format.pColourPalette[2])) != 1, udE_InvalidConfiguration);
 
-  UD_ERROR_IF(TIFFGetField(pData->pTif, TIFFTAG_PLANARCONFIG, &pData->format.planarconfig) != 1, udE_ReadFailure);  // Will a tif always have this tag?
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_PLANARCONFIG, &pData->format.planarconfig) != 1, udE_ReadFailure);  // Will a tif always have this tag?
 
   UD_ERROR_CHECK(vcTiff_InitReader(pData));
 
@@ -799,8 +793,8 @@ void TiffConvert_Destroy(struct udConvertCustomItem *pConvertInput)
   if (pData->pDestroy)
     pData->pDestroy(pData);
 
-  if (pData->pTif != nullptr)
-    TIFFClose(pData->pTif);
+  if (pData->pTiff != nullptr)
+    TIFFClose(pData->pTiff);
 
   udFree(pData);
 }
@@ -812,8 +806,8 @@ void TiffConvert_Close(struct udConvertCustomItem *pConvertInput)
   if (pData->pDestroy)
     pData->pDestroy(pData);
 
-  if (pData->pTif != nullptr)
-    TIFFClose(pData->pTif);
+  if (pData->pTiff != nullptr)
+    TIFFClose(pData->pTiff);
 
   memset(pData, 0, sizeof(vcTiffConvertData));
 }
