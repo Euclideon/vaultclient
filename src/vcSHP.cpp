@@ -349,7 +349,6 @@ udResult vcSHP_LoadShpFile(vcSHP *pSHP, const char *pFilename)
     UD_ERROR_CHECK(udFile_Read(pFile, cache0, totalRecordLength));
 
     pReadPosition = cache0;
-    printf("total %d bytes has been read \n", totalRecordLength);
 
     while (leftLength > 0)
     {
@@ -366,8 +365,6 @@ udResult vcSHP_LoadShpFile(vcSHP *pSHP, const char *pFilename)
     int32_t leftLength = 0;
     uint8_t *lastCache = nullptr;
     int32_t lastCacheSize = 0;
-
-    printf("total %d bytes to read \n", totalRecordLength);
 
     while (bytesToRead > 0)
     {
@@ -402,7 +399,6 @@ udResult vcSHP_LoadShpFile(vcSHP *pSHP, const char *pFilename)
       //read some bytes
       UD_ERROR_CHECK(udFile_Read(pFile, *ppCurrentCache + leftLength, cacheSize-leftLength));
       bytesToRead -= (cacheSize - leftLength);
-      printf("%d bytes has been read, left %d\n", (cacheSize - leftLength), bytesToRead);
 
       //read cache to records
       pReadPosition = *ppCurrentCache;
