@@ -149,20 +149,6 @@ void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   bool changed = false;
 
-  const char *filterShapeNames[] = { vcString::Get("sceneFilterShapeBox"), vcString::Get("sceneFilterShapeCylinder"), vcString::Get("sceneFilterShapeSphere") };
-  int shape = m_shape;
-  if (ImGui::Combo(udTempStr("%s##FilterShape%zu", vcString::Get("sceneFilterShape"), *pItemID), &shape, filterShapeNames, (int)udLengthOf(filterShapeNames)))
-  {
-    // Change name if is still default
-    const char *defaultShapeNames[] = { vcString::Get("sceneExplorerFilterBoxDefaultName"), vcString::Get("sceneExplorerFilterCylinderDefaultName"), vcString::Get("sceneExplorerFilterSphereDefaultName") };
-    if (udStrEqual(m_pNode->pName, defaultShapeNames[m_shape]))
-      udProjectNode_SetName(pProgramState->activeProject.pProject, m_pNode, defaultShapeNames[shape]);
-    
-    changed = true;
-    m_shape = (vcQueryNodeFilterShape)shape;
-    udProjectNode_SetMetadataString(m_pNode, "shape", GetNodeShape(m_shape));
-  }
-
   ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
   changed |= ImGui::IsItemDeactivatedAfterEdit();
 
