@@ -887,13 +887,7 @@ void vcPOI::HandleSceneEmbeddedUI(vcState *pProgramState)
     ImGui::Unindent();
   }
 
-  if (m_hyperlink[0] != '\0' && ImGui::Button(udTempStr("%s '%s'", vcString::Get("scenePOILabelOpenHyperlink"), m_hyperlink)))
-  {
-    if (udStrEndsWithi(m_hyperlink, ".png") || udStrEndsWithi(m_hyperlink, ".jpg"))
-      pProgramState->pLoadImage = udStrdup(m_hyperlink);
-    else
-      vcWebFile_OpenBrowser(m_hyperlink);
-  }
+  vcIGSW_Markdown(pProgramState, udTempStr("%s\n[%s](%s)", m_description, m_hyperlink, m_hyperlink));
 }
 
 void vcPOI::HandleContextMenu(vcState *pProgramState)
