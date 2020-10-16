@@ -37,6 +37,7 @@ void vcConvertCMD_ShowOptions()
   printf("   -copyright <details>        - Adds the copyright information to the \"Copyright\" metadata field\n");
   printf("   -quicktest                  - Does a small test to test if positioning/geolocation is correct\n");
   printf("   -region                     - Parameters to export the region. Exp: -region 0.0 0.0 0.0 1.0 1.0 1.0\n");
+  printf("   -retainprimitives           - Include the primitives (triangles, etc) from supported formats\n");
 }
 
 struct vcConvertData
@@ -70,6 +71,7 @@ struct vcConvertCMDSettings
   bool pauseOnError;
   bool autoOverwrite;
   bool quicktest;
+  bool retainPrimitives;
 
   const char *pCopyright;
 
@@ -174,6 +176,11 @@ bool vcConvertCMD_ProcessCommandLine(int argc, const char **ppArgv, vcConvertCMD
     {
       printf("Quicktest!\n");
       pSettings->quicktest = true;
+      ++i;
+    }
+    else if (udStrEquali(ppArgv[i], "-retainprimitives"))
+    {
+      pSettings->retainPrimitives = true;
       ++i;
     }
     else if (udStrEquali(ppArgv[i], "-o") && i + 1 < argc)
@@ -344,6 +351,12 @@ int main(int argc, const char **ppArgv)
   if (settings.quicktest)
   {
     if (udConvert_SetEveryNth(pModel, 1000) != udE_Success)
+      cmdlineError = true;
+  }
+
+  if (settings.retainPrimitives)
+  {
+    if (udConvert_SetRetainPrimitives(pModel, 1) != udE_Success)
       cmdlineError = true;
   }
 
