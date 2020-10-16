@@ -44,15 +44,15 @@
     <div class="container-fluid" id="gallery">
 		<div class="row" style="height: 100px;">
 			<!-- Japan -->
-			<div class="col-4 p-1" v-for="project in projects">
+			<div class="col-3 p-1" v-for="project in projects">
 				<div class="card">
 					<a v-bind:href="project.project" target="framebox">
 						<div class="row no-gutters">
-							<div class="col-sm-12 col-md-6 col-xl-4" style="margin: auto; text-align:center;">
+							<div class="col-sm-12 col-md-8 col-xl-6" style="margin: auto; text-align:center;">
 								<img v-bind:src="project.image" class="card-img" v-bind:alt="project.name" style="width: 128px; height: 128px;">
 							</div>
-							<div class="col-md-6 col-xl-8 d-none d-md-block">
-								<div class="card-body p-1 m-1">
+							<div class="col-md-4 col-xl-6 d-none d-md-block">
+								<div class="card-body p-0 m-1">
 									<p class="card-title p-0 m-0 font-weight-bold">{{ project.name }}</p>
 									<p class="card-text d-none d-xl-block">{{ project.description }}</p>
 								</div>
@@ -68,7 +68,7 @@
 	var app = new Vue({
 	  el: '#gallery',
 	  data: {
-		//Only supports 3 projects currently; after that need to support multi-card carousels
+		//Only supports 4 projects currently; after that need to support multi-card carousels
 		//Perhaps this should come from the featured projects API if empty?
 		projects: [
 			{
@@ -87,7 +87,13 @@
 				name: "South-East Queensland",
 				image: "https://models.euclideon.com/demos/thumbs/seq.png",
 				project: "udStream.html?f=euclideon:project/b8bda426-a3b1-4359-8eed-d8d692928c2e",
-				description: "Fly over Brisbane and the Gold Coast in South-East Queensland."
+				description: "Fly over Brisbane and the Gold Coast."
+			},
+			{
+				name: "Great Barrier Reef",
+				image: "https://models.euclideon.com/demos/thumbs/GreatBarrierReef.jpg",
+				project: "udStream.html?f=euclideon:project/a8a0010b-e72b-4557-a449-fa97b6847639",
+				description: "The Great Barrier is the largest coral reef ecosystem on Earth."
 			}
 		]
 	  }
