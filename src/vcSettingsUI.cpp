@@ -56,8 +56,11 @@ void vcSettingsUI_Cleanup(vcState * /*pProgramState*/)
     vcTexture_Destroy(&s_mapTiles[i].pPreviewTexture);
 }
 
-void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, vcSettingCategory category = vcSC_All)
+void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, vcSettingCategory category = vcSC_All, bool *pReset = nullptr)
 {
+  if (pReset != nullptr)
+    *pReset = false;
+
   ImGui::Columns(2, nullptr, false);
   ImGui::SetColumnWidth(0, ImGui::GetWindowSize().x - 125.f);
   ImGui::TextUnformatted(pSettingTitle);
@@ -65,7 +68,12 @@ void vcSettingsUI_ShowHeader(vcState *pProgramState, const char *pSettingTitle, 
   if (category != vcSC_All)
   {
     if (ImGui::Button(udTempStr("%s##CategoryRestore", vcString::Get("settingsRestoreDefaults")), ImVec2(-1, 0)))
+    {
+      if (pReset != nullptr)
+        *pReset = true;
       vcSettings_Load(&pProgramState->settings, true, category);
+    }
+
   }
   ImGui::Columns(1);
   ImGui::Separator();
@@ -221,7 +229,8 @@ void vcSettingsUI_Show(vcState *pProgramState)
       {
         if (pProgramState->activeSetting == vcSR_Appearance)
         {
-          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsAppearance"), vcSC_Appearance);
+          bool viewportChagned = false;
+          vcSettingsUI_ShowHeader(pProgramState, vcString::Get("settingsAppearance"), vcSC_Appearance, &viewportChagned);
 
           vcSettingsUI_LangCombo(pProgramState);
           ImGui::SameLine();
@@ -264,7 +273,10 @@ void vcSettingsUI_Show(vcState *pProgramState)
             pProgramState->settings.presentation.columnSizeCorrect = false;
 
           const char *mapModeViewportOptions[] = { vcString::Get("settingsAppearanceMapModeViewportNone"), vcString::Get("settingsAppearanceMapModeViewportLeft"), vcString::Get("settingsAppearanceMapModeViewportRight") };
-          if (ImGui::Combo(vcString::Get("settingsAppearanceMapModeViewport"), (int*)&pProgramState->settings.mapModeViewport, mapModeViewportOptions, (int)udLengthOf(mapModeViewportOptions)))
+          if (ImGui::Combo(vcString::Get("settingsAppearanceMapModeViewport"), (int *)&pProgramState->settings.mapModeViewport, mapModeViewportOptions, (int)udLengthOf(mapModeViewportOptions)))
+            viewportChagned = true;
+
+          if(viewportChagned)
           {
             for (int i = 0; i < vcMaxViewportCount; ++i)
               pProgramState->settings.camera.mapMode[i] = false;
