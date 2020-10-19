@@ -10,6 +10,17 @@
 #include "udMath.h"
 #include "tiffio.h"
 
+/*
+  NOTES:
+
+  Supports:
+
+
+  Does NOT support (yet):
+    - different bit-widths for different samples (libtiff does not actually support this either)
+    - different formats for each sample (even if we support this, it would suggest we are dealing with something other than image data)
+*/
+
 // There could be an arbitrary number of samples, but currently we only support 4: red, green, blue, alpha
 #define MAX_SAMPLES 4
 
@@ -63,7 +74,12 @@ struct TileData
 };
 
 // TODO Strips should be supported...
-// struct Strip {};
+//struct Strip
+//{
+//  uint8_t *pRaster;
+//  uint64_t currentPixel;
+//  uint32 row;
+//};
 
 struct ScanLineData
 {
@@ -106,11 +122,13 @@ static void vcTiff_PackSamples(uint8_t *pBuf, uint8_t *pSampleBuf, uint32_t samp
   }
   else
   {
+    size_t bytes = sampleBitWidth / CHAR_BIT;
     for (size_t i = 0; i < sampleCount; ++i)
     {
-      uint8_t *pDest = pBuf + sample + i * ((size_t)samplesPerPixel + sampleBitWidth / CHAR_BIT);
-      uint8_t *pSrc = pSampleBuf + i * sampleBitWidth / CHAR_BIT;
-      memcpy(pDest, pSrc, sampleBitWidth);
+      size_t srcOffset = i * bytes;
+      uint8_t *pDest = pBuf + sample + srcOffset * (size_t)samplesPerPixel;
+      uint8_t *pSrc = pSampleBuf + srcOffset;
+      memcpy(pDest, pSrc, bytes);
     }
   }
 }
@@ -148,8 +166,8 @@ static udError vcTiff_SampleDataToColour(vcTiffImageFormat const &format, vcTiff
   if (pColour == nullptr)
     UD_ERROR_SET(udE_InvalidParameter);
 
-  // We photometric is defined as colour map, we must have a colourmap loaded!
-  UD_ERROR_IF((format.pColourPalette[0] != nullptr) == (format.photometric == 2), udE_InvalidConfiguration);
+  // When photometric is defined as PHOTOMETRIC_PALETTE, we must have a colourmap loaded!
+  UD_ERROR_IF((format.pColourPalette[0] == nullptr) == (format.photometric == PHOTOMETRIC_PALETTE), udE_InvalidConfiguration);
 
   switch (format.sampleFormat)
   {
@@ -674,6 +692,7 @@ udError TiffConvert_Open(struct udConvertCustomItem *pConvertInput, uint32_t eve
   udError result = udE_Failure;
   vcTiffConvertData *pData = (vcTiffConvertData *)pConvertInput->pData;
   uint32 imageDepth;
+  uint16 sampleFormats[MAX_SAMPLES] = {};
 
   UD_ERROR_CHECK(vcTiff_GetDirctoryCount(pConvertInput->pName, &pData->directoryCount));
 
@@ -686,23 +705,34 @@ udError TiffConvert_Open(struct udConvertCustomItem *pConvertInput, uint32_t eve
   pData->convertFlags = flags;
 
   // TODO check for and deal with image depth; saved as (format.imageDepth)
-  // TODO retrieve colour map
+
+  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_SAMPLESPERPIXEL, &pData->format.samplesPerPixel) != 1, udE_ReadFailure);
   UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_BITSPERSAMPLE, &pData->format.bitsPerSample) != 1, udE_ReadFailure);
-  if (TIFFGetField(pData->pTiff, TIFFTAG_SAMPLEFORMAT, &pData->format.sampleFormat) != 1)
+  if (TIFFGetField(pData->pTiff, TIFFTAG_SAMPLEFORMAT, sampleFormats) != 1)
+  {
     pData->format.sampleFormat = SAMPLEFORMAT_UINT; // Just assume unsigned int
+  }
+  else
+  {
+    // Currently, all samples must have the same type.
+    for (int i = 1; i < pData->format.samplesPerPixel; ++i)
+      UD_ERROR_IF((sampleFormats[i] != 0) && (sampleFormats[i] != sampleFormats[0]), udE_InvalidConfiguration);
+    pData->format.sampleFormat = sampleFormats[0];
+  }
 
   if (TIFFGetField(pData->pTiff, TIFFTAG_IMAGEDEPTH, &imageDepth) != 1)
     pData->format.imageDepth = uint32(imageDepth);
   else
     pData->format.imageDepth = -1;
 
-  UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_SAMPLESPERPIXEL, &pData->format.samplesPerPixel) != 1, udE_ReadFailure);
   UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_PHOTOMETRIC, &pData->format.photometric) != 1, udE_ReadFailure);    // Will a tif always have this tag?
 
   if (pData->format.photometric == PHOTOMETRIC_PALETTE)
     UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_COLORMAP, &(pData->format.pColourPalette[0]), &(pData->format.pColourPalette[1]), &(pData->format.pColourPalette[2])) != 1, udE_InvalidConfiguration);
 
   UD_ERROR_IF(TIFFGetField(pData->pTiff, TIFFTAG_PLANARCONFIG, &pData->format.planarconfig) != 1, udE_ReadFailure);  // Will a tif always have this tag?
+  if (pData->format.samplesPerPixel == 1)
+    pData->format.planarconfig = PLANARCONFIG_CONTIG; //For some reason, some files with 1 sample per pixel have planar config as PLANARCONFIG_SEPARATE.
 
   UD_ERROR_CHECK(vcTiff_InitReader(pData));
 
