@@ -11,6 +11,20 @@
 			color: #FFFFFF;
 			overflow: hidden;
 		}
+
+		.euccard  {
+			background: none !important;
+			color: #FFFFFF;
+		}
+
+		.euccard a {
+			color: #ffffff;
+		}
+
+		.euccard :hover {
+			color: #2cccd3;
+			text-decoration: none;
+		}
 	</style>
 
 	<title>udStream Showcase</title>
@@ -44,11 +58,11 @@
     <div class="container-fluid" id="gallery">
 		<div class="row" style="height: 100px;">
 			<!-- Japan -->
-			<div class="col-3 p-1" v-for="project in projects">
-				<div class="card">
+			<div class="col-3 p-1 euccard" v-for="project in projects">
+				<div class="card euccard">
 					<a v-bind:href="project.project" target="framebox">
 						<div class="row no-gutters">
-							<div class="col-sm-12 col-md-8 col-xl-6" style="margin: auto; text-align:center;">
+							<div class="col-sm-12 col-md-8 col-xl-6" style="margin: auto; text-align:right;">
 								<img v-bind:src="project.image" class="card-img" v-bind:alt="project.name" style="width: 128px; height: 128px;">
 							</div>
 							<div class="col-md-4 col-xl-6 d-none d-md-block">
