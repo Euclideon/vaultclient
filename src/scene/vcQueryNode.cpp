@@ -12,18 +12,6 @@
 #include "imgui.h"
 #include "imgui_ex/vcImGuiSimpleWidgets.h"
 
-static const char *GetNodeShape(vcQueryNodeFilterShape shape)
-{
-  if (shape == vcQNFS_Box)
-    return "box";
-  else if (shape == vcQNFS_Sphere)
-    return "sphere";
-  else if (shape == vcQNFS_Cylinder)
-    return "cylinder";
-  else
-    return "";
-}
-
 vcQueryNode::vcQueryNode(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState) :
   vcSceneItem(pProject, pNode, pProgramState),
   m_shape(vcQNFS_Box),
@@ -148,15 +136,6 @@ void vcQueryNode::ApplyDelta(vcState *pProgramState, const udDouble4x4 &delta)
 void vcQueryNode::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
 {
   bool changed = false;
-
-  const char *filterShapeNames[] = { vcString::Get("sceneFilterShapeBox"), vcString::Get("sceneFilterShapeCylinder"), vcString::Get("sceneFilterShapeSphere") };
-  int shape = m_shape;
-  if (ImGui::Combo(udTempStr("%s##FilterShape%zu", vcString::Get("sceneFilterShape"), *pItemID), &shape, filterShapeNames, (int)udLengthOf(filterShapeNames)))
-  {
-    changed = true;
-    m_shape = (vcQueryNodeFilterShape)shape;
-    udProjectNode_SetMetadataString(m_pNode, "shape", GetNodeShape(m_shape));
-  }
 
   ImGui::InputScalarN(udTempStr("%s##FilterPosition%zu", vcString::Get("sceneFilterPosition"), *pItemID), ImGuiDataType_Double, &m_center.x, 3);
   changed |= ImGui::IsItemDeactivatedAfterEdit();
