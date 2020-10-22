@@ -5,6 +5,7 @@
 #include "vcCamera.h"
 #include "udRenderContext.h"
 #include "vcSettings.h"
+#include "util/vcVideoExport.h"
 
 struct udPointCloud;
 struct vcState;
@@ -35,7 +36,6 @@ private:
   char m_exportPath[vcMaxPathLength];
   int m_selectedResolutionIndex;
   int m_selectedExportFPSIndex;
-  int m_selectedExportFormatIndex;
   vcLineInstance *m_pLine;
   int m_selectedFlightPoint;
 
@@ -49,6 +49,9 @@ private:
 
   vcState *m_pProgramState;
 
+  vcVideoExportSettings m_exportSettings;
+  vcVideoExport *pExport;
+
   void UpdateCameraPosition(vcState *pProgramState);
   void UpdateLinePoints();
   void UpdateCenterPoint();
@@ -56,7 +59,6 @@ private:
   void SaveFlightPoints(vcState *pProgramState);
   void SmoothFlightPoints();
   void LerpFlightPoints(double timePosition, const vcFlightPoint &flightPoint1, const vcFlightPoint &flightPoint2, udDouble3 *pLerpedPosition, udDouble2 *pLerpedHeadingPitch);
-  const char* GenerateFrameExportPath(int frameIndex);
 
 public:
   vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);

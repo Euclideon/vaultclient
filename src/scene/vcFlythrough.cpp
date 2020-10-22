@@ -20,11 +20,6 @@
 #include "vcError.h"
 
 static const int vcFlythroughExportFPS[] = { 12, 24, 30, 60, 120 };
-const char *vcFlythroughExportFormats[] =
-{
-  "png",
-  "jpg"
-};
 static const udUInt2 vcScreenshotResolutions[] = { { 1280, 720 }, { 1920, 1080 }, { 4096, 2160 } };
 const char *vcScreenshotResolutionNameKeys[] = { "settingsScreenshotRes720p", "settingsScreenshotRes1080p", "settingsScreenshotRes4K" };
 
@@ -39,7 +34,8 @@ vcFlythrough::vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *p
   m_exportPath[0] = '\0';
   m_selectedResolutionIndex = (int)udLengthOf(vcScreenshotResolutions) - 1;
   m_selectedExportFPSIndex = 3;
-  m_selectedExportFormatIndex = 0;
+  memset(&m_exportSettings, 0, sizeof(m_exportSettings));
+  pExport = nullptr;
   m_pLine = nullptr;
   m_selectedFlightPoint = -1;
   m_centerPoint = udDouble3::zero();
@@ -120,24 +116,26 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
 
   if (!m_selected)
     m_state = vcFTS_None;
-
+  
   if (m_state == vcFTS_Exporting)
   {
     if (pProgramState->screenshot.pImage != nullptr)
     {
       if (m_exportInfo.currentFrame >= 0)
       {
-        const char *pSavePath = udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
-        udResult saveResult = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), pSavePath);
+        udResult saveResult = vcVideoExport_AddFrame(pExport, pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext));
 
+        //const char *pSavePath = udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
+        //udResult saveResult = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), pSavePath);
+        
         if (saveResult != udR_Success)
         {
           ErrorItem flythroughSaveError = {};
           flythroughSaveError.source = vcES_File;
-          flythroughSaveError.pData = udStrdup(pSavePath);
+          flythroughSaveError.pData = udStrdup(m_exportSettings.filename);
           flythroughSaveError.resultCode = saveResult;
           vcError_AddError(pProgramState, flythroughSaveError);
-
+        
           m_state = vcFTS_None;
           pProgramState->exportVideo = false;
           vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
@@ -198,17 +196,9 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
     {
       if (m_state == vcFTS_Exporting)
       {
+        vcVideoExport_Complete(&pExport);
         pProgramState->exportVideo = false;
         vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
-        //system("./assets/bin/ffmpeg.exe -y -f image2 -framerate 60 -i ./_temp/%05d.png -c:v vp9 -b:v 1M output.avi");
-        //udFindDir *pDir = nullptr;
-        //udOpenDir(&pDir, "./_temp");
-        //do
-        //{
-        //  if (!pDir->isDirectory)
-        //    udFileDelete(udTempStr("./_temp/%s", pDir->pFilename));
-        //} while (udReadDir(pDir) == udR_Success);
-        //udCloseDir(&pDir);
       }
 
       m_state = vcFTS_None;
@@ -417,33 +407,59 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
         ImGui::EndCombo();
       }
 
-      if (ImGui::BeginCombo(vcString::Get("flythroughExportFormat"), vcFlythroughExportFormats[m_selectedExportFormatIndex]))
+      const char *vcFlythroughExportFormats[] =
       {
-        for (size_t i = 0; i < udLengthOf(vcFlythroughExportFormats); ++i)
+        "PNG Sequence",
+        "JPG Sequence",
+
+#if VC_HAS_WINDOWSMEDIAFOUNDATION
+        "H264 MP4",
+#endif
+      };
+
+      const char *vcFlythroughExportFormatExtensions[] =
+      {
+        nullptr, //"PNG Sequence",
+        nullptr, //"JPG Sequence",
+
+#if VC_HAS_WINDOWSMEDIAFOUNDATION
+        ".mp4", //"H264 MP4",
+#endif
+      };
+
+      UDCOMPILEASSERT(udLengthOf(vcFlythroughExportFormats) == vcVideoExportFormat_Count, "Bad Length!");
+      UDCOMPILEASSERT(udLengthOf(vcFlythroughExportFormatExtensions) == vcVideoExportFormat_Count, "Bad Length!");
+
+      if (ImGui::BeginCombo(vcString::Get("flythroughExportFormat"), vcFlythroughExportFormats[m_exportSettings.format]))
+      {
+        for (size_t i = 0; i < vcVideoExportFormat_Count; ++i)
         {
           if (ImGui::Selectable(vcFlythroughExportFormats[i]))
-            m_selectedExportFormatIndex = (int)i;
+            m_exportSettings.format = (vcVideoExportFormat)i;
         }
 
         ImGui::EndCombo();
       }
 
-      vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportPath, udLengthOf(m_exportPath), nullptr, 0, vcFDT_SelectDirectory, nullptr);
+      if (vcFlythroughExportFormatExtensions[m_exportSettings.format] == nullptr) // Some sort of folder required
+        vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportSettings.filename, udLengthOf(m_exportSettings.filename), nullptr, 0, vcFDT_SelectDirectory, nullptr);
+      else
+        vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportSettings.filename, udLengthOf(m_exportSettings.filename), &vcFlythroughExportFormatExtensions[m_exportSettings.format], 1, vcFDT_SaveFile, nullptr);
 
-      if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportPath[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
+      if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportSettings.filename[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
       {
         vcModals_OpenModal(pProgramState, vcMT_FlythroughExport);
-        int frameIndex = 0;
-        const char *pFilepath = GenerateFrameExportPath(frameIndex);
-        if (vcModals_OverwriteExistingFile(pProgramState, pFilepath, vcString::Get("flythroughExportAlreadyExists")))
+        //int frameIndex = 0;
+        //const char *pFilepath = GenerateFrameExportPath(frameIndex);
+        //if (vcModals_OverwriteExistingFile(pProgramState, pFilepath, vcString::Get("flythroughExportAlreadyExists")))
         {
           // Delete Overwritten Flythrough Images
-          while (udFileExists(pFilepath) == udR_Success)
-          {
-            udFileDelete(pFilepath);
-            ++frameIndex;
-            pFilepath = GenerateFrameExportPath(frameIndex);
-          }
+          //while (udFileExists(pFilepath) == udR_Success)
+          //{
+          //  udFileDelete(pFilepath);
+          //  ++frameIndex;
+          //  pFilepath = GenerateFrameExportPath(frameIndex);
+          //}
 
           m_state = vcFTS_Exporting;
           pProgramState->screenshot.pImage = nullptr;
@@ -452,6 +468,12 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
           pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = this;
           pProgramState->exportVideo = true;
           pProgramState->exportVideoResolution = vcScreenshotResolutions[m_selectedResolutionIndex];
+
+          m_exportSettings.width = pProgramState->exportVideoResolution.x;
+          m_exportSettings.height = pProgramState->exportVideoResolution.y;
+          m_exportSettings.fps = vcFlythroughExportFPS[m_selectedExportFPSIndex];
+
+          vcVideoExport_BeginExport(&pExport, m_exportSettings);
         }
       }
 
@@ -632,9 +654,4 @@ void vcFlythrough::LerpFlightPoints(double timePosition, const vcFlightPoint &fl
 
   if (pLerpedHeadingPitch != nullptr)
     *pLerpedHeadingPitch = udLerp(flightPoint1.m_CameraHeadingPitch, flightPoint2.m_CameraHeadingPitch, lerp);
-}
-
-const char* vcFlythrough::GenerateFrameExportPath(int frameIndex)
-{
-  return udTempStr("%s/%05d.%s", m_exportPath, frameIndex, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
 }
