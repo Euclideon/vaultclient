@@ -1865,6 +1865,7 @@ void vcModals_DrawImportAnnotations(vcState *pProgramState)
 {
   static vcCSVImportSettings importSettings = {};
   static udGeoZone importZone = {};
+  const uint64_t maxFileReadBytes = 1024 * 64;
 
   if (pProgramState->openModals & (1 << vcMT_ImportAnnotations))
   {
@@ -1978,7 +1979,7 @@ void vcModals_DrawImportAnnotations(vcState *pProgramState)
         if (ImGui::Button(vcString::Get("annotationsAddToScene"), ImVec2(100.f, 0)))
         {
           // read remaining bytes
-          vcCSV_Read(pProgramState->pImportAnnotationsContext);
+          vcCSV_Read(pProgramState->pImportAnnotationsContext, maxFileReadBytes);
 
           udProjectNode *pDefaultParent = nullptr;
           if (udProjectNode_Create(pProgramState->activeProject.pProject, &pDefaultParent, pProgramState->activeProject.pRoot, "Folder", vcString::Get("exAnnotationsIOImportFolderName"), nullptr, nullptr) != udE_Success)
