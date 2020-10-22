@@ -854,6 +854,16 @@ void vcPOI::HandleSceneExplorerUI(vcState *pProgramState, size_t *pItemID)
     const char *optStrings[] = { "back", "front", "none" };
     if (ImGui::Combo(udTempStr("%s##%zu", vcString::Get("polyModelCullFace"), *pItemID), (int *)&m_attachment.cullMode, uiStrings, (int)udLengthOf(uiStrings)))
       udProjectNode_SetMetadataString(m_pNode, "culling", optStrings[m_attachment.cullMode]);
+
+    if (ImGui::Button(vcString::Get("removeModelFromPOI")))
+    {
+      udFree(m_attachment.pPathLoaded);
+      vcPolygonModel_Destroy(&m_attachment.pModel);
+
+      memset(&m_attachment, 0, sizeof(m_attachment));
+      m_attachment.segmentIndex = -1;
+      m_attachment.moveSpeed = 16.667; //60km/hr
+    }
   }
 }
 
