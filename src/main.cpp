@@ -2006,8 +2006,16 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuToggleViewport"), vcB_Invalid, vcMBBI_SplitViewport, vcMBBG_SameGroup))
         vcMain_ToggleViewport(pProgramState);
 
-      if (vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), vcB_Invalid, vcMBBI_Help, vcMBBG_SameGroup))
-        vcWebFile_OpenBrowser("https://desk.euclideon.com/");
+      vcMenuBarButton(pProgramState->pUITexture, vcString::Get("menuHelp"), vcB_Invalid, vcMBBI_Help, vcMBBG_SameGroup);
+      if (ImGui::BeginPopupContextItem("helpMenu", 0))
+      {
+        if (ImGui::MenuItem(vcString::Get("menuOpenGuide")))
+          vcModals_OpenModal(pProgramState, vcMT_UserGuide);
+        if (ImGui::MenuItem(vcString::Get("menuOpenSupport")))
+          vcWebFile_OpenBrowser("https://desk.euclideon.com/");
+
+        ImGui::EndPopup();
+      }
 
       if (pProgramState->lastSuccessfulSave + 5.0 > udGetEpochSecsUTCf())
       {

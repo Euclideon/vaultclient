@@ -2174,6 +2174,56 @@ void vcModals_DrawImportAnnotations(vcState *pProgramState)
   }
 }
 
+void vcModals_DrawUserGuide(vcState *pProgramState)
+{
+  if (pProgramState->openModals & (1 << vcMT_UserGuide))
+  {
+    ImGui::OpenPopup("###modalUserGuide");
+    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
+  }
+
+  if (ImGui::BeginPopupModal("###modalUserGuide", nullptr, ImGuiWindowFlags_NoTitleBar))
+  {
+    if (pProgramState->closeModals & (1 << vcMT_UserGuide))
+      ImGui::CloseCurrentPopup();
+    else
+      pProgramState->modalOpen = true;
+
+    static const char *pGuideData = nullptr;
+
+#ifdef GIT_BUILD
+    const bool reload = false;
+#else
+    bool reload = ImGui::Button("Reload");
+    ImGui::SameLine();
+#endif
+
+    if (reload || pGuideData == nullptr)
+    {
+      udFree(pGuideData);
+      udFile_Load("asset://assets/guide/userguide.md", &pGuideData);
+    }
+
+    if (ImGui::Button(vcString::Get("popupClose")))
+    {
+      udFree(pGuideData);
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::Separator();
+
+    if (pGuideData != nullptr)
+    {
+      if (ImGui::BeginChild("UserGuideBody"))
+        vcIGSW_Markdown(pProgramState, pGuideData, "asset://assets/guide/");
+
+      ImGui::EndChild();
+    }
+
+    ImGui::EndPopup();
+  }
+}
+
 void vcModals_OpenModal(vcState *pProgramState, vcModalTypes type)
 {
   pProgramState->openModals |= (1 << type);
@@ -2210,6 +2260,7 @@ void vcModals_DrawModals(vcState *pProgramState)
   vcModals_DrawConvert(pProgramState);
   vcModals_DrawFlythroughExport(pProgramState);
   vcModals_DrawImportAnnotations(pProgramState);
+  vcModals_DrawUserGuide(pProgramState);
 
   if (gShowInputControlsNextHack && !pProgramState->modalOpen && pProgramState->hasUsedMouse)
   {
