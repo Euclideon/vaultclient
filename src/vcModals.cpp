@@ -2191,15 +2191,20 @@ void vcModals_DrawUserGuide(vcState *pProgramState)
 
     static const char *pGuideData = nullptr;
 
-    if (ImGui::Button("Reload") || pGuideData == nullptr)
+#ifdef GIT_BUILD
+    const bool reload = false;
+#else
+    bool reload = ImGui::Button("Reload");
+    ImGui::SameLine();
+#endif
+
+    if (reload || pGuideData == nullptr)
     {
       udFree(pGuideData);
       udFile_Load("asset://assets/guide/userguide.md", &pGuideData);
     }
 
-    ImGui::SameLine();
-
-    if (ImGui::Button("Close"))
+    if (ImGui::Button(vcString::Get("popupClose")))
     {
       udFree(pGuideData);
       ImGui::CloseCurrentPopup();
