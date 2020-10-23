@@ -57,6 +57,8 @@ void vcFlythrough::CancelExport(vcState *pProgramState)
     m_exportInfo.currentFrame = -1;
     pProgramState->pViewports[0].cameraInput.pAttachedToSceneItem = nullptr;
     pProgramState->exportVideo = false;
+    vcVideoExport_Complete(&pExport);
+    CleanFiles();
     vcModals_CloseModal(pProgramState, vcMT_FlythroughExport);
   }
 }
@@ -417,18 +419,18 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 #endif
       };
 
-      const char *vcFlythroughExportFormatExtensions[] =
-      {
-        nullptr, //"PNG Sequence",
-        nullptr, //"JPG Sequence",
-
-#if VC_HAS_WINDOWSMEDIAFOUNDATION
-        ".mp4", //"H264 MP4",
-#endif
-      };
+//      const char *vcFlythroughExportFormatExtensions[] =
+//      {
+//        ".png", //"PNG Sequence",
+//        ".jpg", //"JPG Sequence",
+//
+//#if VC_HAS_WINDOWSMEDIAFOUNDATION
+//        ".mp4", //"H264 MP4",
+//#endif
+//      };
 
       UDCOMPILEASSERT(udLengthOf(vcFlythroughExportFormats) == vcVideoExportFormat_Count, "Bad Length!");
-      UDCOMPILEASSERT(udLengthOf(vcFlythroughExportFormatExtensions) == vcVideoExportFormat_Count, "Bad Length!");
+      //UDCOMPILEASSERT(udLengthOf(vcFlythroughExportFormatExtensions) == vcVideoExportFormat_Count, "Bad Length!");
 
       if (ImGui::BeginCombo(vcString::Get("flythroughExportFormat"), vcFlythroughExportFormats[m_exportSettings.format]))
       {
@@ -441,25 +443,36 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
         ImGui::EndCombo();
       }
 
-      if (vcFlythroughExportFormatExtensions[m_exportSettings.format] == nullptr) // Some sort of folder required
-        vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportSettings.filename, udLengthOf(m_exportSettings.filename), nullptr, 0, vcFDT_SelectDirectory, nullptr);
-      else
-        vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportSettings.filename, udLengthOf(m_exportSettings.filename), &vcFlythroughExportFormatExtensions[m_exportSettings.format], 1, vcFDT_SaveFile, nullptr);
-
-      if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), (m_exportSettings.filename[0] == '\0' ? (ImGuiButtonFlags_)ImGuiButtonFlags_Disabled : ImGuiButtonFlags_None)))
+#if VC_HAS_WINDOWSMEDIAFOUNDATION
+      if (m_exportSettings.format == vcVideoExportFormat_MP4_H264)
       {
-        vcModals_OpenModal(pProgramState, vcMT_FlythroughExport);
-        //int frameIndex = 0;
-        //const char *pFilepath = GenerateFrameExportPath(frameIndex);
-        //if (vcModals_OverwriteExistingFile(pProgramState, pFilepath, vcString::Get("flythroughExportAlreadyExists")))
+        const char *pExt = GetExportFormatExtension();
+        vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportSettings.filename, udLengthOf(m_exportSettings.filename), &pExt, 1, vcFDT_SaveFile, nullptr);
+      }
+      else // Some sort of folder required
+#endif //VC_HAS_WINDOWSMEDIAFOUNDATION
+        vcIGSW_FilePicker(pProgramState, vcString::Get("flythroughExportPath"), m_exportSettings.filename, udLengthOf(m_exportSettings.filename), nullptr, 0, vcFDT_SelectDirectory, nullptr);
+
+      ImGuiButtonFlags flags = ImGuiButtonFlags_None;
+      if (m_exportSettings.filename[0] == '\0'
+          || !udStrEqual(udFilename(m_exportSettings.filename).GetExt(), GetExportFormatExtension(true)))
+          //|| (m_exportSettings.format != vcVideoExportFormat_MP4_H264 && udStrEqual(udFilename(m_exportSettings.filename).GetExt(), GetExportFormatExtension())))
+        flags = ImGuiButtonFlags_Disabled;
+
+      if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), flags))
+      {
+        const char *pFilepath = udTempStr("%s/%05d%s", m_exportSettings.filename, 0, GetExportFormatExtension());
+
+#if VC_HAS_WINDOWSMEDIAFOUNDATION
+        pFilepath = (m_exportSettings.format != vcVideoExportFormat_MP4_H264) ? pFilepath : m_exportSettings.filename;
+#endif //VC_HAS_WINDOWSMEDIAFOUNDATION
+
+        if (vcModals_OverwriteExistingFile(pProgramState, pFilepath, vcString::Get("flythroughExportAlreadyExists")))
         {
           // Delete Overwritten Flythrough Images
-          //while (udFileExists(pFilepath) == udR_Success)
-          //{
-          //  udFileDelete(pFilepath);
-          //  ++frameIndex;
-          //  pFilepath = GenerateFrameExportPath(frameIndex);
-          //}
+          CleanFiles();
+
+          vcModals_OpenModal(pProgramState, vcMT_FlythroughExport);
 
           m_state = vcFTS_Exporting;
           pProgramState->screenshot.pImage = nullptr;
@@ -654,4 +667,45 @@ void vcFlythrough::LerpFlightPoints(double timePosition, const vcFlightPoint &fl
 
   if (pLerpedHeadingPitch != nullptr)
     *pLerpedHeadingPitch = udLerp(flightPoint1.m_CameraHeadingPitch, flightPoint2.m_CameraHeadingPitch, lerp);
+}
+
+void vcFlythrough::CleanFiles()
+{
+
+#if VC_HAS_WINDOWSMEDIAFOUNDATION
+  if (m_exportSettings.format == vcVideoExportFormat_MP4_H264)
+  {
+    udFileDelete(m_exportSettings.filename);
+  }
+  else
+#endif //VC_HAS_WINDOWSMEDIAFOUNDATION
+  {
+    int frameIndex = 0;
+    const char *pFilepath = udTempStr("%s/%05d%s", m_exportSettings.filename, frameIndex, GetExportFormatExtension());
+    while (udFileExists(pFilepath) == udR_Success)
+    {
+      udFileDelete(pFilepath);
+      ++frameIndex;
+      pFilepath = udTempStr("%s/%05d%s", m_exportSettings.filename, frameIndex, GetExportFormatExtension());
+    }
+  }
+}
+
+const char *vcFlythrough::GetExportFormatExtension(bool isDir)
+{
+  switch (m_exportSettings.format)
+  {
+  case vcVideoExportFormat_PNGSequence:
+    return isDir ? "" : ".png"; //"PNG Sequence",
+  case vcVideoExportFormat_JPGSequence:
+    return isDir ? "" : ".jpg"; //"JPG Sequence",
+
+#if VC_HAS_WINDOWSMEDIAFOUNDATION
+  case vcVideoExportFormat_MP4_H264:
+    return ".mp4"; //"H264 MP4",
+#endif
+
+  default:
+    return "";
+  }
 }

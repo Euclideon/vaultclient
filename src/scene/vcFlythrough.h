@@ -59,6 +59,8 @@ private:
   void SaveFlightPoints(vcState *pProgramState);
   void SmoothFlightPoints();
   void LerpFlightPoints(double timePosition, const vcFlightPoint &flightPoint1, const vcFlightPoint &flightPoint2, udDouble3 *pLerpedPosition, udDouble2 *pLerpedHeadingPitch);
+  void CleanFiles();
+  const char *GetExportFormatExtension(bool isDir = false);
 
 public:
   vcFlythrough(vcProject *pProject, udProjectNode *pNode, vcState *pProgramState);

@@ -253,11 +253,14 @@ udResult vcVideoExport_Complete(vcVideoExport **ppExport)
   *ppExport = nullptr;
 
 #if VC_HAS_WINDOWSMEDIAFOUNDATION
-  pExport->pSinkWriter->Finalize();
+  if (pExport->settings.format == vcVideoExportFormat_MP4_H264)
+  {
+    pExport->pSinkWriter->Finalize();
 
-  SafeRelease(&pExport->pSinkWriter);
-  MFShutdown();
-  CoUninitialize();
+    SafeRelease(&pExport->pSinkWriter);
+    MFShutdown();
+    CoUninitialize();
+  }
 #endif
 
   udFree(pExport);
