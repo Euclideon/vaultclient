@@ -2177,13 +2177,13 @@ void vcModals_DrawImportAnnotations(vcState *pProgramState)
 void vcModals_DrawUserGuide(vcState *pProgramState)
 {
   if (pProgramState->openModals & (1 << vcMT_UserGuide))
-  {
     ImGui::OpenPopup("###modalUserGuide");
-    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
-  }
 
   if (ImGui::BeginPopupModal("###modalUserGuide", nullptr, ImGuiWindowFlags_NoTitleBar))
   {
+    const float borderThickness = 50.0f;
+    ImGui::SetWindowSize(ImVec2((float)pProgramState->settings.window.width - borderThickness, (float)pProgramState->settings.window.height - borderThickness));
+
     if (pProgramState->closeModals & (1 << vcMT_UserGuide))
       ImGui::CloseCurrentPopup();
     else
