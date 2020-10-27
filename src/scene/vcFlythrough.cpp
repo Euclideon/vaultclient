@@ -126,9 +126,6 @@ void vcFlythrough::AddToScene(vcState *pProgramState, vcRenderData *pRenderData)
       if (m_exportInfo.currentFrame >= 0)
       {
         udResult saveResult = vcVideoExport_AddFrame(pExport, pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext));
-
-        //const char *pSavePath = udTempStr("%s/%05d.%s", m_exportPath, m_exportInfo.currentFrame, vcFlythroughExportFormats[m_selectedExportFormatIndex]);
-        //udResult saveResult = vcTexture_SaveImage(pProgramState->screenshot.pImage, vcRender_GetSceneFramebuffer(pProgramState->pActiveViewport->pRenderContext), pSavePath);
         
         if (saveResult != udR_Success)
         {
@@ -419,18 +416,7 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
 #endif
       };
 
-//      const char *vcFlythroughExportFormatExtensions[] =
-//      {
-//        ".png", //"PNG Sequence",
-//        ".jpg", //"JPG Sequence",
-//
-//#if VC_HAS_WINDOWSMEDIAFOUNDATION
-//        ".mp4", //"H264 MP4",
-//#endif
-//      };
-
       UDCOMPILEASSERT(udLengthOf(vcFlythroughExportFormats) == vcVideoExportFormat_Count, "Bad Length!");
-      //UDCOMPILEASSERT(udLengthOf(vcFlythroughExportFormatExtensions) == vcVideoExportFormat_Count, "Bad Length!");
 
       if (ImGui::BeginCombo(vcString::Get("flythroughExportFormat"), vcFlythroughExportFormats[m_exportSettings.format]))
       {
@@ -456,7 +442,6 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
       ImGuiButtonFlags flags = ImGuiButtonFlags_None;
       if (m_exportSettings.filename[0] == '\0'
           || !udStrEqual(udFilename(m_exportSettings.filename).GetExt(), GetExportFormatExtension(true)))
-          //|| (m_exportSettings.format != vcVideoExportFormat_MP4_H264 && udStrEqual(udFilename(m_exportSettings.filename).GetExt(), GetExportFormatExtension())))
         flags = ImGuiButtonFlags_Disabled;
 
       if (ImGui::ButtonEx(vcString::Get("flythroughExport"), ImVec2(0, 0), flags))
