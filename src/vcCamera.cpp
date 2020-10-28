@@ -2,6 +2,9 @@
 #include "vcState.h"
 #include "vcHotkey.h"
 #include "vcRender.h"
+#include "udSocket.h"
+#include "udThread.h"
+#include "udMath.h"
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -771,3 +774,52 @@ void vcCamera_HandleSceneInput(vcState *pProgramState, vcViewport *pViewport, in
 
   vcCamera_UpdateMatrices(pProgramState->geozone, &pViewport->camera, pProgramState->settings.camera, pProgramState->activeViewportIndex, windowSize, &mousePos);
 }
+
+struct vcCameraReceiveData {
+  vcState* pProgramState;
+  udSocket* socket;
+};
+
+udError vcCamera_ReceiveMatrices(void *data)
+{
+  vcState* pProgramState = (vcState*) data;
+
+  return udError::udE_Failure;
+}
+
+void vcCamera_InitialiseRemote(vcState* pProgramState)
+{
+  udSocket *sock = nullptr;
+  vcCameraReceiveData data = {};
+  data.pProgramState = pProgramState;
+  udResult result;
+  //result = udSocket_Open(&sock, "127.0.0.1", 447/*,udSCF_IsServer*/);
+  result = udSocket_Open(&sock, "10.10.0.84", 447/*,udSCF_IsServer*/);
+  const int bufferSize = 16 * sizeof(double);
+  uint8_t response[bufferSize];
+  int64_t actualReceived=0;
+  char msg[] = "udStream connected\n";
+  result = udSocket_SendData(sock,(uint8_t*)msg , 20);
+  result = udSocket_ReceiveData(sock, response, bufferSize, &actualReceived);
+  double matrix[16];
+  if (actualReceived != bufferSize)
+    printf("Invalid Mesage\n");
+  else
+  {
+    printf("Received Matrix:");
+    for (int i = 0; i < bufferSize; i+=sizeof(double))
+    {
+      double val = *((double*)(response+i));
+      matrix[i / sizeof(double)] = val;
+      printf("%f ", val);
+    }
+    printf("\n");
+    pProgramState->pActiveViewport->camera.matrices.view = udDouble4x4::create(matrix);
+    pProgramState->pActiveViewport->camera.matrices.view.inverse();
+  }
+
+  udSocket_Close(&sock);
+  //udThread *receiver;
+  //udThread_Create(&receiver, vcCamera_ReceiveMatrices, (void*)&data);
+}
+

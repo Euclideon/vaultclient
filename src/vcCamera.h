@@ -149,4 +149,6 @@ void vcCamera_UpdateMatrices(const udGeoZone &zone, vcCamera *pCamera, const vcC
 
 udDouble4 vcCamera_GetNearPlane(const vcCamera &camera, const vcCameraSettings &settings);
 
+void vcCamera_InitialiseRemote(vcState* pProgramState);
+
 #endif//vcCamera_h__

@@ -2191,7 +2191,8 @@ void vcRenderSceneUI(vcState *pProgramState, const ImVec2 &windowPos, const ImVe
       vcMenuBarButton(pProgramState->pUITexture, vcString::Get("mapSettings"), vcB_Invalid, vcMBBI_MapMode, vcMBBG_FirstItem);
       if (ImGui::BeginPopupContextItem("##mapSettingsPopup", 0))
       {
-        vcSettingsUI_BasicMapSettings(pProgramState, true);
+        vcCamera_InitialiseRemote(pProgramState);
+        //vcSettingsUI_BasicMapSettings(pProgramState, true);
 
         ImGui::EndPopup();
       }
