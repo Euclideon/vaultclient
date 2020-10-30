@@ -382,6 +382,15 @@ void vcFlythrough::HandleSceneEmbeddedUI(vcState *pProgramState)
         pPoint->m_CameraHeadingPitch = pProgramState->pViewports[0].camera.headingPitch;
         pPoint->time = 0.0;
       }
+      else
+      {
+        // Delete all keyframes after current time
+        for (size_t index = m_flightPoints.length - 1; index > 0; index--)
+        {
+          if (m_flightPoints[index].time > m_timePosition)
+            m_flightPoints.PopBack();
+        }
+      }
     }
     ImGui::SameLine();
 
