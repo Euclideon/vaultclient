@@ -1166,8 +1166,28 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   break;
   case vcVM_NamedAttribute:
   {
+
+    if (pAttributes == nullptr)
+    {
+      ImGui::TextUnformatted(vcString::Get("settingsVisNotAvailable"));
+      break;
+    }
+
+    const char *pAttributeName = pVisualizationSettings->namedAttribute.attributeName;
+
+    if (ImGui::BeginCombo(vcString::Get("settingsVisAttributeName"), pAttributeName))
+    {
+      for (uint32_t i = 0; i < pAttributes->count; ++i)
+      {
+        if (pAttributes->pDescriptors[i].typeInfo == udATI_float32 &&  ImGui::MenuItem(pAttributes->pDescriptors[i].name))
+        {
+          strcpy_s(pVisualizationSettings->namedAttribute.attributeName, 200, pAttributes->pDescriptors[i].name);
+        }
+      }
+
+      ImGui::EndCombo();
+    }
     retVal |= ImGui::Checkbox(vcString::Get("settingsVisRepeatNamedAttribute"), &pVisualizationSettings->namedAttribute.repeating);
-    const char* colourMapName = pVisualizationSettings->namedAttribute.colourScaleName;
     //Here we could read the possible colour maps from the directory
     const char* listItems[] = {
     "acton", "bamako", "batlow", "berlin", "bilbao", "broc", "brocO", "buda", "cork", "corkO", "davos", "devon", "grayC", "hawaii", "imola", "lajolla", "lapaz", "lisbon", "nuuk", "oleron", "oslo", "roma", "romaO", "tofino", "tokyo", "turku", "vik", "vikO"
@@ -1177,21 +1197,21 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     if (ImGui::Combo(vcString::Get("settingsVisColourFile"), &colourMapID, listItems, lengthListItems))
     {
       pVisualizationSettings->namedAttribute.colourScaleInd = colourMapID;
-      colourMapName = listItems[colourMapID];
-      char basePath[500] = "asset://assets/colourmaps/";
-      strcat(basePath, colourMapName);
-      strcat(basePath, ".txt");
-      strcpy(pVisualizationSettings->namedAttribute.colourScaleName, colourMapName);
+      const char* pColourMapName = listItems[colourMapID];
+      char basePath[200] = "asset://assets/colourmaps/";
+      strcat_s(basePath, 200, pColourMapName);
+      strcat_s(basePath, 200, ".txt");
+      strcpy_s(pVisualizationSettings->namedAttribute.colourScaleName, 200, pColourMapName);
       if (vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings) != udR_Success)
       {
-        //strcpy((char*)pVisualizationSettings->namedAttribute.colourFilePath, "C:/Users/BradenWockner/Downloads/ScientificColourMaps6/ScientificColourMaps6/hawaii/hawaii.txt");
-        strcpy((char*)basePath, "asset://assets/colourmaps/hawaii.txt");
+        //fall back
+        strcpy_s((char*)basePath, 200, "asset://assets/colourmaps/hawaii.txt");
         vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings);
       }
-
     }
-    retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMinNamedAttr"), &pVisualizationSettings->namedAttribute.min, -20000, 30000);
-    retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMaxNamedAttr"), &pVisualizationSettings->namedAttribute.max, -20000, 30000);
+    retVal |= ImGui::InputFloat2(vcString::Get("settingsVisNamedAttributeRange"), &pVisualizationSettings->namedAttribute.valueRange.x );
+    retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMinNamedAttr"), &pVisualizationSettings->namedAttribute.min, pVisualizationSettings->namedAttribute.valueRange.x, pVisualizationSettings->namedAttribute.valueRange.y);
+    retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMaxNamedAttr"), &pVisualizationSettings->namedAttribute.max, pVisualizationSettings->namedAttribute.valueRange.x, pVisualizationSettings->namedAttribute.valueRange.y);
   }
   break;
   case vcVM_Classification:
@@ -1339,16 +1359,19 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   return retVal;
 }
 
+/*
+This likely needs to be moved to a place that it can be accessed from within vcRender so that a default colour scheme can be set properly
+*/
 udResult vcSettingsUI_LoadColours(char *pFileName, vcVisualizationSettings *pVisualizationSettings)
 {
-  char* loadedData = nullptr;
-  uint8_t* intColours = pVisualizationSettings->namedAttribute.colours;
-  udResult loadSuccess = udFile_Load(pFileName, (char**)&loadedData);
+  char* pLoadedData = nullptr;
+  uint8_t* pIntColours = pVisualizationSettings->namedAttribute.colours;
+  udResult loadSuccess = udFile_Load(pFileName, (char**)&pLoadedData);
   if(loadSuccess != udR_Success)
   {
     return loadSuccess;
   }
-  char current = loadedData[0];
+  char current = pLoadedData[0];
   char word[20] = "";
   int fileInd = 0;
   int colourInd = 0;
@@ -1361,13 +1384,13 @@ udResult vcSettingsUI_LoadColours(char *pFileName, vcVisualizationSettings *pVis
       word[wordInd] = current;
       ++wordInd;
       ++fileInd;
-      current = loadedData[fileInd];
+      current = pLoadedData[fileInd];
     }
-    intColours[colourInd] = atof(word) * 256;
+    pIntColours[colourInd] = atof(word) * 256;
     ++colourInd;
     ++fileInd;
-    current = loadedData[fileInd];
+    current = pLoadedData[fileInd];
   }
-  udFree(loadedData);
+  udFree(pLoadedData);
   return udR_Success;
 }
