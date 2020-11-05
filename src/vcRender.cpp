@@ -1704,12 +1704,49 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Classification;
       else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_NamedAttribute) )//&& udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "Height", &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {
-        pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeF32;
 
         if (udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, pVisSettings->namedAttribute.attributeName, &pVoxelShaderData[numVisibleModels].attributeOffset) != udE_Success)
         {
           udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "Ag_ppm_BEST", &pVoxelShaderData[numVisibleModels].attributeOffset);
         }
+        else
+          switch (pVisSettings->namedAttribute.valueType)
+          {
+          case udATI_float64:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeF64;
+            break;
+          case udATI_float32:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeF32;
+            break;
+          case udATI_uint64:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeUI64;
+            break;
+          case udATI_uint32:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeUI32;
+            break;
+          case udATI_uint16:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeUI16;
+            break;
+          case udATI_uint8:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeUI8;
+            break;
+          case udATI_int64:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeI64;
+            break;
+          case udATI_int32:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeI32;
+            break;
+          case udATI_int16:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeI16;
+            break;
+          case udATI_int8:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_NamedAttributeI8;
+            break;
+          default:
+            pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Black;
+            break;
+          }
+            
         double min = pVisSettings->namedAttribute.min;
         double max = pVisSettings->namedAttribute.max;
         pVoxelShaderData[numVisibleModels].data.heightAttribute.min = min;

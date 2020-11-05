@@ -1179,8 +1179,9 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     {
       for (uint32_t i = 0; i < pAttributes->count; ++i)
       {
-        if (pAttributes->pDescriptors[i].typeInfo == udATI_float32 &&  ImGui::MenuItem(pAttributes->pDescriptors[i].name))
+        if (!(pAttributes->pDescriptors[i].typeInfo & udATI_Color) && ImGui::MenuItem(pAttributes->pDescriptors[i].name))
         {
+          pVisualizationSettings->namedAttribute.valueType = pAttributes->pDescriptors[i].typeInfo;
           strcpy_s(pVisualizationSettings->namedAttribute.attributeName, 200, pAttributes->pDescriptors[i].name);
         }
       }
@@ -1386,7 +1387,7 @@ udResult vcSettingsUI_LoadColours(char *pFileName, vcVisualizationSettings *pVis
       ++fileInd;
       current = pLoadedData[fileInd];
     }
-    pIntColours[colourInd] = atof(word) * 256;
+    pIntColours[colourInd] = (uint8_t) (atof(word) * 256);
     ++colourInd;
     ++fileInd;
     current = pLoadedData[fileInd];

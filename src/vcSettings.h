@@ -199,6 +199,7 @@ struct vcVisualizationSettings
     char colourScaleName[200];
     int colourScaleInd;
     bool repeating;
+    enum udAttributeTypeInfo valueType;
   } namedAttribute;
 
   uint32_t returnNumberColours[s_maxReturnNumbers];

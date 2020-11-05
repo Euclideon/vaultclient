@@ -46,10 +46,11 @@ inline uint32_t vcVoxelShader_FadeAlpha(uint32_t firstColour, uint32_t secondCol
   return result;
 }
 
-uint32_t vcVoxelShader_NamedAttributeF32(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+template<typename T>
+inline uint32_t vcVoxelShader_NamedAttr(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
-  const float *pAttrValue = nullptr;
+  const T *pAttrValue = nullptr;
   udPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void**)&pAttrValue);
   int ind = (int)((*pAttrValue - pData->data.heightAttribute.min) / pData->data.heightAttribute.increment);
   //this branch could be split to a duplicate function called for just wwhen we want contouring:
@@ -63,10 +64,60 @@ uint32_t vcVoxelShader_NamedAttributeF32(udPointCloud* pPointCloud, const udVoxe
   else
     ind = udAbs(ind%255);
   uint8_t red = *(3 * ind + pData->data.heightAttribute.colourArray);
-  uint8_t green = *(3 * ind + pData->data.heightAttribute.colourArray+1);
-  uint8_t blue = *(3 * ind + pData->data.heightAttribute.colourArray+2);
+  uint8_t green = *(3 * ind + pData->data.heightAttribute.colourArray + 1);
+  uint8_t blue = *(3 * ind + pData->data.heightAttribute.colourArray + 2);
   uint32_t colour = red<<16 |green<<8 | blue;
   return vcPCShaders_BuildAlpha(pData->pModel) | colour;
+}
+
+uint32_t vcVoxelShader_NamedAttributeF64(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<double>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeF32(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<float>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeUI64(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<uint64_t>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeUI32(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<uint32_t>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeUI16(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<uint16_t>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeUI8(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<uint8_t>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeI64(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<int64_t>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeI32(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<int32_t>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeI16(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<int16_t>(pPointCloud, pVoxelID, pUserData);
+}
+
+uint32_t vcVoxelShader_NamedAttributeI8(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
+{
+  return vcVoxelShader_NamedAttr<int8_t>(pPointCloud, pVoxelID, pUserData);
 }
 
 

@@ -84,4 +84,14 @@ uint32_t vcVoxelShader_ScanAngle(udPointCloud *pPointCloud,const udVoxelID *pVox
 uint32_t vcVoxelShader_PointSourceID(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
 uint32_t vcVoxelShader_ReturnNumber(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
 uint32_t vcVoxelShader_NumberOfReturns(udPointCloud *pPointCloud,const udVoxelID *pVoxelID, const void *pUserData);
+
+uint32_t vcVoxelShader_NamedAttributeF64(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
 uint32_t vcVoxelShader_NamedAttributeF32(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeUI64(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeUI32(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeUI16(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeUI8(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeI64(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeI32(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeI16(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
+uint32_t vcVoxelShader_NamedAttributeI8(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData);
