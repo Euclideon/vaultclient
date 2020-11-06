@@ -442,6 +442,9 @@ void vcViewpoint::SaveSettings(vcState *pProgramState, udProjectNode *pNode)
   case vcVM_NumberOfReturns:
     udProjectNode_SetMetadataString(pNode, "visualisation.mode", "number_of_returns");
     break;
+  case vcVM_NamedAttribute:
+    udProjectNode_SetMetadataString(pNode, "visualisation.mode", "custom_attribute");
+    break;
   case vcVM_Count:
     break;
   }

@@ -193,8 +193,8 @@ struct vcVisualizationSettings
   struct
   {
     udFloat2 valueRange;
-    float min;
-    float max;
+    double min;
+    double max;
     char attributeName[200];
     uint8_t colours[256 * 3];
     char colourScaleName[200];
