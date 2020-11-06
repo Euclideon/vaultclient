@@ -1707,7 +1707,7 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
 
         if (udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, pVisSettings->namedAttribute.attributeName, &pVoxelShaderData[numVisibleModels].attributeOffset) != udE_Success)
         {
-          udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "Ag_ppm_BEST", &pVoxelShaderData[numVisibleModels].attributeOffset);
+          pModels[numVisibleModels].pVoxelShader = vcVoxelShader_Black;
         }
         else
           switch (pVisSettings->namedAttribute.valueType)
@@ -1751,7 +1751,6 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
         double max = pVisSettings->namedAttribute.max;
         pVoxelShaderData[numVisibleModels].data.heightAttribute.min = min;
         pVoxelShaderData[numVisibleModels].data.heightAttribute.max = max;
-        strcpy(pVoxelShaderData[numVisibleModels].data.heightAttribute.attributeName, "acton");
 
         pVoxelShaderData[numVisibleModels].data.heightAttribute.increment = (max - min) / 256;
         pVoxelShaderData[numVisibleModels].data.heightAttribute.repeating = pVisSettings->namedAttribute.repeating;

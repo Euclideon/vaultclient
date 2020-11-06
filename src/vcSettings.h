@@ -8,6 +8,7 @@
 #include "udMath.h"
 #include "udChunkedArray.h"
 #include "udUUID.h"
+#include "udAttributes.h"
 
 #include "vcCamera.h"
 #include "vcGLState.h"
@@ -199,7 +200,7 @@ struct vcVisualizationSettings
     char colourScaleName[200];
     int colourScaleInd;
     bool repeating;
-    enum udAttributeTypeInfo valueType;
+    udAttributeTypeInfo valueType;
   } namedAttribute;
 
   uint32_t returnNumberColours[s_maxReturnNumbers];

@@ -1182,7 +1182,7 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
         if (!(pAttributes->pDescriptors[i].typeInfo & udATI_Color) && ImGui::MenuItem(pAttributes->pDescriptors[i].name))
         {
           pVisualizationSettings->namedAttribute.valueType = pAttributes->pDescriptors[i].typeInfo;
-          strcpy_s(pVisualizationSettings->namedAttribute.attributeName, 200, pAttributes->pDescriptors[i].name);
+          udStrncpy(pVisualizationSettings->namedAttribute.attributeName, 200, pAttributes->pDescriptors[i].name, 200);
         }
       }
 
@@ -1200,13 +1200,13 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
       pVisualizationSettings->namedAttribute.colourScaleInd = colourMapID;
       const char* pColourMapName = listItems[colourMapID];
       char basePath[200] = "asset://assets/colourmaps/";
-      strcat_s(basePath, 200, pColourMapName);
-      strcat_s(basePath, 200, ".txt");
-      strcpy_s(pVisualizationSettings->namedAttribute.colourScaleName, 200, pColourMapName);
+      udStrcat(basePath, 200, pColourMapName);
+      udStrcat(basePath, 200, ".txt");
+      udStrncpy(pVisualizationSettings->namedAttribute.colourScaleName, 200, pColourMapName, 200);
       if (vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings) != udR_Success)
       {
         //fall back
-        strcpy_s((char*)basePath, 200, "asset://assets/colourmaps/hawaii.txt");
+        udStrncpy((char*)basePath, 200, "asset://assets/colourmaps/hawaii.txt", 200);
         vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings);
       }
     }
