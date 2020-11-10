@@ -600,6 +600,7 @@
   "scenePOIAttachModelURI": "URL",
   "scenePOIAttachModelFailed": "Failed to load model",
   "scenePOIAttachmentSpeed": "Attached Model Speed",
+  "removeModelFromPOI": "Remove Model",
   "scenePOIAttachCameraToAttachment": "Link camera to attachment",
   "scenePOILineSettings": "Line Settings",
   "scenePOILineShowLength": "Show Length",
