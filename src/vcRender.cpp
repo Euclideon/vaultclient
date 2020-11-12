@@ -9,6 +9,7 @@
 #include "vcState.h"
 #include "vcVoxelShaders.h"
 #include "vcConstants.h"
+#include "vcColourScales.h"
 
 #include "vcInternalModels.h"
 #include "vcSceneLayerRenderer.h"
@@ -1749,12 +1750,12 @@ udResult vcRender_RenderUD(vcState *pProgramState, vcRenderContext *pRenderConte
             
         double min = pVisSettings->namedAttribute.min;
         double max = pVisSettings->namedAttribute.max;
-        pVoxelShaderData[numVisibleModels].data.heightAttribute.min = min;
-        pVoxelShaderData[numVisibleModels].data.heightAttribute.max = max;
+        pVoxelShaderData[numVisibleModels].data.namedAttribute.min = min;
+        pVoxelShaderData[numVisibleModels].data.namedAttribute.max = max;
+        pVoxelShaderData[numVisibleModels].data.namedAttribute.increment = (max - min) / 256;
+        pVoxelShaderData[numVisibleModels].data.namedAttribute.repeating = pVisSettings->namedAttribute.repeating;
+        pVoxelShaderData[numVisibleModels].data.namedAttribute.pColourArray = vcCS_Scales[pVisSettings->namedAttribute.colourScaleInd];
 
-        pVoxelShaderData[numVisibleModels].data.heightAttribute.increment = (max - min) / 256;
-        pVoxelShaderData[numVisibleModels].data.heightAttribute.repeating = pVisSettings->namedAttribute.repeating;
-        memcpy(pVoxelShaderData[numVisibleModels].data.heightAttribute.colourArray, pVisSettings->namedAttribute.colours, (256 * 3) * sizeof(uint8_t));
       }
       else if ((pVisSettings->mode == vcVM_Default || pVisSettings->mode == vcVM_DisplacementDistance) && udAttributeSet_GetOffsetOfNamedAttribute(&renderData.models[i]->m_pointCloudHeader.attributes, "udDisplacement", &pVoxelShaderData[numVisibleModels].attributeOffset) == udE_Success)
       {

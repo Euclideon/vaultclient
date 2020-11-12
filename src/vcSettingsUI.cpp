@@ -13,6 +13,7 @@
 #include "vcFeatures.h"
 #include "vcProxyHelper.h"
 #include "vcStringFormat.h"
+#include "vcColourScales.h"
 
 #include "udConfig.h"
 
@@ -43,7 +44,6 @@ static struct
   { "Custom", "custom", nullptr, nullptr, nullptr, nullptr },
 };
 
-udResult vcSettingsUI_LoadColours(char* pFileName, vcVisualizationSettings* pVisualizationSettings);
 enum vcLASClassifications
 {
   vcLASClassifications_FirstReserved = 19,
@@ -1174,7 +1174,6 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
     }
 
     const char *pAttributeName = pVisualizationSettings->namedAttribute.attributeName;
-
     if (ImGui::BeginCombo(vcString::Get("settingsVisAttributeName"), pAttributeName))
     {
       for (uint32_t i = 0; i < pAttributes->count; ++i)
@@ -1182,34 +1181,15 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
         if (!(pAttributes->pDescriptors[i].typeInfo & udATI_Color) && ImGui::MenuItem(pAttributes->pDescriptors[i].name))
         {
           pVisualizationSettings->namedAttribute.valueType = pAttributes->pDescriptors[i].typeInfo;
-          udStrncpy(pVisualizationSettings->namedAttribute.attributeName, 200, pAttributes->pDescriptors[i].name, 200);
+          udStrncpy(pVisualizationSettings->namedAttribute.attributeName, 256, pAttributes->pDescriptors[i].name, 256);
         }
       }
 
       ImGui::EndCombo();
     }
+
     retVal |= ImGui::Checkbox(vcString::Get("settingsVisRepeatNamedAttribute"), &pVisualizationSettings->namedAttribute.repeating);
-    //Here we could read the possible colour maps from the directory
-    const char* listItems[] = {
-    "acton", "bamako", "batlow", "berlin", "bilbao", "broc", "brocO", "buda", "cork", "corkO", "davos", "devon", "grayC", "hawaii", "imola", "lajolla", "lapaz", "lisbon", "nuuk", "oleron", "oslo", "roma", "romaO", "tofino", "tokyo", "turku", "vik", "vikO"
-    };
-    const int lengthListItems = 28;
-    int colourMapID = pVisualizationSettings->namedAttribute.colourScaleInd;
-    if (ImGui::Combo(vcString::Get("settingsVisColourFile"), &colourMapID, listItems, lengthListItems))
-    {
-      pVisualizationSettings->namedAttribute.colourScaleInd = colourMapID;
-      const char* pColourMapName = listItems[colourMapID];
-      char basePath[200] = "asset://assets/colourmaps/";
-      udStrcat(basePath, 200, pColourMapName);
-      udStrcat(basePath, 200, ".txt");
-      udStrncpy(pVisualizationSettings->namedAttribute.colourScaleName, 200, pColourMapName, 200);
-      if (vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings) != udR_Success)
-      {
-        //fall back
-        udStrncpy((char*)basePath, 200, "asset://assets/colourmaps/hawaii.txt", 200);
-        vcSettingsUI_LoadColours((char*)basePath, pVisualizationSettings);
-      }
-    }
+    ImGui::Combo(vcString::Get("settingsVisColourFile"), (int*)&pVisualizationSettings->namedAttribute.colourScaleInd, vcCS_ScaleNames, vcCSS_Count);
     retVal |= ImGui::InputFloat2(vcString::Get("settingsVisNamedAttributeRange"), &pVisualizationSettings->namedAttribute.valueRange.x );
     retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMinNamedAttr"), &pVisualizationSettings->namedAttribute.min, pVisualizationSettings->namedAttribute.valueRange.x, pVisualizationSettings->namedAttribute.valueRange.y);
     retVal |= ImGui::SliderFloat(vcString::Get("settingsVisMaxNamedAttr"), &pVisualizationSettings->namedAttribute.max, pVisualizationSettings->namedAttribute.valueRange.x, pVisualizationSettings->namedAttribute.valueRange.y);
@@ -1360,38 +1340,3 @@ bool vcSettingsUI_VisualizationSettings(vcVisualizationSettings *pVisualizationS
   return retVal;
 }
 
-/*
-This likely needs to be moved to a place that it can be accessed from within vcRender so that a default colour scheme can be set properly
-*/
-udResult vcSettingsUI_LoadColours(char *pFileName, vcVisualizationSettings *pVisualizationSettings)
-{
-  char* pLoadedData = nullptr;
-  uint8_t* pIntColours = pVisualizationSettings->namedAttribute.colours;
-  udResult loadSuccess = udFile_Load(pFileName, (char**)&pLoadedData);
-  if(loadSuccess != udR_Success)
-  {
-    return loadSuccess;
-  }
-  char current = pLoadedData[0];
-  char word[20] = "";
-  int fileInd = 0;
-  int colourInd = 0;
-  while (current != '\0')
-  {
-    int wordInd = 0;
-    while (current != ' ' && current != '\n')
-    {
-
-      word[wordInd] = current;
-      ++wordInd;
-      ++fileInd;
-      current = pLoadedData[fileInd];
-    }
-    pIntColours[colourInd] = (uint8_t) (atof(word) * 256);
-    ++colourInd;
-    ++fileInd;
-    current = pLoadedData[fileInd];
-  }
-  udFree(pLoadedData);
-  return udR_Success;
-}

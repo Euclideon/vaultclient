@@ -67,9 +67,8 @@ struct vcUDRSData
       double min;
       double max;
       double increment;
-      char attributeName[50];
-      uint8_t colourArray[256 * 3 + 1];
-    } heightAttribute;
+      const uint8_t *pColourArray; //length == 256*3
+    } namedAttribute;
   } data;
 };
 

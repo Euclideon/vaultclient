@@ -50,11 +50,12 @@ template<typename T>
 inline uint32_t vcVoxelShader_NamedAttr(udPointCloud* pPointCloud, const udVoxelID* pVoxelID, const void* pUserData)
 {
   vcUDRSData *pData = (vcUDRSData *)pUserData;
-  const T *pAttrValue = nullptr;
+  const T attrDefaultValue = 0;
+  const T *pAttrValue = &attrDefaultValue;
   udPointCloud_GetAttributeAddress(pPointCloud, pVoxelID, pData->attributeOffset, (const void**)&pAttrValue);
-  int ind = (int)((*pAttrValue - pData->data.heightAttribute.min) / pData->data.heightAttribute.increment);
+  int ind = (int)((*pAttrValue - pData->data.namedAttribute.min) / pData->data.namedAttribute.increment);
   //this branch could be split to a duplicate function called for just wwhen we want contouring:
-  if (!pData->data.heightAttribute.repeating)
+  if (!pData->data.namedAttribute.repeating)
   {
     if (ind > 255)
       ind = 255;
@@ -63,9 +64,10 @@ inline uint32_t vcVoxelShader_NamedAttr(udPointCloud* pPointCloud, const udVoxel
   }
   else
     ind = udAbs(ind%255);
-  uint8_t red = *(3 * ind + pData->data.heightAttribute.colourArray);
-  uint8_t green = *(3 * ind + pData->data.heightAttribute.colourArray + 1);
-  uint8_t blue = *(3 * ind + pData->data.heightAttribute.colourArray + 2);
+
+  uint8_t red = *(3 * ind + pData->data.namedAttribute.pColourArray);
+  uint8_t green = *(3 * ind + (pData->data.namedAttribute.pColourArray) + 1);
+  uint8_t blue = *(3 * ind + (pData->data.namedAttribute.pColourArray) + 2);
   uint32_t colour = red<<16 |green<<8 | blue;
   return vcPCShaders_BuildAlpha(pData->pModel) | colour;
 }

@@ -9,6 +9,7 @@
 #include "udChunkedArray.h"
 #include "udUUID.h"
 #include "udAttributes.h"
+#include "vcColourScales.h"
 
 #include "vcCamera.h"
 #include "vcGLState.h"
@@ -193,12 +194,10 @@ struct vcVisualizationSettings
   struct
   {
     udFloat2 valueRange;
-    double min;
-    double max;
-    char attributeName[200];
-    uint8_t colours[256 * 3];
-    char colourScaleName[200];
-    int colourScaleInd;
+    float min;
+    float max;
+    char attributeName[256];
+    vcCS_Scale colourScaleInd;
     bool repeating;
     udAttributeTypeInfo valueType;
   } namedAttribute;
