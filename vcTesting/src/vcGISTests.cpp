@@ -123,3 +123,126 @@ TEST(vcGIS, LocalAxis)
     EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({ 0, 0, 1 })));
   }
 }
+
+TEST(vcGIS, LocalVectors)
+{
+  udGeoZone zone = {};
+  udDouble3 localPosition = {0.0, 0.0, 0.0};
+
+  // Non geolocated
+  udGeoZone_SetFromSRID(&zone, 0);
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), vcGIS_GetWorldLocalNorth(zone, localPosition)));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), vcGIS_GetWorldLocalUp(zone, localPosition)));
+
+  // ECEF
+  udGeoZone_SetFromSRID(&zone, 4978);
+  localPosition = udGeoZone_LatLongToCartesian(zone, {0.0, 0.0, 6371000.0});
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), vcGIS_GetWorldLocalNorth(zone, localPosition)));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), vcGIS_GetWorldLocalUp(zone, localPosition)));
+
+  // Long Lat
+  udGeoZone_SetFromSRID(&zone, 84);
+  localPosition = udGeoZone_CartesianToLatLong(zone, {10.0, 20.0, 30.0}, true);
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), vcGIS_GetWorldLocalNorth(zone, localPosition)));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), vcGIS_GetWorldLocalUp(zone, localPosition)));
+
+  // Lat long
+  udGeoZone_SetFromSRID(&zone, 4326);
+  localPosition = udGeoZone_CartesianToLatLong(zone, {10.0, 20.0, 30.0});
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), vcGIS_GetWorldLocalNorth(zone, localPosition)));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), vcGIS_GetWorldLocalUp(zone, localPosition)));
+  
+  // Transverse Mercator
+  udGeoZone_SetFromSRID(&zone, 32701);
+  localPosition = udGeoZone_CartesianToLatLong(zone, {10.0, 20.0, 30.0}, true);
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), vcGIS_GetWorldLocalNorth(zone, localPosition)));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), vcGIS_GetWorldLocalUp(zone, localPosition)));
+
+  // Lambert Conformal Conic 2SP
+  udGeoZone_SetFromSRID(&zone, 2230);
+  localPosition = udGeoZone_CartesianToLatLong(zone, {10.0, 20.0, 30.0}, true);
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), vcGIS_GetWorldLocalNorth(zone, localPosition)));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), vcGIS_GetWorldLocalUp(zone, localPosition)));
+
+  // Web Mercator
+  udGeoZone_SetFromSRID(&zone, 3857);
+  localPosition = udGeoZone_CartesianToLatLong(zone, {10.0, 20.0, 30.0}, true);
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), vcGIS_GetWorldLocalNorth(zone, localPosition)));
+  EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), vcGIS_GetWorldLocalUp(zone, localPosition)));
+}
+
+TEST(vcGIS, RotationTests)
+{
+  udGeoZone lZone = {};
+  udDouble3 localPosition = {};
+  udDoubleQuat q = {};
+
+  // Non geolocated
+  {
+    udGeoZone_SetFromSRID(&lZone, 0);
+
+    localPosition = {1.0, 2.0, 3.0};
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+  }
+
+  // Lat Long
+  {
+    udGeoZone_SetFromSRID(&lZone, 4326);
+
+    localPosition = {0.0, 0.0, 0.0};;
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+
+    localPosition = {0.0, 90.0, 0.0};
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+
+    localPosition = {0.0, 180.0, 0.0};
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+
+    localPosition = {0.0, -90.0, 6371000.0};
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, -1, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+  }
+
+  // Long Lat
+  {
+    udGeoZone_SetFromSRID(&lZone, 84);
+
+    localPosition = {0.0, 0.0, 0.0};;
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+
+    localPosition = {90.0, 0.0, 0.0};
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+
+    localPosition = {180.0, 0.0, 0.0};
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+
+    localPosition = {-90.0, 0.0, 0.0};
+    q = vcGIS_GetQuaternion(lZone, localPosition);
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(1, 0, 0), q.apply({1, 0, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 1, 0), q.apply({0, 1, 0})));
+    EXPECT_TRUE(udEqualApprox(udDouble3::create(0, 0, 1), q.apply({0, 0, 1})));
+  }
+}

@@ -99,15 +99,25 @@ void vcGIS_GetOrthonormalBasis(const udGeoZone &zone, udDouble3 localPosition, u
 
 udDoubleQuat vcGIS_GetQuaternion(const udGeoZone &zone, udDouble3 localPosition)
 {
-  udDouble3 up, north, east;
-  vcGIS_GetOrthonormalBasis(zone, localPosition, &up, &north, &east);
+  udDoubleQuat q{0.0, 0.0, 0.0, 1.0};
 
-  udDouble4x4 m = udDouble4x4::create(-north.x, -north.y, -north.z, 0,
-                                       east.x,   east.y,   east.z,  0,
-                                       up.x,     up.y,     up.z,    0,
-                                       0,        0,        0,       1);
+  if (zone.projection == udGZPT_LatLong)
+  {
+    q = udDoubleQuat::create(-UD_HALF_PI, 0.0, 0.0);
+  }
+  if (zone.projection == udGZPT_ECEF)
+  {
+    udDouble3 up, north, east;
+    vcGIS_GetOrthonormalBasis(zone, localPosition, &up, &north, &east);
 
-  return m.extractQuaternion();
+    udDouble4x4 m = udDouble4x4::create(-north.x, -north.y, -north.z, 0,
+                                         east.x,   east.y,   east.z,  0,
+                                         up.x,     up.y,     up.z,    0,
+                                         0,        0,        0,       1);
+
+    q = m.extractQuaternion();
+  }
+  return q;
 }
 
 udDouble3 vcGIS_GetWorldLocalUp(const udGeoZone &zone, udDouble3 localCoords)
